@@ -1,0 +1,67 @@
+# Python CircleCI 2.0 configuration file
+#
+# Source: https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # python version specified here
+      # Additional options here: https://circleci.com/docs/2.0/circleci-images/
+      - image: $AWS_ECR_IMAGE_TAG
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - dependencies-{{ checksum "requirements.txt" }}
+          - dev-dependencies-{{ checksum "requirements-dev.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - dependencies-
+          - dev-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: dependencies-{{ checksum "requirements.txt" }}
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: dev-dependencies-{{ checksum "requirements-dev.txt" }}
+
+      # run tests!
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            pytest --cov=buzzard --cov-report=term --cov-report=xml
+            coveralls
+
+      - run:
+          name: run linter
+          command: |
+            mkdir -p test-reports
+            . venv/bin/activate
+            pylint buzzard --output-format=json > test-reports/pylint.json || true
+          when: always
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
