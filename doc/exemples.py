@@ -24,7 +24,7 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
 
     Why is this file importing gdal?
     --------------------------------
-    `wgs84` files are poorly supported by `Buzzard`, the library was initially designed to work
+    `wgs84` files are poorly supported by `buzzard`, the library was initially designed to work
     with metric projections. The use of `gdal.Warp ` inside buzzard.DataSource is planned for a
     future version.
     """

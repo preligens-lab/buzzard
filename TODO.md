@@ -725,7 +725,7 @@ RasterProxy.get_data_overview(self, oid, ...same.parameters.as.get_data...)
 ## Open modes
 
 ### Vector read
-| File srs vs Work srs | Transform when | Open type                                         | Buzzard read operations |
+| File srs vs Work srs | Transform when | Open type                                         | buzzard read operations |
 |----------------------|----------------|---------------------------------------------------|-------------------------|
 | Same                 | Never          | Regular                                           | Read, yield             |
 | Different            | On read        | Regular                                           | Read, transform, yield  |
@@ -734,7 +734,7 @@ RasterProxy.get_data_overview(self, oid, ...same.parameters.as.get_data...)
 | Different            | On open        | Transform to `ESRI Shapefile` dataset to tempfile | Read, yield             |
 
 ### Vector write
-| File srs vs Work srs | Transform when | Open type | Buzzard write operations |
+| File srs vs Work srs | Transform when | Open type | buzzard write operations |
 |----------------------|----------------|-----------|--------------------------|
 | Same                 | Never          | Regular   | Get, write               |
 | Different            | On write       | Regular   | Get, transform, write    |

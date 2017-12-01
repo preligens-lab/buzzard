@@ -146,7 +146,7 @@ _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
 class Env():
-    """Context manager to update Buzzard states
+    """Context manager to update buzzard states
 
 
     Parameters
