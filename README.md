@@ -79,7 +79,7 @@ for poly in ds.polygons.iter_data(None):
 
 ## Advanced (and fun 😊) examples
 
-Additional examples can be found here: [jupyter notebook](./doc/exemples.ipynb).
+Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
 
 ## Features
 - Raster and vector files opening
@@ -165,7 +165,7 @@ See [AUTHORS](./AUTHORS.md)
 See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
-- [exemples](./doc/exemples.ipynb)
+- [examples](./doc/examples.ipynb)
 - [public-classes](https://github.com/airware/buzzard/wiki/Public-classes)
 - [wiki](https://github.com/airware/buzzard/wiki)
 - [todo](./TODO.md)

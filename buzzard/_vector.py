@@ -140,7 +140,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     def close(self):
         """Close a vector source with a call or a context management.
 
-        Exemple
+        Example
         -------
         >>> ds.roofs.close()
         >>> with ds.roofs.close:
@@ -160,7 +160,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     def delete(self):
         """Delete vector file with a call or a context management.
 
-        Exemple
+        Example
         -------
         >>> ds.polygons.delete()
         >>> with ds.polygons.delete:
@@ -296,7 +296,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         | 'coordinates' | Some   | (nested list / numpy arrays, *fields) |
 
 
-        Exemple
+        Example
         -------
         >>> for polygon, volume in ds.stocks.iter_data('volume'):
                 print('area:{}m**2, volume:{}m**3'.format(polygon.area, volume))
@@ -403,7 +403,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         iterable of geojson feature (dict)
 
 
-        Exemple
+        Example
         -------
         >>> for geojson in ds.stocks.iter_geojson():
                 print('exterior-point-count:{}, volume:{}m**3'.format(
@@ -485,7 +485,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             else: insert feature at index (if supported by driver)
 
 
-        Exemple
+        Example
         -------
         >>> poly = shapely.geometry.box(10, 10, 42, 43)
         >>> fields = {'volume': 42.24}

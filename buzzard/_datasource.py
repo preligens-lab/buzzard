@@ -19,7 +19,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     For actions specific to opened files, see RasterProxy and VectorProxy classes
 
-    Exemple
+    Example
     -------
     >>> import buzzard as buzz
     >>> ds = buzz.DataSource()
@@ -68,7 +68,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_implicit` |
         | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_origin`                   |
 
-        For exemple if the files are known to be all written in a same `sr` use `mode 1`, or
+        For example if the files are known to be all written in a same `sr` use `mode 1`, or
         `mode 4` if you wish to work in a different `sr`.
         On the other hand, if not all files are written in the same `sr`, `mode 2` and
         `mode 3` may help, but make sure to use `buzz.Env(analyse_transformation=True)` to be
@@ -78,7 +78,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         - A path to a file
         - A [textual spatial reference](http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-)
 
-        Exemple
+        Example
         -------
         mode 1
         >>> ds = buzz.DataSource()
@@ -159,7 +159,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             options for gdal
         mode: one of ('r', 'w')
 
-        Exemple
+        Example
         -------
         >>> ds.open_raster('ortho', '/path/to/ortho.tif')
         >>> ortho = ds.open_araster('/path/to/ortho.tif')
@@ -226,7 +226,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             a value: All bands are set to this value
             an iterable of length `band_count` of value: All bands will be set to respective state
 
-        Exemple
+        Example
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
         >>> out = ds.create_araster('output.tif', ds.dem.fp, 'float32', 1)
@@ -350,7 +350,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             options for ogr
         mode: one of ('r', 'w')
 
-        Exemple
+        Example
         -------
         >>> ds.open_vector('trees', '/path/to.shp')
         >>> trees = ds.open_avector('/path/to.shp')
@@ -385,7 +385,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         geometry: string
             name of a wkb geometry type
             http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
-            (see exemple below)
+            (see example below)
         fields: iterable of dict
             Attributes of fields, one dict per field. (see `Field attributes` below)
         layer: None or string
@@ -431,7 +431,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         RealList      key: 'reallist', 'float list'
         StringList    key: 'stringlist', 'str list'
 
-        Exemple
+        Example
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
         >>> lines = ds.create_avector('/path/to.shp', 'linestring')

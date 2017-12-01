@@ -1,4 +1,4 @@
-"""doc/exemples.ipynb dep"""
+"""doc/examples.ipynb dep"""
 
 import os
 

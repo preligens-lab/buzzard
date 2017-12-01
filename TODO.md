@@ -173,7 +173,7 @@ This section lists all item that are meant to be executed or implemented into `b
   - `rtree`, `qhull`
   - `scipy.*`
   - `tensorflow`, `numba`, `opencl`
-  - Exemple: `Footprint.remap` can be performed by multiple libraries
+  - Example: `Footprint.remap` can be performed by multiple libraries
 
 #### New Features (Medium)
 - Add support for custom reprojections
@@ -257,8 +257,8 @@ n/a
 #### New Features (Minor)
 - Add `.t`, `.yx`, `.yxt`, `.geom` properties
   - Returning a wrapped Footprint in which methods return `xy tuples`/`yx numpy arrays`/`yx tuples`/`shapely geometry`
-  - Exemple: `arr[fp.yxt.rc]`
-  - Exemple: `(fp & fp.geom.c).dilate(100)`
+  - Example: `arr[fp.yxt.rc]`
+  - Example: `(fp & fp.geom.c).dilate(100)`
 
 
 ### Tests
@@ -620,7 +620,7 @@ Every item which is not yet a **TODO**
 ### `Footprint.__init__`
 ```
 """
-Exemple: To build this representation of size (80, 10) and pxsize (160, 20)
+Example: To build this representation of size (80, 10) and pxsize (160, 20)
 ****************************
 * (0, 10)       (80, 10)   *
 *   ||||||||||||||||       *

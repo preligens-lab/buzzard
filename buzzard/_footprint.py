@@ -519,7 +519,7 @@ class Footprint(TileMixin, IntersectionMixin):
     def extent(self):
         """Get bounding reclangle extent
 
-        Exemple
+        Example
         -------
         >>> minx, maxx, miny, maxy = fp.extent
 
@@ -534,7 +534,7 @@ class Footprint(TileMixin, IntersectionMixin):
     def bounds(self):
         """Get bounding reclangle bounds
 
-        Exemple
+        Example
         -------
         >>> minx, miny, maxx, maxy = fp.bounds
 
@@ -550,7 +550,7 @@ class Footprint(TileMixin, IntersectionMixin):
         """Get retangle coordinates
 
 
-        Exemple
+        Example
         -------
         >>> tl, bl, br, tr = fp.coords
 
@@ -1233,7 +1233,7 @@ class Footprint(TileMixin, IntersectionMixin):
         (slice, slice)
 
 
-        Exemple
+        Example
         -------
         >>> big_data[small.slice_in(big)] = small_data
 
@@ -1498,7 +1498,7 @@ class Footprint(TileMixin, IntersectionMixin):
         mask: numpy array
 
 
-        Exemples
+        Examples
         --------
         >>> burn_polygons(poly)
         >>> burn_polygons([poly, poly])
@@ -1555,7 +1555,7 @@ class Footprint(TileMixin, IntersectionMixin):
         obj: shapely polygon or nested iterators over shapely polygons
 
 
-        Exemples
+        Examples
         --------
         >>> burn_polygons(poly)
         >>> burn_polygons([poly, poly])

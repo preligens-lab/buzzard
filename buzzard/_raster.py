@@ -39,7 +39,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
     def close(self):
         """Close a raster with a call or a context management.
 
-        Exemples
+        Examples
         --------
         >>> ds.dem.close()
         >>> with ds.dem.close:

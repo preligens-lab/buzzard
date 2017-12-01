@@ -166,7 +166,7 @@ class Env():
         Initialized to `True`
 
 
-    Exemple
+    Example
     -------
     >>> import buzzard as buzz
     >>> with buzz.Env(default_index_dtype='uint64'):
@@ -213,7 +213,7 @@ class _CurrentEnv(object):
     (see buzz.Env)
 
 
-    Exemple
+    Example
     -------
     >>> buzz.env.significant
     7.0

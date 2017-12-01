@@ -63,7 +63,7 @@ class RasterConcrete(Raster):
     def delete(self):
         """Delete a raster file with a call or a context management.
 
-        Exemple
+        Example
         -------
         >>> ds.dem.delete()
         >>> with ds.dem.delete:
