@@ -1,1 +1,2 @@
-include setup.py buzzard/*.py requirements.txt buzzard/conv/*.py buzzard/srs/*.py buzzard/test/*.py buzzard/utils/*.py buzzard/algo/*.py
+include setup.py requirements.txt
+recursive-include buzzard/*.py
