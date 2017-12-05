@@ -14,7 +14,7 @@ if sys.version_info < (3, 2):
 
 setup(
     name='buzzard',
-    version='0.3',
+    version='0.3.0',
     author='ngoguey',
     author_email='ngoguey@airware.com',
     description='GIS environment',
