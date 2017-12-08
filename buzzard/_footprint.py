@@ -1961,6 +1961,15 @@ def _line_iterator(obj):
     elif isinstance(obj, (sg.MultiLineString)):
         for obj2 in obj.geoms:
             yield obj2
+    elif isinstance(obj, (sg.Polygon)):
+        yield sg.LineString(obj.exterior)
+        for obj2 in obj.interiors:
+            yield sg.LineString(obj2)
+    elif isinstance(obj, (sg.MultiPolygon)):
+        for obj2 in obj.geoms:
+            yield sg.LineString(obj2.exterior)
+            for obj3 in obj2.interiors:
+                yield sg.LineString(obj3)
     else:
         try:
             tup = tuple(obj)
