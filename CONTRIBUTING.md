@@ -4,7 +4,7 @@ First of all, we thank you for your interest in our project and any contribution
 
 ## Before you start
 
-`buzzard` is under active development. bugs, enhancements and new features suggestions are warm welcome. See [`TODO.md`](./TODO.md) for a glimpse to our actual pipeline.
+`buzzard` is under active development. bugs, enhancements and new features suggestions are warm welcome. See [`TODO`](https://github.com/airware/buzzard/wiki/TODO) for a glimpse to our actual pipeline.
 
 If you have discovered a new bug, please search for existing issues, open and closed, before creating a new one. You can track new ones creating a Github [issue](https://github.com/airware/buzzard/issues). `buzzard` execution environments can be quite complex. Please describe it as much as possible. Reproduction steps and dataset are more than useful!
 
