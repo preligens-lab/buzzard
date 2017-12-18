@@ -3,56 +3,88 @@
 # Source: https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2
-jobs:
-  build:
+
+references:
+  container_config_36: &container_config_36
+    working_directory: ~/repo36
     docker:
-      # python version specified here
-      # Additional options here: https://circleci.com/docs/2.0/circleci-images/
-      - image: $AWS_ECR_IMAGE_TAG
+      - image: $AWS_ECR_IMAGE_TAG_36
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
-    working_directory: ~/repo
+  container_config_27: &container_config_27
+    working_directory: ~/repo27
+    docker:
+      - image: $AWS_ECR_IMAGE_TAG_27
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
+  restore_repo: &restore_repo
+    restore_cache:
+      keys:
+        - repo-{{ .Branch }}-{{ .Revision }}
+        - repo-{{ .Branch }}
+        - repo
+
+  python_requirements_cache_key: &python_requirements_cache_key
+    dependencies-{{ checksum "requirements.txt" }}
+
+  python_dev_requirements_cache_key: &python_dev_requirements_cache_key
+    dev-dependencies-{{ checksum "requirements-dev.txt" }}
+
+  python_requirements_backup_cache_key: &python_requirements_backup_cache_key
+    dependencies-
+
+  python_dev_requirements_backup_cache_key: &python_dev_requirements_backup_cache_key
+    dev-dependencies-
+
+  restore_python_dependencies: &restore_python_dependencies
+    restore_cache:
+      keys:
+        - *python_requirements_cache_key
+        - *python_dev_requirements_cache_key
+        # fallback to using the latest cache if no exact match is found
+        - *python_requirements_backup_cache_key
+        - *python_dev_requirements_backup_cache_key
+
+jobs:
+  checkout_code_36:
+    <<: *container_config_36
     steps:
+      - *restore_repo
       - checkout
+      - save_cache:
+          key: repo-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - .
 
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - dependencies-{{ checksum "requirements.txt" }}
-          - dev-dependencies-{{ checksum "requirements-dev.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - dependencies-
-          - dev-dependencies-
-
+  python_dependencies_36:
+    <<: *container_config_36
+    steps:
+      - *restore_repo
       - run:
           name: install dependencies
           command: |
-            python3 -m venv venv
+            python -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-
       - save_cache:
+          key: *python_requirements_cache_key
           paths:
             - ./venv
-          key: dependencies-{{ checksum "requirements.txt" }}
-
       - save_cache:
+          key: *python_dev_requirements_cache_key
           paths:
             - ./venv
-          key: dev-dependencies-{{ checksum "requirements-dev.txt" }}
 
-      # run tests!
-      - run:
-          name: run tests
-          command: |
-            . venv/bin/activate
-            pytest --cov=buzzard --cov-report=term --cov-report=xml
-            coveralls
-
+  lint_36:
+    <<: *container_config_36
+    steps:
+      - *restore_repo
+      - *restore_python_dependencies
       - run:
           name: run linter
           command: |
@@ -61,7 +93,36 @@ jobs:
             pylint buzzard --output-format=json > test-reports/pylint.json || true
           when: always
 
+  test_36:
+    <<: *container_config_36
+    steps:
+      - *restore_repo
+      - *restore_python_dependencies
+      # run tests!
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            pytest --cov=buzzard --cov-report=term --cov-report=xml
+            coveralls
+
       - store_artifacts:
           path: test-reports
           destination: test-reports
 
+workflows:
+  version: 2
+  buzzard:
+    jobs:
+      - checkout_code_36
+      - python_dependencies_36:
+          requires:
+            - checkout_code_36
+      - lint_36:
+          requires:
+            - checkout_code_36
+            - python_dependencies_36
+      - test_36:
+          requires:
+            - checkout_code_36
+            - python_dependencies_36
