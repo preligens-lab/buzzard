@@ -63,6 +63,8 @@ jobs:
             . venv/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
+            ls -la
+            pwd
       - save_cache:
           key: *python_requirements_cache_key
           paths:
@@ -77,9 +79,11 @@ jobs:
           name: run linter
           command: |
             mkdir -p test-reports
-            ls -la .
+            pwd
+            ls -la
             ls -la venv
             . venv/bin/activate
+            python --version
             pylint buzzard --output-format=json > test-reports/pylint.json || true
           when: always
 
