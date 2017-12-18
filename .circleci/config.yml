@@ -42,7 +42,7 @@ references:
         - *python_requirements_backup_cache_key
 
 jobs:
-  checkout_code_36:
+  checkout_code:
     <<: *container_config_36
     steps:
       - *restore_repo
@@ -64,8 +64,6 @@ jobs:
             . venvs/36/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-            ls -la
-            ls -la venvs/36
       - save_cache:
           key: *python_requirements_cache_key
           paths:
@@ -80,9 +78,6 @@ jobs:
           name: run linter
           command: |
             mkdir -p test-reports
-            pwd
-            ls -la
-            ls -la venv
             . venvs/36/bin/activate
             python --version
             pylint buzzard --output-format=json > test-reports/pylint.json || true
@@ -105,19 +100,61 @@ jobs:
           path: test-reports
           destination: test-reports
 
+  python_dependencies_27:
+    <<: *container_config_27
+    steps:
+      - *restore_repo
+      - run:
+          name: install dependencies
+          command: |
+            pip install virtualenv
+            mkdir -p venvs/27
+            virtualenv venvs/27
+            . venvs/27/bin/activate
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
+      - save_cache:
+          key: *python_requirements_cache_key
+          paths:
+            - ./venvs/27
+
+  test_27:
+    <<: *container_config_27
+    steps:
+      - *restore_repo
+      - *restore_python_dependencies
+      # run tests!
+      - run:
+          name: run tests
+          command: |
+            . venvs/27/bin/activate
+            pytest --cov=buzzard --cov-report=term --cov-report=xml
+            coveralls
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
 workflows:
   version: 2
   buzzard:
     jobs:
-      - checkout_code_36
+      - checkout_code
       - python_dependencies_36:
           requires:
-            - checkout_code_36
+            - checkout_code
       - lint_36:
           requires:
-            - checkout_code_36
+            - checkout_code
             - python_dependencies_36
       - test_36:
           requires:
-            - checkout_code_36
+            - checkout_code
             - python_dependencies_36
+      - python_dependencies_27:
+          requires:
+            - checkout_code
+      - test_27:
+          requires:
+            - checkout_code
+            - python_dependencies_27
