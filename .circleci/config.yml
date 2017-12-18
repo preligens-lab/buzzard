@@ -61,7 +61,7 @@ jobs:
           command: |
             mkdir -p venvs/36
             python -m venv ./venvs/36
-            . venvs/bin/activate
+            . venvs/36/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             ls -la
@@ -97,7 +97,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            . venv/bin/activate
+            . venvs/36/bin/activate
             pytest --cov=buzzard --cov-report=term --cov-report=xml
             coveralls
 
