@@ -29,10 +29,10 @@ references:
         - repo-v1-
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v2-{{ checksum "requirements.txt" }}
+    py36-dependencies-v3-{{ checksum "requirements.txt" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
-    py36-dependencies-v2-
+    py36-dependencies-v3-
 
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
@@ -42,10 +42,10 @@ references:
         - *py36_requirements_backup_cache_key
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v2-{{ checksum "requirements.txt" }}
+    py27-dependencies-v3-{{ checksum "requirements.txt" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v2-
+    py27-dependencies-v3-
 
   py27_restore_dependencies: &py27_restore_dependencies
     restore_cache:
@@ -127,7 +127,6 @@ jobs:
             . venvs/27/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-            pip install .
       - save_cache:
           key: *py27_requirements_cache_key
           paths:
@@ -143,6 +142,7 @@ jobs:
           name: run tests
           command: |
             . venvs/27/bin/activate
+            pip install .
             pytest --cov=buzzard --cov-report=term --cov-report=xml
             coveralls
 
