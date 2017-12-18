@@ -5,7 +5,7 @@
 version: 2
 
 references:
-  container_config_36: &container_config_36
+  py36_container_config: &py36_container_config
     working_directory: ~/repo
     docker:
       - image: $AWS_ECR_IMAGE_TAG_36
@@ -13,7 +13,7 @@ references:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
-  container_config_27: &container_config_27
+  py27_container_config: &py27_container_config
     working_directory: ~/repo
     docker:
       - image: $AWS_ECR_IMAGE_TAG_27
@@ -28,22 +28,35 @@ references:
         - repo-v1-{{ .Branch }}
         - repo-v1-
 
-  python_requirements_cache_key: &python_requirements_cache_key
-    dependencies-v1-{{ checksum "requirements.txt" }}
+  py36_requirements_cache_key: &py36_requirements_cache_key
+    py36-dependencies-v1-{{ checksum "requirements.txt" }}
 
-  python_requirements_backup_cache_key: &python_requirements_backup_cache_key
-    dependencies-v1-
+  py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
+    py36-dependencies-v1-
 
-  restore_python_dependencies: &restore_python_dependencies
+  py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
       keys:
-        - *python_requirements_cache_key
+        - *py36_requirements_cache_key
         # fallback to using the latest cache if no exact match is found
-        - *python_requirements_backup_cache_key
+        - *py36_requirements_backup_cache_key
+
+  py27_requirements_cache_key: &py27_requirements_cache_key
+    py27-dependencies-v1-{{ checksum "requirements.txt" }}
+
+  py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
+    py27-dependencies-v1-
+
+  py27_restore_dependencies: &py27_restore_dependencies
+    restore_cache:
+      keys:
+        - *py27_requirements_cache_key
+        # fallback to using the latest cache if no exact match is found
+        - *py27_requirements_backup_cache_key
 
 jobs:
   checkout_code:
-    <<: *container_config_36
+    <<: *py36_container_config
     steps:
       - *restore_repo
       - checkout
@@ -52,8 +65,8 @@ jobs:
           paths:
             - .
 
-  python_dependencies_36:
-    <<: *container_config_36
+  py36_dependencies:
+    <<: *py36_container_config
     steps:
       - *restore_repo
       - run:
@@ -65,15 +78,15 @@ jobs:
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
       - save_cache:
-          key: *python_requirements_cache_key
+          key: *py36_requirements_cache_key
           paths:
             - ./venvs/36
 
-  lint_36:
-    <<: *container_config_36
+  py36_lint:
+    <<: *py36_container_config
     steps:
       - *restore_repo
-      - *restore_python_dependencies
+      - *py36_restore_dependencies
       - run:
           name: run linter
           command: |
@@ -83,11 +96,11 @@ jobs:
             pylint buzzard --output-format=json > test-reports/pylint.json || true
           when: always
 
-  test_36:
-    <<: *container_config_36
+  py36_test:
+    <<: *py36_container_config
     steps:
       - *restore_repo
-      - *restore_python_dependencies
+      - *py36_restore_dependencies
       # run tests!
       - run:
           name: run tests
@@ -100,8 +113,8 @@ jobs:
           path: test-reports
           destination: test-reports
 
-  python_dependencies_27:
-    <<: *container_config_27
+  py27_dependencies:
+    <<: *py27_container_config
     steps:
       - *restore_repo
       - run:
@@ -114,15 +127,15 @@ jobs:
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
       - save_cache:
-          key: *python_requirements_cache_key
+          key: *py27_requirements_cache_key
           paths:
             - ./venvs/27
 
-  test_27:
-    <<: *container_config_27
+  py27_test:
+    <<: *py27_container_config
     steps:
       - *restore_repo
-      - *restore_python_dependencies
+      - *py27_restore_dependencies
       # run tests!
       - run:
           name: run tests
@@ -140,21 +153,21 @@ workflows:
   buzzard:
     jobs:
       - checkout_code
-      - python_dependencies_36:
+      - py36_dependencies:
           requires:
             - checkout_code
-      - lint_36:
+      - py36_lint:
           requires:
             - checkout_code
-            - python_dependencies_36
-      - test_36:
+            - py36_dependencies
+      - py36_test:
           requires:
             - checkout_code
-            - python_dependencies_36
-      - python_dependencies_27:
+            - py36_dependencies
+      - py27_dependencies:
           requires:
             - checkout_code
-      - test_27:
+      - py27_test:
           requires:
             - checkout_code
-            - python_dependencies_27
+            - py27_dependencies
