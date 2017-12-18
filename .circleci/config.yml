@@ -6,7 +6,7 @@ version: 2
 
 references:
   container_config_36: &container_config_36
-    working_directory: ~/repo36
+    working_directory: ~/repo
     docker:
       - image: $AWS_ECR_IMAGE_TAG_36
         aws_auth:
@@ -14,7 +14,7 @@ references:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
   container_config_27: &container_config_27
-    working_directory: ~/repo27
+    working_directory: ~/repo
     docker:
       - image: $AWS_ECR_IMAGE_TAG_27
         aws_auth:
@@ -59,7 +59,8 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            python -m venv venv
+            mkdir -p venvs/36
+            python -m venv ./venvs/36
             . venv/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
@@ -68,7 +69,7 @@ jobs:
       - save_cache:
           key: *python_requirements_cache_key
           paths:
-            - ./venv
+            - ./venvs/36
 
   lint_36:
     <<: *container_config_36
@@ -82,7 +83,7 @@ jobs:
             pwd
             ls -la
             ls -la venv
-            . venv/bin/activate
+            . venvs/36/bin/activate
             python --version
             pylint buzzard --output-format=json > test-reports/pylint.json || true
           when: always
