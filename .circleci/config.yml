@@ -143,7 +143,7 @@ jobs:
           command: |
             . venvs/27/bin/activate
             pip install .
-            pytest --cov=buzzard --cov-report=term --cov-report=xml
+            pytest -x --cov=buzzard --cov-report=term --cov-report=xml
             coveralls
 
       - store_artifacts:
