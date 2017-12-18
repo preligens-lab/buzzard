@@ -29,10 +29,10 @@ references:
         - repo-v1-
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v1-{{ checksum "requirements.txt" }}
+    py36-dependencies-v2-{{ checksum "requirements.txt" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
-    py36-dependencies-v1-
+    py36-dependencies-v2-
 
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
@@ -42,10 +42,10 @@ references:
         - *py36_requirements_backup_cache_key
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v1-{{ checksum "requirements.txt" }}
+    py27-dependencies-v2-{{ checksum "requirements.txt" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v1-
+    py27-dependencies-v2-
 
   py27_restore_dependencies: &py27_restore_dependencies
     restore_cache:
@@ -77,6 +77,7 @@ jobs:
             . venvs/36/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
+            pip install .
       - save_cache:
           key: *py36_requirements_cache_key
           paths:
@@ -126,6 +127,7 @@ jobs:
             . venvs/27/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
+            pip install .
       - save_cache:
           key: *py27_requirements_cache_key
           paths:
