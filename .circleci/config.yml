@@ -54,6 +54,7 @@ references:
         # fallback to using the latest cache if no exact match is found
         - *py27_requirements_backup_cache_key
 
+
 jobs:
   checkout_code:
     <<: *py36_container_config
@@ -140,15 +141,17 @@ jobs:
       # run tests!
       - run:
           name: run tests
+          # -x option of pytest will stop tests after the first error
+          # no coveralls for py27
           command: |
             . venvs/27/bin/activate
             pip install .
             pytest -x --cov=buzzard --cov-report=term --cov-report=xml
-            coveralls
 
       - store_artifacts:
           path: test-reports
           destination: test-reports
+
 
 workflows:
   version: 2
