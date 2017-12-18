@@ -24,15 +24,15 @@ references:
   restore_repo: &restore_repo
     restore_cache:
       keys:
-        - repo-{{ .Branch }}-{{ .Revision }}
-        - repo-{{ .Branch }}
-        - repo
+        - repo-v1-{{ .Branch }}-{{ .Revision }}
+        - repo-v1-{{ .Branch }}
+        - repo-v1-
 
   python_requirements_cache_key: &python_requirements_cache_key
-    dependencies-{{ checksum "requirements.txt" }}
+    dependencies-v1-{{ checksum "requirements.txt" }}
 
   python_requirements_backup_cache_key: &python_requirements_backup_cache_key
-    dependencies-
+    dependencies-v1-
 
   restore_python_dependencies: &restore_python_dependencies
     restore_cache:
@@ -48,7 +48,7 @@ jobs:
       - *restore_repo
       - checkout
       - save_cache:
-          key: repo-{{ .Branch }}-{{ .Revision }}
+          key: repo-v1-{{ .Branch }}-{{ .Revision }}
           paths:
             - .
 
