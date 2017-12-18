@@ -121,6 +121,7 @@ jobs:
       - *restore_repo
       - run:
           name: install dependencies
+          # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
           command: |
             pip install virtualenv
             mkdir -p venvs/27
@@ -128,6 +129,7 @@ jobs:
             . venvs/27/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
+            cp -s /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo
       - save_cache:
           key: *py27_requirements_cache_key
           paths:
