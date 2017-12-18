@@ -61,7 +61,7 @@ jobs:
           command: |
             mkdir -p venvs/36
             python -m venv ./venvs/36
-            . venv/bin/activate
+            . venvs/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             ls -la
