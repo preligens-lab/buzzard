@@ -31,23 +31,15 @@ references:
   python_requirements_cache_key: &python_requirements_cache_key
     dependencies-{{ checksum "requirements.txt" }}
 
-  python_dev_requirements_cache_key: &python_dev_requirements_cache_key
-    dev-dependencies-{{ checksum "requirements-dev.txt" }}
-
   python_requirements_backup_cache_key: &python_requirements_backup_cache_key
     dependencies-
-
-  python_dev_requirements_backup_cache_key: &python_dev_requirements_backup_cache_key
-    dev-dependencies-
 
   restore_python_dependencies: &restore_python_dependencies
     restore_cache:
       keys:
         - *python_requirements_cache_key
-        - *python_dev_requirements_cache_key
         # fallback to using the latest cache if no exact match is found
         - *python_requirements_backup_cache_key
-        - *python_dev_requirements_backup_cache_key
 
 jobs:
   checkout_code_36:
@@ -75,10 +67,6 @@ jobs:
           key: *python_requirements_cache_key
           paths:
             - ./venv
-      - save_cache:
-          key: *python_dev_requirements_cache_key
-          paths:
-            - ./venv
 
   lint_36:
     <<: *container_config_36
@@ -89,6 +77,8 @@ jobs:
           name: run linter
           command: |
             mkdir -p test-reports
+            ls -la .
+            ls -la venv
             . venv/bin/activate
             pylint buzzard --output-format=json > test-reports/pylint.json || true
           when: always
