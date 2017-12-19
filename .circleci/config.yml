@@ -29,10 +29,10 @@ references:
         - repo-v1-
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v3-{{ checksum "requirements.txt" }}
+    py36-dependencies-v4-{{ checksum "requirements.txt" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
-    py36-dependencies-v3-
+    py36-dependencies-v4-
 
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
@@ -42,10 +42,10 @@ references:
         - *py36_requirements_backup_cache_key
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v3-{{ checksum "requirements.txt" }}
+    py27-dependencies-v4-{{ checksum "requirements.txt" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v3-
+    py27-dependencies-v4-
 
   py27_restore_dependencies: &py27_restore_dependencies
     restore_cache:
@@ -129,7 +129,7 @@ jobs:
             . venvs/27/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-            if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo ]; then cp -s /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
+            if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
       - save_cache:
           key: *py27_requirements_cache_key
           paths:
