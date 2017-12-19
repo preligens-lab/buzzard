@@ -1,16 +1,34 @@
-FROM python:3.6.3
+##############################################
+#                                            #
+#      Dockerfile base image parameter       #
+#             and default value              #
+#                                            #
+##############################################
+
+ARG PYTHON_VERSION=3.6.3
+
+FROM python:${PYTHON_VERSION}
+
+
+##############################################
+#                                            #
+#           Dockerfile parameters            #
+#             and default values             #
+#   We have to define them after the from.   #
+#                                            #
+##############################################
+
+ARG BUILD_VERSION=0.0.2
+ARG GEOS_VERSION=3.6.2
+ARG GDAL_VERSION=2.2.2
+ARG PROJ4_VERSION=4.9.3
+
 
 ##############################################
 #                                            #
 #           Dockerfile parameters            #
 #                                            #
 ##############################################
-
-# Set default values
-ARG BUILD_VERSION=0.0.1
-ARG GEOS_VERSION=3.6.2
-ARG GDAL_VERSION=2.2.2
-ARG PROJ4_VERSION=4.9.3
 
 # Set environment variables
 ENV BUILD_VERSION $BUILD_VERSION \
@@ -154,4 +172,4 @@ RUN apt-get autoremove -y \
 #                                            #
 ##############################################
 
-CMD ["python3"]
+CMD ["python"]

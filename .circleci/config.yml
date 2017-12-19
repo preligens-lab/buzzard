@@ -3,65 +3,178 @@
 # Source: https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2
-jobs:
-  build:
+
+references:
+  py36_container_config: &py36_container_config
+    working_directory: ~/repo
     docker:
-      # python version specified here
-      # Additional options here: https://circleci.com/docs/2.0/circleci-images/
-      - image: $AWS_ECR_IMAGE_TAG
+      - image: $AWS_ECR_IMAGE_TAG_36
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
+  py27_container_config: &py27_container_config
     working_directory: ~/repo
+    docker:
+      - image: $AWS_ECR_IMAGE_TAG_27
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
+  restore_repo: &restore_repo
+    restore_cache:
+      keys:
+        - repo-v1-{{ .Branch }}-{{ .Revision }}
+        - repo-v1-{{ .Branch }}
+        - repo-v1-
+
+  py36_requirements_cache_key: &py36_requirements_cache_key
+    py36-dependencies-v4-{{ checksum "requirements.txt" }}
+
+  py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
+    py36-dependencies-v4-
+
+  py36_restore_dependencies: &py36_restore_dependencies
+    restore_cache:
+      keys:
+        - *py36_requirements_cache_key
+        # fallback to using the latest cache if no exact match is found
+        - *py36_requirements_backup_cache_key
+
+  py27_requirements_cache_key: &py27_requirements_cache_key
+    py27-dependencies-v4-{{ checksum "requirements.txt" }}
+
+  py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
+    py27-dependencies-v4-
+
+  py27_restore_dependencies: &py27_restore_dependencies
+    restore_cache:
+      keys:
+        - *py27_requirements_cache_key
+        # fallback to using the latest cache if no exact match is found
+        - *py27_requirements_backup_cache_key
+
+
+jobs:
+  checkout_code:
+    <<: *py36_container_config
     steps:
+      - *restore_repo
       - checkout
+      - save_cache:
+          key: repo-v1-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - .
 
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - dependencies-{{ checksum "requirements.txt" }}
-          - dev-dependencies-{{ checksum "requirements-dev.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - dependencies-
-          - dev-dependencies-
-
+  py36_dependencies:
+    <<: *py36_container_config
+    steps:
+      - *restore_repo
       - run:
           name: install dependencies
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
+            mkdir -p venvs/36
+            python -m venv ./venvs/36
+            . venvs/36/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-
+            pip install .
       - save_cache:
+          key: *py36_requirements_cache_key
           paths:
-            - ./venv
-          key: dependencies-{{ checksum "requirements.txt" }}
+            - ./venvs/36
 
-      - save_cache:
-          paths:
-            - ./venv
-          key: dev-dependencies-{{ checksum "requirements-dev.txt" }}
-
-      # run tests!
-      - run:
-          name: run tests
-          command: |
-            . venv/bin/activate
-            pytest --cov=buzzard --cov-report=term --cov-report=xml
-            coveralls
-
+  py36_lint:
+    <<: *py36_container_config
+    steps:
+      - *restore_repo
+      - *py36_restore_dependencies
       - run:
           name: run linter
           command: |
             mkdir -p test-reports
-            . venv/bin/activate
+            . venvs/36/bin/activate
+            python --version
             pylint buzzard --output-format=json > test-reports/pylint.json || true
           when: always
+
+  py36_test:
+    <<: *py36_container_config
+    steps:
+      - *restore_repo
+      - *py36_restore_dependencies
+      # run tests!
+      - run:
+          name: run tests
+          command: |
+            . venvs/36/bin/activate
+            pytest --cov=buzzard --cov-report=term --cov-report=xml
+            coveralls
 
       - store_artifacts:
           path: test-reports
           destination: test-reports
 
+  py27_dependencies:
+    <<: *py27_container_config
+    steps:
+      - *restore_repo
+      - run:
+          name: install dependencies
+          # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
+          command: |
+            pip install virtualenv
+            mkdir -p venvs/27
+            virtualenv venvs/27
+            . venvs/27/bin/activate
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
+            if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
+      - save_cache:
+          key: *py27_requirements_cache_key
+          paths:
+            - ./venvs/27
+
+  py27_test:
+    <<: *py27_container_config
+    steps:
+      - *restore_repo
+      - *py27_restore_dependencies
+      # run tests!
+      - run:
+          name: run tests
+          # -x option of pytest will stop tests after the first error
+          # no coveralls for py27
+          command: |
+            . venvs/27/bin/activate
+            pip install .
+            pytest -x --cov=buzzard --cov-report=term --cov-report=xml
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
+
+workflows:
+  version: 2
+  buzzard:
+    jobs:
+      - checkout_code
+      - py36_dependencies:
+          requires:
+            - checkout_code
+      - py36_lint:
+          requires:
+            - checkout_code
+            - py36_dependencies
+      - py36_test:
+          requires:
+            - checkout_code
+            - py36_dependencies
+      - py27_dependencies:
+          requires:
+            - checkout_code
+      - py27_test:
+          requires:
+            - checkout_code
+            - py27_dependencies
