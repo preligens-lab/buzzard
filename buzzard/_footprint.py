@@ -17,6 +17,7 @@ from osgeo import ogr
 from osgeo import osr
 from six.moves import filterfalse
 # import gdaltest
+import scipy.ndimage as ndi
 
 from buzzard import _tools
 from buzzard._tools import conv
@@ -1331,7 +1332,7 @@ class Footprint(TileMixin, IntersectionMixin):
         # Check xy parameter
         xy = np.asarray(xy)
         if xy.shape[-1] != 2:
-            return ValueError('An array of shape (..., 2) was expected') # pragma: no cover
+            raise ValueError('An array of shape (..., 2) was expected') # pragma: no cover
 
         workshape = int(xy.size / 2), 2
         xy2 = np.empty(workshape, 'float64')
@@ -1345,7 +1346,8 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Geometry / Raster conversions ************************************************************* **
     def find_lines(self, arr, output_offset='middle'):
-        """WIP
+        """Experimental function!
+
         Create a list of line-strings from a mask.
         Works with connectivity 4 and 8
         Should work fine when several disconnected components
@@ -1424,9 +1426,25 @@ class Footprint(TileMixin, IntersectionMixin):
         mline = shapely.ops.linemerge(lines)
 
         # Temporary check for badness, until further testing of this method
-        check = self.burn_lines(mline).astype('uint8')
-        badness = (check != arr).sum()
-        assert badness < 3
+        # check = self.burn_lines(mline).astype('uint8')
+        check = arr.copy()
+        check[:] = 0
+
+        for l in mline:
+            coords = np.asarray(l) - output_offset
+            coords = self.spatial_to_raster(coords)
+            x = coords[:, 0]
+            y = coords[:, 1]
+            check[y, x] = 1
+
+        # Size one components are not transformed to lines
+        for sly, slx in ndi.find_objects(ndi.label(arr)[0]):
+            if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
+                check[sly, slx] = 1
+
+        inter = (check & arr).sum()
+        union = (check | arr).sum()
+        assert inter / union == 1
 
         if mline.is_empty:
             return []
@@ -1437,7 +1455,7 @@ class Footprint(TileMixin, IntersectionMixin):
         assert False # pragma: no cover
 
     def burn_lines(self, obj, labelize=False):
-        """WIP
+        """Experimental function!
         Create a 2d mask from lines
 
 
@@ -1489,7 +1507,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return arr.astype(dtype)
 
     def find_polygons(self, mask):
-        """WIP
+        """Experimental function!
         Create a list of polygons from a mask
 
 
@@ -1546,7 +1564,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return list(_polygon_iterator())
 
     def burn_polygons(self, obj):
-        """WIP
+        """Experimental function!
         Create a 2d mask from polygons
 
 
