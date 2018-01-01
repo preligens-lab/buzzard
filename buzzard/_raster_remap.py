@@ -10,6 +10,10 @@ import cv2
 _REMAP_MASK_MODES = frozenset(['dilate', 'erode', ])
 _REMAP_INTERPOLATIONS = {
     'cv_area': cv2.INTER_AREA,
+    'cv_nearest': cv2.INTER_NEAREST,
+    'cv_linear': cv2.INTER_LINEAR,
+    'cv_cubic': cv2.INTER_CUBIC,
+    'cv_lanczos4': cv2.INTER_LANCZOS4,
 }
 
 class RemapMixin(object):
