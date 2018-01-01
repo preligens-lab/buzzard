@@ -176,7 +176,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
                     'Querying data fully outside of file Footprint with no explicit `nodata` in '
                     'parameters or in file.'
                 )
-            return np.full(fp.shape, onodata, dtype)
+            return np.full(outshape, onodata, dtype)
         else:
             samplefp = self.fp & samplefp
 
