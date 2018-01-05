@@ -1424,6 +1424,8 @@ class Footprint(TileMixin, IntersectionMixin):
             for (n1, n2) in edges_indices
         ]
         mline = shapely.ops.linemerge(lines)
+        if isinstance(mline, shapely.geometry.LineString):
+            mline = sg.MultiLineString([mline])
 
         # Temporary check for badness, until further testing of this method
         # check = self.burn_lines(mline).astype('uint8')
