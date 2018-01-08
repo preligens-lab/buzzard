@@ -1565,7 +1565,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
         return list(_polygon_iterator())
 
-    def burn_polygons(self, obj):
+    def burn_polygons(self, obj, all_touched=False):
         """Experimental function!
         Create a 2d mask from polygons
 
@@ -1604,7 +1604,11 @@ class Footprint(TileMixin, IntersectionMixin):
             wkt_geom = poly.wkt
             feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
             rast_mem_lyr.CreateFeature(feat)
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, burn_values=[1])
+        if all_touched:
+            options = ["ALL_TOUCHED=TRUE"]
+        else:
+            options = []
+        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, burn_values=[1], options=options)
         if err != 0:
             raise Exception('Got non-zero result code from gdal.RasterizeLayer')
         arr = target_ds.GetRasterBand(1).ReadAsArray()
