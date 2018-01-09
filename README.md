@@ -38,7 +38,7 @@ Table of Contents
 ## `buzzard` contains
 - a class to open/read/write/create GIS files: [`DataSource`](./buzzard/_datasource.py)
 - classes to interact with opened files: [`RasterPhysical`](./buzzard/_raster_physical.py) [`Vector`](./buzzard/_vector.py)
-- a toolbox class designed to bridge image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
+- a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
 
 ## Simple example
 This example illustrates visualization of a raster based on polygons.

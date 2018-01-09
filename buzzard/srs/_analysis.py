@@ -57,28 +57,28 @@ class Analysis(object):
         assert slack_angles[0] < slack_angles[1]
         if np.prod(np.sign(slack_angles - 90)) != -1:
             self.messages.append(
-                'tl-tr-br angle is between {} and {} degree (should be ~90)'.format(*slack_angles)
+                'tl-tr-br angle is between {} and {} degree (should be <90 and >90)'.format(*slack_angles)
                 )
             return
         slack_angles = rect2.tl_slack_angles
         assert slack_angles[0] < slack_angles[1]
         if np.prod(np.sign(slack_angles - 90)) != -1:
             self.messages.append(
-                'bl-tl-tr angle is between {} and {} degree (should be ~90)'.format(*slack_angles)
+                'bl-tl-tr angle is between {} and {} degree (should be <90 and >90)'.format(*slack_angles)
                 )
             return
         slack_angles = rect2.bl_slack_angles
         assert slack_angles[0] < slack_angles[1]
         if np.prod(np.sign(slack_angles - 90)) != -1:
             self.messages.append(
-                'br-bl-tl angle is between {} and {} degree (should be ~90)'.format(*slack_angles)
+                'br-bl-tl angle is between {} and {} degree (should be <90 and >90)'.format(*slack_angles)
                 )
             return
         slack_angles = rect2.br_slack_angles
         assert slack_angles[0] < slack_angles[1]
         if np.prod(np.sign(slack_angles - 90)) != -1:
             self.messages.append(
-                'tr-br-bl angle is between {} and {} degree (should be ~90)'.format(*slack_angles)
+                'tr-br-bl angle is between {} and {} degree (should be <90 and >90)'.format(*slack_angles)
                 )
             return
         self.angles_valid = True

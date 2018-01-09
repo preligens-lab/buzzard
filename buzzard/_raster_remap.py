@@ -143,16 +143,6 @@ class RemapMixin(object):
             - Or if they have different rotation
         """
 
-        if array is not None and array.dtype in [np.dtype('float64'), np.dtype('bool')]:
-            raise ValueError(
-                'Type %s not handled by cv2.remap, (is interpolation enabled in DataSource?)' % (
-                    repr(array.dtype)
-                )
-            ) # pragma: no cover
-
-        mapx, mapy = dst_fp.meshgrid_raster_in(src_fp, dtype='float32')
-        interpolation = _REMAP_INTERPOLATIONS[interpolation]
-
         def _remap_band(dim):
             arr = array[:, :, dim]
             if nodata is None:
@@ -179,6 +169,16 @@ class RemapMixin(object):
                 )
                 dstband[dstnodatamask] = nodata
             return dstband
+
+        if array is not None and array.dtype in [np.dtype('float64'), np.dtype('bool')]:
+            raise ValueError(
+                'Type %s not handled by cv2.remap, (is interpolation enabled in DataSource?)' % (
+                    repr(array.dtype)
+                )
+            ) # pragma: no cover
+
+        mapx, mapy = dst_fp.meshgrid_raster_in(src_fp, dtype='float32')
+        interpolation = _REMAP_INTERPOLATIONS[interpolation]
 
         dstmask, dstarray = None, None
 

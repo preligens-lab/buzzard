@@ -125,7 +125,7 @@ class _GlobalMapStack(object):
     def push(self, mapping):
         self._mapping = self._mapping.new_child(mapping)
 
-    def pop(self):
+    def remove_top(self):
         assert len(self._mapping.parents) > 1
         self._mapping = self._mapping.parents
 
@@ -194,7 +194,7 @@ class Env():
         _LOCAL._mapstack.push(self._mapping)
 
     def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
-        _LOCAL._mapstack.pop()
+        _LOCAL._mapstack.remove_top()
         for k, oldv in self._mapping.items():
             if _OPTIONS[k].set_up is not None:
                 newv = _LOCAL._mapstack[k]

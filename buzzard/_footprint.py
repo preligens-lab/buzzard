@@ -30,15 +30,15 @@ LOGGER = logging.getLogger('buzzard')
 class Footprint(TileMixin, IntersectionMixin):
     """Constant object representing the location and size of a spatially localized raster.
 
-    Footprint...
-    ...is a class representing the location and size of a geolocalized raster
-    ...'s main purpose is to simplify the manipulation of windows in rasters
-    ...has many accessors
-    ...has many algorithms
-    ...is a constant object
-    ...is designed to work with any rasters in space (like non north-up/west-left rasters)
-    ...is independent from projections, units and files
-    ...uses [affine](https://github.com/sgillies/affine) library for conversions
+    The Footprint class
+    - is a toolbox class designed to locate a rectangle in both image space and geometry space
+    - its main purpose is to simplify the manipulation of windows in rasters
+    - has many accessors
+    - has many algorithms
+    - is a constant object
+    - is designed to work with any rasters in space (like non north-up/west-left rasters)
+    - is independent from projections, units and files
+    - uses [affine](https://github.com/sgillies/affine) library internally for conversions
 
 
     Methods
@@ -229,9 +229,9 @@ class Footprint(TileMixin, IntersectionMixin):
         elif scale.shape == (1,):
             scale = np.asarray([scale[0], -scale[0]], dtype='float64')
         elif scale.shape != (2,):
-            raise ValueError()
+            raise ValueError('scale has shape {} instead of (2,)'.format(scale.shape))
         if (scale == 0).any():
-            raise ValueError()
+            raise ValueError('scale should be greater than 0')
 
         # Work
         minx, maxx, miny, maxy = extent
@@ -256,17 +256,19 @@ class Footprint(TileMixin, IntersectionMixin):
     def clip(self, startx, starty, endx, endy):
         """Construct a new Footprint from self by clipping using pixel indices
 
+        To clip using coordinates see `Footprint.intersection`.
+
 
         Parameters
         ----------
-        startx: int
-            First indice included
-        starty: int
-            First indice included
-        endx: int
-            First indice excluded
-        endy: int
-            First indice excluded
+        startx: int or None
+            Same rules as python slicing
+        starty: int or None
+            Same rules as python slicing
+        endx: int or None
+            Same rules as python slicing
+        endy: int or None
+            Same rules as python slicing
 
 
         Returns
@@ -274,18 +276,8 @@ class Footprint(TileMixin, IntersectionMixin):
         Footprint
 
         """
-
-        def _normalize(val, is_x):
-            if val < 0:
-                if is_x:
-                    return self.rsizex + val
-                return self.rsizey + val
-            return val
-
-        startx = _normalize(startx, True)
-        starty = _normalize(starty, False)
-        endx = _normalize(endx, True)
-        endy = _normalize(endy, False)
+        startx, endx, _ = slice(startx, endx).indices(self.rsizex)
+        starty, endy, _ = slice(starty, endy).indices(self.rsizey)
 
         rsize = np.asarray(
             [endx - startx, endy - starty]
@@ -398,9 +390,9 @@ class Footprint(TileMixin, IntersectionMixin):
             elif resolution.shape == (1,):
                 resolution = np.asarray([resolution[0], -resolution[0]], dtype='float64')
             elif resolution.shape != (2,):
-                raise ValueError()
+                raise ValueError('resolution has shape {}'.format(resolution.shape))
             if (resolution == 0).any():
-                raise ValueError()
+                raise ValueError('resolution should be different than zero')
 
         # Retrieve rotation
         rotation = kwargs.pop('rotation', 'auto')
@@ -414,11 +406,11 @@ class Footprint(TileMixin, IntersectionMixin):
         alignment = kwargs.pop('alignment', 'auto')
         if isinstance(alignment, str):
             if alignment not in self._INTERSECTION_ALIGNMENTS:
-                raise ValueError()
+                raise ValueError('Unknown alignment value')
         else:
             alignment = np.asarray(alignment, dtype='float64')
             if alignment.shape != (2,):
-                raise ValueError()
+                raise ValueError('alignment has shape {}'.format(alignment.shape))
 
         # Retrieve homogeneous
         homogeneous = bool(kwargs.pop('homogeneous', False))
@@ -502,7 +494,7 @@ class Footprint(TileMixin, IntersectionMixin):
             assert slack_angles[0] < slack_angles[1]
             if np.prod(np.sign(slack_angles - 90)) != -1:
                 raise ValueError(
-                    'tl-tr-br angle is between {} and {} degree (should be ~90)'.format(*slack_angles)
+                    'tl-tr-br angle is between {} and {} degree (should be <90 and >90)'.format(*slack_angles)
                 )
 
         aff = (
@@ -518,11 +510,12 @@ class Footprint(TileMixin, IntersectionMixin):
     # Export ************************************************************************************ **
     @property
     def extent(self):
-        """Get bounding reclangle extent
+        """Get the Footprint's extent (`x` then `y`)
 
         Example
         -------
         >>> minx, maxx, miny, maxy = fp.extent
+        >>> plt.imshow(arr, extent=fp.extent)
 
         """
         points = np.r_["1,0,2", self.coords]
@@ -533,7 +526,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @property
     def bounds(self):
-        """Get bounding reclangle bounds
+        """Get the Footprint's bounds (`min` then `max`)
 
         Example
         -------
@@ -571,9 +564,13 @@ class Footprint(TileMixin, IntersectionMixin):
     def __geo_interface__(self):
         return {
             'type': 'Polygon',
-            'coordinates': np.asarray([[
-                self.tl, self.bl, self.br, self.tr, self.tl
-            ]]).tolist(),
+            'coordinates': [
+                [self.tlx, self.tly],
+                [self.blx, self.bly],
+                [self.brx, self.bry],
+                [self.trx, self.try_],
+                [self.tlx, self.tly],
+            ],
         }
 
     # Accessors ********************************************************************************* **
@@ -1198,7 +1195,7 @@ class Footprint(TileMixin, IntersectionMixin):
         """
         # Check other parameter
         if not isinstance(other, self.__class__):
-            raise TypeError() # pragma: no cover
+            raise TypeError('other should be a Footprint') # pragma: no cover
 
         # Check dtype parameter
         if dtype is None:
@@ -1240,7 +1237,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
         """
         if not isinstance(other, self.__class__):
-            raise TypeError() # pragma: no cover
+            raise TypeError('other should be a Footprint') # pragma: no cover
         startx, starty = other.spatial_to_raster(self.tl)
         endx, endy = other.spatial_to_raster(self.br)
         if clip:
