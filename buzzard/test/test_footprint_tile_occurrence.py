@@ -287,36 +287,6 @@ def assert_property_tile_size(src, tiles, size, occx, occy, boundary_effect_locu
     h = np.vectorize(operator.attrgetter('h'))(tiles.flatten())
     assert np.unique(h).size == 1
 
-
-# def assert_property_overlap(src, tiles, size, occx, occy, boundary_effect_locus):
-#     if param2 == 'br':
-#         stride = tiles[0, 0].rsize - (ox, oy)
-#         refptx, refpty = 'lx', 'ty'
-#     elif param2 == 'tl':
-#         stride = tiles[-1, -1].rsize - (ox, oy)
-#         refptx, refpty = 'rx', 'by'
-#     elif param2 == 'tr':
-#         stride = tiles[-1, 0].rsize - (ox, oy)
-#         refptx, refpty = 'lx', 'by'
-#     elif param2 == 'bl':
-#         stride = tiles[0, -1].rsize - (ox, oy)
-#         refptx, refpty = 'rx', 'ty'
-#     else:
-#         assert False
-#     refptx = operator.attrgetter(refptx)
-#     refpty = operator.attrgetter(refpty)
-#     if tiles.shape[0] > 1:
-#         diffs_vert = np.vectorize(
-#             lambda a, b: abs(refpty(a) - refpty(b)))(
-#                 tiles[0:-1], tiles[1:])
-#         assert (diffs_vert == stride[1]).all()
-#     if tiles.shape[1] > 1:
-#         diffs_horiz = np.vectorize(
-#             lambda a, b: abs(refptx(a) - refptx(b)))(
-#                 tiles[:, 0:-1], tiles[:, 1:])
-#         assert (diffs_horiz == stride[0]).all()
-
-
 def assert_property_pixel_coverage(src, tiles, size, occx, occy, boundary_effect_locus):
     mask = np.zeros(src.shape, dtype='int')
     tiles = tiles.flatten()
@@ -336,7 +306,6 @@ def assert_property_unique(src, tiles, size, occx, occy, boundary_effect_locus):
 
 SUCCESS_ASSERTS = [
     assert_property_tile_size,
-    # assert_property_overlap,
     assert_property_pixel_coverage,
 
     assert_property_share_area,

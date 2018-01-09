@@ -35,7 +35,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
         with Env(_osgeo_use_exceptions=False):
             dr = gdal.GetDriverByName(driver)
-            # dr = ogr.GetDriverByName(driver)
             ogr_ds = gdal.OpenEx(
                 path,
                 conv.of_of_mode('w') | conv.of_of_str('vector'),
@@ -44,18 +43,20 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             )
             if ogr_ds is None:
                 ogr_ds = dr.Create(path, 0, 0, 0, 0, options)
-                # ogr_ds = dr.CreateDataSource(path, options)
             else:
                 if ogr_ds.GetLayerByName(layer) is not None:
                     err = ogr_ds.DeleteLayer(layer)
                     if err:
                         raise Exception('Could not delete %s' % path)
+
+            # See todo on deletion of existing file
             # if ogr_ds.GetLayerCount() == 0:
             #     del ogr_ds
             #     err = dr.DeleteDataSource(path)
             #     if err:
             #         raise Exception('Could not delete %s' % path)
             #     ogr_ds = dr.CreateDataSource(path, options)
+
             if ogr_ds is None:
                 raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
 

@@ -46,8 +46,8 @@ def pytest_generate_tests(metafunc):
             ],
         )
 
+@pytest.mark.skip(reason="No enough RAM on circleci")
 def test_truc(fps, tif_options, rast_fp_name):
-    pytest.skip()
     path = '{}/{}{}'.format(tempfile.gettempdir(), uuid.uuid4(), '.tif')
     try:
         _launch_test(fps, tif_options, rast_fp_name, path)
@@ -59,7 +59,6 @@ def test_truc(fps, tif_options, rast_fp_name):
             except:
                 os.remove(path)
 
-# @pytest.mark.skip(reason="No enough RAM on circleci")
 def _launch_test(fps, tif_options, rast_fp_name, path):
     fp = fps[rast_fp_name]
     print('Working with fp={}, with options={}, ~size={:.3} GB'.format(
@@ -72,8 +71,6 @@ def _launch_test(fps, tif_options, rast_fp_name, path):
         options=tif_options,
     )
     fp_l = [fps.A, fps.Q, fps.L]
-    # ar = np.ones(fp_l[0].shape, dtype='float32')
-    # ar[np.diag_indices_from(ar)] = dsm.nodata
 
     tile_size = (50000, 1000) # small height, full width, to wrap file's bands
 
@@ -83,13 +80,9 @@ def _launch_test(fps, tif_options, rast_fp_name, path):
         ar[diag_indices] = dsm.nodata
         return ar
 
-
     for fp in fp_l:
         print('set', fp)
         assert fp.poly.within(dsm.fp.poly)
-        # data = scipy.sparse.identity(min(fp.shape)).data
-        # offsets = [0]
-        # arr = scipy.sparse.dia_matrix((data, offsets), shape=fp.shape)
         tiles = fp.tile(tile_size, boundary_effect='shrink') # ~1GB with float32
         for tile in tiles.flatten():
             ar = _build_ar(tile.shape)

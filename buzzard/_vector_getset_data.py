@@ -85,18 +85,18 @@ class VectorGetSetMixin(object):
 
         for ftr in self._iter_feature(slicing, mask_poly, mask_rect):
             geom = ftr.geometry()
-            if geom is None:
+            if geom is None or geom.IsEmpty():
+                # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever?
+                geom = None
                 if not self._ds._allow_none_geometry:
                     raise Exception(
                         'None geometry in feature '
                         '(allow None geometry in DataSource constructor to silence)'
                     )
             else:
-                if geom.IsEmpty():
-                    pass # Do what? will crash if geom_type=='coordinates'
                 if clip:
                     geom = geom.Intersection(clip_poly)
-                assert not geom.IsEmpty()
+                    assert not geom.IsEmpty()
                 geom = conv.shapely_of_ogr(geom)
                 if self._to_work:
                     geom = shapely.ops.transform(self._to_work, geom)

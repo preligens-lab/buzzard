@@ -54,7 +54,7 @@ class RemapMixin(object):
         # Part 1/3 -- Parameters checking *********************************** **
         mode = (array is not None, mask is not None)
         if sum(mode) == (0, 0):
-            raise ValueError('Provide ar least array or mask')
+            raise ValueError('Provide at least array or mask')
 
         if mode[0]:
             if array.shape[:2] != tuple(src_fp.shape):

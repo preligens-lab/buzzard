@@ -200,13 +200,11 @@ def _test_fields_read(path, driver, data):
     v = ds.open_vector('v', path, driver=driver)
 
     for query_ways in query_waysssss:
-        # All queries query_ways request the same thing
+        # All queries in `query_ways` request the same thing in a different way
         indices = query_ways[0]
 
         queries_results = []
         for query in query_ways:
-            # One query of query_ways is one ways one querying the same thing
-
             features = list(v.iter_data(query))
             assert len(features) == len(data)
 

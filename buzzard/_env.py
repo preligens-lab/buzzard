@@ -157,7 +157,7 @@ class Env():
         see: https://github.com/airware/buzzard/wiki/Precision-system
         see: https://github.com/airware/buzzard/wiki/Floating-Point-Considerations
     default_index_dtype: convertible to np.dtype
-        Default np.ndarray's return dtype
+        Default numpy return dtype for array indices.
         Initialized to `np.int32` (signed to allow negative indices by default)
     allow_complex_footprint: bool
         Whether to allow non north-up / west-left Footprints

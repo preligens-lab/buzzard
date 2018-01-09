@@ -130,8 +130,6 @@ def pytest_generate_tests(metafunc):
             argvalues=[
                 ('GTiff', '.tif', [], True, FLOAT32_RASTER_STRANGE),
                 ('GTiff', '.tif', [], True, FLOAT64_RASTER_STRANGE),
-                # ('GTiff', '.tif', [], True, BYTE_4RASTER_STRANGE),
-                # ('GTiff', '.tif', [], True, BYTE_3RASTER_STRANGE),
                 ('GTiff', '.tif', [], True, BYTE_3RASTER_NORMAL),
                 ('RMF', '.rsw', ['MTW=OFF'], False, BYTE_3RASTER_NODATA0),
                 ('RMF', '.mtw', ['MTW=ON'], False, FLOAT64_RASTER_NODATA0),
@@ -161,10 +159,6 @@ def path(suffix, driver):
 
 def test_raster(path, driver, band_details, options, save_proj):
     dtype, band_count, band_schema = band_details
-    # band_schema_factorized = {
-    #     k: (lst[0] if all(elt == lst[0] for elt in lst) else lst)
-    #     for k, lst in band_schema.items()
-    # }
     ds = buzz.DataSource()
     fp = buzz.Footprint(
         tl=(0, 10), size=(10, 10), rsize=(30, 30)

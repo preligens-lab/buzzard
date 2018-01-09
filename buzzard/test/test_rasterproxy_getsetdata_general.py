@@ -57,8 +57,6 @@ LOGGER = logging.getLogger('buzzard')
 READ_TOL = 0.032 # Tolerance in adjacent differences differences
 WRITE_TOL = 0.7 # Tolerance in adjacent differences differences
 PRECISION = 6
-# VERBOSE = True
-VERBOSE = False
 
 # CONSTANTS - TIF GENERATION ************************************************ **
 TIF_NODATA = -99
@@ -124,8 +122,6 @@ def gb():
     gb.create_raster(
         'out', path2, TIF_FP, 'float32', 1, {'nodata': TIF_NODATA}, sr=gb.dsm.wkt_origin
     )
-    if VERBOSE:
-        print('TIF FOOTPRINT:\n%s' % gb.dsm.fp)
     yield gb
     gb.dsm.close()
     os.remove(path)
@@ -136,8 +132,6 @@ def gb():
 @pytest.fixture()
 def querydat(gb, queryfp):
     dat = gb.dsm.get_data(fp=queryfp)
-    if VERBOSE:
-        print('QUERY DAT:\n%s' % dat)
     return dat
 
 
@@ -173,8 +167,6 @@ def queryfp(tl, size, reso):
     rsize = (size / reso).astype(int)
     assert (size == rsize * reso).all()
     fp = Footprint(tl=tl, size=size, rsize=np.abs(rsize))
-    if VERBOSE:
-        print('QUERY FOOTPRINT:\n%s' % fp)
     return fp
 
 
@@ -267,8 +259,6 @@ def ref_centerdat(queryfp, centerfp):
         my = TIF_FP.tly - my
         sl = centerfp.slice_in(queryfp)
         a = mx[sl] + my[sl]
-        if VERBOSE:
-            print('Center data, reference\n%s' % a)
         return a
     else:
         return None
@@ -301,8 +291,6 @@ def test_getdata(querydat, ref_centerdat, query_centerdat,
     assert (band == TIF_NODATA).all()
 
     if index_left < index_right and index_top < index_bottom:
-        if VERBOSE:
-            print('Data in center band\n%s' % query_centerdat)
         assert not (query_centerdat == TIF_NODATA).any()
         assert (np.abs(query_centerdat - ref_centerdat) <= READ_TOL).all()
 

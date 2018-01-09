@@ -89,7 +89,7 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
             ds.open_vector('src', srcpath, driver='GeoJSON')
             ds.open_raster('raster', rgb_wgs84_path)
             ds.create_vector(
-                'dst'OB, dstpath, 'polygon', driver='ESRI Shapefile', sr=EPSG29100,
+                'dst', dstpath, 'polygon', driver='ESRI Shapefile', sr=EPSG29100,
             )
 
             # Iterate over all geoJSON geometries overlapping with raster

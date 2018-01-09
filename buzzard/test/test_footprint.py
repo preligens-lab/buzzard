@@ -35,25 +35,6 @@ def fps1px():
     """
     return make_tile_set.make_tile_set(3, [1, -1], (1, -1))
 
-
-# def test_shapely_representation(fps):
-#     """Assert that shapely.geometry.Polygon is correctly initialized"""
-#     def _angle_abc(a, b, c):
-#         return np.arccos(np.dot(a - b, c - b))
-
-#     for fp in fps.values():
-#         pts = np.c_[fp.exterior.xy]
-#         assert eq(pts.shape, [5, 2])
-#         assert eq(fp.tl, pts[0], pts[4])
-#         assert eq(fp.bl, pts[1])
-#         assert eq(fp.br, pts[2])
-#         assert eq(fp.tr, pts[3])
-#         assert eq(np.pi / 2, _angle_abc(fp.tr, fp.tl, fp.bl))
-#         assert eq(np.pi / 2, _angle_abc(fp.tl, fp.bl, fp.br))
-#         assert eq(np.pi / 2, _angle_abc(fp.bl, fp.br, fp.tr))
-#         assert eq(np.pi / 2, _angle_abc(fp.br, fp.tr, fp.tl))
-
-
 def test_size_accessors_spatial(fps):
     assert eq(fps.A.size, fps.B.size, fps.C.size, fps.D.size, fps.E.size,
               fps.F.size, fps.G.size, fps.H.size, fps.I.size,)

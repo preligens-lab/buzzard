@@ -22,7 +22,7 @@ def make_tile_set(width, reso, tilevec=(1, -10)):
     D E F
     G H I
 
-    Footptint list (36):
+    Footprint list (36):
     size 1: A, B, C, D, E, F, G, H, I (9)
     size 2 horizontal: AB, BC, DE, EF, GH, HI (6)
     size 2 vertical: AD, DG, BE, EH, CF, FI (6)
@@ -116,8 +116,6 @@ def make_tile_set(width, reso, tilevec=(1, -10)):
         if tl_of_letter[a][0] <= tl_of_letter[b][0] and tl_of_letter[a][1] >= tl_of_letter[b][1]
     ] + list(letters)
 
-    # make_footprint = collections.namedtuple('make_footprint', combos)
-
     def _footprint_of_letters(letters):
         tl = tl_of_letter[letters[0]]
         br = br_of_letter[letters[-1]]
@@ -126,6 +124,5 @@ def make_tile_set(width, reso, tilevec=(1, -10)):
             tl=tl, size=np.abs(diagvec), rsize=(diagvec / reso)
         )
         return fp
-    # fps = make_footprint(**{combo: _footprint_of_letters(combo) for combo in combos})
     fps = attrdict.AttrDict({combo: _footprint_of_letters(combo) for combo in combos})
     return fps
