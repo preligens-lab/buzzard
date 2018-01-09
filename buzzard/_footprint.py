@@ -564,13 +564,13 @@ class Footprint(TileMixin, IntersectionMixin):
     def __geo_interface__(self):
         return {
             'type': 'Polygon',
-            'coordinates': [
+            'coordinates': [[
                 [self.tlx, self.tly],
                 [self.blx, self.bly],
                 [self.brx, self.bry],
                 [self.trx, self.try_],
                 [self.tlx, self.tly],
-            ],
+            ]],
         }
 
     # Accessors ********************************************************************************* **
