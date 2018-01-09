@@ -4,7 +4,7 @@ This list refers authors and contributors
 
 * Nicolas Goguey <ngoguey@airware.com>
 * Hervé Nivon <hnivon@airware.com>
-* Damien Grogeorge <dgrogeorge@airware.com>
+* Damien Grogeorge <dgrosgeorge@airware.com>
 * Clément Fouquet <cfouquet@airware.com>
 * Clément Delgrange <cdelgrange@airware.com>
 

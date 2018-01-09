@@ -37,12 +37,11 @@ Table of Contents
 
 ## `buzzard` contains
 - a class to open/read/write/create GIS files: [`DataSource`](./buzzard/_datasource.py)
-- classes to expose opened files: [`RasterPhysical`](./buzzard/_raster_physical.py) [`Vector`](./buzzard/_vector.py)
-- a toolbox class to locate a geolocalized array: [`Footprint`](./buzzard/_footprint.py)
-- algorithms
+- classes to interact with opened files: [`RasterPhysical`](./buzzard/_raster_physical.py) [`Vector`](./buzzard/_vector.py)
+- a toolbox class designed to bridge image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
 
 ## Simple example
-This example illustrate visualization of a raster based on polygons.
+This example illustrates visualization of a raster based on polygons.
 
 ```py
 import buzzard as buzz
@@ -60,14 +59,14 @@ ds.open_vector('polygons', polygons_path)
 for poly in ds.polygons.iter_data(None):
 
     # Compute the Footprint bounding poly
-    fp = ds.rgb.fp & poly
+    fp = ds.rgb.fp.intersection(poly)
 
     # Read rgb at `fp` to a numpy array
     rgb = ds.rgb.get_data(band=(1, 2, 3), fp=fp).astype('uint8')
     alpha = ds.rgb.get_data(band=4, fp=fp).astype('uint8')
 
     # Create a boolean mask as a numpy array from a shapely polygon
-    mask = ~fp.burn_polygons(poly)
+    mask = np.invert(fp.burn_polygons(poly))
 
     # Darken pixels outside of polygon, set nodata pixels to red
     rgb[mask] = (rgb[mask] * 0.5).astype(np.uint8)
@@ -87,7 +86,7 @@ Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
 - Raster and vector files writing from `numpy.ndarray`, `shapely` objects, `geojson` and raw coordinates
 - Raster and vector files creation
 - Powerful manipulations of raster windows
-- Basic (on the fly) spatial reference homogenization between opened files
+- Spatial reference homogenization between opened files like a `GIS software`
 - On-the-fly rasters
 
 ## Future features summary
@@ -120,18 +119,18 @@ The following table lists dependencies along with the minimum version, their sta
 
 ## How to install
 
-### Manually
+### Package manager and pip
 ```sh
 # Install GDAL
 # Windows: http://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 # MacOS: brew install gdal && brew tap osgeo/osgeo4mac && brew tap --repair && brew install gdal2 && export PATH="/usr/local/opt/gdal2/bin:$PATH" && pip install 'gdal==2.1.3'
-# Linux: apt-get install python-gdal=2.1.3+dfsg-1~xenial2 libproj-dev libgdal-dev gdal-bin
+# Ubuntu: apt-get install python-gdal=2.1.3+dfsg-1~xenial2 libproj-dev libgdal-dev gdal-bin
 
 # Install buzzard
 pip install buzzard
 ```
 
-### Anaconda
+### Anaconda and pip
 ```sh
 # Install Anaconda
 # https://www.anaconda.com/download/#linux
@@ -145,7 +144,6 @@ conda create -n buzz python=3.6 gdal opencv scipy shapely -c 'conda-forge'
 
 # Install buzzard
 pip install buzzard
-
 ```
 
 ## How to test
