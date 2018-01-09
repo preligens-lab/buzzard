@@ -8,7 +8,7 @@ from osgeo import osr
 
 from buzzard import _datasource_tools
 from buzzard._proxy import Proxy
-from buzzard._raster_concrete import RasterConcrete
+from buzzard._raster_physical import RasterPhysical
 from buzzard._raster_recipe import RasterRecipe
 from buzzard._vector import Vector
 from buzzard._datasource_conversions import DataSourceConversionsMixin
@@ -167,8 +167,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         """
         self._validate_key(key)
-        gdal_ds = RasterConcrete._open_file(path, driver, options, mode)
-        prox = RasterConcrete(self, gdal_ds, mode)
+        gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
+        prox = RasterPhysical(self, gdal_ds, mode)
         self._register([key], prox)
         return prox
 
@@ -177,8 +177,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         See DataSource.open_raster
         """
-        gdal_ds = RasterConcrete._open_file(path, driver, options, mode)
-        prox = RasterConcrete(self, gdal_ds, mode)
+        gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
+        prox = RasterPhysical(self, gdal_ds, mode)
         self._register([], prox)
         return prox
 
@@ -240,10 +240,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._validate_key(key)
         if sr is not None:
             fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterConcrete._create_file(
+        gdal_ds = RasterPhysical._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
-        prox = RasterConcrete(self, gdal_ds, 'w')
+        prox = RasterPhysical(self, gdal_ds, 'w')
         self._register([key], prox)
         return prox
 
@@ -255,10 +255,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """
         if sr is not None:
             fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterConcrete._create_file(
+        gdal_ds = RasterPhysical._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
-        prox = RasterConcrete(self, gdal_ds, 'w')
+        prox = RasterPhysical(self, gdal_ds, 'w')
         self._register([], prox)
         return prox
 

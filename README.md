@@ -37,7 +37,7 @@ Table of Contents
 
 ## `buzzard` contains
 - a class to open/read/write/create GIS files: [`DataSource`](./buzzard/_datasource.py)
-- classes to expose opened files: [`RasterConcrete`](./buzzard/_raster_concrete.py) [`Vector`](./buzzard/_vector.py)
+- classes to expose opened files: [`RasterPhysical`](./buzzard/_raster_physical.py) [`Vector`](./buzzard/_vector.py)
 - a toolbox class to locate a geolocalized array: [`Footprint`](./buzzard/_footprint.py)
 - algorithms
 

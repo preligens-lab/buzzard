@@ -1,4 +1,4 @@
-""">>> help(RasterConcrete)"""
+""">>> help(RasterPhysical)"""
 
 from __future__ import division, print_function
 import numbers
@@ -12,8 +12,8 @@ from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._raster import Raster
 
-class RasterConcrete(Raster):
-    """Concrete class of raster sources containing concrete data"""
+class RasterPhysical(Raster):
+    """Physical class of raster sources containing physical data"""
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
@@ -218,5 +218,5 @@ class RasterConcrete(Raster):
             gdalband.Fill(value)
 
 _RasterDeleteRoutine = type('_RasterDeleteRoutine', (_tools.CallOrContext,), {
-    '__doc__': RasterConcrete.delete.__doc__,
+    '__doc__': RasterPhysical.delete.__doc__,
 })
