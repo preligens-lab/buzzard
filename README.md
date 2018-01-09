@@ -87,7 +87,6 @@ Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
 - Raster and vector files creation
 - Powerful manipulations of raster windows
 - Spatial reference homogenization between opened files like a `GIS software`
-- On-the-fly rasters
 
 ## Future features summary
 - Wheels with `osgeo` binaries included
