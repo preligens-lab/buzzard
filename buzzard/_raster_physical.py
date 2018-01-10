@@ -152,7 +152,7 @@ class RasterPhysical(Raster):
             )) # pragma: no cover
 
         # Normalize and check band parameter
-        bands, _ = _tools.normalize_band_parameter(band, len(self), 42j)
+        bands, _ = _tools.normalize_band_parameter(band, len(self), -1j)
 
         # Normalize and check mask parameter
         if mask is None:
@@ -211,7 +211,7 @@ class RasterPhysical(Raster):
         if self._mode != 'w':
             raise RuntimeError('Cannot write a read-only file')
 
-        bands, _ = _tools.normalize_band_parameter(band, len(self), 42j)
+        bands, _ = _tools.normalize_band_parameter(band, len(self), -1j)
         del band
 
         for gdalband in [self._gdalband_of_index(i) for i in bands]:

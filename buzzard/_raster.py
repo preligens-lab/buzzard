@@ -135,7 +135,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
             dtype = conv.dtype_of_any_downcast(dtype)
 
         # Normalize and check band parameter
-        bands, is_flat = _tools.normalize_band_parameter(band, len(self), 42j)
+        bands, is_flat = _tools.normalize_band_parameter(band, len(self), -1j)
         if is_flat:
             outshape = fp.shape
         else:

@@ -40,13 +40,7 @@ def eq(*items, **kwargs):
 
 def eqall(items, **kwargs):
     """Numeric items are all almost equal"""
-    tol = kwargs.pop('tol', 10e-5)
-    assert not kwargs
-    for a, b in itertools.combinations(items, 2):
-        diff = np.abs(np.asarray(a) - np.asarray(b))
-        if not (diff <= tol).all():
-            return False
-    return True
+    return eq(*items, **kwargs)
 
 
 def fpeq(*items, **kwargs):
