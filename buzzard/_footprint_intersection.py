@@ -14,7 +14,7 @@ from buzzard._env import env
 class IntersectionMixin(object):
     """Footprint Mixin containing intersection subroutine"""
 
-    _INTERSECTION_RESOLUTIONS = {'self', 'worst', 'best'}
+    _INTERSECTION_RESOLUTIONS = {'self', 'highest', 'lowest'}
     _INTERSECTION_ROTATIONS = {'auto', 'fit'}
     _INTERSECTION_ALIGNMENTS = {'auto', 'tl'}
 
@@ -25,10 +25,10 @@ class IntersectionMixin(object):
         elif resolution == 'self':
             resofp = self
             resolution = resofp.scale
-        elif resolution == 'worst':
+        elif resolution == 'highest':
             resofp = max(footprints, key=lambda fp: np.product(fp.pxsize))
             resolution = resofp.scale
-        elif resolution == 'best':
+        elif resolution == 'lowest':
             resofp = min(footprints, key=lambda fp: np.product(fp.pxsize))
             resolution = resofp.scale
         else:

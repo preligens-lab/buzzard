@@ -237,7 +237,7 @@ def test_corner_cases(fps1px):
         fps.AH.intersection(_FtPoly(fps.BI.__geo_interface__)),
     )
     with pytest.raises(ValueError):
-        fps.A.intersection(fps.A, resolution='hello')
+        fps.A.intersection(fps.A, scale='hello')
     with pytest.raises(ValueError):
         fps.A.intersection(fps.A, rotation='hello')
     with pytest.raises(ValueError):
@@ -246,26 +246,26 @@ def test_corner_cases(fps1px):
     # reso
     assert fpeq(
         buzz.Footprint(rsize=[2, 6], size=fps.BH.size, tl=fps.BH.tl),
-        fps.AH.intersection(fps.BI, resolution=0.5),
-        fps.AH.intersection(fps.BI, resolution=[0.5, -0.5]),
-        fps.AH.intersection(fps.BI, resolution=[0.5]),
+        fps.AH.intersection(fps.BI, scale=0.5),
+        fps.AH.intersection(fps.BI, scale=[0.5, -0.5]),
+        fps.AH.intersection(fps.BI, scale=[0.5]),
     )
     with pytest.raises(ValueError):
-        fps.AH.intersection(fps.BI, resolution=[])
+        fps.AH.intersection(fps.BI, scale=[])
     with pytest.raises(ValueError):
-        fps.AH.intersection(fps.BI, resolution=0)
+        fps.AH.intersection(fps.BI, scale=0)
 
-    best = fps.BH.intersection(fps.BH, resolution=0.5)
-    worst = fps.BH.intersection(fps.BH, resolution=1.0)
+    lowest = fps.BH.intersection(fps.BH, scale=0.5)
+    highest = fps.BH.intersection(fps.BH, scale=1.0)
     assert fpeq(
-        best,
-        best.intersection(worst, resolution='best'),
-        worst.intersection(best, resolution='best'),
+        lowest,
+        lowest.intersection(highest, scale='lowest'),
+        highest.intersection(lowest, scale='lowest'),
     )
     assert fpeq(
-        worst,
-        worst.intersection(best, resolution='worst'),
-        best.intersection(worst, resolution='worst'),
+        highest,
+        highest.intersection(lowest, scale='highest'),
+        lowest.intersection(highest, scale='highest'),
     )
 
     # rot / align
@@ -312,7 +312,7 @@ def test_corner_cases(fps1px):
     )
     with pytest.raises(ValueError, match='grid'):
         fps.BH.intersection(
-            fps.BH.intersection(fps.BH, resolution=0.5),
+            fps.BH.intersection(fps.BH, scale=0.5),
             homogeneous=True,
         )
     with pytest.raises(ValueError, match='grid'):

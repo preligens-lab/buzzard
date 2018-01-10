@@ -310,7 +310,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return self._morpho(count)
 
     def intersection(self, *objects, **kwargs):
-        """intersection(self, *objects, resolution='self', rotation='auto', alignment='auto',
+        """intersection(self, *objects, scale='self', rotation='auto', alignment='auto',
                         homogeneous=False)
 
         Construct a Footprint bounding the intersection of geometric objects, self being one of the
@@ -322,21 +322,21 @@ class Footprint(TileMixin, IntersectionMixin):
         *objects: *object
             Any object with a __geo_interface__ attribute defining a geometry, like a Footprint
             or a shapely object.
-        resolution: one of {'self', 'worst', 'best'} or (nbr, nbr) or nbr
+        scale: one of {'self', 'highest', 'lowest'} or (nbr, nbr) or nbr
             'self': Output Footprint's resolution is the same as self
-            'worst': Output Footprint's resolution is the highest one among the input Footprints
-            'best': Output Footprint's resolution is the lowest one among the input Footprints
+            'highest': Output Footprint's resolution is the highest one among the input Footprints
+            'lowest': Output Footprint's resolution is the lowest one among the input Footprints
             (nbr, nbr): Signed pixel size, aka scale
             nbr: Signed pixel width. Signed pixel height is assumed to be -width
         rotation: one of {'auto', 'fit'} or nbr
             'auto'
-                If `resolution` designate a Footprint object, its rotation is chosen
+                If `scale` designate a Footprint object, its rotation is chosen
                 Else, self's rotation is chosen
             'fit': Output Footprint is the rotated minimum bounding rectangle
             nbr: Angle in degree
         alignment: {'auto', 'tl', (number, number)}
             'auto'
-                If `resolution` and `rotation` designate the same Footprint object, its alignment
+                If `scale` and `rotation` designate the same Footprint object, its alignment
                     is chosen
                 Else, 'tl' alignment is chosen
             'tl': Ouput Footprint's alignement is the top left most point of the bounding rectangle
@@ -379,7 +379,7 @@ class Footprint(TileMixin, IntersectionMixin):
         footprints, geoms = _partition(_classify, [self] + objects)
 
         # Retrieve resolution
-        resolution = kwargs.pop('resolution', 'self')
+        resolution = kwargs.pop('scale', 'self')
         if isinstance(resolution, str):
             if resolution not in self._INTERSECTION_RESOLUTIONS:
                 raise ValueError('bad resolution parameter')
