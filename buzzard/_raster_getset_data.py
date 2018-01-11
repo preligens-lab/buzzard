@@ -38,7 +38,7 @@ class RasterGetSetMixin(object):
                 nodata=None,
                 mask_mode='extend',
             )
-            samplebands = np.full(np.r_[samplefp.shape, len(bands)], 420, self.dtype)
+            samplebands = np.empty(np.r_[samplefp.shape, len(bands)], self.dtype)
             assert samplemask.shape == samplebands.shape[:2]
             for tile, band, dim in self._blocks_of_footprint(samplefp, bands):
                 leftx, topy = self.fp.spatial_to_raster(tile.tl)
