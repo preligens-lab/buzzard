@@ -30,16 +30,15 @@ LOGGER = logging.getLogger('buzzard')
 class Footprint(TileMixin, IntersectionMixin):
     """Constant object representing the location and size of a spatially localized raster.
 
-    The Footprint class
+    The Footprint
     - is a toolbox class designed to locate a rectangle in both image space and geometry space
     - its main purpose is to simplify the manipulation of windows in rasters
     - has many accessors
     - has many algorithms
     - is a constant object
-    - is designed to work with any rasters in space (like non north-up/west-left rasters)
+    - is designed to work with any rectangle in space (like non north-up/west-left rasters)
     - is independent from projections, units and files
     - uses [affine](https://github.com/sgillies/affine) library internally for conversions
-
 
     Methods
     -------
@@ -65,26 +64,24 @@ class Footprint(TileMixin, IntersectionMixin):
     Tiling                              | tile, tile_count, tile_occurrence
     Serialization                       | __str__, ...
 
-
-    Affine transformation
-    ---------------------
+    Informations on geo transforms (gt) and affine matrices
+    -------------------------------------------------------
     http://www.perrygeo.com/python-affine-transforms.html
     https://pypi.python.org/pypi/affine/1.0
 
     GDAL ordering
-    c, a, b, f, d, e = fp.gt
-    tlx, dx, rx, tly, ry, dy = fp.gt
     | c   | a                | b            | f   | d               | e                 |
     |-----|------------------|--------------|-----|-----------------|-------------------|
     | tlx | width of a pixel | row rotation | tly | column rotation | height of a pixel |
+    >>> c, a, b, f, d, e = fp.gt
+    >>> tlx, dx, rx, tly, ry, dy = fp.gt
 
     Matrix ordering
-    a, b, c, d, e, f = fp.aff6
-    dx, rx, tlx, ry, dy, tly = fp.aff6
     | a                | b            | c   | d               | e                 | f   |
     |------------------|--------------|-----|-----------------|-------------------|-----|
     | width of a pixel | row rotation | tlx | column rotation | height of a pixel | tly |
-
+    >>> a, b, c, d, e, f = fp.aff6
+    >>> dx, rx, tlx, ry, dy, tly = fp.aff6
     """
 
     __slots__ = ['_tl', '_bl', '_br', '_tr', '_aff', '_rsize', '_significant_min']
@@ -94,28 +91,24 @@ class Footprint(TileMixin, IntersectionMixin):
     def __init__(self, **kwargs):
         """Constructor
 
-
         Parameters
         ----------
         tl: (nbr, nbr)
             raster spatial top left coordinates
         gt: (nbr, nbr, nbr, nbr, nbr)
-            geotransforms in GDAL ordering
+            geotransforms with GDAL ordering
         size: (nbr, nbr)
             Size of Footprint in space (unsigned)
         rsize: (int, int)
             Size of raster in pixel (unsigned integers)
 
-
         Usage 1
         -------
         >>> buzz.Footprint(tl=(0, 10), size=(10, 10), rsize=(100, 100))
 
-
         Usage 2
         -------
         >>> buzz.Footprint(gt=(0, .1, 0, 10, 0, -.1), rsize=(100, 100))
-
         """
         if 'rsize' not in kwargs:
             raise ValueError('Missing `rsize` parameter')
@@ -200,8 +193,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @classmethod
     def of_extent(cls, extent, scale):
-        """Create a Footprint from rectangle coordinates
-
+        """Create a Footprint from a rectangle extent and a scale
 
         Parameters
         ----------
@@ -211,7 +203,6 @@ class Footprint(TileMixin, IntersectionMixin):
             Resolution of output Footprint
             if nbr: resolution = [a, -a]
             if (nbr, nbr): resolution [a, b]
-
         """
         # Check extent parameter
         extent = np.asarray(extent, dtype='float64')
@@ -254,27 +245,24 @@ class Footprint(TileMixin, IntersectionMixin):
         return cls(tl=rect.tl, size=size, rsize=rsize)
 
     def clip(self, startx, starty, endx, endy):
-        """Construct a new Footprint from self by clipping using pixel indices
+        """Construct a new Footprint from by clipping self using pixel indices
 
         To clip using coordinates see `Footprint.intersection`.
-
 
         Parameters
         ----------
         startx: int or None
-            Same rules as python slicing
+            Same rules as regular python slicing
         starty: int or None
-            Same rules as python slicing
+            Same rules as regular python slicing
         endx: int or None
-            Same rules as python slicing
+            Same rules as regular python slicing
         endy: int or None
-            Same rules as python slicing
-
+            Same rules as regular python slicing
 
         Returns
         -------
         Footprint
-
         """
         startx, endx, _ = slice(startx, endx).indices(self.rsizex)
         starty, endy, _ = slice(starty, endy).indices(self.rsizey)
@@ -316,7 +304,6 @@ class Footprint(TileMixin, IntersectionMixin):
         Construct a Footprint bounding the intersection of geometric objects, self being one of the
         of input geometry. Inputs' intersection is always within output Footprint.
 
-
         Parameters
         ----------
         *objects: *object
@@ -334,24 +321,22 @@ class Footprint(TileMixin, IntersectionMixin):
                 Else, self's rotation is chosen
             'fit': Output Footprint is the rotated minimum bounding rectangle
             nbr: Angle in degree
-        alignment: {'auto', 'tl', (number, number)}
+        alignment: {'auto', 'tl', (nbr, nbr)}
             'auto'
                 If `scale` and `rotation` designate the same Footprint object, its alignment
                     is chosen
                 Else, 'tl' alignment is chosen
             'tl': Ouput Footprint's alignement is the top left most point of the bounding rectangle
                 of the intersection
-            (number, number): Coordinate of a point that lie on the grid.
+            (nbr, nbr): Coordinate of a point that lie on the grid.
                 This point can be anywhere in space.
         homogeneous: bool
             False: No effect
             True: Raise an exception if all input Footprints do not lie on the same grid as self.
 
-
         Returns
         -------
         Footprint
-
         """
         # Retrieve *objects
         objects = list(objects)
@@ -437,8 +422,7 @@ class Footprint(TileMixin, IntersectionMixin):
         |-------|-------|-------|-------------------------------------------------------------------|
         | coord | None  | None  | Translation                                                       |
         | coord | coord | None  | Translation, Rotation, Scale x and y uniformly with positive real |
-        | coord | coord | coord | Translation, Rotation, Scale x and y differently with reals       |
-
+        | coord | coord | coord | Translation, Rotation, Scale x and y independently with reals     |
 
         Parameters
         ----------
@@ -449,11 +433,9 @@ class Footprint(TileMixin, IntersectionMixin):
         br: Footprint
             New bottom right coordinates
 
-
         Returns
         -------
         Footprint
-
         """
         tl = np.asarray(tl, dtype=np.float64)
         if tl.shape != (2,):
@@ -516,7 +498,6 @@ class Footprint(TileMixin, IntersectionMixin):
         -------
         >>> minx, maxx, miny, maxy = fp.extent
         >>> plt.imshow(arr, extent=fp.extent)
-
         """
         points = np.r_["1,0,2", self.coords]
         return np.asarray([
@@ -531,7 +512,6 @@ class Footprint(TileMixin, IntersectionMixin):
         Example
         -------
         >>> minx, miny, maxx, maxy = fp.bounds
-
         """
         points = np.r_["1,0,2", self.coords]
         return np.asarray([
@@ -541,13 +521,11 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @property
     def coords(self):
-        """Get retangle coordinates
-
+        """Get corners coordinates
 
         Example
         -------
         >>> tl, bl, br, tr = fp.coords
-
         """
         return np.asarray(
             [self.tl, self.bl, self.br, self.tr]
@@ -1059,16 +1037,13 @@ class Footprint(TileMixin, IntersectionMixin):
     def share_area(self, other):
         """Binary predicate: Does other share area with self
 
-
         Parameters
         ----------
         other: Footprint or shapely object
 
-
         Returns
         -------
         bool
-
         """
         a = self.poly
         b = other.poly
@@ -1077,16 +1052,13 @@ class Footprint(TileMixin, IntersectionMixin):
     def equals(self, other):
         """Binary predicate: Is other Footprint equal to self
 
-
         Parameters
         ----------
         other: Footprint
 
-
         Returns
         -------
         bool
-
         """
         if env.significant <= self._significant_min:
             raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
@@ -1106,16 +1078,13 @@ class Footprint(TileMixin, IntersectionMixin):
     def same_grid(self, other):
         """Binary predicate: Does other Footprint lie on the same grid as self
 
-
         Parameters
         ----------
         other: Footprint
 
-
         Returns
         -------
         bool
-
         """
         if env.significant <= self._significant_min:
             raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
@@ -1155,7 +1124,15 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @property
     def meshgrid_raster(self):
-        """Indice matrices: (x indices, y indices)"""
+        """Compute indice matrices
+
+        Returns
+        -------
+        (x, y): (np.ndarray, np.ndarray)
+            Raster indices matrices
+            with shape = self.shape
+            with dtype = env.default_index_dtype
+        """
         return np.meshgrid(
             np.asarray(range(self.rsizex), dtype=env.default_index_dtype),
             np.asarray(range(self.rsizey), dtype=env.default_index_dtype),
@@ -1164,7 +1141,15 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @property
     def meshgrid_spatial(self):
-        """Spatial coordinate matrices: (x coordinates, y coordinates)"""
+        """Compute coordinate matrices
+
+        Returns
+        -------
+        (x, y): (np.ndarray, np.ndarray)
+            Spatial coordinate matrices
+            with shape = self.shape
+            with dtype = float32
+        """
         x, y = self.meshgrid_raster
         return (
             (x * self._aff.a + y * self._aff.b + self._aff.c).astype(np.float64),
@@ -1184,14 +1169,12 @@ class Footprint(TileMixin, IntersectionMixin):
             Function to apply before casting output to dtype
             If None: Do not transform data before casting
 
-
         Returns
         -------
-        (y, x)
-        (np.ndarray(shape=SHAPE), np.ndarray(shape=SHAPE))
-            with SHAPE = self.shape
-
-
+        (x, y): (np.ndarray, np.ndarray)
+            Raster coordinate matrices
+            with shape = self.shape
+            with dtype = dtype
         """
         # Check other parameter
         if not isinstance(other, self.__class__):
@@ -1214,7 +1197,6 @@ class Footprint(TileMixin, IntersectionMixin):
         """Compute location of `self` inside `other` with slice objects.
         If other and self do not have the same rotation, operation is undefined
 
-
         Parameters
         ----------
         other: Footprint
@@ -1225,16 +1207,17 @@ class Footprint(TileMixin, IntersectionMixin):
                 Clip the slices to other bounds. If other and self do not share area,
                 at least one of the returned slice will have `slice.start == slice.stop`
 
-
         Returns
         -------
-        (slice, slice)
-
+        (yslice, xslice): (slice, slice)
 
         Example
         -------
+        Burn `small` into `big` if `small` is within `big`
         >>> big_data[small.slice_in(big)] = small_data
 
+        Burn `small` into `big` where overlapping
+        >>> big_data[small.slice_in(big, clip=True)] = small_data[big.slice_in(small, clip=True)]
         """
         if not isinstance(other, self.__class__):
             raise TypeError('other should be a Footprint') # pragma: no cover
@@ -1249,29 +1232,28 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Coordinates conversions ******************************************************************* **
     def spatial_to_raster(self, xy, dtype=None, op=np.floor):
-        """Convert xy spatial coordinates to raster indices
-
+        """Convert xy spatial coordinates to raster xy indices
 
         Parameters
         ----------
-        xy: convertible to numpy array
-            `np.asarray(xy).shape[-1] == 2` Should be true
+        xy: sequence of numbers of shape (..., 2)
+            Spatial coordinates
         dtype: None or convertible to np.dtype
             Output dtype
             If None: Use buzz.env.default_index_dtype
-        op: None or function operating on a vector
+        op: None or vectorized function
             Function to apply before casting output to dtype
             If None: Do not transform data before casting
 
-
         Returns
         -------
-        np.ndarray
-
+        out_xy: np.ndarray
+            Raster indices
+            with shape = np.asarray(xy).shape
+            with dtype = dtype
 
         Prototype inspired from
         https://mapbox.github.io/rasterio/api/rasterio.io.html#rasterio.io.TransformMethodsMixin.index
-
         """
         # Check xy parameter
         xy = np.asarray(xy)
@@ -1313,17 +1295,19 @@ class Footprint(TileMixin, IntersectionMixin):
         return xy2.astype(dtype).reshape(xy.shape)
 
     def raster_to_spatial(self, xy):
-        """Convert xy raster indices to spatial coordinates
-
+        """Convert xy raster coordinates to spatial coordinates
 
         Parameters
         ----------
-        xy: convertible to numpy array
-            `np.asarray(xy).shape[-1] == 2` Should be true
+        xy: sequence of numbers of shape (..., 2)
+           Raster coordinages
 
         Returns
         -------
-        np.ndarray
+        out_xy: np.ndarray
+            Spatial coordinates
+            with shape = np.asarray(xy).shape
+            with dtype = dtype
 
         """
         # Check xy parameter
@@ -1345,31 +1329,85 @@ class Footprint(TileMixin, IntersectionMixin):
     def find_lines(self, arr, output_offset='middle'):
         """Experimental function!
 
-        Create a list of line-strings from a mask.
-        Works with connectivity 4 and 8
-        Should work fine when several disconnected components
+        Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
+        when several disconnected components
 
+        See `shapely.ops.linemerge` for details concerning output connectivity
 
         Parameters
         ----------
-        arr: numpy.ndarray of shape `self.shape` and dtype `bool`
-        output_offset: 'middle' or sequence of float of length 2
-            Offset in meter for pixels
+        arr: np.ndarray of bool of shape (self.shape)
+        output_offset: 'middle' or (nbr, nbr)
+            Coordinate offset in meter
             if `middle`: substituted by `self.pxvec / 2`
-
 
         Returns
         -------
         list of shapely.geometry.LineString
 
-
         Caveats
         -------
-        Not tested in depth
-        If standalone pixels are contained in arr, they will be ignored.
+        All standalone pixels contained in arr will be ignored.
 
+        Exemple
+        -------
+        >>> import buzzard as buzz
+        >>> import numpy as np
+        >>> import networkx as nx
+
+        >>> with buzz.Env(warnings=0, allow_complex_footprint=1):
+        ...     a = np.asarray([
+        ...         [0, 1, 1, 1, 0],
+        ...         [0, 1, 0, 0, 0],
+        ...         [0, 1, 1, 1, 0],
+        ...         [0, 1, 0, 0, 0],
+        ...         [0, 1, 1, 0, 0],
+        ...
+        ...     ])
+        ...     fp = buzz.Footprint(gt=(0, 1, 0, 0, 0, 1), rsize=(a.shape))
+        ...     lines = fp.find_lines(a, (0, 0))
+        ...
+        ...     # Display input / output
+        ...     print(fp)
+        ...     print(a.astype(int), '\n')
+        ...     for i, l in enumerate(lines, 1):
+        ...         print(f'edge-id:{i} of type:{type(l)} and length:{l.length}')
+        ...         print(fp.burn_lines(l).astype(int) * i, '\n')
+        ...
+        ...     # Build a networkx graph
+        ...     g = nx.Graph([(l.coords[0], l.coords[-1]) for l in lines])
+        ...     print(repr(g.degree))
+        ...
+        Footprint(tl=(0.000000, 0.000000), scale=(1.000000, 1.000000), angle=0.000000, rsize=(5, 5))
+        [[0 1 1 1 0]
+         [0 1 0 0 0]
+         [0 1 1 1 0]
+         [0 1 0 0 0]
+         [0 1 1 0 0]]
+
+        edge-id:1 of type:<class 'shapely.geometry.linestring.LineString'> and length:2.0
+        [[0 0 0 0 0]
+         [0 0 0 0 0]
+         [0 1 1 1 0]
+         [0 0 0 0 0]
+         [0 0 0 0 0]]
+
+        edge-id:2 of type:<class 'shapely.geometry.linestring.LineString'> and length:3.0
+        [[0 0 0 0 0]
+         [0 0 0 0 0]
+         [0 2 0 0 0]
+         [0 2 0 0 0]
+         [0 2 2 0 0]]
+
+        edge-id:3 of type:<class 'shapely.geometry.linestring.LineString'> and length:4.0
+        [[0 3 3 3 0]
+         [0 3 0 0 0]
+         [0 3 0 0 0]
+         [0 0 0 0 0]
+         [0 0 0 0 0]]
+
+        DegreeView({(3.0, 2.0): 1, (1.0, 2.0): 3, (2.0, 4.0): 1, (3.0, 0.0): 1})
         """
-
         if arr.shape != tuple(self.shape):
             raise ValueError('Incompatible shape between array:%s and self:%s' % (
                 arr.shape, self.shape
@@ -1425,7 +1463,6 @@ class Footprint(TileMixin, IntersectionMixin):
             mline = sg.MultiLineString([mline])
 
         # Temporary check for badness, until further testing of this method
-        # check = self.burn_lines(mline).astype('uint8')
         check = arr.copy()
         check[:] = 0
 
@@ -1436,14 +1473,12 @@ class Footprint(TileMixin, IntersectionMixin):
             y = coords[:, 1]
             check[y, x] = 1
 
-        # Size one components are not transformed to lines
+        # Burning size one components since they are not transformed to lines
         for sly, slx in ndi.find_objects(ndi.label(arr)[0]):
             if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
                 check[sly, slx] = 1
 
-        inter = (check & arr).sum()
-        union = (check | arr).sum()
-        assert inter / union == 1
+        assert (check == arr).all()
 
         if mline.is_empty:
             return []
@@ -1455,15 +1490,22 @@ class Footprint(TileMixin, IntersectionMixin):
 
     def burn_lines(self, obj, labelize=False):
         """Experimental function!
-        Create a 2d mask from lines
 
+        Create a 2d image from lines
 
         Parameters
         ----------
         obj: shapely line or nested iterators over shapely lines
+        labelize: bool
+            if `False`: Create a boolean mask
+            if `True`: Create an integer matrix containing lines indices from order in input
 
+        Returns
+        ----------
+        np.ndarray
+            of bool or uint8 or int
+            of shape (self.shape)
         """
-
         lines = list(_line_iterator(obj))
 
         # https://svn.osgeo.org/gdal/trunk/autotest/alg/rasterize.py
@@ -1507,20 +1549,27 @@ class Footprint(TileMixin, IntersectionMixin):
 
     def find_polygons(self, mask):
         """Experimental function!
-        Create a list of polygons from a mask
-
+        Create a list of polygons from a mask.
 
         Parameters
         ----------
-        mask: numpy array
+        arr: np.ndarray of bool of shape (self.shape)
 
+        Returns
+        -------
+        list of shapely.geometry.Polygon
 
-        Examples
-        --------
-        >>> burn_polygons(poly)
-        >>> burn_polygons([poly, poly])
-        >>> burn_polygons([poly, poly, [poly, poly], multipoly, poly])
-
+        Caveats
+        -------
+        Some inputs that may produce invalid polygons (see below) are fixed with the
+        `shapely.geometry.Polygon.buffer` method.
+        0 0 0 0 0 0 0
+        0 1 1 1 0 0 0
+        0 1 1 1 1 0 0
+        0 1 1 1 0 1 0  <- Hole near edge, should create a self touching polygon without holes.
+        0 1 1 1 1 1 1     A valid polygon with one hole is returned instead.
+        0 1 1 1 1 1 1
+        0 0 0 0 0 0 0
         """
         if mask.shape != tuple(self.shape):
             raise ValueError('Mask shape%s incompatible with self shape%s' % (
@@ -1555,8 +1604,9 @@ class Footprint(TileMixin, IntersectionMixin):
             while feat is not None:
                 geometry = feat.geometry()
                 geometry = conv.shapely_of_ogr(geometry)
-                if not geometry.is_valid:
-                    geometry = geometry.buffer(0)
+                print(geometry.is_valid)
+                # if not geometry.is_valid:
+                    # geometry = geometry.buffer(0)
                 yield geometry
                 feat = ogr_lyr.GetNextFeature()
 
@@ -1564,20 +1614,25 @@ class Footprint(TileMixin, IntersectionMixin):
 
     def burn_polygons(self, obj, all_touched=False):
         """Experimental function!
-        Create a 2d mask from polygons
-
+        Create a 2d image from polygons
 
         Parameters
         ----------
         obj: shapely polygon or nested iterators over shapely polygons
+        all_touched: bool
+            Burn all polygons touched
 
+        Returns
+        ----------
+        np.ndarray
+            of bool or uint8 or int
+            of shape (self.shape)
 
         Examples
         --------
         >>> burn_polygons(poly)
         >>> burn_polygons([poly, poly])
         >>> burn_polygons([poly, poly, [poly, poly], multipoly, poly])
-
         """
 
         polys = list(_poly_iterator(obj))
@@ -1616,7 +1671,6 @@ class Footprint(TileMixin, IntersectionMixin):
              boundary_effect='extend', boundary_effect_locus='br'):
         """Tile a Footprint to a matrix of Footprint
 
-
         Parameters
         ----------
         size : (int, int)
@@ -1625,7 +1679,7 @@ class Footprint(TileMixin, IntersectionMixin):
             Width of a tile overlapping with each direct horizontal neighbors, in pixel
         overlapy : int
             Height of a tile overlapping with each direct vertical neighbors, in pixel
-        boundary_effect : {'extend', 'exclude', 'overlap', 'shrink', 'exception'}, optional
+        boundary_effect : {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
             Behevior at boundary effect locus
             'extend'
                 Preserve tile size
@@ -1664,14 +1718,13 @@ class Footprint(TileMixin, IntersectionMixin):
             'bl' : Boundary effect occurs at the bottom left corner of the raster,
                 top right coordinates are preserved
 
-
         Returns
         -------
-        numpy.ndarray(shape=(M, N), dtype=object)
-            with dtype=Footprint
-            with M the line count
-            with N the column count
-
+        np.ndarray
+            of dtype=object (Footprint)
+            of shape (M, N)
+                with M the line count
+                with N the column count
         """
         size = np.asarray(size, dtype=int)
         overlapx = int(overlapx)
@@ -1702,7 +1755,6 @@ class Footprint(TileMixin, IntersectionMixin):
     def tile_count(self, rowcount, colcount, overlapx=0, overlapy=0,
                    boundary_effect='extend', boundary_effect_locus='br'):
         """Tile a Footprint to a matrix of Footprint
-
 
         Parameters
         ----------
@@ -1755,11 +1807,11 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Returns
         -------
-        numpy.ndarray(shape=(M, N), dtype=object)
-            with dtype=Footprint
-            with M the line count
-            with N the column count
-
+        np.ndarray
+            of dtype=object (Footprint)
+            of shape (M, N)
+                with M the line count
+                with N the column count
         """
         rowcount = int(rowcount)
         colcount = int(colcount)
@@ -1846,8 +1898,7 @@ class Footprint(TileMixin, IntersectionMixin):
     def tile_occurrence(self, size, pixel_occurrencex, pixel_occurrencey,
                         boundary_effect='extend', boundary_effect_locus='br'):
         """Tile a Footprint to a matrix of Footprint
-        Each pixel occur `pixel_occurrencex * pixel_occurrencey` times overall
-
+        Each pixel occur `pixel_occurrencex * pixel_occurrencey` times overall in the output
 
         Parameters
         ----------
@@ -1898,14 +1949,13 @@ class Footprint(TileMixin, IntersectionMixin):
             'bl' : Boundary effect occurs at the bottom left corner of the raster,
                 top right coordinates are preserved
 
-
         Returns
         -------
-        numpy.ndarray(shape=(M, N), dtype=object)
-            with dtype=Footprint
-            with M the line count
-            with N the column count
-
+        np.ndarray
+            of dtype=object (Footprint)
+            of shape (M, N)
+                with M the line count
+                with N the column count
         """
         size = np.asarray(size, dtype=int)
         pixel_occurrencex = int(pixel_occurrencex)
