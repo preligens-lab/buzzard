@@ -1604,9 +1604,8 @@ class Footprint(TileMixin, IntersectionMixin):
             while feat is not None:
                 geometry = feat.geometry()
                 geometry = conv.shapely_of_ogr(geometry)
-                print(geometry.is_valid)
-                # if not geometry.is_valid:
-                    # geometry = geometry.buffer(0)
+                if not geometry.is_valid:
+                    geometry = geometry.buffer(0)
                 yield geometry
                 feat = ogr_lyr.GetNextFeature()
 
