@@ -7,10 +7,10 @@ from buzzard import srs
 from buzzard._footprint import Footprint
 
 class DataSourceConversionsMixin(object):
-    """Private mixin for DataSource"""
+    """Private mixin for the DataSource class containing the spatial coordinates
+    conversion subroutines"""
 
     def __init__(self, sr_work, sr_implicit, sr_origin, analyse_transformation):
-
         if sr_work:
             sr_work.StripCTParms()
         self._sr_work = sr_work
@@ -64,7 +64,6 @@ class DataSourceConversionsMixin(object):
                         raise ValueError(
                             'Bad coord transformation for vector proxy: {}'.format(an.messages)
                         )
-
 
         return to_work, to_origin
 

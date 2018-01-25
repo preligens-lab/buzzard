@@ -17,14 +17,29 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     """DataSource is a class that stores references to files, it allows quick manipulations
     by assigning a key to each registered files.
 
-    For actions specific to opened files, see RasterProxy and VectorProxy classes
+    For actions specific to opened files, see Raster, RasterPhysical and VectorProxy classes
 
     Example
     -------
     >>> import buzzard as buzz
+
+    Opening
     >>> ds = buzz.DataSource()
     >>> ds.open_vector('roofs', 'path/to/roofs.shp')
     >>> ds.open_raster('dem', 'path/to/dem.tif')
+
+    Opening with context management
+    >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
+    ...     print(ds.rgb.fp)
+    ...     arr = ds.rgb.get_data()
+    >>> with ds.open_araster('path/to/rgb.tif').close as rgb:
+    ...     print(rgb.fp)
+    ...     arr = rgb.get_data()
+
+    Creation
+    >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
+    >>> with ds.create_araster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
+    ...      cache.set_data(dem.get_data())
 
     """
 
@@ -50,8 +65,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Coordinates conversions
         -----------------------
         A DataSource may perform coordinates conversions on the fly using osr by following a set of
-        rules. Those conversions only include vector files, file Footprint and basic raster
-        euclidean reprojections. Raster warping is not included (yet).
+        rules. Those conversions only include vector files, raster files Footprints and basic raster
+        remapping. General raster warping is not included (yet).
 
         Terminology:
         `sr`: Spatial reference
@@ -68,7 +83,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_implicit` |
         | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_origin`                   |
 
-        For example if the files are known to be all written in a same `sr` use `mode 1`, or
+        For example if all opened files are known to be all written in a same `sr` use `mode 1`, or
         `mode 4` if you wish to work in a different `sr`.
         On the other hand, if not all files are written in the same `sr`, `mode 2` and
         `mode 3` may help, but make sure to use `buzz.Env(analyse_transformation=True)` to be
@@ -150,7 +165,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         Parameters
         ----------
-        key: hashable
+        key: hashable (like a string)
+            File identifier within DataSource
         path: string
         driver: string
             gdal driver to use when opening the file
@@ -189,10 +205,11 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         Parameters
         ----------
-        key: hashable
+        key: hashable (like a string)
+            File identifier within DataSource
         path: string
         fp: Footprint
-            Location and size of the raster to create.
+            Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
         band_count: integer
             number of bands
@@ -203,6 +220,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             http://www.gdal.org/formats_list.html
         options: iterable of string
             options for gdal
+            http://www.gdal.org/frmt_gtiff.html
         sr: string or None
             Spatial reference of the new file
 
@@ -216,12 +234,17 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         -----------
         Fields:
             'nodata': None or number
-            'interpretation': None or one of ('')
+            'interpretation': None or str
             'offset': None or number
             'scale': None or number
             'mask': None or one of ('')
+        Interpretation values:
+            undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
+            saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
+        Mask values:
+            all_valid, per_dataset, alpha, nodata
 
-        A field missing or None is kept to default.
+        A field missing or None is kept to default value.
         A field can be passed as:
             a value: All bands are set to this value
             an iterable of length `band_count` of value: All bands will be set to respective state
@@ -229,12 +252,16 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> out = ds.create_araster('output.tif', ds.dem.fp, 'float32', 1)
         >>> mask = ds.create_araster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
+        >>> fields = {
+        ...     'nodata': -32767,
+        ...     'interpretation': ['blackband', 'cyanband'],
+        ... }
+        >>> out = ds.create_araster('output.tif', ds.dem.fp, 'float32', 2, fields)
 
         Caveat
         ------
-        While using the GTiff driver, the band_schema['mask'] field may lead to unexpected results.
+        When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
 
         """
         self._validate_key(key)
@@ -263,17 +290,17 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         return prox
 
     def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
-        """Create a raster recipe and register it under `key` in this DataSource. Only metadata are
-        kept in memory.
+        """Create a raster recipe and register it under `key` in this DataSource.
 
         A recipe is a read-only raster that behaves like any other raster, pixel values are computed
-        on-the-fly with calls to the provided `pixel function`. A pixel function map a Footprint to
+        on-the-fly with calls to the provided `pixel functions`. A pixel function maps a Footprint to
         a numpy array of the same shape, it may be called several time to compute a result.
 
         Parameters
         ----------
-        key: hashable
-        fn: callable or container of callables
+        key: hashable (like a string)
+            File identifier within DataSource
+        fn: callable or sequence of callable
             pixel functions, one per band
             A pixel function take a Footprint and return a np.ndarray with the same shape.
         path: string
@@ -290,6 +317,76 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+        Exemple
+        -------
+        Computing the Mandelbrot fractal using buzzard
+
+        >>> import buzzard as buzz
+        ... import numpy as np
+        ... from numba import jit
+        ... import matplotlib.pyplot as plt
+        ... import shapely.geometry as sg
+        ...
+        ... @jit(nopython=True, nogil=True, cache=True)
+        ... def mandelbrot_jit(array, tl, scale, maxit):
+        ...     for j in range(array.shape[0]):
+        ...         y0 = tl[1] + j * scale[1]
+        ...         for i in range(array.shape[1]):
+        ...             x0 = tl[0] + i * scale[0]
+        ...             x = 0.0
+        ...             y = 0.0
+        ...             x2 = 0.0
+        ...             y2 = 0.0
+        ...             iteration = 0
+        ...             while x2 + y2 < 4 and iteration < maxit:
+        ...                 y = 2 * x * y + y0
+        ...                 x = x2 - y2 + x0
+        ...                 x2 = x * x
+        ...                 y2 = y * y
+        ...                 iteration += 1
+        ...             array[j][i] = iteration * 255 / maxit
+        ...
+        ... with buzz.Env(allow_complex_footprint=True, warnings=False):
+        ...     ds = buzz.DataSource()
+        ...
+        ...     def pixel_function(fp):
+        ...         print('  Computing {}'.format(fp))
+        ...         array = np.empty(fp.shape, 'uint8')
+        ...         mandelbrot_jit(array, fp.tl, fp.scale, maxit)
+        ...         return array
+        ...
+        ...     size = 5000
+        ...     fp = buzz.Footprint(
+        ...         gt=(-2, 4 / size, 0, -2, 0, 4 / size),
+        ...         rsize=(size, size),
+        ...     )
+        ...     print('Recipe:{}'.format(fp))
+        ...     r = ds.create_recipe_araster(pixel_function, fp, 'uint8', {'nodata': 0})
+        ...
+        ...     focus = sg.Point(-1.1172, -0.221103)
+        ...     for factor in [1, 4, 16, 64]:
+        ...         buffer = 2 / factor
+        ...         maxit = 25 * factor
+        ...         fp = fp.dilate(buffer // fp.pxsizex) & focus.buffer(buffer)
+        ...         print('Zoom:{}, radius:{}, max-iteration:{}, fp:{}'.format(factor, buffer, maxit, fp))
+        ...         a = r.get_data(fp=fp)
+        ...         plt.imshow(a, origin='upper', extent=(fp.lx, fp.rx, fp.by, fp.ty))
+        ...         plt.show()
+        ...
+        Recipe:     Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5000, 5000))
+        Zoom:1, radius:2.0, max-iteration:25,
+                 fp:Footprint(tl=(-3.117600, -2.221600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5001, 5001))
+          Computing Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(3609, 4729))
+        Zoom:4, radius:0.5, max-iteration:100,
+                 fp:Footprint(tl=(-1.617600, -0.721600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1251, 1251))
+          Computing Footprint(tl=(-1.620800, -0.724800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1259, 1259))
+        Zoom:16, radius:0.125, max-iteration:400,
+                 fp:Footprint(tl=(-1.242400, -0.346400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(313, 313))
+          Computing Footprint(tl=(-1.246400, -0.350400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(323, 323))
+        Zoom:64, radius:0.03125, max-iteration:1600,
+                 fp:Footprint(tl=(-1.148800, -0.252800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(79, 79))
+          Computing Footprint(tl=(-1.152800, -0.256800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(89, 89))
 
         """
         self._validate_key(key)
@@ -312,7 +409,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         return prox
 
     def create_recipe_araster(self, fn, fp, dtype, band_schema=None, sr=None):
-        """Create a raster recipe anonymously in this DataSource. Only metadata are kept in memory.
+        """Create a raster recipe anonymously in this DataSource.
 
         See DataSource.create_recipe_raster
         """
@@ -340,7 +437,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         Parameters
         ----------
-        key: hashable
+        key: hashable (like a string)
+            File identifier within DataSource
         path: string
         layer: None or int or string
         driver: string
@@ -380,7 +478,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         Parameters
         ----------
-        key: hashable
+        key: hashable (like a string)
+            File identifier within DataSource
         path: string
         geometry: string
             name of a wkb geometry type
@@ -412,19 +511,19 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             'width': int
             'nullable': bool
             'default': same as `type`
-        An attribute missing or None is kept to default.
+        An attribute missing or None is kept to default value.
 
-        Field type
-        ----------
-        Binary        key: 'binary', bytes, np.bytes_, alias of np.bytes_
+        Field types
+        -----------
+        Binary        key: 'binary', bytes, np.bytes_, aliases of np.bytes_
         Date          key: 'date'
-        DateTime      key: 'datetime', datetime.datetime, np.datetime64, alias of np.datetime64
+        DateTime      key: 'datetime', datetime.datetime, np.datetime64, aliases of np.datetime64
         Time          key: 'time'
 
-        Integer       key: 'integer' np.int32, alias of np.int32
-        Integer64     key: 'integer64', int, np.int64, alias of np.int64
-        Real          key: 'real', float, np.float64, alias of np.float64
-        String        key: 'string', str, np.str_, alias of np.str_
+        Integer       key: 'integer' np.int32, aliases of np.int32
+        Integer64     key: 'integer64', int, np.int64, aliases of np.int64
+        Real          key: 'real', float, np.float64, aliases of np.float64
+        String        key: 'string', str, np.str_, aliases of np.str_
 
         Integer64List key: 'integer64list', 'int list'
         IntegerList   key: 'integerlist'
@@ -468,26 +567,30 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     # Proxy getters ********************************************************* **
     def __getitem__(self, key):
-        """Retrieve proxy from key"""
+        """Retrieve a proxy from its key"""
         return self._proxy_of_key[key]
 
-    def __contains__(self, key):
+    def __contains__(self, item):
         """Is key or proxy registered in DataSource"""
-        if isinstance(key, Proxy):
-            return key in self._keys_of_proxy
-        return key in self._proxy_of_key
+        if isinstance(item, Proxy):
+            return item in self._keys_of_proxy
+        return item in self._proxy_of_key
 
     # Spatial reference getters ********************************************* **
     @property
     def proj4(self):
-        """DataSource's work spatial reference in WKT proj4"""
+        """DataSource's work spatial reference in WKT proj4.
+        Returns None if none set.
+        """
         if self._sr_work is None:
             return None
         return self._sr_work.ExportToProj4()
 
     @property
     def wkt(self):
-        """DataSource's work spatial reference in WKT format"""
+        """DataSource's work spatial reference in WKT format.
+        Returns None if none set.
+        """
         if self._sr_work is None:
             return None
         return self._wkt_work

@@ -1,4 +1,6 @@
-"""Spatial references operations"""
+"""Collection of spatial references manipuation utilities,
+might be filled/improved/moved in the future
+"""
 
 from osgeo import gdal, osr, ogr
 import numpy as np
@@ -17,7 +19,6 @@ def wkt_of_any(string):
         return out
     raise ValueError('Could not convert to wkt ({})'.format(gdal.GetLastErrorMsg()))
 
-
 def wkt_same(a, b):
     """Are two wkt equivalent"""
     if a == b:
@@ -27,7 +28,6 @@ def wkt_same(a, b):
     sra.StripCTParms()
     srb.StripCTParms()
     return bool(sra.IsSame(srb))
-
 
 def _details_of_file(path):
     with Env(_osgeo_use_exceptions=False):
@@ -55,7 +55,6 @@ def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
     Optionally recenter projection.
     Optionally change unit of projection.
     """
-
     wkt, centroid = _details_of_file(path)
 
     if center is False and unit is None:

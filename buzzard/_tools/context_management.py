@@ -1,7 +1,7 @@
 """>>> help(CallOrContext)"""
 
 class CallOrContext(object):
-    """Helper class to provide behaviour on call and on exit."""
+    """Private helper class to provide a behaviour both on call and on exit"""
     def __init__(self, obj, routine):
         self._obj = obj
         self._routine = routine

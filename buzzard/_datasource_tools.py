@@ -1,7 +1,7 @@
 """>>> help(DataSourceToolsMixin)"""
 
 class DataSourceToolsMixin(object):
-    """DataSource Mixin containing tools"""
+    """Private mixin for the DataSource class containing subroutines for proxies registration"""
 
     def __init__(self):
         self._keys_of_proxy = {}

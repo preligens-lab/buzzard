@@ -5,7 +5,7 @@ import numpy as np
 import affine
 
 class Rect(object):
-    """Tool class used to assess the attributes of a rectangle"""
+    """Private tool class used to assess the attributes of an imperfect rectangle"""
 
     def __init__(self, tl, bl, br, tr):
         self.tl = np.float64(tl)

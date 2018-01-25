@@ -12,7 +12,7 @@ from buzzard import _tools
 from buzzard._env import env
 
 class IntersectionMixin(object):
-    """Footprint Mixin containing intersection subroutine"""
+    """Private mixin for the Footprint class containing the `intersection` subroutines"""
 
     _INTERSECTION_RESOLUTIONS = {'self', 'highest', 'lowest'}
     _INTERSECTION_ROTATIONS = {'auto', 'fit'}

@@ -150,6 +150,9 @@ pip install buzzard
 pytest buzzard/buzzard/test
 ```
 
+## Documentation
+In code (docstrings)
+
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
 

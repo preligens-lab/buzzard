@@ -3,10 +3,9 @@
 from osgeo import osr
 
 class Proxy(object):
-    """Base class to all sources of any kind"""
+    """Base class to all sources"""
 
     def __init__(self, ds, wkt, rect):
-
         wkt_origin = wkt
         del wkt
 

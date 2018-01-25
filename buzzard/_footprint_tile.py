@@ -3,7 +3,7 @@
 import numpy as np
 
 class TileMixin(object):
-    """Footprint Mixing containing tiling subroutines"""
+    """Private mixin for the Footprint class containing tiling subroutines"""
 
     _TILE_BOUNDARY_EFFECTS = set(['extend', 'exclude', 'overlap', 'shrink', 'exception'])
     _TILE_OCCURRENCE_BOUNDARY_EFFECTS = set(['extend', 'exception'])

@@ -133,6 +133,7 @@ class _GlobalMapStack(object):
         return self._mapping[k]
 
 class _Storage(threading.local):
+    """Thread local storage for the GlobalMapStack instance"""
     def __init__(self):
         if threading.current_thread().__class__.__name__ == '_MainThread':
             self._mapstack = _GlobalMapStack({
@@ -145,9 +146,8 @@ class _Storage(threading.local):
 _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
-class Env():
+class Env(object):
     """Context manager to update buzzard states
-
 
     Parameters
     ----------
@@ -164,7 +164,6 @@ class Env():
         Initialized to `False`
     warnings: bool
         Initialized to `True`
-
 
     Example
     -------
@@ -202,6 +201,7 @@ class Env():
 
 # Value retrieval ******************************************************************************* **
 class _ThreadMapStackGetter(object):
+    """Getter for env attribute"""
     def __init__(self, key):
         self.key = key
 
@@ -209,14 +209,12 @@ class _ThreadMapStackGetter(object):
         return _LOCAL._mapstack[self.key]
 
 class _CurrentEnv(object):
-    """Namespace to access current values of buzzard's environment variable
-    (see buzz.Env)
-
+    """Namespace to access current values of buzzard's environment variable (see buzz.Env)
 
     Example
     -------
     >>> buzz.env.significant
-    7.0
+    8.0
 
     """
     _instance = None

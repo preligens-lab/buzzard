@@ -16,7 +16,6 @@ from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
 from six.moves import filterfalse
-# import gdaltest
 import scipy.ndimage as ndi
 
 from buzzard import _tools
@@ -272,9 +271,12 @@ class Footprint(TileMixin, IntersectionMixin):
         )
         tl = self.tl + [startx, starty] * self.pxvec
         size = rsize * self.pxsize
+        gt = self.gt
+        gt[0] = tl[0]
+        gt[3] = tl[1]
+
         return self.__class__(
-            tl=tl,
-            size=size,
+            gt=gt,
             rsize=rsize,
         )
 

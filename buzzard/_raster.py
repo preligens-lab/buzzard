@@ -160,7 +160,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         if mask is not None:
             mask = np.asarray(mask).astype(bool)
             if mask.shape != tuple(fp.shape):
-                raise ValueError() # pragma: no cover
+                raise ValueError('mask should have the same shape as `fp`') # pragma: no cover
 
         # Normalize interpolation parameter
         if not self._ds._allow_interpolation:
@@ -173,8 +173,8 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         if not samplefp.share_area(self.fp):
             if onodata is None:
                 raise Exception(
-                    'Querying data fully outside of file Footprint with no explicit `nodata` in '
-                    'parameters or in file.'
+                    "Querying data fully outside of file's Footprint, but `nodata` is not known. "
+                    "Provide a `nodata` parameter or create a new file with a `nodata` value set."
                 )
             return np.full(outshape, onodata, dtype)
         else:
