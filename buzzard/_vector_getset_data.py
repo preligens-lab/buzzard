@@ -10,7 +10,7 @@ from buzzard._tools import conv
 from ._footprint import Footprint
 
 class VectorGetSetMixin(object):
-    """Private Mixin"""
+    """Private mixin for the Vector class containing subroutines for iteration and insertions"""
 
     @staticmethod
     def _normalize_mask_parameter(mask):
@@ -29,6 +29,7 @@ class VectorGetSetMixin(object):
             raise TypeError('`mask` should be a Footprint, an extent or a shapely object')
 
     class _LayerIteration(object):
+        """Context manager to control layer iteration"""
 
         def __init__(self, lyr, lock, wait):
             self._lock = lock
@@ -140,6 +141,7 @@ class VectorGetSetMixin(object):
                 ))
         else:
             assert False # pragma: no cover
+
         with self.__class__._LayerIteration(self._lyr, self._lock,
                                             self._ds._ogr_layer_lock == 'wait'):
             ftr = ogr.Feature(self._lyr.GetLayerDefn())

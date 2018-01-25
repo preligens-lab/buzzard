@@ -17,6 +17,19 @@ def wkt_of_any(string):
     out = osr.GetUserInputAsWKT(string)
     if isinstance(out, str):
         return out
+    else:
+        prj = None
+        with Env(_osgeo_use_exceptions=False):
+            gdal_ds = gdal.OpenEx(string, conv.of_of_str('raster'))
+            if gdal_ds is not None:
+                prj = gdal_ds.GetProjection()
+            gdal_ds = gdal.OpenEx(string, conv.of_of_str('vector'))
+            if gdal_ds is not None:
+                lyr = gdal_ds.GetLayerByIndex(0)
+                if lyr is not None:
+                    prj = lyr.GetSpatialRef()
+        if prj is not None:
+            return prj.ExportToWkt()
     raise ValueError('Could not convert to wkt ({})'.format(gdal.GetLastErrorMsg()))
 
 def wkt_same(a, b):

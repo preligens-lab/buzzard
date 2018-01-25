@@ -102,7 +102,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
 
         Parameters
         ----------
-        band: band index or iterable of band index (see `Band Indices` below)
+        band: band index or sequence of band index (see `Band Indices` below)
         fp: Footprint
             Clip output to `fp`
             If none provided, return the full raster

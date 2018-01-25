@@ -171,7 +171,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         driver: string
             gdal driver to use when opening the file
             http://www.gdal.org/formats_list.html
-        options: iterable of string
+        options: sequence of str
             options for gdal
         mode: one of ('r', 'w')
 
@@ -218,7 +218,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         driver: string
             gdal driver to use when opening the file
             http://www.gdal.org/formats_list.html
-        options: iterable of string
+        options: sequence of str
             options for gdal
             http://www.gdal.org/frmt_gtiff.html
         sr: string or None
@@ -247,7 +247,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         A field missing or None is kept to default value.
         A field can be passed as:
             a value: All bands are set to this value
-            an iterable of length `band_count` of value: All bands will be set to respective state
+            a sequence of length `band_count` of value: All bands will be set to respective state
 
         Example
         -------
@@ -399,9 +399,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             fn_lst = tuple(fn)
             for fn_elt in fn_lst:
                 if not hasattr(fn_elt, '__call__'):
-                    raise TypeError('fn should be a callable or a container of callables')
+                    raise TypeError('fn should be a callable or a sequence of callables')
         else:
-            raise TypeError('fn should be a callable or a container of callables')
+            raise TypeError('fn should be a callable or a sequence of callables')
 
         gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
         prox = RasterRecipe(self, gdal_ds, fn_lst)
@@ -422,9 +422,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             fn_lst = tuple(fn)
             for fn_elt in fn_lst:
                 if not hasattr(fn_elt, '__call__'):
-                    raise TypeError('fn should be a callable or a container of callables')
+                    raise TypeError('fn should be a callable or a sequence of callables')
         else:
-            raise TypeError('fn should be a callable or a container of callables')
+            raise TypeError('fn should be a callable or a sequence of callables')
 
         gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
         prox = RasterRecipe(self, gdal_ds, fn_lst)
@@ -444,7 +444,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         driver: string
             ogr driver to use when opening the file
             http://www.gdal.org/ogr_formats.html
-        options: iterable of string
+        options: sequence of str
             options for ogr
         mode: one of ('r', 'w')
 
@@ -485,13 +485,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             name of a wkb geometry type
             http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
             (see example below)
-        fields: iterable of dict
+        fields: sequence of dict
             Attributes of fields, one dict per field. (see `Field attributes` below)
         layer: None or string
         driver: string
             ogr driver to use when opening the file
             http://www.gdal.org/ogr_formats.html
-        options: iterable of string
+        options: sequence of str
             options for ogr
         sr: string or None
             Spatial reference of the new file

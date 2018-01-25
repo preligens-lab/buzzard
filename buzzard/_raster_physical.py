@@ -13,7 +13,7 @@ from buzzard import _tools
 from buzzard._raster import Raster
 
 class RasterPhysical(Raster):
-    """Physical class of raster sources containing physical data"""
+    """Concrete class of raster sources containing physical data"""
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
@@ -115,7 +115,7 @@ class RasterPhysical(Raster):
         fp: Footprint
             Of shape (Y, X)
             Within in raster file
-        band: band index or iterable of band index (see `Band Indices` below)
+        band: band index or sequence of band index (see `Band Indices` below)
         interpolation: one of ['cv_area', ]
             Resampling method
         mask: numpy array (Y, X) OR geometries accepted by Footprint.mask_of_geometries
@@ -194,7 +194,7 @@ class RasterPhysical(Raster):
         Parameters
         ----------
         value: number
-        band: band index or iterable of band index (see `Band Indices` below)
+        band: band index or sequence of band index (see `Band Indices` below)
 
 
         Band Indices

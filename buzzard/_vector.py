@@ -110,7 +110,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     def __init__(self, ds, ogr_ds, lyr, mode):
         """Instanciated by DataSource class, instanciation by user is undefined"""
-
         wkt_origin = lyr.GetSpatialRef()
         if wkt_origin is not None:
             wkt_origin = wkt_origin.ExportToWkt()
@@ -129,7 +128,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             for field in self._fields
         ]
         self._all_nullable = all(field['nullable'] for field in self._fields)
-        self._len = len(lyr)
         self._type = conv.str_of_wkbgeom(lyr.GetGeomType())
         if ds._ogr_layer_lock == 'none':
             self._lock = None
@@ -184,7 +182,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                     path, gdal.GetLastErrorMsg()
                 ))
-
         return _VectorDeleteRoutine(self, _delete)
 
     @property
@@ -209,12 +206,13 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     # PROPERTY GETTERS ************************************************************************** **
     def __len__(self):
-        return self._len
+        """Return the number of features in vector layer"""
+        return len(self._lyr)
 
     @property
     def fields(self):
         """Fields definition"""
-        return list(self._fields)
+        return [dict(d) for d in self._fields]
 
     @property
     def type(self):
@@ -223,7 +221,12 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @property
     def extent(self):
-        """Get file's extent. (minx, miny, maxx, maxy)"""
+        """Get file's extent. (`x` then `y`)
+
+        Example
+        -------
+        >>> minx, maxx, miny, maxy = ds.roofs.extent
+        """
         extent = self._lyr.GetExtent()
         if extent is None:
             raise ValueError('Could not compute extent')
@@ -236,7 +239,12 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @property
     def bounds(self):
-        """Get file's extent. (minx, miny, maxx, maxy)"""
+        """Get the file's bounds (`min` then `max`)
+
+        Example
+        -------
+        >>> minx, miny, maxx, maxy = df.roofs.extent
+        """
         extent = self.extent
         return np.asarray([extent[0], extent[2], extent[1], extent[3]])
 
@@ -258,18 +266,17 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
                   mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over file's features
 
-
         Parameters
         ----------
-        fields: None or string or -1 or container of string/int
-            which fields to include in iteration
+        fields: None or string or -1 or sequence of string/int
+            Which fields to include in iteration
 
-            if None or empty container: No fields included
+            if None or empty sequence: No fields included
             if -1: All fields included
             if string: Name of fields to include (separated by comma or space)
-            if iterable: List of indices / names to include
+            if sequence: List of indices / names to include
         geom_type: {'shapely', 'coordinates'}
-            returned geometry type
+            Returned geometry type
         mask: None or Footprint or shapely polygon or (nbr, nbr, nbr, nbr)
             Add a spatial filter to iteration, only geometries intersecting (not disjoint) with mask
             will be included.
@@ -279,15 +286,14 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
         clip: bool
             Returns intersection of geometries and mask.
-            i.e.: A polygon in a file might be converted to one of point, line, multiline,
+            Caveat: A polygon in a file might be converted to one of point, line, multiline,
                   multipoint, geometrycollection.
         slicing: slice
-            Slice of the iteration to return. It is applyied after spatial filtering
-
+            Slice of the iteration to return. It is applied after spatial filtering
 
         Returns
         -------
-        iterable of value
+        iterable of value:
 
         | geom_type     | fields | value type                            |
         |---------------|--------|---------------------------------------|
@@ -296,10 +302,9 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         | 'shapely'     | Some   | (shapely object, *fields)             |
         | 'coordinates' | Some   | (nested list / numpy arrays, *fields) |
 
-
         Example
         -------
-        >>> for polygon, volume in ds.stocks.iter_data('volume'):
+        >>> for polygon, volume, stock_type in ds.stocks.iter_data('volume,type'):
                 print('area:{}m**2, volume:{}m**3'.format(polygon.area, volume))
 
         """
@@ -331,17 +336,16 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     def get_data(self, index, fields=-1, geom_type='shapely', mask=None, clip=False):
         """Fetch a single feature in file
 
-
         Parameters
         ----------
         index: int
-        fields: None or string or -1 or container of string/int
+        fields: None or string or -1 or sequence of string/int
             which fields to include in iteration
 
-            if None or empty container: No fields included
+            if None or empty sequence: No fields included
             if -1: All fields included
             if string: Name of fields to include (separated by comma or space)
-            if iterable: List of indices / names to include
+            if sequence: List of indices / names to include
         geom_type: {'shapely', 'coordinates'}
             returned geometry type
         mask: None or Footprint or shapely polygon or (nbr, nbr, nbr, nbr)
@@ -353,23 +357,20 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
         clip: bool
             Returns intersection of geometries and mask.
-            i.e.: A polygon in a file might be converted to one of point, line, multiline,
+            Caveat: A polygon in a file might be converted to one of point, line, multiline,
                   multipoint, geometrycollection.
         slicing: slice
-            Slice of the iteration to return. It is applyied after spatial filtering
-
+            Slice of the iteration to return. It is applied after spatial filtering
 
         Returns
         -------
-        value
-
+        value:
         | geom_type     | fields | value type                            |
         |---------------|--------|---------------------------------------|
         | 'shapely'     | None   | shapely object                        |
         | 'coordinates' | None   | nested list / numpy arrays            |
         | 'shapely'     | Some   | (shapely object, *fields)             |
         | 'coordinates' | Some   | (nested list / numpy arrays, *fields) |
-
 
         """
         index = int(index)
@@ -380,7 +381,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     def iter_geojson(self, mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over file's data
-
 
         Parameters
         ----------
@@ -393,16 +393,14 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
         clip: bool
             Returns intersection of geometries and mask.
-            i.e.: A polygon in a file might be converted to one of point, line, multiline,
+            Caveat: A polygon in a file might be converted to one of point, line, multiline,
                   multipoint, geometrycollection.
         slicing: slice
             Slice of the iteration to return. It is applyied after spatial filtering
 
-
         Returns
         -------
         iterable of geojson feature (dict)
-
 
         Example
         -------
@@ -439,7 +437,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     def get_geojson(self, index, mask=None, clip=False):
         """Fetch a single feature in file
 
-
         Parameters
         ----------
         index: int
@@ -452,9 +449,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
         clip: bool
             Returns intersection of geometries and mask.
-            i.e.: A polygon in a file might be converted to one of point, line, multiline,
+            Caveat: A polygon in a file might be converted to one of point, line, multiline,
                   multipoint, geometrycollection.
-
 
         Returns
         -------
@@ -470,21 +466,19 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     def insert_data(self, geom, fields=(), index=-1):
         """Insert a feature in file
 
-
         Parameters
         ----------
-        geom: shapely.base.BaseGeometry or nested container of coordinates
-        fields: container or dict
+        geom: shapely.base.BaseGeometry or nested sequence of coordinates
+        fields: sequence or dict
             Feature's fields
             Missing or None fields are defaulted
 
-            if empty container: Keep all fields defaulted
-            if container of length len(self.fields): Fields to be set, same order as self.fields
+            if empty sequence: Keep all fields defaulted
+            if sequence of length len(self.fields): Fields to be set, same order as self.fields
             if dict: Mapping of fields to be set
         index: int
             if -1: append feature
             else: insert feature at index (if supported by driver)
-
 
         Example
         -------

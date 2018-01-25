@@ -67,7 +67,6 @@ def coordinates_of_ogr(geom):
     return json.loads(geom.ExportToJson())['coordinates']
 
 # OFT (OGR Field Type) <-> type/str ************************************************************* **
-
 # Read to parse user choices in create_vector
 # Contains keys
 #   - all lowercast ogr.OFT*
@@ -160,7 +159,6 @@ def type_of_oftstr(str_):
     return _TYPE_OF_OFT[_OFT_OF_STR[str_]]
 
 # OF (Open Flag) <-> str ************************************************************************ **
-
 _OF_OF_STR = {
     'all': gdal.OF_ALL,
     'gnm': gdal.OF_GNM,

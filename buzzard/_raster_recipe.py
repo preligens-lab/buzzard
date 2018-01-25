@@ -16,7 +16,7 @@ from buzzard._env import Env
 LOGGER = logging.getLogger('buzzard')
 
 class RasterRecipe(Raster):
-    """Physical class of recipe raster sources"""
+    """Concrete class of recipe raster sources"""
 
     _callback_registry = {}
 

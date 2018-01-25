@@ -6,10 +6,11 @@ import numbers
 from buzzard._tools import conv
 
 class VectorUtilsMixin(object):
-    """Private Mixin for Vector"""
+    """Private mixin for the Vector class containing subroutines for fields manipulations"""
 
     @staticmethod
     def _field_of_def(fielddef):
+        """Used on file opening / creation"""
         oft = fielddef.type
         oftstr = conv.str_of_oft(oft)
         type_ = conv.type_of_oftstr(oftstr)
@@ -24,12 +25,14 @@ class VectorUtilsMixin(object):
         }
 
     def _fields_of_lyr(self, lyr):
+        """Used on file opening / creation"""
         featdef = lyr.GetLayerDefn()
         field_count = featdef.GetFieldCount()
         return [self._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]
 
     @staticmethod
     def _normalize_fields_defn(fields):
+        """Used on file creation"""
         if not isinstance(fields, collections.Iterable):
             raise TypeError('Bad fields definition type')
 
@@ -57,6 +60,7 @@ class VectorUtilsMixin(object):
         return [_sanitize_dict(dic) for dic in fields]
 
     def _normalize_field_values(self, fields):
+        """Used on feature insertion"""
         if isinstance(fields, collections.Mapping):
             lst = [None] * len(self._fields)
             for k, v in fields.items():
@@ -85,6 +89,7 @@ class VectorUtilsMixin(object):
             raise TypeError('Bad fields type')
 
     def _iter_user_intput_field_keys(self, keys):
+        """Used on features reading"""
         if keys == -1:
             for i in range(len(self._fields)):
                 yield i

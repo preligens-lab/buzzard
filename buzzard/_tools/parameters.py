@@ -6,7 +6,7 @@ import collections
 import numpy as np
 
 def _coro_parameter_0or1dim(val, clean_fn, name):
-    """Normalize a parameter that can be an iterable or not.
+    """Normalize a parameter that can be an sequence or not.
 
     Parameters
     ----------
@@ -27,13 +27,13 @@ def _coro_parameter_0or1dim(val, clean_fn, name):
         return
     if isinstance(val, str) or not isinstance(val, collections.Iterable):
         raise TypeError(
-            'Expecting a `{}` or an `iterable of `{}`, found a `{}`'.format(name, name, type(val))
+            'Expecting a `{}` or an `sequence of `{}`, found a `{}`'.format(name, name, type(val))
         )
     yield False
     for elt in val:
         attempt = clean_fn(elt)
         if attempt is None:
-            fmt = 'Expecting a `{}` or an `iterable of `{}`, found an `iterable of {}`'
+            fmt = 'Expecting a `{}` or an `sequence of `{}`, found an `sequence of {}`'
             raise TypeError(fmt.format(name, name, type(elt)))
         yield attempt
 
