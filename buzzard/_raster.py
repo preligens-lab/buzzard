@@ -35,6 +35,12 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         self._fp_origin = fp_origin
         self._band_schema = self._band_schema_of_gdal_ds(gdal_ds)
 
+        self._shared_band_index = None
+        for i, type in enumerate(self._band_schema['mask'], 1):
+            if type == 'per_dataset':
+                self._shared_band_index = i
+                break
+
     @property
     def close(self):
         """Close a raster with a call or a context management.
@@ -135,7 +141,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
             dtype = conv.dtype_of_any_downcast(dtype)
 
         # Normalize and check band parameter
-        bands, is_flat = _tools.normalize_band_parameter(band, len(self), -1j)
+        bands, is_flat = _tools.normalize_band_parameter(band, len(self), self._shared_band_index)
         if is_flat:
             outshape = fp.shape
         else:
