@@ -17,6 +17,7 @@ class RasterPhysical(Raster):
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
+        """Create a raster datasource"""
         dr = gdal.GetDriverByName(driver)
         if os.path.isfile(path):
             err = dr.Delete(path)
@@ -41,6 +42,7 @@ class RasterPhysical(Raster):
 
     @classmethod
     def _open_file(cls, path, driver, options, mode):
+        """Open a raster datasource"""
         options = [str(arg) for arg in options] if len(options) else []
         gdal_ds = gdal.OpenEx(
             path,
@@ -103,25 +105,27 @@ class RasterPhysical(Raster):
 
         fp can be partially or fully outside of target
 
-        If the input is not aligned with the raster file, between 0 (included) and 1 (excluded)
-        pixel may be lost at edges. This is due to interpolation from cv2.remap. Provide more
-        context in `array` to counter this effect.
+        If `allow_interpolation` is enabled in the DataSource constructor, it is then possible to
+        use a `fp` that is not aligned  with the source raster, interpolation in then used to remap
+        `array` from `fp` to raster. `nodata` values are also handled and spreaded to the raster
+        through remapping.
 
+        When remapping, if the input is not aligned with the raster file, at most one pixel pixel
+        may be lost at edges due to interpolation. Provide more context in `array` to counter this effect.
 
         Parameters
         ----------
-        array: numpy array (Y, X) OR numpy array (Y, X, B)
+        array: numpy.ndarray of shape (Y, X) or (Y, X, B)
             Input data
         fp: Footprint
             Of shape (Y, X)
             Within in raster file
         band: band index or sequence of band index (see `Band Indices` below)
-        interpolation: one of ['cv_area', ]
+        interpolation: one of ('cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4')
             Resampling method
-        mask: numpy array (Y, X) OR geometries accepted by Footprint.mask_of_geometries
+        mask: numpy array of shape (Y, X) OR inputs accepted by Footprint.burn_polygons
         op: None or vector function
             Rounding function following an interpolation when file type is integer
-
 
         Band Indices
         ------------
@@ -190,12 +194,10 @@ class RasterPhysical(Raster):
     def fill(self, value, band=1):
         """Fill bands with value.
 
-
         Parameters
         ----------
-        value: number
+        value: nbr
         band: band index or sequence of band index (see `Band Indices` below)
-
 
         Band Indices
         ------------

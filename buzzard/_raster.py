@@ -17,6 +17,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
     """Abstract class to all raster sources"""
 
     def __init__(self, ds, gdal_ds):
+        """Instanciated by DataSource class, instanciation by user is undefined"""
         fp_origin = Footprint(
             gt=gdal_ds.GetGeoTransform(),
             rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
@@ -91,30 +92,41 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         return self._gdal_ds.GetRasterBand(band).GetNoDataValue()
 
     def __len__(self):
+        """Return the number of bands"""
         return self._gdal_ds.RasterCount
 
-    def get_data(self, band=1, fp=None, mask=None, nodata=None, interpolation='cv_area',
+    def get_data(self, fp=None, band=1, mask=None, nodata=None, interpolation='cv_area',
                  dtype=None, op=np.rint):
         """Get `data` located at `fp` in raster file. An optional `mask` may be provided.
 
-        fp can be partially or fully outside of file
+        If `nodata` is set in raster or provided as an argument, fp can lie partially or fully
+        outside of raster.
 
+        If `allow_interpolation` is enabled in the DataSource constructor, it is then possible to
+        use a `fp` that is not aligned with the source raster, interpolation in then used to
+        remap source to `fp`. `nodata` values are also handled and spreaded to the output through
+        remapping.
 
         Parameters
         ----------
+        fp: Footprint of shape (Y, X)
+            If None: return the full raster
+            If Footprint: return this window from the raster
         band: band index or sequence of band index (see `Band Indices` below)
-        fp: Footprint
-            Clip output to `fp`
-            If none provided, return the full raster
+        mask: numpy array of shape (Y, X)
         nodata: Number
             Override self.get_nodata()
-        interpolation: one of ['cv_area', ]
+        interpolation: one of ('cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4')
             Resampling method
         dtype: type
             Override gdal output type
         op: None or vector function
             Rounding function following an interpolation when output type is integer
 
+        Returns
+        -------
+        numpy.ndarray
+            of shape (Y, X) or (Y, X, B)
 
         Band Indices
         ------------
@@ -122,12 +134,11 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         |------------|-----------------|------------------|
         | int        | -1              | All bands        |
         | int        | 1, 2, 3, ...    | Band `i`         |
-        | complex    | -1j             | All bands mask   |
+        | complex    | -1j             | All bands masks  |
         | complex    | 0j              | Shared mask band |
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
-
         # Normalize and check fp parameter
         if fp is None:
             fp = self.fp

@@ -5,7 +5,7 @@ import numbers
 from buzzard._tools import conv
 
 class RasterUtilsMixin(object):
-    """Private mixin for Raster"""
+    """Private mixin for the Raster class containing subroutines for raster attributes manipulations"""
 
     _BAND_SCHEMA_PARAMS = {
         'nodata', 'interpretation', 'offset', 'scale', 'mask',
@@ -13,7 +13,7 @@ class RasterUtilsMixin(object):
 
     @staticmethod
     def _apply_band_schema(gdal_ds, band_schema):
-
+        """Used on file creation"""
         if 'nodata' in band_schema:
             for i, val in enumerate(band_schema['nodata'], 1):
                 if val is not None:
@@ -39,6 +39,7 @@ class RasterUtilsMixin(object):
 
     @staticmethod
     def _band_schema_of_gdal_ds(gdal_ds):
+        """Used on file opening"""
         bands = [gdal_ds.GetRasterBand(i + 1) for i in range(gdal_ds.RasterCount)]
         return {
             'nodata': [band.GetNoDataValue() for band in bands],
@@ -50,6 +51,7 @@ class RasterUtilsMixin(object):
 
     @classmethod
     def _sanitize_band_schema(cls, band_schema, band_count):
+        """Used on file/recipe creation"""
         ret = {}
 
         def _test_length(val, name):

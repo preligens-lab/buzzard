@@ -4,7 +4,7 @@ import numpy as np
 from osgeo import gdal
 
 class RasterGetSetMixin(object):
-    """Private mixin"""
+    """Private mixin for the Raster class containing subroutines for read and writes"""
 
     def _gdalband_of_index(self, index):
         if isinstance(index, int):
@@ -118,6 +118,7 @@ class RasterGetSetMixin(object):
         ystart = None
         y = 0
         while True:
+            # Iteration analysis
             if y == 0:
                 begin_group = True
                 send_group = False
@@ -135,12 +136,15 @@ class RasterGetSetMixin(object):
                 send_group = False
                 stop = False
 
+            # Actions
             if send_group:
                 yslice = slice(ystart, y)
                 for xslice in cls._slices_of_vector(mask[ystart]):
                     yield yslice, xslice
             if begin_group:
                 ystart = y
+
+            # Loop control
             if stop:
                 break
             y += 1

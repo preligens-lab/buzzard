@@ -24,7 +24,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @classmethod
     def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
-        """Create a new vector file"""
+        """Create a vector datasource"""
 
         if layer is None:
             layer = '.'.join(ntpath.basename(path).split('.')[:-1])
@@ -87,6 +87,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @classmethod
     def _open_file(cls, path, layer, driver, options, mode):
+        """Open a vector datasource"""
         options = [str(arg) for arg in options] if len(options) else []
         ogr_ds = gdal.OpenEx(
             path,
