@@ -7,12 +7,14 @@ class RasterGetSetMixin(object):
     """Private mixin for the Raster class containing subroutines for read and writes"""
 
     def _gdalband_of_index(self, index):
+        """Convert a band index to a gdal band"""
         if isinstance(index, int):
             return self._gdal_ds.GetRasterBand(index)
         else:
             return self._gdal_ds.GetRasterBand(int(index.imag)).GetMaskBand()
 
     def _sample_bands(self, fp, samplefp, bands, mask, interpolation):
+        """Pull raster values to gdal"""
         rtlx, rtly = self.fp.spatial_to_raster(samplefp.tl)
         assert rtlx >= 0 and rtlx < self.fp.rsizex
         assert rtly >= 0 and rtly < self.fp.rsizey
@@ -60,6 +62,7 @@ class RasterGetSetMixin(object):
         return samplebands
 
     def _set_data_unsafe(self, array, fp, bands, interpolation, mask, op):
+        """Push raster values to gdal"""
         if not fp.share_area(self.fp):
             return
         dstfp = self.fp.intersection(fp)

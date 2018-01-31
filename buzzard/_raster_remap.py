@@ -31,7 +31,6 @@ class RemapMixin(object):
         If nodata missing, 0 is used.
         If dst_fp is partially or fully outside of src_fp, output is padded with nodata
 
-
         Parameters
         ----------
         dst_fp: Footprint
@@ -43,7 +42,6 @@ class RemapMixin(object):
         interpolation: None or one of ['cv2_area', ]
             Interpolation algorithm to use
             if None: Don't allow interpolation
-
 
         Returns
         -------
