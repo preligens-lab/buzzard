@@ -7,7 +7,7 @@ In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
 </div>
 
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/asl-validator/blob/master/LICENSE)
-[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/v0.3.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/v0.3)
+[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)
 [![Coverage Status](https://coveralls.io/repos/github/airware/buzzard/badge.svg?branch=v0.3&t=XKjYsU&service=github)](https://coveralls.io/github/airware/buzzard?branch=v0.3)
 
 Table of Contents
