@@ -16,8 +16,10 @@ setup(
     version='0.3.0',
     author='ngoguey',
     author_email='ngoguey@airware.com',
-    description='GIS environment',
+    description='GIS files manipulations',
     url='https://github.com/airware/buzzard',
+    download_url='https://github.com/airware/buzzard/archive/0.3.0.tar.gz',
+    keywords=['gdal', 'gis', 'raster', 'shp', 'dxf', 'tif', 'vector'],
     packages=find_packages(),
     install_requires=reqs,
 )
