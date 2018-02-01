@@ -109,7 +109,7 @@ jobs:
           command: |
             . venvs/36/bin/activate
             pytest --cov=buzzard --cov-report=term --cov-report=xml
-            coveralls
+            codecov
 
       - store_artifacts:
           path: test-reports
