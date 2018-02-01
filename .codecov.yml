@@ -1,0 +1,17 @@
+# https://docs.codecov.io/v5.0.0/docs/codecov-yaml#section-default-yaml
+---
+coverage:
+  range: 50...85
+  round: down
+  precision: 2
+
+  # https://docs.codecov.io/v5.0.0/docs/notifications
+  # notify:
+  #   slack:
+  #     default:
+  #       url: "https://hooks.slack.com/services/abc/123"
+  #       threshold: 1%
+  #       only_pulls: false
+  #       branches: null
+  #       flags: null
+  #       paths: null

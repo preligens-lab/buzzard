@@ -29,10 +29,10 @@ references:
         - repo-v1-
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v4-{{ checksum "requirements.txt" }}
+    py36-dependencies-v5-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
-    py36-dependencies-v4-
+    py36-dependencies-v5-
 
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
@@ -42,10 +42,10 @@ references:
         - *py36_requirements_backup_cache_key
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v4-{{ checksum "requirements.txt" }}
+    py27-dependencies-v5-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v4-
+    py27-dependencies-v5-
 
   py27_restore_dependencies: &py27_restore_dependencies
     restore_cache:
@@ -109,7 +109,7 @@ jobs:
           command: |
             . venvs/36/bin/activate
             pytest --cov=buzzard --cov-report=term --cov-report=xml
-            coveralls
+            codecov
 
       - store_artifacts:
           path: test-reports
