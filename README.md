@@ -91,8 +91,8 @@ Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
 ## Future features summary
 - Wheels with `osgeo` binaries included
 - Advanced spatial reference homogenization using `gdal` warping functions
-- More tools, syntaxes and algorithms to work with raster datasets that don't fit in memory (really soon)
-- Strong support of non north-up / west-left windows
+- More tools, syntaxes and algorithms to work with raster datasets that don't fit in memory
+- Strong support of non north-up / west-left footprints
 - Data visualization tools
 - Strong performance improvements
 - Floating point precision loss handling improvements
@@ -132,7 +132,7 @@ pip install buzzard
 ### Anaconda and pip
 ```sh
 # Install Anaconda
-# https://www.anaconda.com/download/#linux
+# https://www.anaconda.com/download/
 
 # Create env
 conda create -n buzz python=3.6 gdal opencv scipy shapely -c 'conda-forge'
@@ -147,11 +147,13 @@ pip install buzzard
 
 ## How to test
 ```sh
+git clone https://github.com/airware/buzzard
+pip install -r buzzard/requirements-dev.txt
 pytest buzzard/buzzard/test
 ```
 
 ## Documentation
-In code (docstrings)
+See code (docstrings). Hosted soon
 
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
