@@ -11,14 +11,8 @@ class DataSourceConversionsMixin(object):
     conversion subroutines"""
 
     def __init__(self, sr_work, sr_implicit, sr_origin, analyse_transformation):
-        if sr_work:
-            sr_work.StripCTParms()
         self._sr_work = sr_work
-        if sr_implicit:
-            sr_implicit.StripCTParms()
         self._sr_implicit = sr_implicit
-        if sr_origin:
-            sr_origin.StripCTParms()
         self._sr_origin = sr_origin
         self._analyse_transformations = bool(analyse_transformation)
 
@@ -39,8 +33,6 @@ class DataSourceConversionsMixin(object):
                 sr_origin = self._sr_implicit
             else:
                 raise ValueError("Missing origin's spatial reference")
-        else:
-            sr_origin.StripCTParms()
 
         to_work = osr.CreateCoordinateTransformation(sr_origin, self._sr_work).TransformPoints
         to_origin = osr.CreateCoordinateTransformation(self._sr_work, sr_origin).TransformPoints
