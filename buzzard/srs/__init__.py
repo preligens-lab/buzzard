@@ -38,8 +38,6 @@ def wkt_same(a, b):
         return True
     sra = osr.SpatialReference(a)
     srb = osr.SpatialReference(b)
-    sra.StripCTParms()
-    srb.StripCTParms()
     return bool(sra.IsSame(srb))
 
 def _details_of_file(path):
