@@ -38,7 +38,7 @@ class RasterGetSetMixin(object):
                 array=None,
                 mask=mask,
                 nodata=None,
-                mask_mode='extend',
+                mask_mode='dilate',
             )
             samplebands = np.empty(np.r_[samplefp.shape, len(bands)], self.dtype)
             assert samplemask.shape == samplebands.shape[:2]
