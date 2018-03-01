@@ -197,7 +197,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         else:
             samplefp = self.fp & samplefp
 
-        samplebands = self._sample_bands(fp, samplefp, bands, mask, interpolation)
+        samplebands = self._sample_bands(fp, samplefp, bands, mask, interpolation, onodata)
 
         if nodataconv:
             samplebands[samplebands == self.nodata] = onodata
