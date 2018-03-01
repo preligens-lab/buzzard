@@ -33,9 +33,14 @@ class RemapMixin(object):
 
         Parameters
         ----------
+        src_fp: Footprint
+            Source raster footprint
         dst_fp: Footprint
+            Destination raster footprint
         array: None or numpy.ndarray (2 or 3 dimensions)
+            Values to remap from the src_fp to the dst_fp
         mask: None or numpy.ndarray
+            Mask values to remap from the src_fp to the dst_fp
         nodata: None or number
         mask_mode: one of ['dilate', 'erode']
             Interpolation behavior regarding masks
