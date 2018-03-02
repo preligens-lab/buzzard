@@ -118,13 +118,16 @@ class IntersectionMixin(object):
                 points = np.asarray(geom)
             else:
                 assert False # pragma: no cover
+            points = points[:, :2]
             spatial_to_tmp.itransform(points)
+
             rect = _tools.Rect(
                 tl=tmp_to_spatial * points.min(axis=0),
                 bl=tmp_to_spatial * [points[:, 0].min(), points[:, 1].max()],
                 br=tmp_to_spatial * points.max(axis=0),
                 tr=tmp_to_spatial * [points[:, 0].max(), points[:, 1].min()],
             )
+
 
         if env.significant <= rect.significant_min(np.abs(resolution).min()):
             raise RuntimeError('`env.significant` of value {} should be at least {}'.format(

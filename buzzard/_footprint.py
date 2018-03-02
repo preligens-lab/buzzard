@@ -1098,9 +1098,9 @@ class Footprint(TileMixin, IntersectionMixin):
             ))
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
-        half_scale = self.scale / 2
 
-        errors = ((self.tl - other.tl) + half_scale) % self.scale - half_scale
+        rdx, rdy = np.around(~self.affine * other.tl)
+        errors = other.tl - (self.pxtbvec * rdy + self.pxlrvec * rdx) - self.tl
         if (np.abs(errors) >= spatial_precision).any():
             return False
 
@@ -1453,6 +1453,9 @@ class Footprint(TileMixin, IntersectionMixin):
             _build_neighbors_in_direction(has_topright, (-1, 1)),
             _build_neighbors_in_direction(has_topleft, (-1, -1)),
         ])
+        if not edges_indices:
+            return []
+
         lines = [
             shapely.geometry.LineString([
                 self.raster_to_spatial(np.flipud(yx_lst[n1])) + output_offset,

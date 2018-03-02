@@ -234,9 +234,9 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         if self._to_work:
             xa, xb, ya, yb = extent
             extent = self._to_work([[xa, ya], [xb, yb]])
-            extent = np.asarray(extent)[:, 0:2]
+            extent = np.asarray(extent)[:, :2]
             extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
-        return np.asarray(extent)
+        return np.asarray(extent)[:, :2]
 
     @property
     def bounds(self):
