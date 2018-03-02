@@ -97,7 +97,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
 
     def get_data(self, fp=None, band=1, mask=None, nodata=None, interpolation='cv_area',
                  dtype=None, op=np.rint):
-        """Get `data` located at `fp` in raster file. An optional `mask` may be provided.
+        """Get `data` located at `fp` in raster file.
 
         If `nodata` is set in raster or provided as an argument, fp can lie partially or fully
         outside of raster.
@@ -106,6 +106,9 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         use a `fp` that is not aligned with the source raster, interpolation in then used to
         remap source to `fp`. `nodata` values are also handled and spreaded to the output through
         remapping.
+
+        (experimental) An optional `mask` may be provided. GDAL band sampling is only performed near
+        `True` pixels. Current implementation might be extremely slow.
 
         Parameters
         ----------
