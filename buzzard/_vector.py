@@ -236,7 +236,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             extent = self._to_work([[xa, ya], [xb, yb]])
             extent = np.asarray(extent)[:, :2]
             extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
-        return np.asarray(extent)[:, :2]
+        return np.asarray(extent)
 
     @property
     def bounds(self):

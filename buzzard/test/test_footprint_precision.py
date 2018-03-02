@@ -31,7 +31,7 @@ def pytest_generate_tests(metafunc):
             ],
         )
 
-@pytest.fixture(params=[6, 8, 10, 12, 14])
+@pytest.fixture(params=[6, 8, 10])
 def env(request):
     with buzz.Env(significant=request.param):
         yield request.param
