@@ -3,6 +3,7 @@
 import numpy as np
 from osgeo import gdal
 
+
 class RasterGetSetMixin(object):
     """Private mixin for the Raster class containing subroutines for read and writes"""
 
@@ -13,8 +14,8 @@ class RasterGetSetMixin(object):
         else:
             return self._gdal_ds.GetRasterBand(int(index.imag)).GetMaskBand()
 
-    def _sample_bands(self, fp, samplefp, bands, mask, interpolation):
-        """Pull raster values to gdal"""
+    def _sample_bands(self, fp, samplefp, bands, mask, interpolation, onodata):
+        """Pull raster values from gdal"""
         rtlx, rtly = self.fp.spatial_to_raster(samplefp.tl)
         assert rtlx >= 0 and rtlx < self.fp.rsizex
         assert rtly >= 0 and rtly < self.fp.rsizey
@@ -38,15 +39,18 @@ class RasterGetSetMixin(object):
                 array=None,
                 mask=mask,
                 nodata=None,
-                mask_mode='extend',
+                mask_mode='dilate',
             )
-            samplebands = np.empty(np.r_[samplefp.shape, len(bands)], self.dtype)
+            samplebands = np.full(np.r_[samplefp.shape, len(bands)], onodata, self.dtype)
             assert samplemask.shape == samplebands.shape[:2]
+
+            # Read each raster bands split in tiles and copy bands values outside of the mask
             for tile, band, dim in self._blocks_of_footprint(samplefp, bands):
                 leftx, topy = self.fp.spatial_to_raster(tile.tl)
                 tileslice = tile.slice_in(samplefp)
                 tilemask = samplemask[tileslice]
                 gdalband = self._gdalband_of_index(band)
+                # Use slices on x, y coordinates of mask marts to get band values
                 for sly, slx in self._slices_of_mask(tilemask):
                     a = gdalband.ReadAsArray(
                         int(leftx + slx.start),
@@ -109,6 +113,7 @@ class RasterGetSetMixin(object):
 
     @staticmethod
     def _slices_of_vector(vec):
+        """Generates slices of oneline mask parts"""
         assert vec.ndim == 1
         diff = np.diff(np.r_[[False], vec, [False]].astype('int'))
         starts = np.where(diff == 1)[0]
@@ -118,6 +123,7 @@ class RasterGetSetMixin(object):
 
     @classmethod
     def _slices_of_mask(cls, mask):
+        """Generates slices of mask parts"""
         ystart = None
         y = 0
         while True:
