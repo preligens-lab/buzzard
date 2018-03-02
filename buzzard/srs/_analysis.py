@@ -53,6 +53,16 @@ class Analysis(object):
 
         # *************************************************************************************** **
         self.angles_valid = False
+
+        if rect1.empty:
+            self.messages.append(
+                'rectangle is empty (height:{}, width:{})'.format(
+                    np.linalg.norm(rect1.tl - rect1.bl),
+                    np.linalg.norm(rect1.tl - rect1.tr),
+                )
+            )
+            return
+
         slack_angles = rect2.tr_slack_angles
         assert slack_angles[0] < slack_angles[1]
         if np.prod(np.sign(slack_angles - 90)) != -1:

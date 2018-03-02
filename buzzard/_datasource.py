@@ -68,6 +68,11 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         rules. Those conversions only include vector files, raster files Footprints and basic raster
         remapping. General raster warping is not included (yet).
 
+        If `analyse_transformation` is set to `True` (default), all coordinates conversions are
+        tested against `buzz.env.significant` on file opening to ensure their feasibility or
+        raise an exception otherwise. This system is naive and very restrictive, a smarter and
+        smarter version is planned. Use with caution.
+
         Terminology:
         `sr`: Spatial reference
         `sr_work`: Spatial reference of all interactions with a DataSource.

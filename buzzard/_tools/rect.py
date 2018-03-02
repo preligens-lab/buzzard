@@ -14,6 +14,10 @@ class Rect(object):
         self.tr = np.float64(tr)
 
     @property
+    def empty(self):
+        return np.all(self.tl == self.tr) or np.all(self.tl == self.bl)
+
+    @property
     def lrvec(self):
         return self.tr - self.tl
 
