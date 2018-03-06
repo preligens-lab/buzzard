@@ -114,6 +114,8 @@ class IntersectionMixin(object):
                 points = np.asarray([np.asarray(geom)])
             elif isinstance(geom, sg.Polygon):
                 points = np.asarray(geom.exterior)
+            elif isinstance(geom, sg.MultiPolygon):
+                points = np.vstack([np.asarray(part.exterior) for part in geom])
             elif isinstance(geom, sg.LineString):
                 points = np.asarray(geom)
             else:
