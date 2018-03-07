@@ -13,12 +13,12 @@ if sys.version_info < (3, 2):
 
 setup(
     name='buzzard',
-    version='0.3.1',
+    version='0.3.2',
     author='ngoguey',
     author_email='ngoguey@airware.com',
     description='GIS files manipulations',
     url='https://github.com/airware/buzzard',
-    download_url='https://github.com/airware/buzzard/archive/0.3.1.tar.gz',
+    download_url='https://github.com/airware/buzzard/archive/0.3.2.tar.gz',
     keywords=['gdal', 'gis', 'raster', 'shp', 'dxf', 'tif', 'vector'],
     packages=find_packages(),
     install_requires=reqs,

@@ -110,21 +110,17 @@ class IntersectionMixin(object):
                 Affine.scale(*resolution)
             )
             spatial_to_tmp = ~tmp_to_spatial
-            if isinstance(geom, sg.Point):
-                points = np.asarray([np.asarray(geom)])
-            elif isinstance(geom, sg.Polygon):
-                points = np.asarray(geom.exterior)
-            elif isinstance(geom, sg.LineString):
-                points = np.asarray(geom)
-            else:
-                assert False # pragma: no cover
+            points = np.concatenate(list(_exterior_coords_iterator(geom)), axis=0)
+            points = points[:, :2]
             spatial_to_tmp.itransform(points)
+
             rect = _tools.Rect(
                 tl=tmp_to_spatial * points.min(axis=0),
                 bl=tmp_to_spatial * [points[:, 0].min(), points[:, 1].max()],
                 br=tmp_to_spatial * points.max(axis=0),
                 tr=tmp_to_spatial * [points[:, 0].max(), points[:, 1].min()],
             )
+
 
         if env.significant <= rect.significant_min(np.abs(resolution).min()):
             raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
@@ -165,3 +161,17 @@ class IntersectionMixin(object):
             gt=aff.to_gdal(),
             rsize=rsize,
         )
+
+def _exterior_coords_iterator(geom):
+    if isinstance(geom, sg.Point):
+        yield np.asarray(geom)[None, ...]
+    elif isinstance(geom, sg.Polygon):
+        yield np.asarray(geom.exterior)
+    elif isinstance(geom, sg.LineString):
+        yield np.asarray(geom)
+    elif isinstance(geom, sg.base.BaseMultipartGeometry):
+        for part in geom:
+            for coords in _exterior_coords_iterator(part):
+                yield coords
+    else:
+        assert False

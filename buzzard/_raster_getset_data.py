@@ -15,8 +15,17 @@ class RasterGetSetMixin(object):
             return self._gdal_ds.GetRasterBand(int(index.imag)).GetMaskBand()
 
     def _sample_bands(self, fp, samplefp, bands, mask, interpolation, onodata):
-        """Pull raster values from gdal"""
+        """Pull raster values from gdal
+
+        Parameters:
+        fp: Footprint
+            Footprint of mask
+        samplefp: Footprint
+            Footprint to query
+        """
+
         rtlx, rtly = self.fp.spatial_to_raster(samplefp.tl)
+
         assert rtlx >= 0 and rtlx < self.fp.rsizex
         assert rtly >= 0 and rtly < self.fp.rsizey
         if mask is None:

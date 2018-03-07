@@ -197,9 +197,8 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
                     "Provide a `nodata` parameter or create a new file with a `nodata` value set."
                 )
             return np.full(outshape, onodata, dtype)
-        else:
-            samplefp = self.fp & samplefp
 
+        samplefp = self.fp & samplefp
         samplebands = self._sample_bands(fp, samplefp, bands, mask, interpolation, onodata)
 
         if nodataconv:
