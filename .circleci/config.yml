@@ -6,7 +6,7 @@ version: 2
 
 references:
   py36_container_config: &py36_container_config
-    working_directory: ~/repo
+    working_directory: /tmp/circleci/buzzard
     docker:
       - image: $AWS_ECR_IMAGE_TAG_36
         aws_auth:
@@ -14,7 +14,7 @@ references:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
   py27_container_config: &py27_container_config
-    working_directory: ~/repo
+    working_directory: /tmp/circleci/buzzard
     docker:
       - image: $AWS_ECR_IMAGE_TAG_27
         aws_auth:
@@ -24,15 +24,15 @@ references:
   restore_repo: &restore_repo
     restore_cache:
       keys:
-        - repo-v1-{{ .Branch }}-{{ .Revision }}
-        - repo-v1-{{ .Branch }}
-        - repo-v1-
+        - repo-v2-{{ .Branch }}-{{ .Revision }}
+        - repo-v2-{{ .Branch }}
+        - repo-v2-
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v5-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py36-dependencies-v6-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
-    py36-dependencies-v5-
+    py36-dependencies-v6-
 
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
@@ -42,10 +42,10 @@ references:
         - *py36_requirements_backup_cache_key
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v5-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py27-dependencies-v6-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v5-
+    py27-dependencies-v6-
 
   py27_restore_dependencies: &py27_restore_dependencies
     restore_cache:
@@ -54,6 +54,16 @@ references:
         # fallback to using the latest cache if no exact match is found
         - *py27_requirements_backup_cache_key
 
+  attach_workspace: &attach_workspace
+    attach_workspace:
+      # Must be absolute path or relative path from working_directory
+      at: /tmp/circleci/
+
+  persist_to_workspace: &persist_to_workspace
+    persist_to_workspace:
+      root: /tmp/circleci/
+      paths:
+        - .
 
 jobs:
   checkout_code:
@@ -62,14 +72,16 @@ jobs:
       - *restore_repo
       - checkout
       - save_cache:
-          key: repo-v1-{{ .Branch }}-{{ .Revision }}
+          key: repo-v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - .
+      - *persist_to_workspace
 
   py36_dependencies:
     <<: *py36_container_config
     steps:
-      - *restore_repo
+      - *attach_workspace
+      - *py36_restore_dependencies
       - run:
           name: install dependencies
           command: |
@@ -83,12 +95,12 @@ jobs:
           key: *py36_requirements_cache_key
           paths:
             - ./venvs/36
+      - *persist_to_workspace
 
   py36_lint:
     <<: *py36_container_config
     steps:
-      - *restore_repo
-      - *py36_restore_dependencies
+      - *attach_workspace
       - run:
           name: run linter
           command: |
@@ -102,8 +114,7 @@ jobs:
     <<: *py36_container_config
     parallelism: 4
     steps:
-      - *restore_repo
-      - *py36_restore_dependencies
+      - *attach_workspace
       # run tests!
       - run:
           name: run tests
@@ -119,7 +130,8 @@ jobs:
   py27_dependencies:
     <<: *py27_container_config
     steps:
-      - *restore_repo
+      - *attach_workspace
+      - *py27_restore_dependencies
       - run:
           name: install dependencies
           # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
@@ -135,13 +147,13 @@ jobs:
           key: *py27_requirements_cache_key
           paths:
             - ./venvs/27
+      - *persist_to_workspace
 
   py27_test:
     <<: *py27_container_config
     parallelism: 4
     steps:
-      - *restore_repo
-      - *py27_restore_dependencies
+      - *attach_workspace
       # run tests!
       - run:
           name: run tests
