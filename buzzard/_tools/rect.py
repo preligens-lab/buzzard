@@ -53,7 +53,7 @@ class Rect(object):
 
     @property
     def spatial_precision(self):
-        largest_coord = np.abs(self.coords).max()
+        largest_coord = np.abs(self.coords).max().clip(1, np.inf)
         return largest_coord * 10 ** -env.significant
 
     @property
@@ -137,7 +137,7 @@ class Rect(object):
         return np.asarray((br - tl) / rsize, dtype=np.float64)
 
     def significant_min(self, smallest_reso):
-        largest_coord = np.abs(self.coords).max()
+        largest_coord = np.abs(self.coords).max().clip(1, np.inf)
         ratio_pixel_increment = smallest_reso / largest_coord
         return -np.log10(ratio_pixel_increment)
 
