@@ -100,7 +100,7 @@ jobs:
 
   py36_test:
     <<: *py36_container_config
-    parallelism: 2
+    parallelism: 4
     steps:
       - *restore_repo
       - *py36_restore_dependencies
@@ -138,7 +138,7 @@ jobs:
 
   py27_test:
     <<: *py27_container_config
-    parallelism: 2
+    parallelism: 4
     steps:
       - *restore_repo
       - *py27_restore_dependencies
