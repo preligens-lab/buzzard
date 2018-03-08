@@ -66,10 +66,12 @@ references:
         - .
 
 jobs:
-  checkout_code:
+  init:
     <<: *py36_container_config
     steps:
       - *restore_repo
+      - *py36_restore_dependencies
+      - *py27_restore_dependencies
       - checkout
       - save_cache:
           key: repo-v2-{{ .Branch }}-{{ .Revision }}
@@ -81,7 +83,6 @@ jobs:
     <<: *py36_container_config
     steps:
       - *attach_workspace
-      - *py36_restore_dependencies
       - run:
           name: install dependencies
           command: |
@@ -131,7 +132,6 @@ jobs:
     <<: *py27_container_config
     steps:
       - *attach_workspace
-      - *py27_restore_dependencies
       - run:
           name: install dependencies
           # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
@@ -173,22 +173,22 @@ workflows:
   version: 2
   buzzard:
     jobs:
-      - checkout_code
+      - init
       - py36_dependencies:
           requires:
-            - checkout_code
+            - init
       - py36_lint:
           requires:
-            - checkout_code
+            - init
             - py36_dependencies
       - py36_test:
           requires:
-            - checkout_code
+            - init
             - py36_dependencies
       - py27_dependencies:
           requires:
-            - checkout_code
+            - init
       - py27_test:
           requires:
-            - checkout_code
+            - init
             - py27_dependencies
