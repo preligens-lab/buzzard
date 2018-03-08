@@ -100,6 +100,7 @@ jobs:
 
   py36_test:
     <<: *py36_container_config
+    parallelism: 2
     steps:
       - *restore_repo
       - *py36_restore_dependencies
@@ -108,7 +109,7 @@ jobs:
           name: run tests
           command: |
             . venvs/36/bin/activate
-            circleci tests glob **/tests/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --cov=buzzard --cov-report=term --cov-report=xml
+            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml
             codecov
 
       - store_artifacts:
@@ -137,6 +138,7 @@ jobs:
 
   py27_test:
     <<: *py27_container_config
+    parallelism: 2
     steps:
       - *restore_repo
       - *py27_restore_dependencies
@@ -148,8 +150,7 @@ jobs:
           command: |
             . venvs/27/bin/activate
             pip install .
-            circleci tests glob **/tests/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --cov=buzzard --cov-report=term --cov-report=xml
-            pytest -x
+            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x
 
       - store_artifacts:
           path: test-reports
