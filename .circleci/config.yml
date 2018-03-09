@@ -2,11 +2,12 @@
 #
 # Source: https://circleci.com/docs/2.0/language-python/ for more details
 #
+---
 version: 2
 
 references:
   py36_container_config: &py36_container_config
-    working_directory: ~/repo
+    working_directory: /tmp/circleci/buzzard
     docker:
       - image: $AWS_ECR_IMAGE_TAG_36
         aws_auth:
@@ -14,25 +15,28 @@ references:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
   py27_container_config: &py27_container_config
-    working_directory: ~/repo
+    working_directory: /tmp/circleci/buzzard
     docker:
       - image: $AWS_ECR_IMAGE_TAG_27
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
+  repo_cache_key: &repo_cache_key
+    repo-v2-{{ .Branch }}-{{ .Revision }}
+
   restore_repo: &restore_repo
     restore_cache:
       keys:
-        - repo-v1-{{ .Branch }}-{{ .Revision }}
-        - repo-v1-{{ .Branch }}
-        - repo-v1-
+        - *repo_cache_key
+        - repo-v2-{{ .Branch }}
+        - repo-v2-
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v5-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py36-dependencies-v6-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
-    py36-dependencies-v5-
+    py36-dependencies-v6-
 
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
@@ -42,10 +46,10 @@ references:
         - *py36_requirements_backup_cache_key
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v5-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py27-dependencies-v6-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v5-
+    py27-dependencies-v6-
 
   py27_restore_dependencies: &py27_restore_dependencies
     restore_cache:
@@ -54,24 +58,37 @@ references:
         # fallback to using the latest cache if no exact match is found
         - *py27_requirements_backup_cache_key
 
+  attach_workspace: &attach_workspace
+    attach_workspace:
+      # Must be absolute path or relative path from working_directory
+      at: /tmp/circleci/
+
+  persist_to_workspace: &persist_to_workspace
+    persist_to_workspace:
+      root: /tmp/circleci/
+      paths:
+        - .
 
 jobs:
-  checkout_code:
+  init:
     <<: *py36_container_config
     steps:
       - *restore_repo
+      - *py36_restore_dependencies
+      - *py27_restore_dependencies
       - checkout
       - save_cache:
-          key: repo-v1-{{ .Branch }}-{{ .Revision }}
+          key: *repo_cache_key
           paths:
             - .
+      - *persist_to_workspace
 
-  py36_dependencies:
+  py36_lint:
     <<: *py36_container_config
     steps:
-      - *restore_repo
+      - *attach_workspace
       - run:
-          name: install dependencies
+          name: install python36 dependencies
           command: |
             mkdir -p venvs/36
             python -m venv ./venvs/36
@@ -79,16 +96,6 @@ jobs:
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .
-      - save_cache:
-          key: *py36_requirements_cache_key
-          paths:
-            - ./venvs/36
-
-  py36_lint:
-    <<: *py36_container_config
-    steps:
-      - *restore_repo
-      - *py36_restore_dependencies
       - run:
           name: run linter
           command: |
@@ -102,8 +109,16 @@ jobs:
     <<: *py36_container_config
     parallelism: 4
     steps:
-      - *restore_repo
-      - *py36_restore_dependencies
+      - *attach_workspace
+      - run:
+          name: install python36 dependencies
+          command: |
+            mkdir -p venvs/36
+            python -m venv ./venvs/36
+            . venvs/36/bin/activate
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
+            pip install .
       # run tests!
       - run:
           name: run tests
@@ -111,17 +126,21 @@ jobs:
             . venvs/36/bin/activate
             circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml
             codecov
-
       - store_artifacts:
           path: test-reports
           destination: test-reports
+      - save_cache:
+          key: *py36_requirements_cache_key
+          paths:
+            - ./venvs/36
 
-  py27_dependencies:
+  py27_test:
     <<: *py27_container_config
+    parallelism: 4
     steps:
-      - *restore_repo
+      - *attach_workspace
       - run:
-          name: install dependencies
+          name: install python27 dependencies
           # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
           command: |
             pip install virtualenv
@@ -131,17 +150,6 @@ jobs:
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
-      - save_cache:
-          key: *py27_requirements_cache_key
-          paths:
-            - ./venvs/27
-
-  py27_test:
-    <<: *py27_container_config
-    parallelism: 4
-    steps:
-      - *restore_repo
-      - *py27_restore_dependencies
       # run tests!
       - run:
           name: run tests
@@ -151,32 +159,26 @@ jobs:
             . venvs/27/bin/activate
             pip install .
             circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x
-
       - store_artifacts:
           path: test-reports
           destination: test-reports
+      - save_cache:
+          key: *py27_requirements_cache_key
+          paths:
+            - ./venvs/27
 
 
 workflows:
   version: 2
   buzzard:
     jobs:
-      - checkout_code
-      - py36_dependencies:
-          requires:
-            - checkout_code
+      - init
       - py36_lint:
           requires:
-            - checkout_code
-            - py36_dependencies
+            - init
       - py36_test:
           requires:
-            - checkout_code
-            - py36_dependencies
-      - py27_dependencies:
-          requires:
-            - checkout_code
+            - init
       - py27_test:
           requires:
-            - checkout_code
-            - py27_dependencies
+            - init

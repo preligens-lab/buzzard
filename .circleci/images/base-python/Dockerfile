@@ -26,24 +26,11 @@ ARG PROJ4_VERSION=4.9.3
 
 ##############################################
 #                                            #
-#           Dockerfile parameters            #
-#                                            #
-##############################################
-
-# Set environment variables
-ENV BUILD_VERSION $BUILD_VERSION \
-    GEOS_VERSION $GEOS_VERSION \
-    GDAL_VERSION $GDAL_VERSION \
-    PROJ4_VERSION $PROJ4_VERSION
-
-##############################################
-#                                            #
 #                 Image labels               #
 #                                            #
 ##############################################
 
-LABEL author="hnivon@airware.com" \
-      version=$BUILD_VERSION
+LABEL author="hnivon@airware.com"
 
 ##############################################
 #                                            #
