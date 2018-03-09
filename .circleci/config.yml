@@ -2,6 +2,7 @@
 #
 # Source: https://circleci.com/docs/2.0/language-python/ for more details
 #
+---
 version: 2
 
 references:
@@ -21,10 +22,13 @@ references:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
+  repo_cache_key: &repo_cache_key
+    repo-v2-{{ .Branch }}-{{ .Revision }}
+
   restore_repo: &restore_repo
     restore_cache:
       keys:
-        - repo-v2-{{ .Branch }}-{{ .Revision }}
+        - *repo_cache_key
         - repo-v2-{{ .Branch }}
         - repo-v2-
 
@@ -73,18 +77,8 @@ jobs:
       - *py36_restore_dependencies
       - *py27_restore_dependencies
       - checkout
-      - save_cache:
-          key: repo-v2-{{ .Branch }}-{{ .Revision }}
-          paths:
-            - .
-      - *persist_to_workspace
-
-  py36_dependencies:
-    <<: *py36_container_config
-    steps:
-      - *attach_workspace
       - run:
-          name: install dependencies
+          name: install python36 dependencies
           command: |
             mkdir -p venvs/36
             python -m venv ./venvs/36
@@ -92,10 +86,29 @@ jobs:
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .
+      - run:
+          name: install python27 dependencies
+          # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
+          command: |
+            pip install virtualenv
+            mkdir -p venvs/27
+            virtualenv venvs/27
+            . venvs/27/bin/activate
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
+            if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
+      - save_cache:
+          key: *repo_cache_key
+          paths:
+            - .
       - save_cache:
           key: *py36_requirements_cache_key
           paths:
             - ./venvs/36
+      - save_cache:
+          key: *py27_requirements_cache_key
+          paths:
+            - ./venvs/27
       - *persist_to_workspace
 
   py36_lint:
@@ -123,31 +136,10 @@ jobs:
             . venvs/36/bin/activate
             circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml
             codecov
-
       - store_artifacts:
           path: test-reports
           destination: test-reports
 
-  py27_dependencies:
-    <<: *py27_container_config
-    steps:
-      - *attach_workspace
-      - run:
-          name: install dependencies
-          # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
-          command: |
-            pip install virtualenv
-            mkdir -p venvs/27
-            virtualenv venvs/27
-            . venvs/27/bin/activate
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
-      - save_cache:
-          key: *py27_requirements_cache_key
-          paths:
-            - ./venvs/27
-      - *persist_to_workspace
 
   py27_test:
     <<: *py27_container_config
@@ -163,7 +155,6 @@ jobs:
             . venvs/27/bin/activate
             pip install .
             circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x
-
       - store_artifacts:
           path: test-reports
           destination: test-reports
@@ -174,21 +165,12 @@ workflows:
   buzzard:
     jobs:
       - init
-      - py36_dependencies:
-          requires:
-            - init
       - py36_lint:
           requires:
             - init
-            - py36_dependencies
       - py36_test:
-          requires:
-            - init
-            - py36_dependencies
-      - py27_dependencies:
           requires:
             - init
       - py27_test:
           requires:
             - init
-            - py27_dependencies
