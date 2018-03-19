@@ -16,6 +16,28 @@ from buzzard import _tools
 class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
     """Abstract class to all raster sources"""
 
+    class _Constants(Proxy._Constants):
+
+        def __init__(self, ds, **kwargs):
+            print('Raster._Constants __init__', kwargs)
+            # Opening informations
+            # None
+
+            # GDAL informations
+            if 'gdal_ds' in kwargs:
+                gdal_ds = kwargs['gdal_ds']
+                kwargs['fp_origin'] = Footprint(
+                    gt=gdal_ds.GetGeoTransform(),
+                    rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
+                )
+                kwargs['band_schema'] = Raster._band_schema_of_gdal_ds(gdal_ds)
+                kwargs['dtype'] = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+            self.fp_origin = kwargs.pop('fp_origin')
+            self.band_schema = kwargs.pop('band_schema')
+            self.dtype = kwargs.pop('dtype')
+
+            super(Raster._Constants, self).__init__(ds, **kwargs)
+
     def __init__(self, ds, gdal_ds):
         """Instanciated by DataSource class, instanciation by user is undefined"""
         fp_origin = Footprint(

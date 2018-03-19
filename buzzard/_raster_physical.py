@@ -15,6 +15,48 @@ from buzzard._raster import Raster
 class RasterPhysical(Raster):
     """Concrete class of raster sources containing physical data"""
 
+    class _Constants(Raster._Constants):
+        """Bundles all constant information about a instance of the above class. It allows the above
+        class to:
+        - function when its gdal backend object is not available (The above class is then said to be suspended)
+        - fully recreate its gdal backend object
+        - be easilly pickled/unpickled
+
+        Guidelines
+        ----------
+        - The constructor must be usable for constructions both from gdal pointers and unpickling
+        - An information should not be duplicated inside a `_Constants` object
+           - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
+           - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
+             `Proxy._Constants.wkt_origin`
+        - Since some proxies cannot be suspended (i.e. MEM and MEMORY drivers), the `suspendable`
+          property may be implemented to prevent all `suspend` and `pickle` operations.
+        - The `_Constants` class is contant '^_^
+
+        """
+
+        def __init__(self, ds, **kwargs):
+            print('RasterPhysical._Constants __init__', kwargs)
+            # Opening informations
+            self.mode = kwargs.pop('mode')
+            self.open_options = kwargs.pop('open_options')
+
+            # GDAL informations
+            if 'gdal_ds' in kwargs:
+                gdal_ds = kwargs['gdal_ds']
+                kwargs['path'] = gdal_ds.GetDescription()
+                kwargs['driver'] = gdal_ds.GetDriver().ShortName
+            self.driver = kwargs.pop('driver')
+            self.path = kwargs.pop('path')
+
+            super(RasterPhysical._Constants, self).__init__(ds, **kwargs)
+
+        @property
+        def suspendable(self):
+            v = 'MEM' not in self.driver
+            v &= super(RasterPhysical._Constants, self).suspendable
+            return v
+
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
         """Create a raster datasource"""
