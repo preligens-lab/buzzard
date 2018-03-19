@@ -11,6 +11,7 @@ from buzzard._proxy import Proxy
 from buzzard._raster_physical import RasterPhysical
 from buzzard._raster_recipe import RasterRecipe
 from buzzard._vector import Vector
+from buzzard._tools import conv
 from buzzard._datasource_conversions import DataSourceConversionsMixin
 
 class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
@@ -189,7 +190,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """
         self._validate_key(key)
         gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
-        prox = RasterPhysical(self, gdal_ds, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=options, mode=mode
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([key], prox)
         return prox
 
@@ -199,7 +205,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         See DataSource.open_raster
         """
         gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
-        prox = RasterPhysical(self, gdal_ds, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=list(options), mode=mode
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([], prox)
         return prox
 
@@ -275,7 +286,11 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         gdal_ds = RasterPhysical._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
-        prox = RasterPhysical(self, gdal_ds, 'w')
+        options = [str(arg) for arg in options]
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=options, mode='w'
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([key], prox)
         return prox
 
@@ -290,7 +305,11 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         gdal_ds = RasterPhysical._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
-        prox = RasterPhysical(self, gdal_ds, 'w')
+        options = [str(arg) for arg in options]
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=options, mode='w'
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([], prox)
         return prox
 

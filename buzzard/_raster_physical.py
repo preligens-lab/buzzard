@@ -66,7 +66,7 @@ class RasterPhysical(Raster):
             if err:
                 raise Exception('Could not delete %s' % path)
 
-        options = [str(arg) for arg in options] if len(options) else []
+        options = [str(arg) for arg in options]
         gdal_ds = dr.Create(
             path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
         )
@@ -85,7 +85,7 @@ class RasterPhysical(Raster):
     @classmethod
     def _open_file(cls, path, driver, options, mode):
         """Open a raster datasource"""
-        options = [str(arg) for arg in options] if len(options) else []
+        options = [str(arg) for arg in options]
         gdal_ds = gdal.OpenEx(
             path,
             conv.of_of_mode(mode) | conv.of_of_str('raster'),
@@ -98,10 +98,10 @@ class RasterPhysical(Raster):
             ))
         return gdal_ds
 
-    def __init__(self, ds, gdal_ds, mode):
-        """Instanciated by DataSource class, instanciation by user is undefined"""
-        Raster.__init__(self, ds, gdal_ds)
-        self._mode = mode
+    # def __init__(self, ds, gdal_ds, mode):
+    #     """Instanciated by DataSource class, instanciation by user is undefined"""
+    #     Raster.__init__(self, ds, gdal_ds)
+    #     self._mode = mode
 
     @property
     def delete(self):
@@ -115,7 +115,7 @@ class RasterPhysical(Raster):
         >>> with ds.create_araster('/tmp/tmp.tif', fp, float, 1).delete as tmp:
                 # code...
         """
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot remove a read-only file')
 
         def _delete():
@@ -135,12 +135,12 @@ class RasterPhysical(Raster):
     @property
     def mode(self):
         """Get raster open mode"""
-        return str(self._mode)
+        return self._c.mode
 
     @property
     def path(self):
         """Get raster file path"""
-        return self._gdal_ds.GetDescription()
+        return self._c.path
 
     def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None, op=np.rint):
         """Set `data` located at `fp` in raster file. An optional `mask` may be provided.
@@ -181,7 +181,7 @@ class RasterPhysical(Raster):
 
         """
 
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot write a read-only file')
 
         # Normalize fp parameter
@@ -252,7 +252,7 @@ class RasterPhysical(Raster):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot write a read-only file')
 
         bands, _ = _tools.normalize_band_parameter(band, len(self), self._shared_band_index)

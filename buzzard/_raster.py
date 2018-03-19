@@ -20,46 +20,38 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
 
         def __init__(self, ds, **kwargs):
             print('Raster._Constants __init__', kwargs)
-            # Opening informations
-            # None
-
             # GDAL informations
             if 'gdal_ds' in kwargs:
-                gdal_ds = kwargs['gdal_ds']
+                gdal_ds = kwargs.pop('gdal_ds')
                 kwargs['fp_origin'] = Footprint(
                     gt=gdal_ds.GetGeoTransform(),
                     rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
                 )
                 kwargs['band_schema'] = Raster._band_schema_of_gdal_ds(gdal_ds)
                 kwargs['dtype'] = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+                kwargs['wkt'] = gdal_ds.GetProjection()
             self.fp_origin = kwargs.pop('fp_origin')
             self.band_schema = kwargs.pop('band_schema')
             self.dtype = kwargs.pop('dtype')
 
             super(Raster._Constants, self).__init__(ds, **kwargs)
 
-    def __init__(self, ds, gdal_ds):
+    def __init__(self, ds, consts, gdal_ds=None):
         """Instanciated by DataSource class, instanciation by user is undefined"""
-        fp_origin = Footprint(
-            gt=gdal_ds.GetGeoTransform(),
-            rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
-        )
-        Proxy.__init__(self, ds, gdal_ds.GetProjection(), fp_origin)
+        Proxy.__init__(self, ds, consts, consts.fp_origin)
 
         if self._to_work is not None:
-            fp = fp_origin.move(*self._to_work([
-                fp_origin.tl, fp_origin.tr, fp_origin.br
+            fp = self._c.fp_origin.move(*self._to_work([
+                self._c.fp_origin.tl, self._c.fp_origin.tr, self._c.fp_origin.br
             ]))
         else:
-            fp = fp_origin
+            fp = self._c.fp_origin
 
         self._gdal_ds = gdal_ds
         self._fp = fp
-        self._fp_origin = fp_origin
-        self._band_schema = self._band_schema_of_gdal_ds(gdal_ds)
 
         self._shared_band_index = None
-        for i, type in enumerate(self._band_schema['mask'], 1):
+        for i, type in enumerate(self._c.band_schema['mask'], 1):
             if type == 'per_dataset':
                 self._shared_band_index = i
                 break
@@ -87,7 +79,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
     @property
     def band_schema(self):
         """Band schema"""
-        return dict(self._band_schema)
+        return dict(self._c.band_schema)
 
     @property
     def fp(self):
@@ -97,12 +89,12 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
     @property
     def fp_origin(self):
         """Accessor for inner Footprint instance"""
-        return self._fp_origin
+        return self._c.fp_origin
 
     @property
     def dtype(self):
         """Accessor for dtype"""
-        return conv.dtype_of_gdt_downcast(self._gdal_ds.GetRasterBand(1).DataType)
+        return self._c.dtype
 
     @property
     def nodata(self):
@@ -111,11 +103,11 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
 
     def get_nodata(self, band=1):
         """Accessor for nodata value"""
-        return self._gdal_ds.GetRasterBand(band).GetNoDataValue()
+        return self._c.band_schema['nodata'][band - 1]
 
     def __len__(self):
         """Return the number of bands"""
-        return self._gdal_ds.RasterCount
+        return len(self._c.band_schema['nodata'])
 
     def get_data(self, fp=None, band=1, mask=None, nodata=None, interpolation='cv_area',
                  dtype=None, op=np.rint):

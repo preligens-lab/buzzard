@@ -9,27 +9,19 @@ class Proxy(object):
 
         def __init__(self, ds, **kwargs):
             print('Proxy._Constants __init__', kwargs)
-            # Opening informations
-            # None
+            self.wkt = kwargs.pop('wkt')
 
-            # GDAL informations
-            if 'gdal_ds' in kwargs:
-                gdal_ds = kwargs.pop('gdal_ds')
-                kwargs['wkt_origin'] = gdal_ds.GetProjection()
-            self.wkt_origin = kwargs.pop('wkt_origin')
-
-            if kwargs:
-                raise RuntimeError('kwargs should be empty at this points of code: {}'.format(
-                    list(kwargs.keys())
-                ))
+            assert not kwargs, 'kwargs should be empty at this points of code: {}'.format(
+                list(kwargs.keys())
+            )
 
         @property
         def suspendable(self):
             return True
 
-    def __init__(self, ds, wkt, rect):
-        wkt_origin = wkt
-        del wkt
+    def __init__(self, ds, consts, rect):
+
+        wkt_origin = consts.wkt
 
         # If `ds` mode overrides file's origin
         if ds._wkt_origin:
@@ -47,6 +39,7 @@ class Proxy(object):
 
         to_work, to_file = ds._get_transforms(sr_origin, rect)
 
+        self._c = consts
         self._ds = ds
         self._wkt_origin = wkt_origin
         self._sr_origin = sr_origin
