@@ -77,7 +77,6 @@ for poly in ds.polygons.iter_data(None):
 ```
 
 ## Advanced (and fun 😊) examples
-
 Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
 
 ## Features
@@ -153,17 +152,18 @@ pytest buzzard/buzzard/test
 ```
 
 ## Documentation
-See code (docstrings). Hosted soon
+Hosted soon, in the meantime
+- look at docstrings in code
+- get familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
+- play with the exemples in [examples.ipynb](./doc/examples.ipynb)
 
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
 
 ## Authors
-
 See [AUTHORS](./AUTHORS.md)
 
 ## License and Notice
-
 See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
