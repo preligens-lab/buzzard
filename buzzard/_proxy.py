@@ -38,7 +38,6 @@ class Proxy(object):
             return True
 
     def __init__(self, ds, consts, rect):
-
         wkt_origin = consts.wkt
 
         # If `ds` mode overrides file's origin

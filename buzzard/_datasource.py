@@ -430,7 +430,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             raise TypeError('fn should be a callable or a sequence of callables')
 
         gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        prox = RasterRecipe(self, gdal_ds, fn_lst)
+        consts = RasterRecipe._Constants(
+            self, gdal_ds=gdal_ds, fn_list=fn_lst,
+        )
+        prox = RasterRecipe(self, consts, gdal_ds)
         self._register([key], prox)
         return prox
 
@@ -455,7 +458,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             raise TypeError('fn should be a callable or a sequence of callables')
 
         gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        prox = RasterRecipe(self, gdal_ds, fn_lst)
+        consts = RasterRecipe._Constants(
+            self, gdal_ds=gdal_ds, fn_list=fn_lst,
+        )
+        prox = RasterRecipe(self, consts, gdal_ds)
         self._register([], prox)
         return prox
 

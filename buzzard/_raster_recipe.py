@@ -18,6 +18,14 @@ LOGGER = logging.getLogger('buzzard')
 class RasterRecipe(Raster):
     """Concrete class of recipe raster sources"""
 
+    class _Constants(Raster._Constants):
+        """See Proxy._Constants"""
+
+        def __init__(self, ds, **kwargs):
+            print('RasterRecipe._Constants __init__', kwargs)
+            self.fn_list = kwargs.pop('fn_list')
+            super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
+
     _callback_registry = {}
 
     @classmethod
@@ -34,12 +42,19 @@ class RasterRecipe(Raster):
         gdal_ds.FlushCache()
         return gdal_ds
 
-    def __init__(self, ds, gdal_ds, fn_list):
+    def __init__(self, ds, consts, gdal_ds=None):
         """Instanciated by DataSource class, instanciation by user is undefined"""
+        if gdal_ds is None:
+            gdal_ds = self._create_vrt(
+                consts.fp_origin,
+                consts.dtype,
+                len(consts.band_schema.nodata),
+                consts.band_schema,
+                consts.wkt,
+            )
         self._uuid = gdal_ds.GetMetadataItem('UUID')
         self._callback_registry[self._uuid] = self
-        Raster.__init__(self, ds, gdal_ds)
-        self._fn_list = fn_list
+        Raster.__init__(self, ds, consts, gdal_ds)
 
     # pylint: disable=arguments-differ
     @functools.wraps(Raster.get_data)
@@ -140,7 +155,7 @@ def _pixel_function_entry_point(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_
     proxy_uuid = proxy_uuid.decode('utf-8')
     band_index = int(band_index)
     prox = RasterRecipe._callback_registry[proxy_uuid]
-    fn = prox._fn_list[band_index - 1]
+    fn = prox._c.fn_list[band_index - 1]
     try:
         out_ar[:] = fn(fp)
     except:
