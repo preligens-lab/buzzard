@@ -26,6 +26,10 @@ class RasterRecipe(Raster):
             self.fn_list = kwargs.pop('fn_list')
             super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
 
+        @property
+        def suspendable(self):
+            return False
+
     _callback_registry = {}
 
     @classmethod

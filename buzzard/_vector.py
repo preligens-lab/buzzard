@@ -56,6 +56,10 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             v &= super(Vector._Constants, self).suspendable
             return v
 
+        @property
+        def picklable(self):
+            return self.suspendable
+
     @classmethod
     def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
         """Create a vector datasource"""

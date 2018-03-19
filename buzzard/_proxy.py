@@ -19,8 +19,11 @@ class Proxy(object):
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
            - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
              `Proxy._Constants.wkt_origin`
-        - Since some proxies cannot be suspended (i.e. MEM and MEMORY drivers), the `suspendable`
-          property may be implemented to prevent all `suspend` and `pickle` operations.
+        - Since some proxies cannot be suspended (i.e. MEM, MEMORY drivers and Recipe), the
+          `suspendable` property may be implemented to prevent those proxies to interfere with lru
+          mechanisms.
+        - Since some proxies cannot be pickled (i.e. MEM, MEMORY), the `picklable` property may be
+          implemented to prevent all pickling attempts.
         - The `_Constants` class is contant '^_^
 
         """
@@ -35,6 +38,10 @@ class Proxy(object):
 
         @property
         def suspendable(self):
+            return True
+
+        @property
+        def picklable(self):
             return True
 
     def __init__(self, ds, consts, rect):
