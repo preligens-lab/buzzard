@@ -295,7 +295,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         return prox
 
     def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
-        """Create a raster recipe and register it under `key` in this DataSource.
+        """Experimental feature!
+
+        Create a raster recipe and register it under `key` in this DataSource.
 
         A recipe is a read-only raster that behaves like any other raster, pixel values are computed
         on-the-fly with calls to the provided `pixel functions`. A pixel function maps a Footprint to
@@ -414,7 +416,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         return prox
 
     def create_recipe_araster(self, fn, fp, dtype, band_schema=None, sr=None):
-        """Create a raster recipe anonymously in this DataSource.
+        """Experimental feature!
+
+        Create a raster recipe anonymously in this DataSource.
 
         See DataSource.create_recipe_raster
         """
