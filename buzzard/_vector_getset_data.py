@@ -125,19 +125,19 @@ class VectorGetSetMixin(object):
             geom = conv.ogr_of_shapely(geom)
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
-                    geom_type, self._type
+                    geom_type, self.type
                 ))
         elif geom_type == 'coordinates':
             geom = conv.ogr_of_coordinates(geom, self.type)
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
-                    geom_type, self._type
+                    geom_type, self.type
                 ))
         elif geom_type == 'shapely':
             geom = conv.ogr_of_shapely(geom)
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
-                    geom_type, self._type
+                    geom_type, self.type
                 ))
         else:
             assert False # pragma: no cover
@@ -155,7 +155,7 @@ class VectorGetSetMixin(object):
                     raise ValueError(
                         'Invalid geometry inserted '
                         '(allow None geometry in DataSource constructor to silence)'
-                    )
+                   )
 
             if index >= 0:
                 err = ftr.SetFID(index)

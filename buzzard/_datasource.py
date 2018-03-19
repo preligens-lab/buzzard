@@ -484,8 +484,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         """
         self._validate_key(key)
-        ogr_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
-        prox = Vector(self, ogr_ds, lyr, mode)
+        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
         return prox
 
@@ -494,8 +499,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         See DataSource.open_vector
         """
-        ogr_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
-        prox = Vector(self, ogr_ds, lyr, mode)
+        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
         return prox
 
@@ -573,10 +583,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         """
         self._validate_key(key)
-        ogr_ds, lyr = Vector._create_file(
+        gdal_ds, lyr = Vector._create_file(
             path, geometry, fields, layer, driver, options, sr
         )
-        prox = Vector(self, ogr_ds, lyr, 'w')
+        options = [str(arg) for arg in options]
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w',
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
         return prox
 
@@ -586,10 +600,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         See DataSource.create_vector
         """
-        ogr_ds, lyr = Vector._create_file(
+        gdal_ds, lyr = Vector._create_file(
             path, geometry, fields, layer, driver, options, sr
         )
-        prox = Vector(self, ogr_ds, lyr, 'w')
+        options = [str(arg) for arg in options]
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w',
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
         return prox
 

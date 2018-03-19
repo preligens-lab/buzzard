@@ -17,6 +17,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
     """Abstract class to all raster sources"""
 
     class _Constants(Proxy._Constants):
+        """See Proxy._Constants"""
 
         def __init__(self, ds, **kwargs):
             print('Raster._Constants __init__', kwargs)

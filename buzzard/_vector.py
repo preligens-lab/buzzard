@@ -22,6 +22,40 @@ from buzzard import _tools
 class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     """Proxy to a vector file registered in a DataSource"""
 
+    class _Constants(Proxy._Constants):
+        """See Proxy._Constants"""
+
+        def __init__(self, ds, **kwargs):
+            print('Vector._Constants __init__', kwargs)
+            # Opening informations
+            self.mode = kwargs.pop('mode')
+            self.open_options = kwargs.pop('open_options')
+
+            # GDAL informations
+            if 'gdal_ds' in kwargs:
+                gdal_ds = kwargs.pop('gdal_ds')
+                lyr = kwargs.pop('lyr')
+                kwargs['path'] = gdal_ds.GetDescription()
+                kwargs['driver'] = gdal_ds.GetDriver().ShortName
+                kwargs['type'] = conv.str_of_wkbgeom(lyr.GetGeomType())
+                kwargs['fields'] = Vector._fields_of_lyr(lyr)
+                wkt = lyr.GetSpatialRef()
+                if wkt is not None:
+                    wkt = wkt.ExportToWkt()
+                kwargs['wkt'] = wkt
+            self.path = kwargs.pop('path')
+            self.driver = kwargs.pop('driver')
+            self.type = kwargs.pop('type')
+            self.fields = kwargs.pop('fields')
+
+            super(Vector._Constants, self).__init__(ds, **kwargs)
+
+        @property
+        def suspendable(self):
+            v = 'MEM' not in self.driver
+            v &= super(Vector._Constants, self).suspendable
+            return v
+
     @classmethod
     def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
         """Create a vector datasource"""
@@ -35,36 +69,36 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
         with Env(_osgeo_use_exceptions=False):
             dr = gdal.GetDriverByName(driver)
-            ogr_ds = gdal.OpenEx(
+            gdal_ds = gdal.OpenEx(
                 path,
                 conv.of_of_mode('w') | conv.of_of_str('vector'),
                 [driver],
                 options,
             )
-            if ogr_ds is None:
-                ogr_ds = dr.Create(path, 0, 0, 0, 0, options)
+            if gdal_ds is None:
+                gdal_ds = dr.Create(path, 0, 0, 0, 0, options)
             else:
-                if ogr_ds.GetLayerByName(layer) is not None:
-                    err = ogr_ds.DeleteLayer(layer)
+                if gdal_ds.GetLayerByName(layer) is not None:
+                    err = gdal_ds.DeleteLayer(layer)
                     if err:
                         raise Exception('Could not delete %s' % path)
 
             # See todo on deletion of existing file
-            # if ogr_ds.GetLayerCount() == 0:
-            #     del ogr_ds
+            # if gdal_ds.GetLayerCount() == 0:
+            #     del gdal_ds
             #     err = dr.DeleteDataSource(path)
             #     if err:
             #         raise Exception('Could not delete %s' % path)
-            #     ogr_ds = dr.CreateDataSource(path, options)
+            #     gdal_ds = dr.CreateDataSource(path, options)
 
-            if ogr_ds is None:
+            if gdal_ds is None:
                 raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
 
         if sr is not None:
             sr = osr.SpatialReference(osr.GetUserInputAsWKT(sr))
 
         geometry = conv.wkbgeom_of_str(geometry)
-        lyr = ogr_ds.CreateLayer(layer, sr, geometry, options)
+        lyr = gdal_ds.CreateLayer(layer, sr, geometry, options)
 
         if lyr is None:
             raise Exception('Could not create layer (%s)' % gdal.GetLastErrorMsg())
@@ -82,59 +116,56 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
                 flddef.SetDefault(field['default'])
             lyr.CreateField(flddef)
         lyr.SyncToDisk()
-        ogr_ds.FlushCache()
-        return ogr_ds, lyr
+        gdal_ds.FlushCache()
+        return gdal_ds, lyr
 
     @classmethod
     def _open_file(cls, path, layer, driver, options, mode):
         """Open a vector datasource"""
         options = [str(arg) for arg in options] if len(options) else []
-        ogr_ds = gdal.OpenEx(
+        gdal_ds = gdal.OpenEx(
             path,
             conv.of_of_mode(mode) | conv.of_of_str('vector'),
             [driver],
             options,
         )
-        if ogr_ds is None:
+        if gdal_ds is None:
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
                 path, driver, gdal.GetLastErrorMsg()
             ))
         if layer is None:
             layer = 0
         if isinstance(layer, numbers.Integral):
-            lyr = ogr_ds.GetLayer(layer)
+            lyr = gdal_ds.GetLayer(layer)
         else:
-            lyr = ogr_ds.GetLayerByName(layer)
+            lyr = gdal_ds.GetLayerByName(layer)
         if lyr is None:
             raise Exception('Could not open layer (gdal error: %s)' % gdal.GetLastErrorMsg())
-        return ogr_ds, lyr
+        return gdal_ds, lyr
 
-    def __init__(self, ds, ogr_ds, lyr, mode):
+    def __init__(self, ds, consts, gdal_ds=None, lyr=None):
         """Instanciated by DataSource class, instanciation by user is undefined"""
-        wkt_origin = lyr.GetSpatialRef()
-        if wkt_origin is not None:
-            wkt_origin = wkt_origin.ExportToWkt()
-        Proxy.__init__(self, ds, wkt_origin, lyr.GetExtent())
+        rect = None
+        if lyr is not None:
+            rect = lyr.GetExtent()
+        Proxy.__init__(self, ds, consts, rect)
 
-        self._gdal_ds = ogr_ds
+        self._gdal_ds = gdal_ds
         self._lyr = lyr
 
-        self._fields = self._fields_of_lyr(lyr)
         self._index_of_field_name = {
             field['name']: i
-            for i, field in enumerate(self._fields)
+            for i, field in enumerate(self._c.fields)
         }
         self._type_of_field_index = [
             conv.type_of_oftstr(field['type'])
-            for field in self._fields
+            for field in self._c.fields
         ]
-        self._all_nullable = all(field['nullable'] for field in self._fields)
-        self._type = conv.str_of_wkbgeom(lyr.GetGeomType())
+        self._all_nullable = all(field['nullable'] for field in self._c.fields)
         if ds._ogr_layer_lock == 'none':
             self._lock = None
         else:
             self._lock = threading.Lock()
-        self._mode = mode
 
     @property
     def close(self):
@@ -168,7 +199,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         >>> with ds.create_avector('/tmp/tmp.shp', 'polygon').delete as tmp:
                 # code...
         """
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot remove a read-only file')
 
         def _delete():
@@ -188,7 +219,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     @property
     def delete_layer(self):
         """Delete vector layer with a call or a context management."""
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot remove a read-only layer')
 
         def _delete_layer():
@@ -206,6 +237,11 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return _VectorDeleteLayerRoutine(self, _delete_layer)
 
     # PROPERTY GETTERS ************************************************************************** **
+    @property
+    def mode(self):
+        """Get raster open mode"""
+        return self._c.mode
+
     def __len__(self):
         """Return the number of features in vector layer"""
         return len(self._lyr)
@@ -213,12 +249,12 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     @property
     def fields(self):
         """Fields definition"""
-        return [dict(d) for d in self._fields]
+        return [dict(d) for d in self._c.fields]
 
     @property
     def type(self):
         """Geometry type"""
-        return self._type
+        return self._c.type
 
     @property
     def extent(self):
@@ -260,7 +296,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     @property
     def path(self):
         """Get vector file path"""
-        return self._gdal_ds.GetDescription()
+        return self._c.path
 
     # GET DATA ********************************************************************************** **
     def iter_data(self, fields=-1, geom_type='shapely',
@@ -424,13 +460,13 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         # Parameter - mask
         mask_poly, mask_rect = self._normalize_mask_parameter(mask)
         del mask
-        for data in self._iter_data_unsafe('geojson', range(len(self._fields)), slicing,
+        for data in self._iter_data_unsafe('geojson', range(len(self._c.fields)), slicing,
                                            mask_poly, mask_rect, clip):
             yield {
                 'type': 'Feature',
                 'properties': collections.OrderedDict(
                     (field['name'], value)
-                    for field, value in zip(self._fields, data[1:])
+                    for field, value in zip(self._c.fields, data[1:])
                 ),
                 'geometry':  data[0],
             }
