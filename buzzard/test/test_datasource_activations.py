@@ -4,6 +4,9 @@
 
 from __future__ import division, print_function
 
+import resource
+import uuid
+
 import numpy as np
 import pytest
 
@@ -339,3 +342,39 @@ def test_raster():
             assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated) == (0, 0, False, False)
             ds.activate_all()
             assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated) == (2, 0, True, True)
+
+
+def test_maxfd():
+    cap, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+
+    if cap > 2049:
+        pytest.skip('file descriptors cap is too high to be tested: {}'.format(cap))
+
+    # Test 1 without fifo
+    ds = buzz.DataSource(max_activated=np.inf)
+    suff = str(uuid.uuid4())
+    try:
+        with pytest.raises(Exception):
+            for i in range(cap + 1):
+                ds.create_vector(i, '/tmp/f{:04d}_{}.json'.format(i, suff), 'point', driver='GeoJSON')
+                ds[i].insert_data((i, i + 1))
+            pytest.skip("Reached {} opened files but didn't crash, whatever...".format(i))
+    finally:
+        file_count = i
+        for i in range(file_count):
+            ds[i].delete()
+
+    # Test 2 with fifo
+    ds = buzz.DataSource(max_activated=5)
+    suff = str(uuid.uuid4())
+    for i in range(cap + 1):
+        ds.create_vector(i, '/tmp/f{:04d}_{}.json'.format(i, suff), 'point', driver='GeoJSON')
+        ds[i].insert_data((i, i + 1))
+
+    assert (ds._queued_count, ds._locked_count) == (5, 0)
+    for i in range(cap + 1):
+        v = ds[i]
+        assert (len(v), v.get_data(0, geom_type='coordinates')) == (1, (i, i + 1))
+
+    for i in range(cap + 1):
+        ds[i].delete()

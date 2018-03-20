@@ -29,9 +29,7 @@ class Proxy(object):
         """
 
         def __init__(self, ds, **kwargs):
-            print('Proxy._Constants __init__', kwargs)
             self.wkt = kwargs.pop('wkt')
-
             assert not kwargs, 'kwargs should be empty at this points of code: {}'.format(
                 list(kwargs.keys())
             )

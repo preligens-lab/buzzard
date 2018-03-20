@@ -20,7 +20,6 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         """See Proxy._Constants"""
 
         def __init__(self, ds, **kwargs):
-            print('Raster._Constants __init__', kwargs)
             # GDAL informations
             if 'gdal_ds' in kwargs:
                 gdal_ds = kwargs.pop('gdal_ds')

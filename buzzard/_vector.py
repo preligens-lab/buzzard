@@ -27,7 +27,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         """See Proxy._Constants"""
 
         def __init__(self, ds, **kwargs):
-            print('Vector._Constants __init__', kwargs)
             # Opening informations
             self.mode = kwargs.pop('mode')
             self.open_options = kwargs.pop('open_options')

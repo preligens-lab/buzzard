@@ -21,7 +21,6 @@ class RasterPhysical(Raster):
         """See Proxy._Constants"""
 
         def __init__(self, ds, **kwargs):
-            print('RasterPhysical._Constants __init__', kwargs)
             # Opening informations
             self.mode = kwargs.pop('mode')
             self.open_options = kwargs.pop('open_options')

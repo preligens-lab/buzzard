@@ -23,7 +23,6 @@ class RasterRecipe(Raster):
         """See Proxy._Constants"""
 
         def __init__(self, ds, **kwargs):
-            print('RasterRecipe._Constants __init__', kwargs)
             self.fn_list = kwargs.pop('fn_list')
             super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
 
