@@ -92,7 +92,7 @@ class Proxy(object):
         bool
         If the source is not deactivable, returns `True`
         """
-        raise NotImplementedError('Should be implemented by subclass')
+        raise NotImplementedError('Should be implemented by all subclasses')
 
     def activate(self):
         """
@@ -103,9 +103,10 @@ class Proxy(object):
         - Since some operations requires a proxy to stay activated (like Vector.iter_data), this
           function may fail if the DataSource's activation queue is full
           (see DataSource.__init__@max_activated)
-
         """
-        raise NotImplementedError('Should be implemented by subclass')
+        if not self._c.deactivable:
+            return
+        self._ds._activate(self)
 
     def deactivate(self):
         """
@@ -114,7 +115,23 @@ class Proxy(object):
         - If the source is not deactivable: fails silently
         - If the source is already deactivated: fails silently
         """
-        raise NotImplementedError('Should be implemented by subclass')
+        if not self._c.deactivable:
+            return
+        self._ds._deactivate(self)
+
+    def _activate(self):
+        raise NotImplementedError('Should be implemented by deactivable subclasses')
+
+    def _deactivate(self):
+        raise NotImplementedError('Should be implemented by deactivable subclasses')
+
+    def _lock_activate(self):
+        assert self._c.deactivable
+        self._ds._lock_activate(self)
+
+    def _unlock_activate(self):
+        assert self._c.deactivable
+        self._ds._unlock_activate(self)
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **

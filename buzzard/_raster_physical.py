@@ -140,22 +140,14 @@ class RasterPhysical(Raster):
         """See buzz.Proxy.activated"""
         return self._gdal_ds is not None
 
-    @functools.wraps(Proxy.activate)
-    def activate(self):
-        """See buzz.Proxy.activate"""
-        # assert False, 'TODO'
-
-    @functools.wraps(Proxy.deactivate)
-    def deactivate(self):
-        """See buzz.Proxy.deactivate"""
-        # assert False, 'TODO'
-
     def _activate(self):
-        assert not self._activated
+        assert self._c.deactivable
+        assert self._gdal_ds is None
         self._gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
 
     def _deactivate(self):
-        assert self._activated
+        assert self._c.deactivable
+        assert self._gdal_ds is not None
         self._gdal_ds = None
 
     # Raster write operations ******************************************************************* **

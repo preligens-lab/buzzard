@@ -250,27 +250,20 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     @functools.wraps(Proxy.activated)
     def activated(self):
         """See buzz.Proxy.activated"""
+        assert (self._lyr is None) == (self._gdal_ds is None)
         return self._gdal_ds is not None
 
-    @functools.wraps(Proxy.activate)
-    def activate(self):
-        """See buzz.Proxy.activate"""
-        # assert False, 'TODO'
-
-    @functools.wraps(Proxy.deactivate)
-    def deactivate(self):
-        """See buzz.Proxy.deactivate"""
-        # assert False, 'TODO'
-
     def _activate(self):
-        assert not self._activated
-        self._gdal_ds = self._open_file(
+        assert self._c.deactivable
+        assert self._gdal_ds is None
+        self._gdal_ds, self._lyr = self._open_file(
             self.path, self._c.layer, self.driver, self.open_options, self.mode
         )
 
     def _deactivate(self):
-        assert self._activated
-        self._gdal_ds = None
+        assert self._c.deactivable
+        assert self._gdal_ds is not None
+        self._gdal_ds, self._lyr = None, None
 
     # Properties ******************************************************************************** **
     @property

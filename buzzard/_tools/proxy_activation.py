@@ -1,4 +1,3 @@
-
 import functools
 
 def ensure_activated(f):
@@ -16,11 +15,11 @@ def ensure_activated_iteration(f):
     """
     @functools.wraps(f)
     def g(that, *args, **kwargs):
-        that.activate()
+        that._lock_activate()
         try:
             it = f(that, *args, **kwargs)
             for v in it:
                 yield v
         finally:
-            that.deactivate()
+            that._unlock_activate()
     return g

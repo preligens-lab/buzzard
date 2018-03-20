@@ -153,16 +153,6 @@ class RasterRecipe(Raster):
         """See buzz.Proxy.activated"""
         return True
 
-    @functools.wraps(Proxy.activate)
-    def activate(self):
-        """See buzz.Proxy.activate"""
-        pass
-
-    @functools.wraps(Proxy.deactivate)
-    def deactivate(self):
-        """See buzz.Proxy.deactivate"""
-        pass
-
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
 

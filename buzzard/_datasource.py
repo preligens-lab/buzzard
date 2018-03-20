@@ -5,6 +5,7 @@
 import collections
 
 from osgeo import osr
+import numpy as np
 
 from buzzard import _datasource_tools
 from buzzard._proxy import Proxy
@@ -48,7 +49,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                  analyse_transformation=True,
                  ogr_layer_lock='raise',
                  allow_none_geometry=False,
-                 allow_interpolation=False):
+                 allow_interpolation=False,
+                 max_activated=np.inf):
         """Constructor
 
         Parameters
@@ -131,6 +133,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if ogr_layer_lock not in frozenset({'none', 'wait', 'raise'}):
             raise ValueError('Unknown `ogr_layer_lock` value') # pragma: no cover
 
+        if max_activated < 1:
+            raise ValueError('`max_activated` should be greater than 1')
+
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
 
@@ -156,7 +161,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         DataSourceConversionsMixin.__init__(
             self, sr_work, sr_implicit, sr_origin, analyse_transformation
         )
-        _datasource_tools.DataSourceToolsMixin.__init__(self)
+        _datasource_tools.DataSourceToolsMixin.__init__(self, max_activated)
 
         self._wkt_work = wkt_work
         self._wkt_implicit = wkt_implicit
@@ -197,6 +202,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = RasterPhysical(self, consts, gdal_ds)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def open_araster(self, path, driver='GTiff', options=(), mode='r'):
@@ -212,6 +218,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = RasterPhysical(self, consts, gdal_ds)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
@@ -292,6 +299,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = RasterPhysical(self, consts, gdal_ds)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_araster(self, path, fp, dtype, band_count, band_schema=None,
@@ -311,6 +319,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = RasterPhysical(self, consts, gdal_ds)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
@@ -435,6 +444,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = RasterRecipe(self, consts, gdal_ds)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_recipe_araster(self, fn, fp, dtype, band_schema=None, sr=None):
@@ -463,6 +473,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = RasterRecipe(self, consts, gdal_ds)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     # Vector entry points *********************************************************************** **
@@ -498,6 +509,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def open_avector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
@@ -513,6 +525,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_vector(self, key, path, geometry, fields=(), layer=None,
@@ -598,6 +611,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_avector(self, path, geometry, fields=(), layer=None,
@@ -615,6 +629,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     # Proxy getters ********************************************************* **
