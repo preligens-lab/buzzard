@@ -494,7 +494,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
         consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
@@ -509,7 +509,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
         consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
@@ -594,7 +594,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         options = [str(arg) for arg in options]
         consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w',
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
@@ -611,7 +611,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         )
         options = [str(arg) for arg in options]
         consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w',
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
         )
         prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
@@ -646,3 +646,6 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if self._sr_work is None:
             return None
         return self._wkt_work
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **

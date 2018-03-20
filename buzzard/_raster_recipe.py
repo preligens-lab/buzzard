@@ -12,6 +12,7 @@ from buzzard._footprint import Footprint
 from buzzard._tools import conv
 from buzzard._raster import Raster
 from buzzard._env import Env
+from buzzard._proxy import Proxy
 
 LOGGER = logging.getLogger('buzzard')
 
@@ -27,7 +28,7 @@ class RasterRecipe(Raster):
             super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
 
         @property
-        def suspendable(self):
+        def deactivable(self):
             return False
 
     _callback_registry = {}
@@ -66,6 +67,7 @@ class RasterRecipe(Raster):
         with Env(_gdal_trust_buzzard=True):
             return Raster.get_data(self, *args, **kwargs)
 
+    # XML creation ****************************************************************************** **
     @classmethod
     def _create_vrt_xml_str(cls, fp, dtype, band_count, band_schema, sr):
         uuidstr = str(uuid.uuid4())
@@ -143,6 +145,26 @@ class RasterRecipe(Raster):
             elt.text = str(mask)
             band.append(elt)
         return band
+
+    # Activation mechanisms ********************************************************************* **
+    @property
+    @functools.wraps(Proxy.activated)
+    def activated(self):
+        """See buzz.Proxy.activated"""
+        return True
+
+    @functools.wraps(Proxy.activate)
+    def activate(self):
+        """See buzz.Proxy.activate"""
+        pass
+
+    @functools.wraps(Proxy.deactivate)
+    def deactivate(self):
+        """See buzz.Proxy.deactivate"""
+        pass
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
 
 # pylint: disable=too-many-arguments, unused-argument
 def _pixel_function_entry_point(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,

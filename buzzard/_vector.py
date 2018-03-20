@@ -7,6 +7,7 @@ import numbers
 import collections
 import threading
 import ntpath
+import functools
 
 import numpy as np
 from osgeo import gdal, osr, ogr
@@ -30,6 +31,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             # Opening informations
             self.mode = kwargs.pop('mode')
             self.open_options = kwargs.pop('open_options')
+            self.layer = kwargs.pop('layer')
 
             # GDAL informations
             if 'gdal_ds' in kwargs:
@@ -51,14 +53,14 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             super(Vector._Constants, self).__init__(ds, **kwargs)
 
         @property
-        def suspendable(self):
+        def deactivable(self):
             v = 'MEM' not in self.driver
-            v &= super(Vector._Constants, self).suspendable
+            v &= super(Vector._Constants, self).deactivable
             return v
 
         @property
         def picklable(self):
-            return self.suspendable
+            return self.deactivable
 
     @classmethod
     def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
@@ -171,6 +173,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         else:
             self._lock = threading.Lock()
 
+    # Life control ****************************************************************************** **
     @property
     def close(self):
         """Close a vector source with a call or a context management.
@@ -209,6 +212,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         def _delete():
             path = self._gdal_ds.GetDescription()
             dr = self._gdal_ds.GetDriver()
+            self.activate()
             self._ds._unregister(self)
             del self._lyr
             del self._gdal_ds
@@ -228,6 +232,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
         def _delete_layer():
             lyr_name = self._lyr.GetDescription()
+            self.activate()
             self._ds._unregister(self)
             del self._lyr
             err = self._gdal_ds.DeleteLayer(lyr_name)
@@ -240,12 +245,40 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
         return _VectorDeleteLayerRoutine(self, _delete_layer)
 
-    # PROPERTY GETTERS ************************************************************************** **
+    # Activation mechanisms ********************************************************************* **
+    @property
+    @functools.wraps(Proxy.activated)
+    def activated(self):
+        """See buzz.Proxy.activated"""
+        return self._gdal_ds is not None
+
+    @functools.wraps(Proxy.activate)
+    def activate(self):
+        """See buzz.Proxy.activate"""
+        # assert False, 'TODO'
+
+    @functools.wraps(Proxy.deactivate)
+    def deactivate(self):
+        """See buzz.Proxy.deactivate"""
+        # assert False, 'TODO'
+
+    def _activate(self):
+        assert not self._activated
+        self._gdal_ds = self._open_file(
+            self.path, self._c.layer, self.driver, self.open_options, self.mode
+        )
+
+    def _deactivate(self):
+        assert self._activated
+        self._gdal_ds = None
+
+    # Properties ******************************************************************************** **
     @property
     def mode(self):
         """Get raster open mode"""
         return self._c.mode
 
+    @_tools.ensure_activated
     def __len__(self):
         """Return the number of features in vector layer"""
         return len(self._lyr)
@@ -261,6 +294,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return self._c.type
 
     @property
+    @_tools.ensure_activated
     def extent(self):
         """Get file's extent. (`x` then `y`)
 
@@ -279,6 +313,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return np.asarray(extent)
 
     @property
+    @_tools.ensure_activated
     def bounds(self):
         """Get the file's bounds (`min` then `max`)
 
@@ -290,6 +325,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return np.asarray([extent[0], extent[2], extent[1], extent[3]])
 
     @property
+    @_tools.ensure_activated
     def extent_origin(self):
         """Get file's extent in origin spatial reference. (minx, miny, maxx, maxy)"""
         extent = self._lyr.GetExtent()
@@ -302,7 +338,13 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         """Get vector file path"""
         return self._c.path
 
-    # GET DATA ********************************************************************************** **
+    @property
+    def driver(self):
+        """Get the GDAL driver name"""
+        return self._c.driver
+
+    # Vector read operations ******************************************************************** **
+    @_tools.ensure_activated_iteration
     def iter_data(self, fields=-1, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over file's features
@@ -374,6 +416,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             else:
                 yield data
 
+    @_tools.ensure_activated
     def get_data(self, index, fields=-1, geom_type='shapely', mask=None, clip=False):
         """Fetch a single feature in file
 
@@ -420,6 +463,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         else:
             raise IndexError('Feature `{}` not found'.format(index))
 
+    @_tools.ensure_activated_iteration
     def iter_geojson(self, mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over file's data
 
@@ -475,6 +519,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
                 'geometry':  data[0],
             }
 
+    @_tools.ensure_activated
     def get_geojson(self, index, mask=None, clip=False):
         """Fetch a single feature in file
 
@@ -504,6 +549,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         else:
             raise IndexError('Feature `{}` not found'.format(index))
 
+    # Vector write operations ******************************************************************* **
+    @_tools.ensure_activated
     def insert_data(self, geom, fields=(), index=-1):
         """Insert a feature in file
 
@@ -545,6 +592,9 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             ))
         fields = self._normalize_field_values(fields)
         self._insert_data_unsafe(geom_type, geom, fields, index)
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
 
 _VectorCloseRoutine = type('_VectorCloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Vector.close.__doc__,

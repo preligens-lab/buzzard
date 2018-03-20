@@ -8,7 +8,7 @@ class Proxy(object):
     class _Constants(object):
         """Bundles all constant information about a instance of the above class. It allows the above
         class to:
-        - function when its gdal backend object is not available (The above class is then said to be suspended)
+        - function when its gdal backend object is not available (The above class is then said to be deactivated)
         - fully recreate its gdal backend object
         - be easilly pickled/unpickled
 
@@ -19,9 +19,9 @@ class Proxy(object):
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
            - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
              `Proxy._Constants.wkt_origin`
-        - Since some proxies cannot be suspended (i.e. MEM, MEMORY drivers and Recipe), the
-          `suspendable` property may be implemented to prevent those proxies to interfere with lru
-          mechanisms.
+        - Since some proxies cannot be deactivated (i.e. MEM, MEMORY drivers and Recipe), the
+          `deactivable` property may be implemented to prevent those proxies to interfere with
+          activation lru mechanisms.
         - Since some proxies cannot be pickled (i.e. MEM, MEMORY), the `picklable` property may be
           implemented to prevent all pickling attempts.
         - The `_Constants` class is contant '^_^
@@ -37,7 +37,7 @@ class Proxy(object):
             )
 
         @property
-        def suspendable(self):
+        def deactivable(self):
             return True
 
         @property
@@ -81,3 +81,40 @@ class Proxy(object):
         if not self._sr_origin:
             return None # pragma: no cover
         return self._sr_origin.ExportToProj4()
+
+    # Activation mechanisms ********************************************************************* **
+    @property
+    def activated(self):
+        """
+
+        Returns
+        -------
+        bool
+        If the source is not deactivable, returns `True`
+        """
+        raise NotImplementedError('Should be implemented by subclass')
+
+    def activate(self):
+        """
+        Corner cases
+        ------------
+        - If the source is not deactivable: fails silently
+        - If the source is already activated: fails silently
+        - Since some operations requires a proxy to stay activated (like Vector.iter_data), this
+          function may fail if the DataSource's activation queue is full
+          (see DataSource.__init__@max_activated)
+
+        """
+        raise NotImplementedError('Should be implemented by subclass')
+
+    def deactivate(self):
+        """
+        Corner cases
+        ------------
+        - If the source is not deactivable: fails silently
+        - If the source is already deactivated: fails silently
+        """
+        raise NotImplementedError('Should be implemented by subclass')
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **

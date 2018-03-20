@@ -3,11 +3,13 @@
 from __future__ import division, print_function
 import numbers
 import os
+import functools
 
 import numpy as np
 from osgeo import gdal, osr
 
 from buzzard._footprint import Footprint
+from buzzard._proxy import Proxy
 from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._raster import Raster
@@ -35,10 +37,14 @@ class RasterPhysical(Raster):
             super(RasterPhysical._Constants, self).__init__(ds, **kwargs)
 
         @property
-        def suspendable(self):
+        def deactivable(self):
             v = 'MEM' not in self.driver
-            v &= super(RasterPhysical._Constants, self).suspendable
+            v &= super(RasterPhysical._Constants, self).deactivable
             return v
+
+        @property
+        def picklable(self):
+            return self.deactivable
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
@@ -81,11 +87,22 @@ class RasterPhysical(Raster):
             ))
         return gdal_ds
 
-    # def __init__(self, ds, gdal_ds, mode):
-    #     """Instanciated by DataSource class, instanciation by user is undefined"""
-    #     Raster.__init__(self, ds, gdal_ds)
-    #     self._mode = mode
+    # Properties ******************************************************************************** **
+    @property
+    def mode(self):
+        """Get raster open mode"""
+        return self._c.mode
+    @property
+    def open_options(self):
+        """Get raster open options"""
+        return self._c.open_options
 
+    @property
+    def path(self):
+        """Get raster file path"""
+        return self._c.path
+
+    # Life control ****************************************************************************** **
     @property
     def delete(self):
         """Delete a raster file with a call or a context management.
@@ -102,6 +119,7 @@ class RasterPhysical(Raster):
             raise RuntimeError('Cannot remove a read-only file')
 
         def _delete():
+            self.activate()
             path = self.path
             dr = self._gdal_ds.GetDriver()
             self._ds._unregister(self)
@@ -115,16 +133,33 @@ class RasterPhysical(Raster):
 
         return _RasterDeleteRoutine(self, _delete)
 
+    # Activation mechanisms ********************************************************************* **
     @property
-    def mode(self):
-        """Get raster open mode"""
-        return self._c.mode
+    @functools.wraps(Proxy.activated)
+    def activated(self):
+        """See buzz.Proxy.activated"""
+        return self._gdal_ds is not None
 
-    @property
-    def path(self):
-        """Get raster file path"""
-        return self._c.path
+    @functools.wraps(Proxy.activate)
+    def activate(self):
+        """See buzz.Proxy.activate"""
+        # assert False, 'TODO'
 
+    @functools.wraps(Proxy.deactivate)
+    def deactivate(self):
+        """See buzz.Proxy.deactivate"""
+        # assert False, 'TODO'
+
+    def _activate(self):
+        assert not self._activated
+        self._gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
+
+    def _deactivate(self):
+        assert self._activated
+        self._gdal_ds = None
+
+    # Raster write operations ******************************************************************* **
+    @_tools.ensure_activated
     def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None, op=np.rint):
         """Set `data` located at `fp` in raster file. An optional `mask` may be provided.
 
@@ -215,6 +250,7 @@ class RasterPhysical(Raster):
 
         self._set_data_unsafe(array, fp, bands, interpolation, mask, op)
 
+    @_tools.ensure_activated
     def fill(self, value, band=1):
         """Fill bands with value.
 
@@ -242,6 +278,9 @@ class RasterPhysical(Raster):
 
         for gdalband in [self._gdalband_of_index(i) for i in bands]:
             gdalband.Fill(value)
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
 
 _RasterDeleteRoutine = type('_RasterDeleteRoutine', (_tools.CallOrContext,), {
     '__doc__': RasterPhysical.delete.__doc__,

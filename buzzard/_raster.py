@@ -57,26 +57,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
                 self._shared_band_index = i
                 break
 
-    @property
-    def close(self):
-        """Close a raster with a call or a context management.
-
-        Examples
-        --------
-        >>> ds.dem.close()
-        >>> with ds.dem.close:
-                # code...
-        >>> with ds.create_araster('result.tif', fp, float, 1).close as result:
-                # code...
-        """
-        def _close():
-            self._ds._unregister(self)
-            del self._gdal_ds
-            del self._ds
-
-        return _RasterCloseRoutine(self, _close)
-
-    # PROPERTY GETTERS ************************************************************************** **
+    # Properties ******************************************************************************** **
     @property
     def band_schema(self):
         """Band schema"""
@@ -110,6 +91,33 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         """Return the number of bands"""
         return len(self._c.band_schema['nodata'])
 
+    @property
+    def driver(self):
+        """Get the GDAL driver name"""
+        return self._c.driver
+
+    # Life control ****************************************************************************** **
+    @property
+    def close(self):
+        """Close a raster with a call or a context management.
+
+        Examples
+        --------
+        >>> ds.dem.close()
+        >>> with ds.dem.close:
+                # code...
+        >>> with ds.create_araster('result.tif', fp, float, 1).close as result:
+                # code...
+        """
+        def _close():
+            self._ds._unregister(self)
+            del self._gdal_ds
+            del self._ds
+
+        return _RasterCloseRoutine(self, _close)
+
+    # Raster read operations ******************************************************************** **
+    @_tools.ensure_activated
     def get_data(self, fp=None, band=1, mask=None, nodata=None, interpolation='cv_area',
                  dtype=None, op=np.rint):
         """Get `data` located at `fp` in raster file.
@@ -233,6 +241,9 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         if op is not None:
             array = op(array)
         return array.astype(dtype).reshape(outshape)
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
 
 _RasterCloseRoutine = type('_RasterCloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Raster.close.__doc__,
