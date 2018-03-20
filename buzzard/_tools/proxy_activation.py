@@ -15,11 +15,15 @@ def ensure_activated_iteration(f):
     """
     @functools.wraps(f)
     def g(that, *args, **kwargs):
-        that._lock_activate()
+        if that._c.deactivable:
+            that._lock_activate()
         try:
             it = f(that, *args, **kwargs)
             for v in it:
                 yield v
         finally:
-            that._unlock_activate()
+            if not hasattr(that, '_ds'):
+                assert False, "It shouldn't be allowed to close a proxy before this block!!"
+            if that._c.deactivable:
+                that._unlock_activate()
     return g

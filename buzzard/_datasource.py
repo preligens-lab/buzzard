@@ -662,5 +662,29 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             return None
         return self._wkt_work
 
+    # Activation mechanisms ********************************************************************* **
+    def activate_all(self):
+        if self._max_activated < len(self._keys_of_proxy):
+            raise RuntimeError("Can't activate all sources at the same time: {} sources and max_activated is {}".format(
+                len(self._keys_of_proxy), self._max_activated,
+            ))
+        for prox in self._keys_of_proxy.keys():
+            if not prox.activated:
+                prox.activate()
+                assert prox.activated
+
+    def deactivate_all(self):
+        """
+        The sources that can't be deactivated (i.e. a raster with the `MEM` driver) are ignored
+        """
+        if self._locked_count != 0:
+            raise RuntimeError("Can't deactivate all sources: some are forced to stay activated (are you iterating on geometries?)")
+        for prox in self._keys_of_proxy.keys():
+            if not prox._c.deactivable:
+                continue
+            if prox.activated:
+                prox.deactivate()
+                assert not prox.activated
+
     # The end *********************************************************************************** **
     # ******************************************************************************************* **

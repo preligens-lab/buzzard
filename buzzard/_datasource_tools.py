@@ -54,28 +54,35 @@ class DataSourceToolsMixin(object):
             assert self._locked_activations[proxy] == 0
             assert not self._activation_queue
         elif case == (False, True, True):
-            assert False, 'lock activated but not activated'
+            assert False, 'lock activated but not activated' # pragma: no cover
         elif case == (False, True, False):
             assert self._locked_activations[proxy] == 0
             assert proxy not in self._activation_queue
         elif case == (False, False, True):
-            assert False, 'lock activated but not activated'
+            assert False, 'lock activated but not activated' # pragma: no cover
         elif case == (False, False, False):
             assert self._locked_activations[proxy] == 0
             assert not self._activation_queue
         else:
-            assert False, 'unreachable'
+            assert False, 'unreachable' # pragma: no cover
 
-    def _activated_count(self):
-        return len(self._locked_activations) + len(self._activation_queue)
+    @property
+    def _queued_count(self):
+        """Used for unit tests"""
+        return len(self._activation_queue)
+
+    @property
+    def _locked_count(self):
+        """Used for unit tests"""
+        return sum(v > 0 for v in self._locked_activations.values())
 
     def _ensure_enough_room(self):
         """Make room in self._activation_queue if necessary"""
-        if len(self._locked_activations) >= self._max_activated:
+        if self._locked_count >= self._max_activated:
             raise RuntimeError(_ERR_FMT.format(
-                self._max_activated, len(self._locked_activations)
+                self._max_activated, self._locked_count
             ))
-        if self._activated_count() >= self._max_activated:
+        if self._locked_count + len(self._activation_queue) >= self._max_activated:
             other_proxy, _ = self._activation_queue.popitem(False)
             other_proxy._deactivate()
 
@@ -160,12 +167,15 @@ class DataSourceToolsMixin(object):
             if self._locked_activations[proxy] == 0:
                 self._activation_queue[proxy] = 42
         elif case == (True, True, False):
-            assert False, 'unlocking but not locked'
+            assert False, 'unlocking but not locked' # pragma: no cover
         elif case == (True, False, True):
             self._locked_activations[proxy] -= 1
-        elif case == (True, False, False):
+        elif case == (True, False, False): # pragma: no cover
             assert False, 'unlocking but not locked'
-        elif case == (False, True, False):
+        elif case == (False, True, False): # pragma: no cover
             assert False, 'unlocking but not locked'
-        elif case == (False, False, False):
+        elif case == (False, False, False): # pragma: no cover
             assert False, 'unlocking but not locked'
+
+    def _is_locked_activate(self, proxy):
+        return self._locked_activations[proxy] > 0

@@ -54,7 +54,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
         @property
         def deactivable(self):
-            v = 'MEM' not in self.driver
+            v = self.driver != 'Memory'
             v &= super(Vector._Constants, self).deactivable
             return v
 
@@ -187,7 +187,11 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
                 # code...
         """
         def _close():
+            if self._ds._is_locked_activate(self):
+                raise RuntimeError('Attempting to close a `buzz.Vector` while an read operation is in progress')
+
             self._ds._unregister(self)
+            self.deactivate()
             del self._lyr
             del self._gdal_ds
             del self._ds
@@ -210,18 +214,24 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             raise RuntimeError('Cannot remove a read-only file')
 
         def _delete():
-            path = self._gdal_ds.GetDescription()
-            dr = self._gdal_ds.GetDriver()
-            self.activate()
+            if self._ds._is_locked_activate(self):
+                raise RuntimeError('Attempting to delete a `buzz.Vector` while an read operation is in progress')
+
+            path = self.path
+            dr = gdal.GetDriverByName(self._c.driver)
+
             self._ds._unregister(self)
+            self.deactivate()
             del self._lyr
             del self._gdal_ds
             del self._ds
+
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                     path, gdal.GetLastErrorMsg()
                 ))
+
         return _VectorDeleteRoutine(self, _delete)
 
     @property
@@ -231,15 +241,21 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             raise RuntimeError('Cannot remove a read-only layer')
 
         def _delete_layer():
-            lyr_name = self._lyr.GetDescription()
+            if self._ds._is_locked_activate(self):
+                raise RuntimeError('Attempting to delete a `buzz.Vector` layer while an read operation is in progress')
+
             self.activate()
-            self._ds._unregister(self)
-            del self._lyr
+            lyr_name = self._lyr.GetDescription()
+            self._lyr = 42
+
             err = self._gdal_ds.DeleteLayer(lyr_name)
             if err:
                 raise RuntimeError('Could not delete layer `{}` (gdal error: `{}`)'.format(
                     lyr_name, gdal.GetLastErrorMsg()
                 ))
+
+            self._ds._unregister(self)
+            self.deactivate()
             del self._gdal_ds
             del self._ds
 
@@ -332,6 +348,11 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return self._c.path
 
     @property
+    def open_options(self):
+        """Get vector open options"""
+        return self._c.open_options
+
+    @property
     def driver(self):
         """Get the GDAL driver name"""
         return self._c.driver
@@ -409,7 +430,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             else:
                 yield data
 
-    @_tools.ensure_activated
     def get_data(self, index, fields=-1, geom_type='shapely', mask=None, clip=False):
         """Fetch a single feature in file
 
@@ -512,7 +532,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
                 'geometry':  data[0],
             }
 
-    @_tools.ensure_activated
     def get_geojson(self, index, mask=None, clip=False):
         """Fetch a single feature in file
 

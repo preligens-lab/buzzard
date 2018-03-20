@@ -120,10 +120,10 @@ class Proxy(object):
         self._ds._deactivate(self)
 
     def _activate(self):
-        raise NotImplementedError('Should be implemented by deactivable subclasses')
+        raise NotImplementedError('Should be implemented by deactivable subclasses') # pragma: no cover
 
     def _deactivate(self):
-        raise NotImplementedError('Should be implemented by deactivable subclasses')
+        raise NotImplementedError('Should be implemented by deactivable subclasses') # pragma: no cover
 
     def _lock_activate(self):
         assert self._c.deactivable

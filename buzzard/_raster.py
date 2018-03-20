@@ -110,7 +110,10 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
                 # code...
         """
         def _close():
+            if self._ds._is_locked_activate(self):
+                raise RuntimeError('Attempting to close a `buzz.Raster` before `TBD`')
             self._ds._unregister(self)
+            self.deactivate()
             del self._gdal_ds
             del self._ds
 

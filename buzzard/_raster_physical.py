@@ -38,7 +38,7 @@ class RasterPhysical(Raster):
 
         @property
         def deactivable(self):
-            v = 'MEM' not in self.driver
+            v = self.driver != 'MEM'
             v &= super(RasterPhysical._Constants, self).deactivable
             return v
 
@@ -92,6 +92,7 @@ class RasterPhysical(Raster):
     def mode(self):
         """Get raster open mode"""
         return self._c.mode
+
     @property
     def open_options(self):
         """Get raster open options"""
@@ -119,12 +120,17 @@ class RasterPhysical(Raster):
             raise RuntimeError('Cannot remove a read-only file')
 
         def _delete():
-            self.activate()
+            if self._ds._is_locked_activate(self):
+                raise RuntimeError('Attempting to delete a `buzz.Raster` before `TBD`')
+
             path = self.path
-            dr = self._gdal_ds.GetDriver()
+            dr = gdal.GetDriverByName(self._c.driver)
+
             self._ds._unregister(self)
+            self.deactivate()
             del self._gdal_ds
             del self._ds
+
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
