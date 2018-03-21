@@ -680,7 +680,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if self._locked_count != 0:
             raise RuntimeError("Can't deactivate all sources: some are forced to stay activated (are you iterating on geometries?)")
         for prox in self._keys_of_proxy.keys():
-            if not prox._c.deactivable:
+            if not prox.deactivable:
                 continue
             if prox.activated:
                 prox.deactivate()

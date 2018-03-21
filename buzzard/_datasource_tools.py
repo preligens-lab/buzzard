@@ -91,7 +91,7 @@ class DataSourceToolsMixin(object):
         assert proxy.activated
         if not self._max_activated != np.inf:
             return
-        if not proxy._c.deactivable:
+        if not proxy.deactivable:
             return
         self._ensure_enough_room()
         self._activation_queue[proxy] = 42

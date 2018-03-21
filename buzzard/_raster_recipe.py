@@ -26,10 +26,6 @@ class RasterRecipe(Raster):
             self.fn_list = kwargs.pop('fn_list')
             super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
 
-        @property
-        def deactivable(self):
-            return False
-
     _callback_registry = {}
 
     @classmethod
@@ -146,6 +142,12 @@ class RasterRecipe(Raster):
         return band
 
     # Activation mechanisms ********************************************************************* **
+    @property
+    @functools.wraps(Proxy.deactivable.fget)
+    def deactivable(self):
+        """See buzz.Proxy.deactivable"""
+        return False
+
     @property
     @functools.wraps(Proxy.activated.fget)
     def activated(self):

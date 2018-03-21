@@ -1,4 +1,4 @@
-"""Test big files creation / write / read"""
+"""Test raster recipes"""
 
 # pylint: disable=redefined-outer-name
 

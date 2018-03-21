@@ -35,16 +35,6 @@ class RasterPhysical(Raster):
 
             super(RasterPhysical._Constants, self).__init__(ds, **kwargs)
 
-        @property
-        def deactivable(self):
-            v = self.driver != 'MEM'
-            v &= super(RasterPhysical._Constants, self).deactivable
-            return v
-
-        @property
-        def picklable(self):
-            return self.deactivable
-
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
         """Create a raster datasource"""
@@ -140,18 +130,31 @@ class RasterPhysical(Raster):
 
     # Activation mechanisms ********************************************************************* **
     @property
+    def deactivable(self):
+        """See buzz.Proxy.deactivable"""
+        v = self.driver != 'MEM'
+        v &= super(RasterPhysical, self).deactivable
+        return v
+
+    @property
+    @functools.wraps(Proxy.picklable.fget)
+    def picklable(self):
+        """See buzz.Proxy.picklable"""
+        return self.deactivable
+
+    @property
     @functools.wraps(Proxy.activated.fget)
     def activated(self):
         """See buzz.Proxy.activated"""
         return self._gdal_ds is not None
 
     def _activate(self):
-        assert self._c.deactivable
+        assert self.deactivable
         assert self._gdal_ds is None
         self._gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
 
     def _deactivate(self):
-        assert self._c.deactivable
+        assert self.deactivable
         assert self._gdal_ds is not None
         self._gdal_ds = None
 

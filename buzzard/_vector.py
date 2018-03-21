@@ -51,16 +51,6 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
             super(Vector._Constants, self).__init__(ds, **kwargs)
 
-        @property
-        def deactivable(self):
-            v = self.driver != 'Memory'
-            v &= super(Vector._Constants, self).deactivable
-            return v
-
-        @property
-        def picklable(self):
-            return self.deactivable
-
     @classmethod
     def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
         """Create a vector datasource"""
@@ -262,6 +252,20 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     # Activation mechanisms ********************************************************************* **
     @property
+    @functools.wraps(Proxy.deactivable.fget)
+    def deactivable(self):
+        """See buzz.Proxy.deactivable"""
+        v = self.driver != 'Memory'
+        v &= super(Vector, self).deactivable
+        return v
+
+    @property
+    @functools.wraps(Proxy.picklable.fget)
+    def picklable(self):
+        """See buzz.Proxy.picklable"""
+        return self.deactivable
+
+    @property
     @functools.wraps(Proxy.activated.fget)
     def activated(self):
         """See buzz.Proxy.activated"""
@@ -269,14 +273,14 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return self._gdal_ds is not None
 
     def _activate(self):
-        assert self._c.deactivable
+        assert self.deactivable
         assert self._gdal_ds is None
         self._gdal_ds, self._lyr = self._open_file(
             self.path, self._c.layer, self.driver, self.open_options, self.mode
         )
 
     def _deactivate(self):
-        assert self._c.deactivable
+        assert self.deactivable
         assert self._gdal_ds is not None
         self._gdal_ds, self._lyr = None, None
 

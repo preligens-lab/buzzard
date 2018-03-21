@@ -19,11 +19,6 @@ class Proxy(object):
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
            - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
              `Proxy._Constants.wkt_origin`
-        - Since some proxies cannot be deactivated (i.e. MEM, MEMORY drivers and Recipe), the
-          `deactivable` property may be implemented to prevent those proxies to interfere with
-          activation lru mechanisms.
-        - Since some proxies cannot be pickled (i.e. MEM, MEMORY), the `picklable` property may be
-          implemented to prevent all pickling attempts.
         - The `_Constants` class is contant '^_^
 
         """
@@ -33,14 +28,6 @@ class Proxy(object):
             assert not kwargs, 'kwargs should be empty at this points of code: {}'.format(
                 list(kwargs.keys())
             )
-
-        @property
-        def deactivable(self):
-            return True
-
-        @property
-        def picklable(self):
-            return True
 
     def __init__(self, ds, consts, rect):
         wkt_origin = consts.wkt
@@ -82,6 +69,23 @@ class Proxy(object):
 
     # Activation mechanisms ********************************************************************* **
     @property
+    def deactivable(self):
+        """
+        - Since some proxies cannot be deactivated (i.e. MEM, MEMORY drivers and Recipe), the
+          `deactivable` property may be implemented to prevent those proxies to interfere with
+          activation lru mechanisms.
+        """
+        return True
+
+    @property
+    def picklable(self):
+        """
+        - Since some proxies cannot be pickled (i.e. MEM, MEMORY), the `picklable` property may be
+          implemented to prevent all pickling attempts.
+        """
+        return True
+
+    @property
     def activated(self):
         """
 
@@ -102,7 +106,7 @@ class Proxy(object):
           function may fail if the DataSource's activation queue is full
           (see DataSource.__init__@max_activated)
         """
-        if not self._c.deactivable:
+        if not self.deactivable:
             return
         self._ds._activate(self)
 
@@ -113,7 +117,7 @@ class Proxy(object):
         - If the source is not deactivable: fails silently
         - If the source is already deactivated: fails silently
         """
-        if not self._c.deactivable:
+        if not self.deactivable:
             return
         self._ds._deactivate(self)
 
@@ -124,11 +128,11 @@ class Proxy(object):
         raise NotImplementedError('Should be implemented by deactivable subclasses') # pragma: no cover
 
     def _lock_activate(self):
-        assert self._c.deactivable
+        assert self.deactivable
         self._ds._lock_activate(self)
 
     def _unlock_activate(self):
-        assert self._c.deactivable
+        assert self.deactivable
         self._ds._unlock_activate(self)
 
     # The end *********************************************************************************** **
