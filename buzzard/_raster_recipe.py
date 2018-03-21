@@ -101,7 +101,7 @@ class RasterRecipe(Raster):
             }
             meta.update({k: v[i - 1] for (k, v) in band_schema.items()})
             top.append(cls._create_vrt_band_xml(i, uuidstr, dtype, **meta))
-        return xml.tostring(top, 'unicode')
+        return xml.tostring(top, 'us-ascii')
 
     @staticmethod
     def _create_vrt_band_xml(i, uuidstr, dtype, nodata, interpretation, offset, scale, mask):
@@ -147,7 +147,7 @@ class RasterRecipe(Raster):
 
     # Activation mechanisms ********************************************************************* **
     @property
-    @functools.wraps(Proxy.activated)
+    @functools.wraps(Proxy.activated.fget)
     def activated(self):
         """See buzz.Proxy.activated"""
         return True

@@ -262,7 +262,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     # Activation mechanisms ********************************************************************* **
     @property
-    @functools.wraps(Proxy.activated)
+    @functools.wraps(Proxy.activated.fget)
     def activated(self):
         """See buzz.Proxy.activated"""
         assert (self._lyr is None) == (self._gdal_ds is None)

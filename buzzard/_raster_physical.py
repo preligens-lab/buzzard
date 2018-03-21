@@ -140,7 +140,7 @@ class RasterPhysical(Raster):
 
     # Activation mechanisms ********************************************************************* **
     @property
-    @functools.wraps(Proxy.activated)
+    @functools.wraps(Proxy.activated.fget)
     def activated(self):
         """See buzz.Proxy.activated"""
         return self._gdal_ds is not None
