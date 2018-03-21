@@ -5,6 +5,7 @@ import xml.etree.ElementTree as xml
 import uuid
 import logging
 import functools
+import weakref
 
 from osgeo import gdal
 
@@ -26,7 +27,7 @@ class RasterRecipe(Raster):
             self.fn_list = kwargs.pop('fn_list')
             super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
 
-    _callback_registry = {}
+    _callback_registry = weakref.WeakValueDictionary()
 
     @classmethod
     def _create_vrt(cls, fp, dtype, band_count, band_schema, sr):
