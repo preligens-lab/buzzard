@@ -19,7 +19,7 @@ class Proxy(object):
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
            - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
              `Proxy._Constants.wkt_origin`
-        - The `_Constants` class is contant '^_^
+        - The `_Constants` class is contant and does not make side effects
 
         """
 

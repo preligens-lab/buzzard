@@ -4,6 +4,7 @@ from __future__ import division, print_function
 
 import resource
 import uuid
+import os
 
 import numpy as np
 import pytest
@@ -312,17 +313,17 @@ def test_vector_end_while_iterating():
 def test_raster():
     ds = buzz.DataSource(max_activated=2)
     fp = buzz.Footprint(
-        tl=(0, 0),
+        tl=(1, 1),
         size=(10, 10),
         rsize=(10, 10),
     )
-    with ds.create_araster('/tmp/t1.shp', fp, float, 1).delete as r1:
+    with ds.create_araster('/tmp/t1.tif', fp, float, 1).delete as r1:
         assert (ds._queued_count, ds._locked_count, r1.activated) == (1, 0, True)
 
-        with ds.create_araster('/tmp/t2.shp', fp, float, 1).delete as r2:
+        with ds.create_araster('/tmp/t2.tif', fp, float, 1).delete as r2:
             assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated) == (2, 0, True, True)
 
-            with ds.create_araster('/tmp/t3.shp', fp, float, 1).delete as r3:
+            with ds.create_araster('/tmp/t3.tif', fp, float, 1).delete as r3:
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
 
                 # Test lru policy
@@ -432,7 +433,7 @@ def test_pickling():
     ds = buzz.DataSource(max_activated=2)
     oldid = id(ds)
     fp = buzz.Footprint(
-        tl=(0, 0),
+        tl=(1, 1),
         size=(10, 10),
         rsize=(10, 10),
     )
@@ -453,3 +454,65 @@ def test_pickling():
             cl.submit(slave).result()
             assert ds.v1.get_data(1)[1] == '42'
             assert (ds.r1.get_data() == 42).all()
+
+def test_file_changed():
+    ds = buzz.DataSource(max_activated=2)
+    fp = buzz.Footprint(
+        tl=(1, 1),
+        size=(10, 10),
+        rsize=(10, 10),
+    )
+
+    with ds.create_araster('/tmp/t1.tif', fp, float, 1).delete as r1:
+        r1.fill(1)
+        assert (r1.get_data() == 1).all()
+        assert r1.fp == fp
+        assert len(r1) == 1
+        r1.deactivate()
+
+        with ds.open_araster('/tmp/t1.tif').close as r2:
+            assert (r2.get_data() == 1).all()
+            assert r2.fp == fp
+            assert len(r2) == 1
+
+        with ds.create_araster('/tmp/t1.tif', fp, float, 2).close as r2:
+            r2.fill(2)
+            assert (r2.get_data() == 2).all()
+            assert r2.fp == fp
+            assert len(r2) == 2
+
+        with ds.open_araster('/tmp/t1.tif').close as r2:
+            assert (r2.get_data() == 2).all()
+            assert r2.fp == fp
+            assert len(r2) == 2
+
+        with pytest.raises(RuntimeError, match='changed'):
+            r1.activate()
+
+    with ds.create_avector('/tmp/v1.shp', 'Point', [{'name': 'area', 'type': float}]).delete as v1:
+        v1.insert_data((0, 0), [42])
+        assert v1.get_data(0, geom_type='coordinates') == ((0, 0), 42)
+        assert v1.type == 'Point'
+        assert len(v1) == 1
+        v1.deactivate()
+
+        with ds.open_avector('/tmp/v1.shp').close as v2:
+            assert v2.get_data(0, geom_type='coordinates') == ((0, 0), 42)
+            assert v2.type == 'Point'
+            assert len(v2) == 1
+
+        with ds.create_avector('/tmp/v1.shp', 'LineString', [{'name': 'area', 'type': float}]).close as v2:
+            v2.insert_data(((0, 0), (1, 1)), [42])
+            v2.insert_data(((0, 0), (1, 1)), [42])
+            assert v2.get_data(0, geom_type='coordinates') == (((0, 0), (1, 1)), 42)
+            assert v2.type == 'LineString'
+            assert len(v2) == 2
+
+
+        with ds.open_avector('/tmp/v1.shp').close as v2:
+            assert v2.get_data(0, geom_type='coordinates') == (((0, 0), (1, 1)), 42)
+            assert v2.type == 'LineString'
+            assert len(v2) == 2
+
+        with pytest.raises(RuntimeError, match='changed'):
+            v1.activate()

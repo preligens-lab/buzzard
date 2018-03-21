@@ -275,9 +275,26 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     def _activate(self):
         assert self.deactivable
         assert self._gdal_ds is None
-        self._gdal_ds, self._lyr = self._open_file(
+        gdal_ds, lyr = self._open_file(
             self.path, self._c.layer, self.driver, self.open_options, self.mode
         )
+
+        # Check that self._c hasn't changed
+        consts_check = Vector._Constants(
+            self._ds, gdal_ds=gdal_ds, lyr=lyr, open_options=self.open_options, mode=self.mode, layer=self._c.layer,
+        )
+        new = consts_check.__dict__
+        old = self._c.__dict__
+        for k in new.keys():
+            oldv = old[k]
+            newv = new[k]
+            if oldv != newv:
+                raise RuntimeError("Vector's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
+                    k, oldv, newv
+                ))
+        self._gdal_ds = gdal_ds
+        self._lyr = lyr
+
 
     def _deactivate(self):
         assert self.deactivable

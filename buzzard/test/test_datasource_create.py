@@ -221,7 +221,7 @@ def test_vector(path, driver, test_fields):
 def test_gc():
     ws = weakref.WeakSet()
     fp = buzz.Footprint(
-        tl=(0, 0),
+        tl=(1, 1),
         size=(10, 10),
         rsize=(10, 10),
     )

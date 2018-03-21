@@ -151,7 +151,22 @@ class RasterPhysical(Raster):
     def _activate(self):
         assert self.deactivable
         assert self._gdal_ds is None
-        self._gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
+        gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
+
+        # Check that self._c hasn't changed
+        consts_check = RasterPhysical._Constants(
+            self._ds, gdal_ds=gdal_ds, open_options=self.open_options, mode=self.mode
+        )
+        new = consts_check.__dict__
+        old = self._c.__dict__
+        for k in new.keys():
+            oldv = old[k]
+            newv = new[k]
+            if oldv != newv:
+                raise RuntimeError("Raster's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
+                    k, oldv, newv
+                ))
+        self._gdal_ds = gdal_ds
 
     def _deactivate(self):
         assert self.deactivable

@@ -700,6 +700,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         proxies = []
         for prox, keys in self._keys_of_proxy.items():
+
             if prox.picklable:
                 consts = dict(prox._c.__dict__) # Need to recreate dict for cloudpickling
                 proxies.append((
