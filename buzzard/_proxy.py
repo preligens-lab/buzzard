@@ -6,8 +6,7 @@ class Proxy(object):
     """Base class to all sources"""
 
     class _Constants(object):
-        """Bundles all constant information about a instance of the above class. It allows the above
-        class to:
+        """Bundles all constant information about a proxy object. It allows a proxy class to:
         - function when its gdal backend object is not available (The above class is then said to be deactivated)
         - fully recreate its gdal backend object
         - be easilly pickled/unpickled
@@ -19,7 +18,7 @@ class Proxy(object):
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
            - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
              `Proxy._Constants.wkt_origin`
-        - The `_Constants` class is contant and does not make side effects
+        - The `_Constants` class is contant and does not make any side effect
 
         """
 
@@ -70,48 +69,45 @@ class Proxy(object):
     # Activation mechanisms ********************************************************************* **
     @property
     def deactivable(self):
-        """
-        - Since some proxies cannot be deactivated (i.e. MEM, MEMORY drivers and Recipe), the
-          `deactivable` property may be implemented to prevent those proxies to interfere with
-          activation lru mechanisms.
+        """Whether or not the source is deactivable.
+        Those sources can't be deactivated:
+        - Raster with the 'MEM' driver
+        - Vector with the `Memory` driver
+        - Raster recipe
         """
         return True
 
     @property
     def picklable(self):
-        """
-        - Since some proxies cannot be pickled (i.e. MEM, MEMORY), the `picklable` property may be
-          implemented to prevent all pickling attempts.
+        """Whether or not the source can be pickled
+        Those sources can't be pickled:
+        - Raster with the 'MEM' driver
+        - Vector with the `Memory` driver
         """
         return True
 
     @property
     def activated(self):
-        """
-
-        Returns
-        -------
-        bool
-        If the source is not deactivable, returns `True`
-        """
+        """Whether or not the source is currently activated"""
         raise NotImplementedError('Should be implemented by all subclasses')
 
     def activate(self):
-        """
+        """Activate a source
+
         Corner cases
         ------------
         - If the source is not deactivable: fails silently
         - If the source is already activated: fails silently
         - Since some operations requires a proxy to stay activated (like Vector.iter_data), this
           function may fail if the DataSource's activation queue is full
-          (see DataSource.__init__@max_activated)
         """
         if not self.deactivable:
             return
         self._ds._activate(self)
 
     def deactivate(self):
-        """
+        """Deactivate a source
+
         Corner cases
         ------------
         - If the source is not deactivable: fails silently

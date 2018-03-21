@@ -43,6 +43,24 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     >>> with ds.create_araster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
     ...      cache.set_data(dem.get_data())
 
+    Sources activation / deactivation
+    ---------------------------------
+    A source may be temporary deactivated, releasing it's internal file descriptor while keeping
+    enough informations to reactivate itself later. By setting a `max_activated` different that
+    `np.inf` in DataSource constructor, the sources of data are automatically deactivated in a
+    lru fashion, and automatically reactivated when necessary.
+
+    Benefits:
+    - Open an infinite number of files without worrying about the number of file descriptors allowed
+      by the system.
+    - Pickle/unpickle a DataSource
+
+    Side notes:
+    - A `RasterRecipe` may require the `cloudpickle` library to be pickled
+    - All sources open in 'w' mode should be closed before pickling
+    - If a source's definition changed between a deactivation and an activation an exception is
+      raised (i.e. file changed on the file system)
+
     """
 
     def __init__(self, sr_work=None, sr_implicit=None, sr_origin=None,
@@ -64,6 +82,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             Mutex operations when reading or writing vector files
         allow_none_geometry: bool
         allow_interpolation: bool
+        max_activated: nbr >= 1
+            Maximum number of sources activated at the same time.
 
         Coordinates conversions
         -----------------------
@@ -664,6 +684,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     # Activation mechanisms ********************************************************************* **
     def activate_all(self):
+        """Activate all sources.
+        May raise an exception if the number of sources is greater than `max_activated`
+        """
         if self._max_activated < len(self._keys_of_proxy):
             raise RuntimeError("Can't activate all sources at the same time: {} sources and max_activated is {}".format(
                 len(self._keys_of_proxy), self._max_activated,
@@ -674,8 +697,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 assert prox.activated
 
     def deactivate_all(self):
-        """
-        The sources that can't be deactivated (i.e. a raster with the `MEM` driver) are ignored
+        """Deactivate all sources. Useful to flush all files to disk
+        The sources that can't be deactivated (i.e. a raster with the `MEM` driver) are ignored.
         """
         if self._locked_count != 0:
             raise RuntimeError("Can't deactivate all sources: some are forced to stay activated (are you iterating on geometries?)")
