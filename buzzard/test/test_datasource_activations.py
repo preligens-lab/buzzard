@@ -326,6 +326,7 @@ def test_raster():
             with ds.create_araster('/tmp/t3.shp', fp, float, 1).delete as r3:
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
 
+                # Test lru policy
                 r1.fill(1)
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, True, False, True)
                 r2.fill(2)
@@ -333,6 +334,31 @@ def test_raster():
                 r3.fill(3)
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
 
+                # Test raster proxy
+                def pxfn(fp):
+                    return np.ones(fp.shape) * 42
+
+                with ds.create_recipe_araster(pxfn, fp, 'float32').close as r4:
+                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
+                    r4.deactivate()
+                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
+                    r4.activate()
+                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
+                    assert (r4.get_data() == 42).all()
+                assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
+
+                # Test MEM raster (should behave like raster proxy in this case)
+                with ds.create_araster('', fp, float, 1, driver='MEM').close as r4:
+                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
+                    r4.deactivate()
+                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
+                    r4.activate()
+                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
+                    r4.fill(42)
+                    assert (r4.get_data() == 42).all()
+                assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
+
+                # Test full activations / deactivations
                 with pytest.raises(RuntimeError, match='max_activated'):
                     ds.activate_all()
 
