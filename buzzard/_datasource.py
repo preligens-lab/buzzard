@@ -686,5 +686,36 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 prox.deactivate()
                 assert not prox.activated
 
+    # Pickling ********************************************************************************** **
+    def __reduce__(self):
+        params = {}
+        params['sr_work'] = self._sr_work
+        params['sr_implicit'] = self._sr_implicit
+        params['sr_origin'] = self._sr_origin
+        params['analyse_transformation'] = self._analyse_transformations
+        params['ogr_layer_lock'] = self._ogr_layer_lock
+        params['allow_none_geometry'] = self._allow_none_geometry
+        params['allow_interpolation'] = self._allow_interpolation
+        params['max_activated'] = self._max_activated
+
+        proxies = []
+        for prox, keys in self._keys_of_proxy.items():
+            if prox.picklable:
+                consts = dict(prox._c.__dict__) # Need to recreate dict for cloudpickling
+                proxies.append((
+                    keys, consts, prox.__class__
+                ))
+
+        return (_restore, (params, proxies))
+
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+def _restore(params, proxies):
+    ds = DataSource(**params)
+
+    for keys, consts, classobj in proxies:
+        consts = classobj._Constants(ds, **consts)
+        prox = classobj(ds, consts)
+        ds._register(keys, prox)
+    return ds

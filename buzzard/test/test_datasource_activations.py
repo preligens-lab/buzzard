@@ -1,5 +1,3 @@
-
-
 # pylint: disable=redefined-outer-name, unused-argument
 
 from __future__ import division, print_function
@@ -9,6 +7,7 @@ import uuid
 
 import numpy as np
 import pytest
+import dask.distributed as dd
 
 import buzzard as buzz
 from buzzard.test.tools import fpeq
@@ -369,7 +368,6 @@ def test_raster():
             ds.activate_all()
             assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated) == (2, 0, True, True)
 
-
 def test_maxfd():
     cap, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
 
@@ -404,3 +402,54 @@ def test_maxfd():
 
     for i in range(cap + 1):
         ds[i].delete()
+
+def test_pickling():
+
+    def pxfn(fp):
+        """Pixel function for recipe. `ds` lives in the closure"""
+        return np.ones(fp.shape) * id(ds)
+
+    def slave():
+        """Slave process routine. `ds` and `oldid` live in the closure and are pickled by cloudpickle in Client.sumbit"""
+        assert id(ds) != oldid, 'this test makes sense if `ds` was pickled'
+        assert 'v1' in ds
+        assert 'v2' not in ds
+        assert 'r1' in ds
+        assert 'r2' not in ds
+        assert 'r3' in ds
+        assert (ds._queued_count, ds._locked_count, ds.v1.activated, ds.r1.activated, ds.r3.activated) == (0, 0, False, False, True)
+        assert ds.v1.get_data(0)[1] == str(oldid)
+        assert (ds.r1.get_data() == oldid).all()
+        assert (ds.r3.get_data() == id(ds)).all(), '`slave` and `pxfn` should share the same `ds` obj'
+
+        ds.v1.insert_data((0, 1), ['42'])
+        ds.r1.fill(42)
+        assert ds.v1.get_data(1)[1] == '42'
+        assert (ds.r1.get_data() == 42).all()
+
+        ds.deactivate_all()
+
+    ds = buzz.DataSource(max_activated=2)
+    oldid = id(ds)
+    fp = buzz.Footprint(
+        tl=(0, 0),
+        size=(10, 10),
+        rsize=(10, 10),
+    )
+    cl = dd.Client()
+
+    with ds.create_vector('v1', '/tmp/v1.shp', **V_META).delete:
+        with ds.create_raster('r1', '/tmp/t1.shp', fp, float, 1).delete:
+            ds.create_raster('r2', '', fp, float, 1, driver='MEM')
+            ds.create_recipe_raster('r3', pxfn, fp, float)
+            ds.create_vector('v2',**MEMV_META)
+
+            ds.v1.insert_data((0, 1), [str(oldid)])
+            ds.v2.insert_data((0, 1), [str(oldid)])
+            ds.r1.fill(oldid)
+            ds.r2.fill(oldid)
+
+            ds.deactivate_all()
+            cl.submit(slave).result()
+            assert ds.v1.get_data(1)[1] == '42'
+            assert (ds.r1.get_data() == 42).all()

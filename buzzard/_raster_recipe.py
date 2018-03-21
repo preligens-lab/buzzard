@@ -48,7 +48,7 @@ class RasterRecipe(Raster):
             gdal_ds = self._create_vrt(
                 consts.fp_origin,
                 consts.dtype,
-                len(consts.band_schema.nodata),
+                len(consts.band_schema['nodata']),
                 consts.band_schema,
                 consts.wkt,
             )
