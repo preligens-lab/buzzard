@@ -149,6 +149,7 @@ class RasterPhysical(Raster):
         return self._gdal_ds is not None
 
     def _activate(self):
+        """See buzz.Proxy._activate"""
         assert self.deactivable
         assert self._gdal_ds is None
         gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
@@ -169,6 +170,7 @@ class RasterPhysical(Raster):
         self._gdal_ds = gdal_ds
 
     def _deactivate(self):
+        """See buzz.Proxy._deactivate"""
         assert self.deactivable
         assert self._gdal_ds is not None
         self._gdal_ds = None

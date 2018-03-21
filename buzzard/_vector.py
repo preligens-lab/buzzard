@@ -235,6 +235,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
             self.activate()
             lyr_name = self._lyr.GetDescription()
+            # Lose the reference to the gdal layer but keep the variable `_lyr` alive until deletion
+            # below.
             self._lyr = 42
 
             err = self._gdal_ds.DeleteLayer(lyr_name)
@@ -245,6 +247,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
             self._ds._unregister(self)
             self.deactivate()
+            del self._lyr
             del self._gdal_ds
             del self._ds
 
@@ -273,6 +276,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         return self._gdal_ds is not None
 
     def _activate(self):
+        """See buzz.Proxy._activate"""
         assert self.deactivable
         assert self._gdal_ds is None
         gdal_ds, lyr = self._open_file(
@@ -295,8 +299,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         self._gdal_ds = gdal_ds
         self._lyr = lyr
 
-
     def _deactivate(self):
+        """See buzz.Proxy._deactivate"""
         assert self.deactivable
         assert self._gdal_ds is not None
         self._gdal_ds, self._lyr = None, None

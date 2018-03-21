@@ -112,22 +112,28 @@ class Proxy(object):
         ------------
         - If the source is not deactivable: fails silently
         - If the source is already deactivated: fails silently
+        - If some cases a source can't be deactivated, like during a `Vector.iter_data` fails
+          silently
         """
         if not self.deactivable:
             return
         self._ds._deactivate(self)
 
     def _activate(self):
+        """The actual implentation of the activation process"""
         raise NotImplementedError('Should be implemented by deactivable subclasses') # pragma: no cover
 
     def _deactivate(self):
+        """The actual implentation of the deactivation process"""
         raise NotImplementedError('Should be implemented by deactivable subclasses') # pragma: no cover
 
     def _lock_activate(self):
+        """Once locked a source cannot be deactivated"""
         assert self.deactivable
         self._ds._lock_activate(self)
 
     def _unlock_activate(self):
+        """Once unlocked a source may be deactivated again"""
         assert self.deactivable
         self._ds._unlock_activate(self)
 
