@@ -5,6 +5,7 @@ import xml.etree.ElementTree as xml
 import uuid
 import logging
 import functools
+import weakref
 
 from osgeo import gdal
 
@@ -12,13 +13,21 @@ from buzzard._footprint import Footprint
 from buzzard._tools import conv
 from buzzard._raster import Raster
 from buzzard._env import Env
+from buzzard._proxy import Proxy
 
 LOGGER = logging.getLogger('buzzard')
 
 class RasterRecipe(Raster):
     """Concrete class of recipe raster sources"""
 
-    _callback_registry = {}
+    class _Constants(Raster._Constants):
+        """See Proxy._Constants"""
+
+        def __init__(self, ds, **kwargs):
+            self.fn_list = kwargs.pop('fn_list')
+            super(RasterRecipe._Constants, self).__init__(ds, **kwargs)
+
+    _callback_registry = weakref.WeakValueDictionary()
 
     @classmethod
     def _create_vrt(cls, fp, dtype, band_count, band_schema, sr):
@@ -34,12 +43,19 @@ class RasterRecipe(Raster):
         gdal_ds.FlushCache()
         return gdal_ds
 
-    def __init__(self, ds, gdal_ds, fn_list):
+    def __init__(self, ds, consts, gdal_ds=None):
         """Instanciated by DataSource class, instanciation by user is undefined"""
+        if gdal_ds is None:
+            gdal_ds = self._create_vrt(
+                consts.fp_origin,
+                consts.dtype,
+                len(consts.band_schema['nodata']),
+                consts.band_schema,
+                consts.wkt,
+            )
         self._uuid = gdal_ds.GetMetadataItem('UUID')
         self._callback_registry[self._uuid] = self
-        Raster.__init__(self, ds, gdal_ds)
-        self._fn_list = fn_list
+        Raster.__init__(self, ds, consts, gdal_ds)
 
     # pylint: disable=arguments-differ
     @functools.wraps(Raster.get_data)
@@ -47,6 +63,7 @@ class RasterRecipe(Raster):
         with Env(_gdal_trust_buzzard=True):
             return Raster.get_data(self, *args, **kwargs)
 
+    # XML creation ****************************************************************************** **
     @classmethod
     def _create_vrt_xml_str(cls, fp, dtype, band_count, band_schema, sr):
         uuidstr = str(uuid.uuid4())
@@ -81,7 +98,7 @@ class RasterRecipe(Raster):
             }
             meta.update({k: v[i - 1] for (k, v) in band_schema.items()})
             top.append(cls._create_vrt_band_xml(i, uuidstr, dtype, **meta))
-        return xml.tostring(top, 'unicode')
+        return xml.tostring(top, 'us-ascii')
 
     @staticmethod
     def _create_vrt_band_xml(i, uuidstr, dtype, nodata, interpretation, offset, scale, mask):
@@ -125,6 +142,22 @@ class RasterRecipe(Raster):
             band.append(elt)
         return band
 
+    # Activation mechanisms ********************************************************************* **
+    @property
+    @functools.wraps(Proxy.deactivable.fget)
+    def deactivable(self):
+        """See buzz.Proxy.deactivable"""
+        return False
+
+    @property
+    @functools.wraps(Proxy.activated.fget)
+    def activated(self):
+        """See buzz.Proxy.activated"""
+        return True
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
+
 # pylint: disable=too-many-arguments, unused-argument
 def _pixel_function_entry_point(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_xsize,
                                 raster_ysize, radius, gt, band_index, proxy_uuid, **kwargs):
@@ -140,7 +173,7 @@ def _pixel_function_entry_point(in_ar, out_ar, xoff, yoff, xsize, ysize, raster_
     proxy_uuid = proxy_uuid.decode('utf-8')
     band_index = int(band_index)
     prox = RasterRecipe._callback_registry[proxy_uuid]
-    fn = prox._fn_list[band_index - 1]
+    fn = prox._c.fn_list[band_index - 1]
     try:
         out_ar[:] = fn(fp)
     except:

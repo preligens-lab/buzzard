@@ -24,11 +24,12 @@ class VectorUtilsMixin(object):
             'type': oftstr,
         }
 
-    def _fields_of_lyr(self, lyr):
+    @classmethod
+    def _fields_of_lyr(cls, lyr):
         """Used on file opening / creation"""
         featdef = lyr.GetLayerDefn()
         field_count = featdef.GetFieldCount()
-        return [self._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]
+        return [cls._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]
 
     @staticmethod
     def _normalize_fields_defn(fields):
@@ -62,23 +63,23 @@ class VectorUtilsMixin(object):
     def _normalize_field_values(self, fields):
         """Used on feature insertion"""
         if isinstance(fields, collections.Mapping):
-            lst = [None] * len(self._fields)
+            lst = [None] * len(self._c.fields)
             for k, v in fields.items():
                 if v is None:
                     pass
                 else:
                     i = self._index_of_field_name[k]
                     lst[i] = self._type_of_field_index[i](v)
-            for defn, val in zip(self._fields, lst):
+            for defn, val in zip(self._c.fields, lst):
                 if val is None and defn['nullable'] is False:
                     raise ValueError('{} not nullable'.format(defn))
             return lst
         elif isinstance(fields, collections.Iterable):
             if len(fields) == 0 and self._all_nullable:
-                return [None] * len(self._fields)
-            elif len(fields) != len(self._fields):
+                return [None] * len(self._c.fields)
+            elif len(fields) != len(self._c.fields):
                 raise ValueError('{} fields provided instead of {}'.format(
-                    len(fields), len(self._fields),
+                    len(fields), len(self._c.fields),
                 ))
             else:
                 return [
@@ -91,7 +92,7 @@ class VectorUtilsMixin(object):
     def _iter_user_intput_field_keys(self, keys):
         """Used on features reading"""
         if keys == -1:
-            for i in range(len(self._fields)):
+            for i in range(len(self._c.fields)):
                 yield i
         elif isinstance(keys, str):
             for str_ in keys.replace(' ', ',').split(','):
@@ -103,7 +104,7 @@ class VectorUtilsMixin(object):
             for val in keys:
                 if isinstance(val, numbers.Number):
                     val = int(val)
-                    if val >= len(self._fields):
+                    if val >= len(self._c.fields):
                         raise ValueError('Out of bound %d' % val)
                     yield val
                 elif isinstance(val, str):

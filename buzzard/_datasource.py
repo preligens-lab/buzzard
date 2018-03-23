@@ -5,12 +5,14 @@
 import collections
 
 from osgeo import osr
+import numpy as np
 
 from buzzard import _datasource_tools
 from buzzard._proxy import Proxy
 from buzzard._raster_physical import RasterPhysical
 from buzzard._raster_recipe import RasterRecipe
 from buzzard._vector import Vector
+from buzzard._tools import conv
 from buzzard._datasource_conversions import DataSourceConversionsMixin
 
 class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
@@ -41,13 +43,32 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     >>> with ds.create_araster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
     ...      cache.set_data(dem.get_data())
 
+    Sources activation / deactivation
+    ---------------------------------
+    A source may be temporary deactivated, releasing it's internal file descriptor while keeping
+    enough informations to reactivate itself later. By setting a `max_activated` different that
+    `np.inf` in DataSource constructor, the sources of data are automatically deactivated in a
+    lru fashion, and automatically reactivated when necessary.
+
+    Benefits:
+    - Open an infinite number of files without worrying about the number of file descriptors allowed
+      by the system.
+    - Pickle/unpickle a DataSource
+
+    Side notes:
+    - A `RasterRecipe` may require the `cloudpickle` library to be pickled
+    - All sources open in 'w' mode should be closed before pickling
+    - If a source's definition changed between a deactivation and an activation an exception is
+      raised (i.e. file changed on the file system)
+
     """
 
     def __init__(self, sr_work=None, sr_implicit=None, sr_origin=None,
                  analyse_transformation=True,
                  ogr_layer_lock='raise',
                  allow_none_geometry=False,
-                 allow_interpolation=False):
+                 allow_interpolation=False,
+                 max_activated=np.inf):
         """Constructor
 
         Parameters
@@ -61,6 +82,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             Mutex operations when reading or writing vector files
         allow_none_geometry: bool
         allow_interpolation: bool
+        max_activated: nbr >= 1
+            Maximum number of sources activated at the same time.
 
         Coordinates conversions
         -----------------------
@@ -130,6 +153,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if ogr_layer_lock not in frozenset({'none', 'wait', 'raise'}):
             raise ValueError('Unknown `ogr_layer_lock` value') # pragma: no cover
 
+        if max_activated < 1:
+            raise ValueError('`max_activated` should be greater than 1')
+
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
 
@@ -155,7 +181,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         DataSourceConversionsMixin.__init__(
             self, sr_work, sr_implicit, sr_origin, analyse_transformation
         )
-        _datasource_tools.DataSourceToolsMixin.__init__(self)
+        _datasource_tools.DataSourceToolsMixin.__init__(self, max_activated)
 
         self._wkt_work = wkt_work
         self._wkt_implicit = wkt_implicit
@@ -189,8 +215,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """
         self._validate_key(key)
         gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
-        prox = RasterPhysical(self, gdal_ds, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=options, mode=mode
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def open_araster(self, path, driver='GTiff', options=(), mode='r'):
@@ -199,8 +231,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         See DataSource.open_raster
         """
         gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
-        prox = RasterPhysical(self, gdal_ds, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=list(options), mode=mode
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
@@ -275,8 +313,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         gdal_ds = RasterPhysical._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
-        prox = RasterPhysical(self, gdal_ds, 'w')
+        options = [str(arg) for arg in options]
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=options, mode='w'
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_araster(self, path, fp, dtype, band_count, band_schema=None,
@@ -290,12 +333,19 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         gdal_ds = RasterPhysical._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
-        prox = RasterPhysical(self, gdal_ds, 'w')
+        options = [str(arg) for arg in options]
+        consts = RasterPhysical._Constants(
+            self, gdal_ds=gdal_ds, open_options=options, mode='w'
+        )
+        prox = RasterPhysical(self, consts, gdal_ds)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
-        """Create a raster recipe and register it under `key` in this DataSource.
+        """Experimental feature!
+
+        Create a raster recipe and register it under `key` in this DataSource.
 
         A recipe is a read-only raster that behaves like any other raster, pixel values are computed
         on-the-fly with calls to the provided `pixel functions`. A pixel function maps a Footprint to
@@ -409,12 +459,18 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             raise TypeError('fn should be a callable or a sequence of callables')
 
         gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        prox = RasterRecipe(self, gdal_ds, fn_lst)
+        consts = RasterRecipe._Constants(
+            self, gdal_ds=gdal_ds, fn_list=fn_lst,
+        )
+        prox = RasterRecipe(self, consts, gdal_ds)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_recipe_araster(self, fn, fp, dtype, band_schema=None, sr=None):
-        """Create a raster recipe anonymously in this DataSource.
+        """Experimental feature!
+
+        Create a raster recipe anonymously in this DataSource.
 
         See DataSource.create_recipe_raster
         """
@@ -432,8 +488,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             raise TypeError('fn should be a callable or a sequence of callables')
 
         gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        prox = RasterRecipe(self, gdal_ds, fn_lst)
+        consts = RasterRecipe._Constants(
+            self, gdal_ds=gdal_ds, fn_list=fn_lst,
+        )
+        prox = RasterRecipe(self, consts, gdal_ds)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     # Vector entry points *********************************************************************** **
@@ -461,9 +521,15 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         """
         self._validate_key(key)
-        ogr_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
-        prox = Vector(self, ogr_ds, lyr, mode)
+        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def open_avector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
@@ -471,9 +537,15 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         See DataSource.open_vector
         """
-        ogr_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
-        prox = Vector(self, ogr_ds, lyr, mode)
+        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_vector(self, key, path, geometry, fields=(), layer=None,
@@ -550,11 +622,16 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         """
         self._validate_key(key)
-        ogr_ds, lyr = Vector._create_file(
+        gdal_ds, lyr = Vector._create_file(
             path, geometry, fields, layer, driver, options, sr
         )
-        prox = Vector(self, ogr_ds, lyr, 'w')
+        options = [str(arg) for arg in options]
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([key], prox)
+        self._register_new_activated(prox)
         return prox
 
     def create_avector(self, path, geometry, fields=(), layer=None,
@@ -563,11 +640,16 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         See DataSource.create_vector
         """
-        ogr_ds, lyr = Vector._create_file(
+        gdal_ds, lyr = Vector._create_file(
             path, geometry, fields, layer, driver, options, sr
         )
-        prox = Vector(self, ogr_ds, lyr, 'w')
+        options = [str(arg) for arg in options]
+        consts = Vector._Constants(
+            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
+        )
+        prox = Vector(self, consts, gdal_ds, lyr)
         self._register([], prox)
+        self._register_new_activated(prox)
         return prox
 
     # Proxy getters ********************************************************* **
@@ -599,3 +681,65 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if self._sr_work is None:
             return None
         return self._wkt_work
+
+    # Activation mechanisms ********************************************************************* **
+    def activate_all(self):
+        """Activate all sources.
+        May raise an exception if the number of sources is greater than `max_activated`
+        """
+        if self._max_activated < len(self._keys_of_proxy):
+            raise RuntimeError("Can't activate all sources at the same time: {} sources and max_activated is {}".format(
+                len(self._keys_of_proxy), self._max_activated,
+            ))
+        for prox in self._keys_of_proxy.keys():
+            if not prox.activated:
+                prox.activate()
+                assert prox.activated
+
+    def deactivate_all(self):
+        """Deactivate all sources. Useful to flush all files to disk
+        The sources that can't be deactivated (i.e. a raster with the `MEM` driver) are ignored.
+        """
+        if self._locked_count != 0:
+            raise RuntimeError("Can't deactivate all sources: some are forced to stay activated (are you iterating on geometries?)")
+        for prox in self._keys_of_proxy.keys():
+            if not prox.deactivable:
+                continue
+            if prox.activated:
+                prox.deactivate()
+                assert not prox.activated
+
+    # Pickling ********************************************************************************** **
+    def __reduce__(self):
+        params = {}
+        params['sr_work'] = self._sr_work
+        params['sr_implicit'] = self._sr_implicit
+        params['sr_origin'] = self._sr_origin
+        params['analyse_transformation'] = self._analyse_transformations
+        params['ogr_layer_lock'] = self._ogr_layer_lock
+        params['allow_none_geometry'] = self._allow_none_geometry
+        params['allow_interpolation'] = self._allow_interpolation
+        params['max_activated'] = self._max_activated
+
+        proxies = []
+        for prox, keys in self._keys_of_proxy.items():
+
+            if prox.picklable:
+                consts = dict(prox._c.__dict__) # Need to recreate dict for cloudpickling
+                proxies.append((
+                    keys, consts, prox.__class__
+                ))
+
+        return (_restore, (params, proxies))
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
+
+def _restore(params, proxies):
+    ds = DataSource(**params)
+
+    for keys, consts, classobj in proxies:
+        consts = classobj._Constants(ds, **consts)
+        prox = classobj(ds, consts)
+        ds._register(keys, prox)
+    return ds

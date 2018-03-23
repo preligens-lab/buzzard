@@ -3,17 +3,37 @@
 from __future__ import division, print_function
 import numbers
 import os
+import functools
 
 import numpy as np
 from osgeo import gdal, osr
 
 from buzzard._footprint import Footprint
+from buzzard._proxy import Proxy
 from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._raster import Raster
 
 class RasterPhysical(Raster):
     """Concrete class of raster sources containing physical data"""
+
+    class _Constants(Raster._Constants):
+        """See Proxy._Constants"""
+
+        def __init__(self, ds, **kwargs):
+            # Opening informations
+            self.mode = kwargs.pop('mode')
+            self.open_options = kwargs.pop('open_options')
+
+            # GDAL informations
+            if 'gdal_ds' in kwargs:
+                gdal_ds = kwargs['gdal_ds']
+                kwargs['path'] = gdal_ds.GetDescription()
+                kwargs['driver'] = gdal_ds.GetDriver().ShortName
+            self.path = kwargs.pop('path')
+            self.driver = kwargs.pop('driver')
+
+            super(RasterPhysical._Constants, self).__init__(ds, **kwargs)
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
@@ -24,7 +44,7 @@ class RasterPhysical(Raster):
             if err:
                 raise Exception('Could not delete %s' % path)
 
-        options = [str(arg) for arg in options] if len(options) else []
+        options = [str(arg) for arg in options]
         gdal_ds = dr.Create(
             path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
         )
@@ -43,7 +63,7 @@ class RasterPhysical(Raster):
     @classmethod
     def _open_file(cls, path, driver, options, mode):
         """Open a raster datasource"""
-        options = [str(arg) for arg in options] if len(options) else []
+        options = [str(arg) for arg in options]
         gdal_ds = gdal.OpenEx(
             path,
             conv.of_of_mode(mode) | conv.of_of_str('raster'),
@@ -56,11 +76,23 @@ class RasterPhysical(Raster):
             ))
         return gdal_ds
 
-    def __init__(self, ds, gdal_ds, mode):
-        """Instanciated by DataSource class, instanciation by user is undefined"""
-        Raster.__init__(self, ds, gdal_ds)
-        self._mode = mode
+    # Properties ******************************************************************************** **
+    @property
+    def mode(self):
+        """Get raster open mode"""
+        return self._c.mode
 
+    @property
+    def open_options(self):
+        """Get raster open options"""
+        return self._c.open_options
+
+    @property
+    def path(self):
+        """Get raster file path"""
+        return self._c.path
+
+    # Life control ****************************************************************************** **
     @property
     def delete(self):
         """Delete a raster file with a call or a context management.
@@ -73,15 +105,21 @@ class RasterPhysical(Raster):
         >>> with ds.create_araster('/tmp/tmp.tif', fp, float, 1).delete as tmp:
                 # code...
         """
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot remove a read-only file')
 
         def _delete():
+            if self._ds._is_locked_activate(self):
+                raise RuntimeError('Attempting to delete a `buzz.Raster` before `TBD`')
+
             path = self.path
-            dr = self._gdal_ds.GetDriver()
+            dr = gdal.GetDriverByName(self._c.driver)
+
             self._ds._unregister(self)
+            self.deactivate()
             del self._gdal_ds
             del self._ds
+
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
@@ -90,16 +128,55 @@ class RasterPhysical(Raster):
 
         return _RasterDeleteRoutine(self, _delete)
 
+    # Activation mechanisms ********************************************************************* **
     @property
-    def mode(self):
-        """Get raster open mode"""
-        return str(self._mode)
+    def deactivable(self):
+        """See buzz.Proxy.deactivable"""
+        v = self.driver != 'MEM'
+        v &= super(RasterPhysical, self).deactivable
+        return v
 
     @property
-    def path(self):
-        """Get raster file path"""
-        return self._gdal_ds.GetDescription()
+    @functools.wraps(Proxy.picklable.fget)
+    def picklable(self):
+        """See buzz.Proxy.picklable"""
+        return self.deactivable
 
+    @property
+    @functools.wraps(Proxy.activated.fget)
+    def activated(self):
+        """See buzz.Proxy.activated"""
+        return self._gdal_ds is not None
+
+    def _activate(self):
+        """See buzz.Proxy._activate"""
+        assert self.deactivable
+        assert self._gdal_ds is None
+        gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
+
+        # Check that self._c hasn't changed
+        consts_check = RasterPhysical._Constants(
+            self._ds, gdal_ds=gdal_ds, open_options=self.open_options, mode=self.mode
+        )
+        new = consts_check.__dict__
+        old = self._c.__dict__
+        for k in new.keys():
+            oldv = old[k]
+            newv = new[k]
+            if oldv != newv:
+                raise RuntimeError("Raster's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
+                    k, oldv, newv
+                ))
+        self._gdal_ds = gdal_ds
+
+    def _deactivate(self):
+        """See buzz.Proxy._deactivate"""
+        assert self.deactivable
+        assert self._gdal_ds is not None
+        self._gdal_ds = None
+
+    # Raster write operations ******************************************************************* **
+    @_tools.ensure_activated
     def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None, op=np.rint):
         """Set `data` located at `fp` in raster file. An optional `mask` may be provided.
 
@@ -138,8 +215,7 @@ class RasterPhysical(Raster):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
-
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot write a read-only file')
 
         # Normalize fp parameter
@@ -191,6 +267,7 @@ class RasterPhysical(Raster):
 
         self._set_data_unsafe(array, fp, bands, interpolation, mask, op)
 
+    @_tools.ensure_activated
     def fill(self, value, band=1):
         """Fill bands with value.
 
@@ -210,7 +287,7 @@ class RasterPhysical(Raster):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
-        if self._mode != 'w':
+        if self._c.mode != 'w':
             raise RuntimeError('Cannot write a read-only file')
 
         bands, _ = _tools.normalize_band_parameter(band, len(self), self._shared_band_index)
@@ -218,6 +295,9 @@ class RasterPhysical(Raster):
 
         for gdalband in [self._gdalband_of_index(i) for i in bands]:
             gdalband.Fill(value)
+
+    # The end *********************************************************************************** **
+    # ******************************************************************************************* **
 
 _RasterDeleteRoutine = type('_RasterDeleteRoutine', (_tools.CallOrContext,), {
     '__doc__': RasterPhysical.delete.__doc__,

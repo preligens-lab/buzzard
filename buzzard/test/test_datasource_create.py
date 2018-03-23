@@ -7,6 +7,8 @@ import logging
 import os
 import tempfile
 import uuid
+import weakref
+import gc
 
 import numpy as np
 from osgeo import gdal
@@ -215,3 +217,32 @@ def test_vector(path, driver, test_fields):
     for input, output in zip(features, out.iter_data()):
         if test_fields:
             assert all(v1 == v2 for (v1, v2) in zip(input[1:], output[1:]))
+
+def test_gc():
+    ws = weakref.WeakSet()
+    fp = buzz.Footprint(
+        tl=(1, 1),
+        size=(10, 10),
+        rsize=(10, 10),
+    )
+    def pxfn(fp):
+        return np.ones(fp.shape)
+
+    def _test():
+        ds = buzz.DataSource()
+        prox = ds.create_araster('', fp, float, 1, driver='MEM')
+        ds.create_vector('vec', '', 'point', driver='Memory')
+        ws.add(ds)
+        ws.add(prox)
+    _test()
+    gc.collect()
+    assert len(ws) == 0
+
+    def _test():
+        ds = buzz.DataSource()
+        prox = ds.create_recipe_araster(pxfn, fp, float)
+        ws.add(ds)
+        ws.add(prox)
+    _test()
+    gc.collect()
+    assert len(ws) == 0
