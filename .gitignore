@@ -121,3 +121,5 @@ doc/*.dbf
 doc/*.shp
 doc/*.shx
 doc/*.prj
+.pytest_cache
+dask-worker-space
