@@ -1453,7 +1453,7 @@ class Footprint(TileMixin, IntersectionMixin):
             _build_neighbors_in_direction(has_topright, (-1, 1)),
             _build_neighbors_in_direction(has_topleft, (-1, -1)),
         ])
-        if not edges_indices:
+        if edges_indices.size == 0:
             return []
 
         lines = [
