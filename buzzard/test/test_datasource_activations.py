@@ -381,7 +381,7 @@ def test_maxfd():
     try:
         with pytest.raises(Exception):
             for i in range(cap + 1):
-                ds.create_vector(i, '/tmp/f{:04d}_{}.json'.format(i, suff), 'point', driver='GeoJSON')
+                ds.create_vector(i, '/tmp/f{:04d}_{}.shp'.format(i, suff), 'point', [{'name': 'Hello', 'type': int}])
                 ds[i].insert_data((i, i + 1))
             pytest.skip("Reached {} opened files but didn't crash, whatever...".format(i))
     finally:
@@ -393,13 +393,13 @@ def test_maxfd():
     ds = buzz.DataSource(max_activated=5)
     suff = str(uuid.uuid4())
     for i in range(cap + 1):
-        ds.create_vector(i, '/tmp/f{:04d}_{}.json'.format(i, suff), 'point', driver='GeoJSON')
+        ds.create_vector(i, '/tmp/f{:04d}_{}.shp'.format(i, suff), 'point', [{'name': 'Hello', 'type': int}])
         ds[i].insert_data((i, i + 1))
 
     assert (ds._queued_count, ds._locked_count) == (5, 0)
     for i in range(cap + 1):
         v = ds[i]
-        assert (len(v), v.get_data(0, geom_type='coordinates')) == (1, (i, i + 1))
+        assert (len(v), v.get_data(0, geom_type='coordinates')) == (1, ((i, i + 1), None))
 
     for i in range(cap + 1):
         ds[i].delete()
@@ -411,6 +411,7 @@ def test_pickling():
         return np.ones(fp.shape) * id(ds)
 
     def slave():
+        print('slave', dd.get_worker())
         """Slave process routine. `ds` and `oldid` live in the closure and are pickled by cloudpickle in Client.sumbit"""
         assert id(ds) != oldid, 'this test makes sense if `ds` was pickled'
         assert 'v1' in ds
@@ -437,7 +438,11 @@ def test_pickling():
         size=(10, 10),
         rsize=(10, 10),
     )
-    cl = dd.Client()
+    clust = dd.LocalCluster(n_workers=1, threads_per_worker=1, scheduler_port=0)
+    print()
+    print(clust)
+    cl = dd.Client(clust)
+    print(cl)
 
     with ds.create_vector('v1', '/tmp/v1.shp', **V_META).delete:
         with ds.create_raster('r1', '/tmp/t1.shp', fp, float, 1).delete:
