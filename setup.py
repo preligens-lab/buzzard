@@ -22,7 +22,7 @@ readme_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     'README.md'
 )
-readme = open(readme_path).read()
+readme = open(readme_path, 'rb').read().decode("UTF-8")
 
 # Classifiers
 # https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -43,7 +43,7 @@ classifiers = [
 
 setup(
     name='buzzard',
-    version='0.4.0',
+    version='0.4.1',
     author='ngoguey',
     author_email='ngoguey@airware.com',
     license='Apache License 2.0',
@@ -51,9 +51,10 @@ setup(
     maintainer_email='ngoguey@airware.com',
     description='GIS files manipulations',
     long_description=readme,
+    long_description_content_type='text/markdown',
     classifiers=classifiers,
     url='https://github.com/airware/buzzard',
-    download_url='https://github.com/airware/buzzard/archive/0.4.0.tar.gz',
+    download_url='https://github.com/airware/buzzard/archive/0.4.1.tar.gz',
     keywords=['gdal gis raster shp dxf tif vector'],
     packages=find_packages(),
     install_requires=reqs,
