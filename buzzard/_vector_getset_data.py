@@ -121,7 +121,10 @@ class VectorGetSetMixin(object):
 
         # Necessary to prevent the old swig bug
         # https://trac.osgeo.org/gdal/ticket/6749
-        del mask_poly, mask_rect, geom, ftr
+        del geom
+        del ftr
+        del clip_poly
+        del mask_rect, mask_poly
 
     def _insert_data_unsafe(self, geom_type, geom, fields, index):
         if geom is None:
