@@ -58,6 +58,7 @@ class VectorGetSetMixin(object):
 
             start, stop, step = slicing.indices(len(self._lyr))
             indices = range(start, stop, step)
+            ftr = None # Necessary to prevent the old swig bug
             if step == 1:
                 self._lyr.SetNextByIndex(start)
                 for i in indices:
@@ -73,6 +74,10 @@ class VectorGetSetMixin(object):
                         raise IndexError('Feature #{} not found'.format(i))
                     yield ftr
 
+        # Necessary to prevent the old swig bug
+        # https://trac.osgeo.org/gdal/ticket/6749
+        del slicing, mask_poly, mask_rect, ftr
+
     def _iter_data_unsafe(self, geom_type, field_indices, slicing,
                           mask_poly, mask_rect, clip):
         clip_poly = None
@@ -84,6 +89,8 @@ class VectorGetSetMixin(object):
             if clip:
                 clip_poly = conv.ogr_of_shapely(sg.box(*mask_rect))
 
+        ftr = None # Necessary to prevent the old swig bug
+        geom = None # Necessary to prevent the old swig bug
         for ftr in self._iter_feature(slicing, mask_poly, mask_rect):
             geom = ftr.geometry()
             if geom is None or geom.IsEmpty():
@@ -111,6 +118,10 @@ class VectorGetSetMixin(object):
                 else None
                 for index in field_indices
             ])
+
+        # Necessary to prevent the old swig bug
+        # https://trac.osgeo.org/gdal/ticket/6749
+        del mask_poly, mask_rect, geom, ftr
 
     def _insert_data_unsafe(self, geom_type, geom, fields, index):
         if geom is None:
