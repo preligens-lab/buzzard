@@ -216,7 +216,11 @@ def test_vector(path, driver, test_fields):
     out = ds.open_vector('out', path, mode='r', driver=driver)
     for input, output in zip(features, out.iter_data()):
         if test_fields:
-            assert all(v1 == v2 for (v1, v2) in zip(input[1:], output[1:]))
+            for v1, v2 in zip(input[1:], output[1:]):
+                assert v1 == v2 or (
+                    v1 in {'', 0, 0., None} and
+                    v2 in {'', 0, 0., None}
+                )
 
 def test_gc():
     ws = weakref.WeakSet()
