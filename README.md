@@ -3,7 +3,7 @@
 In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
 
 <div align="center">
-  <img src="https://s3-us-west-2.amazonaws.com/airware-public/buzzard/buzzard.png"><br><br>
+  <img src="img/buzzard.png"><br><br>
 </div>
 
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/asl-validator/blob/master/LICENSE)
