@@ -44,7 +44,6 @@ class DataSourceConversionsMixin(object):
         to_origin = self._make_transfo(to_origin)
 
         if self._analyse_transformations:
-
             if rect_from == 'origin':
                 an = srs.Analysis(to_work, to_origin, rect)
             else:
@@ -106,7 +105,6 @@ class DataSourceConversionsMixin(object):
     def _convert_footprint(self, fp, sr):
         sr_tmp = osr.GetUserInputAsWKT(sr)
         sr_tmp = osr.SpatialReference(sr_tmp)
-        # _, to_origin = self._get_transforms(sr_tmp, fp)
         _, to_origin = self._get_transforms(sr_tmp, fp, 'work')
         if to_origin:
             fp = fp.move(*to_origin([fp.tl, fp.tr, fp.br]))
