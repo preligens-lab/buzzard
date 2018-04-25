@@ -16,14 +16,17 @@ class DataSourceConversionsMixin(object):
         self._sr_origin = sr_origin
         self._analyse_transformations = bool(analyse_transformation)
 
-    def _get_transforms(self, sr_origin, rect):
+    def _get_transforms(self, sr_origin, rect, rect_from='origin'):
         """Retrieve the `to_work` and `to_origin` conversion functions.
 
         Parameters
         ----------
         sr_origin: osr.SpatialReference
         rect: Footprint or extent or None
+        rect_from: one of ('origin', 'work')
         """
+        assert rect_from in ['origin', 'work']
+
         if not self._sr_work:
             return None, None
         if self._sr_origin:
@@ -41,7 +44,11 @@ class DataSourceConversionsMixin(object):
         to_origin = self._make_transfo(to_origin)
 
         if self._analyse_transformations:
-            an = srs.Analysis(to_work, to_origin, rect)
+
+            if rect_from == 'origin':
+                an = srs.Analysis(to_work, to_origin, rect)
+            else:
+                an = srs.Analysis(to_origin, to_work, rect)
             if rect is None:
                 pass
             elif isinstance(rect, Footprint):
@@ -99,7 +106,8 @@ class DataSourceConversionsMixin(object):
     def _convert_footprint(self, fp, sr):
         sr_tmp = osr.GetUserInputAsWKT(sr)
         sr_tmp = osr.SpatialReference(sr_tmp)
-        _, to_origin = self._get_transforms(sr_tmp, fp)
+        # _, to_origin = self._get_transforms(sr_tmp, fp)
+        _, to_origin = self._get_transforms(sr_tmp, fp, 'work')
         if to_origin:
             fp = fp.move(*to_origin([fp.tl, fp.tr, fp.br]))
         return fp

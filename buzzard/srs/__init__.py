@@ -76,6 +76,7 @@ def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
         fe, fn = sr.GetProjParm('false_easting', 0.0), sr.GetProjParm('false_northing', 0.0)
         sr.SetProjParm('false_easting', fe - centroid[0])
         sr.SetProjParm('false_northing', fn - centroid[1])
+        sr.SetAuthority('PROJCS', '', 0)
 
     if unit is not None:
         src_name = sr.GetLinearUnitsName()
@@ -87,4 +88,5 @@ def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
             raise ValueError('todo')
         if src_u != dst_u:
             sr.SetLinearUnitsAndUpdateParameters(unit, float(dst_u / REG.m))
-    return sr.ExportToWkt()
+        sr.SetAuthority('PROJCS', '', 0)
+    return sr.ExportToPrettyWkt()
