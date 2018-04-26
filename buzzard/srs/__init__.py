@@ -57,7 +57,7 @@ def _details_of_file(path):
             if extent is None:
                 raise ValueError('Could not compute extent')
             minx, maxx, miny, maxy = extent
-            cx, cy = maxx - minx, maxy - miny
+            cx, cy = (maxx + minx) / 2, (maxy + miny) / 2
             return lyr.GetSpatialRef().ExportToWkt(), (cx, cy)
         raise ValueError('Could not open file')
 
@@ -73,6 +73,8 @@ def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
     sr = osr.SpatialReference(wkt)
 
     if center:
+        if not center.IsProjected():
+            raise ValueError("Can't shift a spatial reference that is not projected")
         fe, fn = sr.GetProjParm('false_easting', 0.0), sr.GetProjParm('false_northing', 0.0)
         sr.SetProjParm('false_easting', fe - centroid[0])
         sr.SetProjParm('false_northing', fn - centroid[1])
