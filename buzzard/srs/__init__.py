@@ -73,7 +73,7 @@ def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
     sr = osr.SpatialReference(wkt)
 
     if center:
-        if not center.IsProjected():
+        if not sr.IsProjected():
             raise ValueError("Can't shift a spatial reference that is not projected")
         fe, fn = sr.GetProjParm('false_easting', 0.0), sr.GetProjParm('false_northing', 0.0)
         sr.SetProjParm('false_easting', fe - centroid[0])
