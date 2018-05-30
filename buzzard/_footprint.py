@@ -1443,11 +1443,12 @@ class Footprint(TileMixin, IntersectionMixin):
             ],
             mode='constant',
         ) == 4
-        squares2x2_yx_translation = {
-            (y + dy, x + dx): np.asarray([y + 0.5, x + 0.5])
+        squares2x2_yx_links = {
+            (int(y + dy), int(x + dx)): (int(y), (x))
             for y, x in zip(*squares2x2_topleft_mask.nonzero())
             for dy in range(2)
             for dx in range(2)
+            # if dy + dx != 0
         }
 
         # Step 4: Retrieve pixel indices ******************************************************** **
@@ -1485,14 +1486,23 @@ class Footprint(TileMixin, IntersectionMixin):
         # Step 6: Convert segments made of indices to segments made of shapely objets *********** **
         lines = []
         for (n1, n2) in edges_indices:
-            yx1 = yx_lst[n1]
-            yx2 = yx_lst[n2]
-            yx1 = squares2x2_yx_translation.get(tuple(yx1.tolist()), yx1)
-            yx2 = squares2x2_yx_translation.get(tuple(yx2.tolist()), yx2)
-            l = shapely.geometry.LineString([
-                self.raster_to_spatial(np.flipud(yx1)) + output_offset,
-                self.raster_to_spatial(np.flipud(yx2)) + output_offset,
-            ])
+            yx1 = tuple(yx_lst[n1].tolist())
+            yx2 = tuple(yx_lst[n2].tolist())
+
+            if yx1 in squares2x2_yx_links and yx2 in squares2x2_yx_links:
+                # Drop segments inside 2x2 squares
+                continue
+            points = [
+                yx1,
+                yx2,
+            ]
+            if points[0] in squares2x2_yx_links:
+                points.insert(0, squares2x2_yx_links[points[0]])
+            if points[-1] in squares2x2_yx_links:
+                points.append(squares2x2_yx_links[points[-1]])
+            l = shapely.geometry.LineString(self.raster_to_spatial(
+                list(map(np.flipud, points))
+            ) + output_offset)
             lines.append(l)
 
         # Step 7: Merge segments to polylines *************************************************** **
@@ -1515,11 +1525,6 @@ class Footprint(TileMixin, IntersectionMixin):
         for sly, slx in ndi.find_objects(ndi.label(arr)[0]):
             if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
                 check[sly, slx] = 1
-
-        # Burning 2x2 squares because they are collapsed to a single point
-        for y, x in squares2x2_yx_translation.keys():
-            check[y, x] = 1
-        assert (check == arr).all()
 
         # Step 9: Return ************************************************************************ **
         if isinstance(mline, shapely.geometry.LineString):
