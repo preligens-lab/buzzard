@@ -17,6 +17,7 @@ from osgeo import ogr
 from osgeo import osr
 from six.moves import filterfalse
 import scipy.ndimage as ndi
+import skimage.morphology as skm
 
 from buzzard import _tools
 from buzzard._tools import conv
@@ -1331,6 +1332,9 @@ class Footprint(TileMixin, IntersectionMixin):
     def find_lines(self, arr, output_offset='middle'):
         """Experimental function!
 
+        # TODO: Update doc about skimage.thin and 2x2 squares collapsing
+        # TODO: Add skimage requirements?
+
         Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
         when several disconnected components
 
@@ -1410,12 +1414,11 @@ class Footprint(TileMixin, IntersectionMixin):
 
         DegreeView({(3.0, 2.0): 1, (1.0, 2.0): 3, (2.0, 4.0): 1, (3.0, 0.0): 1})
         """
+        # Step 1: Parameter checking ************************************************************ **
         if arr.shape != tuple(self.shape):
             raise ValueError('Incompatible shape between array:%s and self:%s' % (
                 arr.shape, self.shape
             )) # pragma: no cover
-        arr = arr.astype(bool)
-        arr = arr.astype('uint8')
 
         if output_offset == 'middle':
             output_offset = self.pxvec / 2
@@ -1426,12 +1429,35 @@ class Footprint(TileMixin, IntersectionMixin):
                     '`output_offset` should be "middle" or a sequence of float of length 2'
                 ) # pragma: no cover
 
+        # Step 2: Array normalization *********************************************************** **
+        arr = arr.astype(bool)
+        arr = skm.thin(arr)
+        arr = arr.astype('uint8')
+
+        # Step 3: Prepare to collapse 2x2 squares to single points ****************************** **
+        squares2x2_topleft_mask = ndi.convolve(
+            arr,[
+                [1, 1, 0],
+                [1, 1, 0],
+                [0, 0, 0],
+            ],
+            mode='constant',
+        ) == 4
+        squares2x2_yx_translation = {
+            (y + dy, x + dx): np.asarray([y + 0.5, x + 0.5])
+            for y, x in zip(*squares2x2_topleft_mask.nonzero())
+            for dy in range(2)
+            for dx in range(2)
+        }
+
+        # Step 4: Retrieve pixel indices ******************************************************** **
         count = np.sum(arr)
         yx_lst = np.stack(arr.nonzero(), -1)
         index_lst = np.arange(count)
         index = np.empty(self.shape, dtype=int)
         index[arr != 0] = index_lst
 
+        # Step 5: Retrieve edge indices ********************************************************* **
         convolve = lambda arr, kernel: scipy.ndimage.convolve(arr, kernel, mode='constant', cval=0)
         has_top = convolve(arr, [[0, 0, 0], [0, 0, 0], [0, 1, 0]]) * arr
         has_right = convolve(arr, [[0, 0, 0], [1, 0, 0], [0, 0, 0]]) * arr
@@ -1456,18 +1482,25 @@ class Footprint(TileMixin, IntersectionMixin):
         if edges_indices.size == 0:
             return []
 
-        lines = [
-            shapely.geometry.LineString([
-                self.raster_to_spatial(np.flipud(yx_lst[n1])) + output_offset,
-                self.raster_to_spatial(np.flipud(yx_lst[n2])) + output_offset,
+        # Step 6: Convert segments made of indices to segments made of shapely objets *********** **
+        lines = []
+        for (n1, n2) in edges_indices:
+            yx1 = yx_lst[n1]
+            yx2 = yx_lst[n2]
+            yx1 = squares2x2_yx_translation.get(tuple(yx1.tolist()), yx1)
+            yx2 = squares2x2_yx_translation.get(tuple(yx2.tolist()), yx2)
+            l = shapely.geometry.LineString([
+                self.raster_to_spatial(np.flipud(yx1)) + output_offset,
+                self.raster_to_spatial(np.flipud(yx2)) + output_offset,
             ])
-            for (n1, n2) in edges_indices
-        ]
+            lines.append(l)
+
+        # Step 7: Merge segments to polylines *************************************************** **
         mline = shapely.ops.linemerge(lines)
         if isinstance(mline, shapely.geometry.LineString):
             mline = sg.MultiLineString([mline])
 
-        # Temporary check for badness, until further testing of this method
+        # Step 8: Temporary check for badness, until further testing of this method ************* **
         check = arr.copy()
         check[:] = 0
 
@@ -1483,10 +1516,12 @@ class Footprint(TileMixin, IntersectionMixin):
             if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
                 check[sly, slx] = 1
 
+        # Burning 2x2 squares because they are collapsed to a single point
+        for y, x in squares2x2_yx_translation.keys():
+            check[y, x] = 1
         assert (check == arr).all()
 
-        if mline.is_empty:
-            return []
+        # Step 9: Return ************************************************************************ **
         if isinstance(mline, shapely.geometry.LineString):
             return [mline]
         if isinstance(mline, shapely.geometry.MultiLineString):
