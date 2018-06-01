@@ -153,8 +153,8 @@ class IntersectionMixin(object):
 
         if (rsize == 0).any():
             # Can happen if `geom` is 0d or 1d and `geom` lie on the alignement grid
+            # (or very small)
             rsize = rsize.clip(1, np.iinfo(int).max)
-            assert isinstance(geom, (sg.Point, sg.LineString))
 
         assert (rsize > 0).all()
         return self.__class__(

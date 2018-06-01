@@ -1577,7 +1577,6 @@ class Footprint(TileMixin, IntersectionMixin):
         rast_mem_lyr = rast_ogr_ds.CreateLayer('line', srs=sr)
         val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
         rast_mem_lyr.CreateField(val_field)
-
         for i, line in enumerate(lines, 1):
             feat = ogr.Feature(rast_mem_lyr.GetLayerDefn())
             wkt_geom = line.wkt
@@ -1656,7 +1655,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
         return list(_polygon_iterator())
 
-    def burn_polygons(self, obj, all_touched=False):
+    def burn_polygons(self, obj, all_touched=False, labelize=False):
         """Experimental function!
         Create a 2d image from polygons
 
@@ -1678,7 +1677,6 @@ class Footprint(TileMixin, IntersectionMixin):
         >>> burn_polygons([poly, poly])
         >>> burn_polygons([poly, poly, [poly, poly], multipoly, poly])
         """
-
         polys = list(_poly_iterator(obj))
 
         # https://svn.osgeo.org/gdal/trunk/autotest/alg/rasterize.py
@@ -1686,29 +1684,47 @@ class Footprint(TileMixin, IntersectionMixin):
         sr_wkt = 'LOCAL_CS["arbitrary"]'
         sr = osr.SpatialReference(sr_wkt)
 
+        if labelize:
+            if len(polys) >= 65535:
+                dtype = conv.dtype_of_any_downcast('uint32')
+            elif len(polys) >= 255:
+                dtype = conv.dtype_of_any_downcast('uint16')
+            else:
+                dtype = conv.dtype_of_any_downcast('uint8')
+        else:
+            dtype = conv.dtype_of_any_downcast('bool')
+        gdt = conv.gdt_of_any_equiv(dtype) # Set to downcast
+
         target_ds = gdal.GetDriverByName('MEM').Create(
-            '', int(self.rsizex), int(self.rsizey), 1, gdal.GDT_Byte
+            '', int(self.rsizex), int(self.rsizey), 1, gdt
         )
         target_ds.SetGeoTransform(self.gt)
         target_ds.SetProjection(sr_wkt)
 
         rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
-        rast_mem_lyr = rast_ogr_ds.CreateLayer('poly', srs=sr)
+        rast_mem_lyr = rast_ogr_ds.CreateLayer('polygon', srs=sr)
+        val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
+        rast_mem_lyr.CreateField(val_field)
 
-        for poly in polys:
+        for i, poly in enumerate(polys, 1):
             feat = ogr.Feature(rast_mem_lyr.GetLayerDefn())
             wkt_geom = poly.wkt
             feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
+            feat.SetFieldInteger64(0, i)
             rast_mem_lyr.CreateFeature(feat)
+
         if all_touched:
-            options = ["ALL_TOUCHED=TRUE"]
+            options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
         else:
-            options = []
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, burn_values=[1], options=options)
+            options = ["ATTRIBUTE=val"]
+
+        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
         if err != 0:
-            raise Exception('Got non-zero result code from gdal.RasterizeLayer')
+            raise Exception(
+                'Got non-zero result code from gdal.RasterizeLayer (%s)' % gdal.GetLastErrorMsg()
+            )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(bool)
+        return arr.astype(dtype)
 
     # Tiling ************************************************************************************ **
     def tile(self, size, overlapx=0, overlapy=0,
