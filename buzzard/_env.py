@@ -80,12 +80,18 @@ def _set_up_check_with_invert_proj(new, _):
 def _set_up_buzz_trusted(new, _):
     conf = gdal.GetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES') or ''
     conf = conf.split(',')
-    conf = [elt for elt in conf if elt != 'buzzard._raster_recipe']
+    conf = [elt for elt in conf if elt not in {'buzzard._raster_recipe', ''}]
     if new:
         conf.append('buzzard._raster_recipe')
-        gdal.SetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES', ','.join(conf))
+        gdal.SetConfigOption(
+            'GDAL_VRT_PYTHON_TRUSTED_MODULES',
+            ','.join(conf)
+        )
     else:
-        gdal.SetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES', ','.join(conf))
+        gdal.SetConfigOption(
+            'GDAL_VRT_PYTHON_TRUSTED_MODULES',
+            ','.join(conf) if conf else None
+        )
 
 # Options declaration *************************************************************************** **
 _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
