@@ -1261,7 +1261,7 @@ class Footprint(TileMixin, IntersectionMixin):
         # Check xy parameter
         xy = np.asarray(xy)
         if xy.shape[-1] != 2:
-            return ValueError('An array of shape (..., 2) was expected') # pragma: no cover
+            raise ValueError('An array of shape (..., 2) was expected') # pragma: no cover
 
         # Check dtype parameter
         if dtype is None:
@@ -1329,7 +1329,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return xy2.reshape(xy.shape)
 
     # Geometry / Raster conversions ************************************************************* **
-    def find_lines(self, arr, output_offset='middle'):
+    def find_lines(self, arr, output_offset='middle', merge=True):
         """Experimental function!
 
         # TODO: Update doc about skimage.thin and 2x2 squares collapsing
@@ -1506,9 +1506,10 @@ class Footprint(TileMixin, IntersectionMixin):
             lines.append(l)
 
         # Step 7: Merge segments to polylines *************************************************** **
-        mline = shapely.ops.linemerge(lines)
-        if isinstance(mline, shapely.geometry.LineString):
-            mline = sg.MultiLineString([mline])
+        if merge:
+            mline = shapely.ops.linemerge(lines)
+            if isinstance(mline, shapely.geometry.LineString):
+                mline = sg.MultiLineString([mline])
 
         # Step 8: Temporary check for badness, until further testing of this method ************* **
         check = arr.copy()
@@ -1533,7 +1534,7 @@ class Footprint(TileMixin, IntersectionMixin):
             return list(mline.geoms)
         assert False # pragma: no cover
 
-    def burn_lines(self, obj, labelize=False):
+    def burn_lines(self, obj, all_touched=False, labelize=False):
         """Experimental function!
 
         Create a 2d image from lines
@@ -1583,7 +1584,12 @@ class Footprint(TileMixin, IntersectionMixin):
             feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
             feat.SetFieldInteger64(0, i)
             rast_mem_lyr.CreateFeature(feat)
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=["ATTRIBUTE=val"])
+
+        if all_touched:
+            options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
+        else:
+            options = ["ATTRIBUTE=val"]
+        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
         if err != 0:
             raise Exception(
                 'Got non-zero result code from gdal.RasterizeLayer (%s)' % gdal.GetLastErrorMsg()
