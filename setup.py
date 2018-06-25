@@ -13,6 +13,7 @@ reqs = [
 	'scipy',
 	'pint',
 	'six',
+    'scikit-image',
 ]
 
 if sys.version_info < (3, 2):
