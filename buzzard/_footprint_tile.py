@@ -172,20 +172,6 @@ class TileMixin(object):
                 rsize=rsize,
             )
 
-        # # Previous version: (not working with rotated footprints)
-        # pxvec = self.pxvec * direction
-        # pxvec_abs = np.abs(pxvec)
-
-        # def _footprint_of_deltacoords(y, x, sizex, sizey):
-        #     tl = pxvec * [x, y] + origin
-        #     rsize = np.asarray([sizex, sizey])
-        #     tl -= rsize * (direction == -1) * (1, -1)
-        #     return self.__class__(
-        #         tl=tl,
-        #         size=[sizex, sizey] * pxvec_abs,
-        #         rsize=rsize,
-        #     )
-
         infoxs = list(gen_xinfo)
         infoys = list(gen_yinfo)
         deltaxs, deltays = np.meshgrid(

@@ -88,10 +88,12 @@ def _set_up_buzz_trusted(new, _):
             ','.join(conf)
         )
     else:
-        gdal.SetConfigOption(
-            'GDAL_VRT_PYTHON_TRUSTED_MODULES',
-            ','.join(conf) if conf else None
-        )
+        pass
+        # Do not unset because it is not safe in multithreaded environment
+        # gdal.SetConfigOption(
+        #     'GDAL_VRT_PYTHON_TRUSTED_MODULES',
+        #     ','.join(conf) if conf else None
+        # )
 
 # Options declaration *************************************************************************** **
 _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
