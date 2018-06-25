@@ -136,7 +136,12 @@ class VectorGetSetMixin(object):
                     'coordinates': geom,
                 })
             geom = shapely.ops.transform(self._to_file, geom)
-            geom = conv.ogr_of_shapely(geom)
+            # geom = conv.ogr_of_shapely(geom)
+            mapping = sg.mapping(geom)
+            geom = conv.ogr_of_coordinates(
+                mapping['coordinates'],
+                mapping['type'],
+            )
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
@@ -148,7 +153,12 @@ class VectorGetSetMixin(object):
                     geom_type, self.type
                 ))
         elif geom_type == 'shapely':
-            geom = conv.ogr_of_shapely(geom)
+            # geom = conv.ogr_of_shapely(geom)
+            mapping = sg.mapping(geom)
+            geom = conv.ogr_of_coordinates(
+                mapping['coordinates'],
+                mapping['type'],
+            )
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
