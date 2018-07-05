@@ -32,8 +32,8 @@ class Proxy(object):
         wkt_origin = consts.wkt
 
         # If `ds` mode overrides file's origin
-        if ds._wkt_origin:
-            wkt_origin = ds._wkt_origin
+        if ds._wkt_forced:
+            wkt_forced = ds._wkt_forced
 
         # If origin missing and `ds` provides a fallback origin
         if not wkt_origin and ds._wkt_fallback:

@@ -10,10 +10,10 @@ class DataSourceConversionsMixin(object):
     """Private mixin for the DataSource class containing the spatial coordinates
     conversion subroutines"""
 
-    def __init__(self, sr_work, sr_fallback, sr_origin, analyse_transformation):
+    def __init__(self, sr_work, sr_fallback, sr_forced, analyse_transformation):
         self._sr_work = sr_work
         self._sr_fallback = sr_fallback
-        self._sr_origin = sr_origin
+        self._sr_forced = sr_forced
         self._analyse_transformations = bool(analyse_transformation)
 
     def _get_transforms(self, sr_origin, rect, rect_from='origin'):
@@ -29,8 +29,8 @@ class DataSourceConversionsMixin(object):
 
         if not self._sr_work:
             return None, None
-        if self._sr_origin:
-            sr_origin = self._sr_origin
+        if self._sr_forced:
+            sr_origin = self._sr_forced
         elif not sr_origin:
             if self._sr_fallback:
                 sr_origin = self._sr_fallback

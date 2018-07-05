@@ -246,7 +246,7 @@ def test_mode4(fps, shp1_path, tif1_path, random_path_shp, random_path_tif, env)
     wkt_origin = buzz.srs.wkt_of_file(tif1_path)
     wkt_work = buzz.srs.wkt_of_file(tif1_path, center=True)
 
-    ds = buzz.DataSource(wkt_work, sr_origin=wkt_origin)
+    ds = buzz.DataSource(wkt_work, sr_forced=wkt_origin)
     ds.open_raster('rast', tif1_path)
     ds.open_vector('poly', shp1_path)
 
