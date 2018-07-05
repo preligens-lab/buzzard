@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import cv2
 from osgeo import gdal, ogr, osr
-from buzzard._tools import conv
+from buzzard._tools import conv, Singleton
 
 try:
     from collections import ChainMap
@@ -116,7 +116,7 @@ _OPTIONS = {
 }
 
 # Storage *************************************************************************************** **
-class _GlobalMapStack(object):
+class _GlobalMapStack(Singleton):
     """ChainMap updated to behave like a singleton stack"""
 
     _main_storage = None
@@ -155,7 +155,7 @@ _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
 class Env(object):
-    """Context manager to update buzzard states
+    """Context manager to update buzzard's states
 
     Parameters
     ----------
@@ -216,7 +216,7 @@ class _ThreadMapStackGetter(object):
     def __call__(self, self2):
         return _LOCAL._mapstack[self.key]
 
-class _CurrentEnv(object):
+class _CurrentEnv(Singleton):
     """Namespace to access current values of buzzard's environment variable (see buzz.Env)
 
     Example

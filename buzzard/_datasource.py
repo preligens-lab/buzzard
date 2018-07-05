@@ -12,7 +12,7 @@ from buzzard._proxy import Proxy
 from buzzard._raster_physical import RasterPhysical
 from buzzard._raster_recipe import RasterRecipe
 from buzzard._vector import Vector
-from buzzard._tools import conv
+from buzzard._tools import conv, deprecation_pool
 from buzzard._datasource_conversions import DataSourceConversionsMixin
 
 class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
@@ -24,7 +24,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     Parameters
     ----------
     sr_work: None or string (see `Coordinates conversions` below)
-    sr_implicit: None or string (see `Coordinates conversions` below)
+    sr_fallback: None or string (see `Coordinates conversions` below)
     sr_origin: None or string (see `Coordinates conversions` below)
     analyse_transformation: bool
         Whether or not to perform a basic analysis on two sr to check their compatibilty
@@ -73,14 +73,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     `sr_work`: Spatial reference of all interactions with a DataSource.
         (i.e. Footprints, polygons...)
     `sr_origin`: Spatial reference of data stored in a file
-    `sr_implicit`: Fallback spatial reference of a file if it cannot be determined by reading it
+    `sr_fallback`: Fallback spatial reference of a file if it cannot be determined by reading it
 
     Parameters and modes:
-    | mode | sr_work | sr_implicit | sr_origin | How is the `sr` of a file determined                                                     |
+    | mode | sr_work | sr_fallback | sr_origin | How is the `sr` of a file determined                                                     |
     |------|---------|-------------|-----------|------------------------------------------------------------------------------------------|
     | 1    | None    | None        | None      | Not determined (no coordinates conversion for the lifetime of this DataSource)           |
     | 2    | Some    | None        | None      | Read the `sr` of a file in its metadata. If missing raise an exception                   |
-    | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_implicit` |
+    | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_fallback` |
     | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_origin`                   |
 
     For example if all opened files are known to be all written in a same `sr` use `mode 1`, or
@@ -130,17 +130,27 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     """
 
 
-    def __init__(self, sr_work=None, sr_implicit=None, sr_origin=None,
+    def __init__(self, sr_work=None, sr_fallback=None, sr_origin=None,
                  analyse_transformation=True,
                  ogr_layer_lock='raise',
                  allow_none_geometry=False,
                  allow_interpolation=False,
-                 max_activated=np.inf):
-        """Constructor
+                 max_activated=np.inf, **kwargs):
 
+        sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
+            new_name='sr_fallback', old_names={'sr_fallback': '0.4.4'}, context='DataSource.__init__',
+            new_name_value=sr_fallback,
+            new_name_is_provided=sr_fallback is not None,
+            user_kwargs=kwargs,
+        )
+        # sr_forced, kwargs = deprecation_pool.streamline_with_kwargs(
+        #     new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='DataSource.__init__',
+        #     new_name_value=sr_forced,
+        #     new_name_is_provided=sr_forced is not None,
+        #     user_kwargs=kwargs,
+        # )
 
-        """
-        mode = (sr_work is not None, sr_implicit is not None, sr_origin is not None)
+        mode = (sr_work is not None, sr_fallback is not None, sr_origin is not None)
         if mode == (False, False, False):
             pass
         elif mode == (True, False, False):
@@ -168,11 +178,11 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             wkt_work = None
             sr_work = None
         if mode[1]:
-            wkt_implicit = osr.GetUserInputAsWKT(sr_implicit)
-            sr_implicit = osr.SpatialReference(wkt_implicit)
+            wkt_fallback = osr.GetUserInputAsWKT(sr_fallback)
+            sr_fallback = osr.SpatialReference(wkt_fallback)
         else:
-            wkt_implicit = None
-            sr_implicit = None
+            wkt_fallback = None
+            sr_fallback = None
         if mode[2]:
             wkt_origin = osr.GetUserInputAsWKT(sr_origin)
             sr_origin = osr.SpatialReference(wkt_origin)
@@ -181,12 +191,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             sr_origin = None
 
         DataSourceConversionsMixin.__init__(
-            self, sr_work, sr_implicit, sr_origin, analyse_transformation
+            self, sr_work, sr_fallback, sr_origin, analyse_transformation
         )
         _datasource_tools.DataSourceToolsMixin.__init__(self, max_activated)
 
         self._wkt_work = wkt_work
-        self._wkt_implicit = wkt_implicit
+        self._wkt_fallback = wkt_fallback
         self._wkt_origin = wkt_origin
         self._ogr_layer_lock = ogr_layer_lock
         self._allow_interpolation = allow_interpolation
@@ -715,7 +725,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     def __reduce__(self):
         params = {}
         params['sr_work'] = self._sr_work
-        params['sr_implicit'] = self._sr_implicit
+        params['sr_fallback'] = self._sr_fallback
         params['sr_origin'] = self._sr_origin
         params['analyse_transformation'] = self._analyse_transformations
         params['ogr_layer_lock'] = self._ogr_layer_lock

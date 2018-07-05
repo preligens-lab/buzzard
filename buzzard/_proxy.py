@@ -36,8 +36,8 @@ class Proxy(object):
             wkt_origin = ds._wkt_origin
 
         # If origin missing and `ds` provides a fallback origin
-        if not wkt_origin and ds._wkt_implicit:
-            wkt_origin = ds._wkt_implicit
+        if not wkt_origin and ds._wkt_fallback:
+            wkt_origin = ds._wkt_fallback
 
         # Whether or not `ds` enforces a work projection
         if wkt_origin:
