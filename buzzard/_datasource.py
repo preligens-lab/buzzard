@@ -21,11 +21,6 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     For actions specific to opened files, see Raster, RasterStored and VectorProxy classes
 
-    TODO before merge:
-    - check the 2 tests that fail on windows
-    - Replace string `origin` to `stored`
-    - Add `(fp|bounds|extents)(_stored|_considered|None)` methods to the right classes
-
     Parameters
     ----------
     sr_work: None or string (see `Coordinates conversions` below)
@@ -81,7 +76,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     `sr_work`: Spatial reference of all interactions with a DataSource.
         (i.e. Footprints, polygons...)
     `sr_forced`: Forced spatial reference of a file, wether or not it can be determined by reading it
-    `sr_origin`: Spatial reference of data stored in a file
+    `sr_stored`: Spatial reference of stored data
     `sr_fallback`: Fallback spatial reference of a file if it cannot be determined by reading it
 
     Parameters and modes:

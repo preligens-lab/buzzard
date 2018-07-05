@@ -14,7 +14,7 @@ from osgeo import gdal, osr, ogr
 import shapely.geometry as sg
 
 from buzzard._proxy import Proxy
-from buzzard._tools import conv
+from buzzard._tools import conv, deprecation_pool
 from buzzard._vector_utils import VectorUtilsMixin
 from buzzard._vector_getset_data import VectorGetSetMixin
 from buzzard._env import Env
@@ -330,7 +330,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     @property
     @_tools.ensure_activated
     def extent(self):
-        """Get file's extent. (`x` then `y`)
+        """Get the vector's extent in work spatial reference. (`x` then `y`)
 
         Example
         -------
@@ -348,8 +348,17 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @property
     @_tools.ensure_activated
+    def extent_stored(self):
+        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
+        extent = self._lyr.GetExtent()
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        return extent
+
+    @property
+    @_tools.ensure_activated
     def bounds(self):
-        """Get the file's bounds (`min` then `max`)
+        """Get the vector's bounds in work spatial reference. (`min` then `max`)
 
         Example
         -------
@@ -360,8 +369,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @property
     @_tools.ensure_activated
-    def extent_origin(self):
-        """Get file's extent in origin spatial reference. (minx, miny, maxx, maxy)"""
+    def bounds_stored(self):
+        """Get the vector's bounds in stored spatial reference. (`min` then `max`)"""
         extent = self._lyr.GetExtent()
         if extent is None:
             raise ValueError('Could not compute extent')
@@ -632,6 +641,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_property(Vector, 'extent_stored', 'extent_origin', '0.4.4')
 
 _VectorCloseRoutine = type('_VectorCloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Vector.close.__doc__,

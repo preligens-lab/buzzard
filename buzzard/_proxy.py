@@ -2,6 +2,8 @@
 
 from osgeo import osr
 
+from buzzard._tools import deprecation_pool
+
 class Proxy(object):
     """Base class to all sources"""
 
@@ -16,8 +18,8 @@ class Proxy(object):
         - The constructor must be usable for constructions both from gdal pointers and unpickling
         - An information should not be duplicated inside a `_Constants` object
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
-           - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
-             `Proxy._Constants.wkt_origin`
+           - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_stored` and
+             `Proxy._Constants.wkt_stored`
         - The `_Constants` class is contant and does not make any side effect
 
         """
@@ -29,42 +31,42 @@ class Proxy(object):
             )
 
     def __init__(self, ds, consts, rect):
-        wkt_origin = consts.wkt
+        wkt_stored = consts.wkt
 
-        # If `ds` mode overrides file's origin
+        # If `ds` mode overrides file's stored
         if ds._wkt_forced:
             wkt_forced = ds._wkt_forced
 
-        # If origin missing and `ds` provides a fallback origin
-        if not wkt_origin and ds._wkt_fallback:
-            wkt_origin = ds._wkt_fallback
+        # If stored missing and `ds` provides a fallback stored
+        if not wkt_stored and ds._wkt_fallback:
+            wkt_stored = ds._wkt_fallback
 
         # Whether or not `ds` enforces a work projection
-        if wkt_origin:
-            sr_origin = osr.SpatialReference(wkt_origin)
+        if wkt_stored:
+            sr_stored = osr.SpatialReference(wkt_stored)
         else:
-            sr_origin = None
+            sr_stored = None
 
-        to_work, to_file = ds._get_transforms(sr_origin, rect)
+        to_work, to_file = ds._get_transforms(sr_stored, rect)
 
         self._c = consts
         self._ds = ds
-        self._wkt_origin = wkt_origin
-        self._sr_origin = sr_origin
+        self._wkt_stored = wkt_stored
+        self._sr_stored = sr_stored
         self._to_file = to_file
         self._to_work = to_work
 
     @property
-    def wkt_origin(self):
+    def wkt_stored(self):
         """File's spatial reference in WKT format"""
-        return self._wkt_origin
+        return self._wkt_stored
 
     @property
-    def proj4_origin(self):
+    def proj4_stored(self):
         """File's spatial reference in proj4 format"""
-        if not self._sr_origin:
+        if not self._sr_stored:
             return None # pragma: no cover
-        return self._sr_origin.ExportToProj4()
+        return self._sr_stored.ExportToProj4()
 
     # Activation mechanisms ********************************************************************* **
     @property
@@ -139,3 +141,6 @@ class Proxy(object):
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_property(Proxy, 'wkt_stored', 'wkt_origin', '0.4.4')
+deprecation_pool.add_deprecated_property(Proxy, 'proj4_stored', 'proj4_origin', '0.4.4')

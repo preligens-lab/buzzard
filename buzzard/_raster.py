@@ -10,7 +10,7 @@ from buzzard._proxy import Proxy
 from buzzard._raster_utils import RasterUtilsMixin
 from buzzard._raster_remap import RemapMixin
 from buzzard._raster_getset_data import RasterGetSetMixin
-from buzzard._tools import conv
+from buzzard._tools import conv, deprecation_pool
 from buzzard import _tools
 
 class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
@@ -23,14 +23,14 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
             # GDAL informations
             if 'gdal_ds' in kwargs:
                 gdal_ds = kwargs.pop('gdal_ds')
-                kwargs['fp_origin'] = Footprint(
+                kwargs['fp_stored'] = Footprint(
                     gt=gdal_ds.GetGeoTransform(),
                     rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
                 )
                 kwargs['band_schema'] = Raster._band_schema_of_gdal_ds(gdal_ds)
                 kwargs['dtype'] = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
                 kwargs['wkt'] = gdal_ds.GetProjection()
-            self.fp_origin = kwargs.pop('fp_origin')
+            self.fp_stored = kwargs.pop('fp_stored')
             self.band_schema = kwargs.pop('band_schema')
             self.dtype = kwargs.pop('dtype')
 
@@ -38,14 +38,14 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
 
     def __init__(self, ds, consts, gdal_ds=None):
         """Instanciated by DataSource class, instanciation by user is undefined"""
-        Proxy.__init__(self, ds, consts, consts.fp_origin)
+        Proxy.__init__(self, ds, consts, consts.fp_stored)
 
         if self._to_work is not None:
-            fp = self._c.fp_origin.move(*self._to_work([
-                self._c.fp_origin.tl, self._c.fp_origin.tr, self._c.fp_origin.br
+            fp = self._c.fp_stored.move(*self._to_work([
+                self._c.fp_stored.tl, self._c.fp_stored.tr, self._c.fp_stored.br
             ]))
         else:
-            fp = self._c.fp_origin
+            fp = self._c.fp_stored
 
         self._gdal_ds = gdal_ds
         self._fp = fp
@@ -68,9 +68,9 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         return self._fp
 
     @property
-    def fp_origin(self):
+    def fp_stored(self):
         """Accessor for inner Footprint instance"""
-        return self._c.fp_origin
+        return self._c.fp_stored
 
     @property
     def dtype(self):
@@ -246,6 +246,8 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_property(Raster, 'fp_stored', 'fp_origin', '0.4.4')
 
 _RasterCloseRoutine = type('_RasterCloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Raster.close.__doc__,
