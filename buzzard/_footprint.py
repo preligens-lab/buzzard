@@ -146,8 +146,10 @@ class Footprint(TileMixin, IntersectionMixin):
         if kwargs:
             raise ValueError('Unknown parameters [{}]'.format(kwargs.keys()))
 
-        if a + b == 0 or d + e == 0:
-            raise ValueError('Scale should not be 0')
+        if a * e - d * b == 0:
+            raise ValueError('Determinent should not be 0: {}'.format(
+                a * e - d * b
+            ))
         if b != 0 or d != 0 or a <= 0 or e >= 0:
             if not env.allow_complex_footprint:
                 arr = np.asarray([[a, b, c], [d, e, f]])
