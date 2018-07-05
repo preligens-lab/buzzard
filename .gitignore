@@ -64,8 +64,18 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
+# Sphinx build documentation
 docs/_build/
+
+# jupythe leftovers
+docs/*.tif
+docs/*.tif.aux.xml
+docs/*.vrt
+docs/*.geojson
+docs/*.dbf
+docs/*.shp
+docs/*.shx
+docs/*.prj
 
 # PyBuilder
 target/
@@ -112,14 +122,5 @@ venv.bak/
 \#*\#
 .\#*
 
-doc/*.tif
-doc/*.tif.aux.xml
-doc/*.vrt
-
-doc/*.geojson
-doc/*.dbf
-doc/*.shp
-doc/*.shx
-doc/*.prj
 .pytest_cache
 dask-worker-space

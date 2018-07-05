@@ -41,6 +41,7 @@ Table of Contents
 - a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
 
 ## Simple example
+
 This example illustrates visualization of a raster based on polygons.
 
 ```py
@@ -118,6 +119,7 @@ The following table lists dependencies along with the minimum version, their sta
 ## How to install
 
 ### Package manager and pip
+
 ```sh
 # Install GDAL
 # Windows: http://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
@@ -129,6 +131,7 @@ pip install buzzard
 ```
 
 ### Anaconda and pip
+
 ```sh
 # Install Anaconda
 # https://www.anaconda.com/download/
@@ -145,6 +148,7 @@ pip install buzzard
 ```
 
 ## How to test
+
 ```sh
 git clone https://github.com/airware/buzzard
 pip install -r buzzard/requirements-dev.txt
@@ -152,18 +156,23 @@ pytest buzzard/buzzard/test
 ```
 
 ## Documentation
-Hosted soon, in the meantime
-- look at docstrings in code
-- get familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
-- play with the exemples in [examples.ipynb](./doc/examples.ipynb)
+
+Documentation is hosted on https://buzzard.readthedocs.io/
+
+You can also:
+- get yourself familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
+- play with the examples [examples.ipynb](./doc/examples.ipynb)
 
 ## Contributions and feedback
+
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
 
 ## Authors
+
 See [AUTHORS](./AUTHORS.md)
 
 ## License and Notice
+
 See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
