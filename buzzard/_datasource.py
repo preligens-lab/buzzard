@@ -21,6 +21,20 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     For actions specific to opened files, see Raster, RasterPhysical and VectorProxy classes
 
+    Parameters
+    ----------
+    sr_work: None or string (see `Coordinates conversions` below)
+    sr_implicit: None or string (see `Coordinates conversions` below)
+    sr_origin: None or string (see `Coordinates conversions` below)
+    analyse_transformation: bool
+        Whether or not to perform a basic analysis on two sr to check their compatibilty
+    ogr_layer_lock: one of ('none', 'wait', 'raise')
+        Mutex operations when reading or writing vector files
+    allow_none_geometry: bool
+    allow_interpolation: bool
+    max_activated: nbr >= 1
+        Maximum number of sources activated at the same time.
+
     Example
     -------
     >>> import buzzard as buzz
@@ -43,6 +57,58 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     >>> with ds.create_araster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
     ...      cache.set_data(dem.get_data())
 
+    Coordinates conversions
+    -----------------------
+    A DataSource may perform coordinates conversions on the fly using osr by following a set of
+    rules. Those conversions only include vector files, raster files Footprints and basic raster
+    remapping. General raster warping is not included (yet).
+
+    If `analyse_transformation` is set to `True` (default), all coordinates conversions are
+    tested against `buzz.env.significant` on file opening to ensure their feasibility or
+    raise an exception otherwise. This system is naive and very restrictive, a smarter and
+    smarter version is planned. Use with caution.
+
+    Terminology:
+    `sr`: Spatial reference
+    `sr_work`: Spatial reference of all interactions with a DataSource.
+        (i.e. Footprints, polygons...)
+    `sr_origin`: Spatial reference of data stored in a file
+    `sr_implicit`: Fallback spatial reference of a file if it cannot be determined by reading it
+
+    Parameters and modes:
+    | mode | sr_work | sr_implicit | sr_origin | How is the `sr` of a file determined                                                     |
+    |------|---------|-------------|-----------|------------------------------------------------------------------------------------------|
+    | 1    | None    | None        | None      | Not determined (no coordinates conversion for the lifetime of this DataSource)           |
+    | 2    | Some    | None        | None      | Read the `sr` of a file in its metadata. If missing raise an exception                   |
+    | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_implicit` |
+    | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_origin`                   |
+
+    For example if all opened files are known to be all written in a same `sr` use `mode 1`, or
+    `mode 4` if you wish to work in a different `sr`.
+    On the other hand, if not all files are written in the same `sr`, `mode 2` and
+    `mode 3` may help, but make sure to use `buzz.Env(analyse_transformation=True)` to be
+    informed on the quality of the transformations performed.
+
+    A spatial reference parameter may be
+    - A path to a file
+    - A [textual spatial reference](http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-)
+
+    Example
+    -------
+    mode 1
+    >>> ds = buzz.DataSource()
+
+    mode 2
+    >>> ds = buzz.DataSource(
+            sr_work=buzz.srs.wkt_of_file('path/to.tif', center=True),
+        )
+
+    mode 4
+    >>> ds = buzz.DataSource(
+            sr_work=buzz.srs.wkt_of_file('path/to.tif', unit='meter'),
+            sr_origin='path/to.tif',
+        )
+
     Sources activation / deactivation
     ---------------------------------
     A source may be temporary deactivated, releasing it's internal file descriptor while keeping
@@ -63,6 +129,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     """
 
+
     def __init__(self, sr_work=None, sr_implicit=None, sr_origin=None,
                  analyse_transformation=True,
                  ogr_layer_lock='raise',
@@ -71,71 +138,6 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                  max_activated=np.inf):
         """Constructor
 
-        Parameters
-        ----------
-        sr_work: None or string (see `Coordinates conversions` below)
-        sr_implicit: None or string (see `Coordinates conversions` below)
-        sr_origin: None or string (see `Coordinates conversions` below)
-        analyse_transformation: bool
-            Whether or not to perform a basic analysis on two sr to check their compatibilty
-        ogr_layer_lock: one of ('none', 'wait', 'raise')
-            Mutex operations when reading or writing vector files
-        allow_none_geometry: bool
-        allow_interpolation: bool
-        max_activated: nbr >= 1
-            Maximum number of sources activated at the same time.
-
-        Coordinates conversions
-        -----------------------
-        A DataSource may perform coordinates conversions on the fly using osr by following a set of
-        rules. Those conversions only include vector files, raster files Footprints and basic raster
-        remapping. General raster warping is not included (yet).
-
-        If `analyse_transformation` is set to `True` (default), all coordinates conversions are
-        tested against `buzz.env.significant` on file opening to ensure their feasibility or
-        raise an exception otherwise. This system is naive and very restrictive, a smarter and
-        smarter version is planned. Use with caution.
-
-        Terminology:
-        `sr`: Spatial reference
-        `sr_work`: Spatial reference of all interactions with a DataSource.
-            (i.e. Footprints, polygons...)
-        `sr_origin`: Spatial reference of data stored in a file
-        `sr_implicit`: Fallback spatial reference of a file if it cannot be determined by reading it
-
-        Parameters and modes:
-        | mode | sr_work | sr_implicit | sr_origin | How is the `sr` of a file determined                                                     |
-        |------|---------|-------------|-----------|------------------------------------------------------------------------------------------|
-        | 1    | None    | None        | None      | Not determined (no coordinates conversion for the lifetime of this DataSource)           |
-        | 2    | Some    | None        | None      | Read the `sr` of a file in its metadata. If missing raise an exception                   |
-        | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_implicit` |
-        | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_origin`                   |
-
-        For example if all opened files are known to be all written in a same `sr` use `mode 1`, or
-        `mode 4` if you wish to work in a different `sr`.
-        On the other hand, if not all files are written in the same `sr`, `mode 2` and
-        `mode 3` may help, but make sure to use `buzz.Env(analyse_transformation=True)` to be
-        informed on the quality of the transformations performed.
-
-        A spatial reference parameter may be
-        - A path to a file
-        - A [textual spatial reference](http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-)
-
-        Example
-        -------
-        mode 1
-        >>> ds = buzz.DataSource()
-
-        mode 2
-        >>> ds = buzz.DataSource(
-                sr_work=buzz.srs.wkt_of_file('path/to.tif', center=True),
-            )
-
-        mode 4
-        >>> ds = buzz.DataSource(
-                sr_work=buzz.srs.wkt_of_file('path/to.tif', unit='meter'),
-                sr_origin='path/to.tif',
-            )
 
         """
         mode = (sr_work is not None, sr_implicit is not None, sr_origin is not None)
