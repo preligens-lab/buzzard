@@ -20,10 +20,12 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
+# Gather version
 project = 'buzzard'
 copyright = u'%s, Airware' % datetime.now().year
 author = 'Airware'
-version = ''
+version_file = open(os.path.join('..', 'VERSION'))
+version = version_file.read().strip()
 release = version
 
 # -- General configuration ---------------------------------------------------

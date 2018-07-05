@@ -2,6 +2,13 @@ import os
 import sys
 from setuptools import setup, find_packages
 
+# Gather version
+version_file = open(os.path.join('.', 'VERSION'))
+version = version_file.read().strip()
+
+# Compute download url
+download_url = u'https://github.com/airware/buzzard/archive/%s.tar.gz' % version
+
 # Requirements
 # https://caremad.io/posts/2013/07/setup-vs-requirement/
 reqs = [
@@ -44,7 +51,7 @@ classifiers = [
 
 setup(
     name='buzzard',
-    version='0.4.3',
+    version=version,
     author='ngoguey',
     author_email='ngoguey@airware.com',
     license='Apache License 2.0',
@@ -55,7 +62,7 @@ setup(
     long_description_content_type='text/markdown',
     classifiers=classifiers,
     url='https://github.com/airware/buzzard',
-    download_url='https://github.com/airware/buzzard/archive/0.4.3.tar.gz',
+    download_url=download_url,
     keywords=['gdal gis raster shp dxf tif vector'],
     packages=find_packages(),
     install_requires=reqs,
