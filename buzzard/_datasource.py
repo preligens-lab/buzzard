@@ -21,6 +21,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     For actions specific to opened files, see Raster, RasterPhysical and VectorProxy classes
 
+    TODO before merge:
+    - Rename `(open|create)_a*` to `a(open|create)_*`
+    - Replace string `origin` to `stored`
+    - Rename Physical to Stored
+    - Add `(fp|bounds|extents)(_stored|_considered|None)` methods to the right classes
+
     Parameters
     ----------
     sr_work: None or string (see `Coordinates conversions` below)
