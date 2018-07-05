@@ -105,7 +105,7 @@ class Raster(Proxy, RasterGetSetMixin, RasterUtilsMixin, RemapMixin):
         >>> ds.dem.close()
         >>> with ds.dem.close:
                 # code...
-        >>> with ds.create_araster('result.tif', fp, float, 1).close as result:
+        >>> with ds.acreate_raster('result.tif', fp, float, 1).close as result:
                 # code...
         """
         def _close():

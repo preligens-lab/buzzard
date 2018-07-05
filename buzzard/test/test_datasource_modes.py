@@ -81,7 +81,7 @@ def tif2_path(fps):
     path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
 
     ds = buzz.DataSource()
-    with ds.create_araster(path, fps.AI, 'int32', 1, sr=SR2['wkt']).close as r:
+    with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=SR2['wkt']).close as r:
         for letter in string.ascii_uppercase[:9]:
             fp = fps[letter]
             arr = np.full(fp.shape, ord(letter), dtype=int)
@@ -154,9 +154,9 @@ def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, random_path_shp,
     # Test file creation without spatial reference
     with buzz.Env(allow_complex_footprint=True):
         with pytest.raises(ValueError, match='spatial refe'):
-            ds.create_avector(random_path_shp, 'polygon', [], sr=None)
+            ds.acreate_vector(random_path_shp, 'polygon', [], sr=None)
         with pytest.raises(ValueError, match='spatial refe'):
-            ds.create_araster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None)
+            ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None)
 
     # Test foorprints equality
     assert fpeq(
@@ -174,13 +174,13 @@ def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, random_path_shp,
 
     # Test file creation with/without conversion of footprint
     with buzz.Env(allow_complex_footprint=True):
-        with ds.create_araster(random_path_tif, fps.AI, 'int32', 1, sr=SR1['wkt']).delete as r:
+        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, sr=SR1['wkt']).delete as r:
             assert fpeq(
                 fps.AI,
                 r.fp,
                 r.fp_origin
             )
-        with ds.create_araster(random_path_tif, fps.AI, 'int32', 1, sr=SR2['wkt']).delete as r:
+        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, sr=SR2['wkt']).delete as r:
             assert fpeq(
                 fps.AI,
                 r.fp,
@@ -213,8 +213,8 @@ def test_mode3(fps, shp1_path, tif1_path, random_path_shp, random_path_tif, env)
     ds.open_vector('poly', shp1_path)
 
     with buzz.Env(allow_complex_footprint=True):
-        ds.create_avector(random_path_shp, 'polygon', [], sr=None).close()
-        ds.create_araster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close()
+        ds.acreate_vector(random_path_shp, 'polygon', [], sr=None).close()
+        ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close()
 
     fp_poly = buzz.Footprint.of_extent(ds.poly.extent, ds.rast.fp.scale)
     fp_poly_origin = buzz.Footprint.of_extent(ds.poly.extent_origin, ds.rast.fp_origin.scale)
@@ -251,8 +251,8 @@ def test_mode4(fps, shp1_path, tif1_path, random_path_shp, random_path_tif, env)
     ds.open_vector('poly', shp1_path)
 
     with buzz.Env(allow_complex_footprint=True):
-        ds.create_avector(random_path_shp, 'polygon', [], sr=None).close()
-        ds.create_araster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close()
+        ds.acreate_vector(random_path_shp, 'polygon', [], sr=None).close()
+        ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close()
 
     fp_poly = buzz.Footprint.of_extent(ds.poly.extent, ds.rast.fp.scale)
     fp_poly_origin = buzz.Footprint.of_extent(ds.poly.extent_origin, ds.rast.fp_origin.scale)
@@ -328,7 +328,7 @@ def test_raster(fps, random_path_tif):
     ds.test.close()
     _asserts(True, False)
 
-    test = ds.open_araster(random_path_tif)
+    test = ds.aopen_raster(random_path_tif)
     _asserts(True, True, True)
     test.close()
     _asserts(True, False)
@@ -347,7 +347,7 @@ def test_raster(fps, random_path_tif):
     _asserts(False, False)
 
     # Raster test 3
-    with ds.create_araster(random_path_tif, fps.A, float, 1, schema, sr=SR1['wkt']).delete as test:
+    with ds.acreate_raster(random_path_tif, fps.A, float, 1, schema, sr=SR1['wkt']).delete as test:
         _asserts(True, True, True)
     _asserts(False, False)
 
@@ -397,7 +397,7 @@ def test_vector(random_path_shp):
     ds.test.close()
     _asserts(True, False)
 
-    test = ds.open_avector(random_path_shp)
+    test = ds.aopen_vector(random_path_shp)
     _asserts(True, True, True)
     test.close()
     _asserts(True, False)
@@ -416,7 +416,7 @@ def test_vector(random_path_shp):
     _asserts(False, False)
 
     # Vector test 3
-    with ds.create_avector(random_path_shp, 'point', fields, sr=SR1['wkt']).delete as test:
+    with ds.acreate_vector(random_path_shp, 'point', fields, sr=SR1['wkt']).delete as test:
         _asserts(True, True, True)
     _asserts(False, False)
 

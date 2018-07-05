@@ -75,7 +75,7 @@ def test_run(path, driver, fps, test_fields, test_coords_insertion):
         fields = []
 
     geom_type = 'polygon'
-    v = ds.create_avector(path, geom_type, fields, driver=driver, sr=SRS[0]['wkt'])
+    v = ds.acreate_vector(path, geom_type, fields, driver=driver, sr=SRS[0]['wkt'])
 
     def _build_data():
         rng = np.random.RandomState(42)
@@ -357,7 +357,7 @@ def _assert_all_list_of_fields_same(llf):
 
 def test_value_error(path):
     ds = buzz.DataSource()
-    v = ds.create_avector(path, 'polygon')
+    v = ds.acreate_vector(path, 'polygon')
 
     with pytest.raises(ValueError, match='geom_type'):
         list(v.iter_data(geom_type=''))

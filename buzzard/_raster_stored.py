@@ -102,7 +102,7 @@ class RasterStored(Raster):
         >>> ds.dem.delete()
         >>> with ds.dem.delete:
                 # code...
-        >>> with ds.create_araster('/tmp/tmp.tif', fp, float, 1).delete as tmp:
+        >>> with ds.acreate_raster('/tmp/tmp.tif', fp, float, 1).delete as tmp:
                 # code...
         """
         if self._c.mode != 'w':

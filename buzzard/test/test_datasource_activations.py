@@ -30,7 +30,7 @@ def test_vector_nofifo():
 
     # Test with a shapefile
     assert (ds._queued_count, ds._locked_count) == (0, 0)
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
 
         v1.insert_data((42, 43), ['fra'])
@@ -84,7 +84,7 @@ def test_vector_nofifo():
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Test with a memory vector
-    with ds.create_avector(**MEMV_META).close as v1:
+    with ds.acreate_vector(**MEMV_META).close as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
 
         v1.insert_data((42, 43), ['fra'])
@@ -110,23 +110,23 @@ def test_vector_nofifo():
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Close while being activated
-    with ds.create_avector('/tmp/v1.shp', **V_META).close as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).close as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Delete while being activated
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Close while being deactivated
-    with ds.create_avector('/tmp/v1.shp', **V_META).close as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).close as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
         v1.deactivate()
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Delete while being deactivated
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
         v1.deactivate()
     assert (ds._queued_count, ds._locked_count) == (0, 0)
@@ -136,7 +136,7 @@ def test_vector_fifo1_1file():
 
     # Test with a shapefile
     assert (ds._queued_count, ds._locked_count) == (0, 0)
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
 
         v1.insert_data((42, 43), ['fra'])
@@ -190,7 +190,7 @@ def test_vector_fifo1_1file():
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Test with a memory vector
-    with ds.create_avector(**MEMV_META).close as v1:
+    with ds.acreate_vector(**MEMV_META).close as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (0, 0, True)
 
         v1.insert_data((42, 43), ['fra'])
@@ -216,23 +216,23 @@ def test_vector_fifo1_1file():
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Close while being activated
-    with ds.create_avector('/tmp/v1.shp', **V_META).close as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).close as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Delete while being activated
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Close while being deactivated
-    with ds.create_avector('/tmp/v1.shp', **V_META).close as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).close as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
         v1.deactivate()
     assert (ds._queued_count, ds._locked_count) == (0, 0)
 
     # Delete while being deactivated
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
         v1.deactivate()
     assert (ds._queued_count, ds._locked_count) == (0, 0)
@@ -242,10 +242,10 @@ def test_vector_fifo1_2files():
 
     # Test with a shapefile
     assert (ds._queued_count, ds._locked_count) == (0, 0)
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
 
-        with ds.create_avector('/tmp/v2.shp', **V_META).delete as v2:
+        with ds.acreate_vector('/tmp/v2.shp', **V_META).delete as v2:
             assert (ds._queued_count, ds._locked_count, v1.activated, v2.activated) == (1, 0, False, True)
 
             v1.insert_data((42, 43), ['fra'])
@@ -272,10 +272,10 @@ def test_vector_fifo2_2files():
 
     # Test with a shapefile
     assert (ds._queued_count, ds._locked_count) == (0, 0)
-    with ds.create_avector('/tmp/v1.shp', **V_META).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', **V_META).delete as v1:
         assert (ds._queued_count, ds._locked_count, v1.activated) == (1, 0, True)
 
-        with ds.create_avector('/tmp/v2.shp', **V_META).delete as v2:
+        with ds.acreate_vector('/tmp/v2.shp', **V_META).delete as v2:
             assert (ds._queued_count, ds._locked_count, v1.activated, v2.activated) == (2, 0, True, True)
 
             v1.insert_data((42, 43), ['fra'])
@@ -299,7 +299,7 @@ def test_vector_fifo2_2files():
 
 def test_vector_end_while_iterating():
     ds = buzz.DataSource()
-    v1 = ds.create_avector('/tmp/v1.shp', **V_META)
+    v1 = ds.acreate_vector('/tmp/v1.shp', **V_META)
     v1.insert_data((42, 43), ['fra'])
     it = v1.iter_data()
     next(it)
@@ -317,13 +317,13 @@ def test_raster():
         size=(10, 10),
         rsize=(10, 10),
     )
-    with ds.create_araster('/tmp/t1.tif', fp, float, 1).delete as r1:
+    with ds.acreate_raster('/tmp/t1.tif', fp, float, 1).delete as r1:
         assert (ds._queued_count, ds._locked_count, r1.activated) == (1, 0, True)
 
-        with ds.create_araster('/tmp/t2.tif', fp, float, 1).delete as r2:
+        with ds.acreate_raster('/tmp/t2.tif', fp, float, 1).delete as r2:
             assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated) == (2, 0, True, True)
 
-            with ds.create_araster('/tmp/t3.tif', fp, float, 1).delete as r3:
+            with ds.acreate_raster('/tmp/t3.tif', fp, float, 1).delete as r3:
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
 
                 # Test lru policy
@@ -338,7 +338,7 @@ def test_raster():
                 def pxfn(fp):
                     return np.ones(fp.shape) * 42
 
-                with ds.create_recipe_araster(pxfn, fp, 'float32').close as r4:
+                with ds.acreate_recipe_raster(pxfn, fp, 'float32').close as r4:
                     assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
                     r4.deactivate()
                     assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
@@ -348,7 +348,7 @@ def test_raster():
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
 
                 # Test MEM raster (should behave like raster proxy in this case)
-                with ds.create_araster('', fp, float, 1, driver='MEM').close as r4:
+                with ds.acreate_raster('', fp, float, 1, driver='MEM').close as r4:
                     assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
                     r4.deactivate()
                     assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
@@ -468,25 +468,25 @@ def test_file_changed():
         rsize=(10, 10),
     )
 
-    with ds.create_araster('/tmp/t1.tif', fp, float, 1).delete as r1:
+    with ds.acreate_raster('/tmp/t1.tif', fp, float, 1).delete as r1:
         r1.fill(1)
         assert (r1.get_data() == 1).all()
         assert r1.fp == fp
         assert len(r1) == 1
         r1.deactivate()
 
-        with ds.open_araster('/tmp/t1.tif').close as r2:
+        with ds.aopen_raster('/tmp/t1.tif').close as r2:
             assert (r2.get_data() == 1).all()
             assert r2.fp == fp
             assert len(r2) == 1
 
-        with ds.create_araster('/tmp/t1.tif', fp, float, 2).close as r2:
+        with ds.acreate_raster('/tmp/t1.tif', fp, float, 2).close as r2:
             r2.fill(2)
             assert (r2.get_data() == 2).all()
             assert r2.fp == fp
             assert len(r2) == 2
 
-        with ds.open_araster('/tmp/t1.tif').close as r2:
+        with ds.aopen_raster('/tmp/t1.tif').close as r2:
             assert (r2.get_data() == 2).all()
             assert r2.fp == fp
             assert len(r2) == 2
@@ -494,19 +494,19 @@ def test_file_changed():
         with pytest.raises(RuntimeError, match='changed'):
             r1.activate()
 
-    with ds.create_avector('/tmp/v1.shp', 'Point', [{'name': 'area', 'type': float}]).delete as v1:
+    with ds.acreate_vector('/tmp/v1.shp', 'Point', [{'name': 'area', 'type': float}]).delete as v1:
         v1.insert_data((0, 0), [42])
         assert v1.get_data(0, geom_type='coordinates') == ((0, 0), 42)
         assert v1.type == 'Point'
         assert len(v1) == 1
         v1.deactivate()
 
-        with ds.open_avector('/tmp/v1.shp').close as v2:
+        with ds.aopen_vector('/tmp/v1.shp').close as v2:
             assert v2.get_data(0, geom_type='coordinates') == ((0, 0), 42)
             assert v2.type == 'Point'
             assert len(v2) == 1
 
-        with ds.create_avector('/tmp/v1.shp', 'LineString', [{'name': 'area', 'type': float}]).close as v2:
+        with ds.acreate_vector('/tmp/v1.shp', 'LineString', [{'name': 'area', 'type': float}]).close as v2:
             v2.insert_data(((0, 0), (1, 1)), [42])
             v2.insert_data(((0, 0), (1, 1)), [42])
             assert v2.get_data(0, geom_type='coordinates') == (((0, 0), (1, 1)), 42)
@@ -514,7 +514,7 @@ def test_file_changed():
             assert len(v2) == 2
 
 
-        with ds.open_avector('/tmp/v1.shp').close as v2:
+        with ds.aopen_vector('/tmp/v1.shp').close as v2:
             assert v2.get_data(0, geom_type='coordinates') == (((0, 0), (1, 1)), 42)
             assert v2.type == 'LineString'
             assert len(v2) == 2

@@ -22,9 +22,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     For actions specific to opened files, see Raster, RasterStored and VectorProxy classes
 
     TODO before merge:
-    - Rename `(open|create)_a*` to `a(open|create)_*`
+    - check the 2 tests that fail on windows
     - Replace string `origin` to `stored`
-    - Rename Stored to Stored
     - Add `(fp|bounds|extents)(_stored|_considered|None)` methods to the right classes
 
     Parameters
@@ -57,13 +56,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
     ...     print(ds.rgb.fp)
     ...     arr = ds.rgb.get_data()
-    >>> with ds.open_araster('path/to/rgb.tif').close as rgb:
+    >>> with ds.aopen_raster('path/to/rgb.tif').close as rgb:
     ...     print(rgb.fp)
     ...     arr = rgb.get_data()
 
     Creation
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
-    >>> with ds.create_araster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
+    >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
     ...      cache.set_data(dem.get_data())
 
     Coordinates conversions
@@ -139,7 +138,6 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     """
 
-
     def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
                  analyse_transformation=True,
                  ogr_layer_lock='raise',
@@ -148,7 +146,6 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                  max_activated=np.inf,
                  assert_no_change_on_activation=True,
                  **kwargs):
-
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_fallback': '0.4.4'}, context='DataSource.__init__',
             new_name_value=sr_fallback,
@@ -182,6 +179,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
+        assert_no_change_on_activation = bool(assert_no_change_on_activation)
 
         if mode[0]:
             wkt_work = osr.GetUserInputAsWKT(sr_work)
@@ -213,6 +211,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._ogr_layer_lock = ogr_layer_lock
         self._allow_interpolation = allow_interpolation
         self._allow_none_geometry = allow_none_geometry
+        self._assert_no_change_on_activation = assert_no_change_on_activation
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
@@ -233,7 +232,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.open_raster('ortho', '/path/to/ortho.tif')
-        >>> ortho = ds.open_araster('/path/to/ortho.tif')
+        >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
 
         """
@@ -249,7 +248,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def open_araster(self, path, driver='GTiff', options=(), mode='r'):
+    def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
         """Open a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_raster
@@ -319,12 +318,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> mask = ds.create_araster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
+        >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
         >>> fields = {
         ...     'nodata': -32767,
         ...     'interpretation': ['blackband', 'cyanband'],
         ... }
-        >>> out = ds.create_araster('output.tif', ds.dem.fp, 'float32', 2, fields)
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, fields)
 
         Caveat
         ------
@@ -346,7 +345,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def create_araster(self, path, fp, dtype, band_count, band_schema=None,
+    def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
                        driver='GTiff', options=(), sr=None):
         """Create a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
@@ -441,7 +440,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         ...         rsize=(size, size),
         ...     )
         ...     print('Recipe:{}'.format(fp))
-        ...     r = ds.create_recipe_araster(pixel_function, fp, 'uint8', {'nodata': 0})
+        ...     r = ds.acreate_recipe_raster(pixel_function, fp, 'uint8', {'nodata': 0})
         ...
         ...     focus = sg.Point(-1.1172, -0.221103)
         ...     for factor in [1, 4, 16, 64]:
@@ -491,7 +490,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def create_recipe_araster(self, fn, fp, dtype, band_schema=None, sr=None):
+    def acreate_recipe_raster(self, fn, fp, dtype, band_schema=None, sr=None):
         """Experimental feature!
 
         Create a raster recipe anonymously in this DataSource.
@@ -540,7 +539,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.open_vector('trees', '/path/to.shp')
-        >>> trees = ds.open_avector('/path/to.shp')
+        >>> trees = ds.aopen_vector('/path/to.shp')
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
 
         """
@@ -556,7 +555,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def open_avector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
+    def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
         """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_vector
@@ -634,7 +633,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
-        >>> lines = ds.create_avector('/path/to.shp', 'linestring')
+        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
 
         >>> fields = [
             {'name': 'name', 'type': str},
@@ -658,7 +657,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def create_avector(self, path, geometry, fields=(), layer=None,
+    def acreate_vector(self, path, geometry, fields=(), layer=None,
                        driver='ESRI Shapefile', options=(), sr=None):
         """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
@@ -747,6 +746,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         params['allow_none_geometry'] = self._allow_none_geometry
         params['allow_interpolation'] = self._allow_interpolation
         params['max_activated'] = self._max_activated
+        params['assert_no_change_on_activation'] = self._assert_no_change_on_activation
 
         proxies = []
         for prox, keys in self._keys_of_proxy.items():
@@ -761,6 +761,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_method(DataSource, 'aopen_raster', 'open_araster', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_araster', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'acreate_recipe_raster', 'create_recipe_araster', '0.4.4')
 
 def _restore(params, proxies):
     ds = DataSource(**params)

@@ -178,7 +178,7 @@ class Env(object):
     >>> import buzzard as buzz
     >>> with buzz.Env(default_index_dtype='uint64'):
             ds = buzz.DataSource()
-            dsm = ds.open_araster('dsm', 'path/to/dsm.tif')
+            dsm = ds.aopen_raster('dsm', 'path/to/dsm.tif')
             x, y = dsm.meshgrid_raster
             print(x.dtype)
     numpy.uint64

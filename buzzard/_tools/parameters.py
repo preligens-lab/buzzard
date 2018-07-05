@@ -3,6 +3,7 @@
 import numbers
 import collections
 import logging
+import functools
 
 import numpy as np
 
@@ -109,6 +110,21 @@ class _DeprecationPool(Singleton):
 
     def __init__(self):
         self._seen = set()
+
+    def add_deprecated_method(self, class_obj, new_name, old_name, deprecation_version):
+        met = getattr(class_obj, new_name)
+        key = (class_obj.__name__, new_name, old_name)
+
+        @functools.wraps(met)
+        def _f(*args, **kwargs):
+            if key not in self._seen:
+                self._seen.add(key)
+                logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
+                    old_name, deprecation_version, new_name,
+                ))
+            return met(*args, **kwargs)
+
+        setattr(class_obj, old_name, _f)
 
     def streamline_with_kwargs(self, new_name, old_names, context,
                                new_name_value, new_name_is_provided, user_kwargs):

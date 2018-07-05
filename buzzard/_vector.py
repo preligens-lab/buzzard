@@ -172,7 +172,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         >>> ds.roofs.close()
         >>> with ds.roofs.close:
                 # code...
-        >>> with ds.create_avector('./results.shp', 'linestring').close as roofs:
+        >>> with ds.acreate_vector('./results.shp', 'linestring').close as roofs:
                 # code...
         """
         def _close():
@@ -196,7 +196,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         >>> ds.polygons.delete()
         >>> with ds.polygons.delete:
                 # code...
-        >>> with ds.create_avector('/tmp/tmp.shp', 'polygon').delete as tmp:
+        >>> with ds.acreate_vector('/tmp/tmp.shp', 'polygon').delete as tmp:
                 # code...
         """
         if self._c.mode != 'w':
