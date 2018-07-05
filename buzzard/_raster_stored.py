@@ -1,4 +1,4 @@
-""">>> help(RasterPhysical)"""
+""">>> help(RasterStored)"""
 
 from __future__ import division, print_function
 import numbers
@@ -14,8 +14,8 @@ from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._raster import Raster
 
-class RasterPhysical(Raster):
-    """Concrete class of raster sources containing physical data"""
+class RasterStored(Raster):
+    """Concrete class of raster sources containing stored data"""
 
     class _Constants(Raster._Constants):
         """See Proxy._Constants"""
@@ -33,7 +33,7 @@ class RasterPhysical(Raster):
             self.path = kwargs.pop('path')
             self.driver = kwargs.pop('driver')
 
-            super(RasterPhysical._Constants, self).__init__(ds, **kwargs)
+            super(RasterStored._Constants, self).__init__(ds, **kwargs)
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
@@ -133,7 +133,7 @@ class RasterPhysical(Raster):
     def deactivable(self):
         """See buzz.Proxy.deactivable"""
         v = self.driver != 'MEM'
-        v &= super(RasterPhysical, self).deactivable
+        v &= super(RasterStored, self).deactivable
         return v
 
     @property
@@ -154,19 +154,20 @@ class RasterPhysical(Raster):
         assert self._gdal_ds is None
         gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
 
-        # Check that self._c hasn't changed
-        consts_check = RasterPhysical._Constants(
-            self._ds, gdal_ds=gdal_ds, open_options=self.open_options, mode=self.mode
-        )
-        new = consts_check.__dict__
-        old = self._c.__dict__
-        for k in new.keys():
-            oldv = old[k]
-            newv = new[k]
-            if oldv != newv:
-                raise RuntimeError("Raster's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
-                    k, oldv, newv
-                ))
+        if self._ds._assert_no_change_on_activation:
+            consts_check = RasterStored._Constants(
+                self._ds, gdal_ds=gdal_ds, open_options=self.open_options, mode=self.mode
+            )
+            new = consts_check.__dict__
+            old = self._c.__dict__
+            for k in new.keys():
+                oldv = old[k]
+                newv = new[k]
+                if oldv != newv:
+                    raise RuntimeError("Raster's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
+                        k, oldv, newv
+                    ))
+
         self._gdal_ds = gdal_ds
 
     def _deactivate(self):
@@ -300,5 +301,5 @@ class RasterPhysical(Raster):
     # ******************************************************************************************* **
 
 _RasterDeleteRoutine = type('_RasterDeleteRoutine', (_tools.CallOrContext,), {
-    '__doc__': RasterPhysical.delete.__doc__,
+    '__doc__': RasterStored.delete.__doc__,
 })

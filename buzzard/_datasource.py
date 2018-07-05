@@ -9,7 +9,7 @@ import numpy as np
 
 from buzzard import _datasource_tools
 from buzzard._proxy import Proxy
-from buzzard._raster_physical import RasterPhysical
+from buzzard._raster_stored import RasterStored
 from buzzard._raster_recipe import RasterRecipe
 from buzzard._vector import Vector
 from buzzard._tools import conv, deprecation_pool
@@ -19,12 +19,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     """DataSource is a class that stores references to files, it allows quick manipulations
     by assigning a key to each registered files.
 
-    For actions specific to opened files, see Raster, RasterPhysical and VectorProxy classes
+    For actions specific to opened files, see Raster, RasterStored and VectorProxy classes
 
     TODO before merge:
     - Rename `(open|create)_a*` to `a(open|create)_*`
     - Replace string `origin` to `stored`
-    - Rename Physical to Stored
+    - Rename Stored to Stored
     - Add `(fp|bounds|extents)(_stored|_considered|None)` methods to the right classes
 
     Parameters
@@ -40,6 +40,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     allow_interpolation: bool
     max_activated: nbr >= 1
         Maximum number of sources activated at the same time.
+    assert_no_change_on_activation: bool
+        When activating a deactivated file, check that the definition did not change
+        (see `Sources activation / deactivation` below)
 
     Example
     -------
@@ -142,7 +145,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                  ogr_layer_lock='raise',
                  allow_none_geometry=False,
                  allow_interpolation=False,
-                 max_activated=np.inf, **kwargs):
+                 max_activated=np.inf,
+                 assert_no_change_on_activation=True,
+                 **kwargs):
 
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_fallback': '0.4.4'}, context='DataSource.__init__',
@@ -233,13 +238,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         """
         self._validate_key(key)
-        gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
+        gdal_ds = RasterStored._open_file(path, driver, options, mode)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=options, mode=mode
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([key], prox)
         self._register_new_activated(prox)
         return prox
@@ -249,13 +254,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         See DataSource.open_raster
         """
-        gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
+        gdal_ds = RasterStored._open_file(path, driver, options, mode)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=list(options), mode=mode
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([], prox)
         self._register_new_activated(prox)
         return prox
@@ -329,14 +334,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._validate_key(key)
         if sr is not None:
             fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterPhysical._create_file(
+        gdal_ds = RasterStored._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
         options = [str(arg) for arg in options]
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=options, mode='w'
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([key], prox)
         self._register_new_activated(prox)
         return prox
@@ -349,14 +354,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """
         if sr is not None:
             fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterPhysical._create_file(
+        gdal_ds = RasterStored._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
         options = [str(arg) for arg in options]
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=options, mode='w'
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([], prox)
         self._register_new_activated(prox)
         return prox
@@ -728,7 +733,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 prox.deactivate()
                 assert not prox.activated
 
-    # Pickling ********************************************************************************** **
+    # Copy ************************************************************************************** **
+    def copy(self):
+        return _restore(self.__reduce__())
+
     def __reduce__(self):
         params = {}
         params['sr_work'] = self._sr_work
