@@ -1,5 +1,6 @@
-"""Collection of spatial references manipuation utilities,
-might be filled/improved/moved in the future
+"""Collection of spatial references manipulation utilities,
+
+Will be filled/improved/moved in the future
 """
 
 from osgeo import gdal, osr, ogr

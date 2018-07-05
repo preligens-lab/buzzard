@@ -14,39 +14,31 @@
 
 import os
 import sys
+from datetime import datetime
 sys.path.insert(0, os.path.abspath('../'))
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'buzzard'
-copyright = '2018, Airware'
-author = 'Nicolas Goguey, Hervé Nivon'
-
-# The short X.Y version
+copyright = u'%s, Airware' % datetime.now().year
+author = 'Airware'
 version = ''
-# The full version, including alpha/beta/rc tags
-release = ''
-
+release = version
 
 # -- General configuration ---------------------------------------------------
-
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.todo',
+    'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
+    'sphinx.ext.doctest',
     'sphinx.ext.napoleon',
+    'sphinx.ext.todo',
+    'sphinx.ext.viewcode',
 ]
 
 # Configure `numpy` style documentation
@@ -79,14 +71,23 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'default'
+
+# -- Options for autodoc -----------------------------------------------------
+
+autoclass_content = "both"
+autodoc_default_flags = ['show-inheritance', 'members', 'undoc-members']
+autodoc_member_order = 'bysource'
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+if 'READTHEDOCS' in os.environ:
+    html_theme = 'default'
+else:
+    html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -113,7 +114,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'buzzarddoc'
+htmlhelp_basename = '%sdoc' % project
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -188,9 +189,9 @@ epub_copyright = copyright
 epub_exclude_files = ['search.html']
 
 
-# -- Extension configuration -------------------------------------------------
+# -- Other Extensions configuration ------------------------------------------
 
-# -- Options for todo extension ----------------------------------------------
+autosummary_generate = True
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True

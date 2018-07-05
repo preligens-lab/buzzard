@@ -4,6 +4,15 @@
 Welcome to buzzard's documentation!
 ===================================
 
+In a nutshell, :code:`buzzard` reads and writes geospatial raster and vector data.
+
+Repository is located here: https://github.com/airware/buzzard
+
+.. image:: ../img/buzzard.png
+   :alt: buzzard logo
+   :align: center
+
+.. autogenerate a title
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
@@ -12,8 +21,8 @@ Welcome to buzzard's documentation!
    buzzard.algo
    buzzard.srs
 
-Indices and tables
-==================
+Indices and tables:
+-------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
