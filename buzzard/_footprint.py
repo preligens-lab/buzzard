@@ -30,58 +30,80 @@ LOGGER = logging.getLogger('buzzard')
 class Footprint(TileMixin, IntersectionMixin):
     """Constant object representing the location and size of a spatially localized raster.
 
-    The Footprint
-    - is a toolbox class designed to locate a rectangle in both image space and geometry space
-    - its main purpose is to simplify the manipulation of windows in rasters
-    - has many accessors
-    - has many algorithms
-    - is a constant object
-    - is designed to work with any rectangle in space (like non north-up/west-left rasters)
-    - is independent from projections, units and files
-    - uses [affine](https://github.com/sgillies/affine) library internally for conversions
+    The :code:`Footprint` class:
 
-    Methods
-    -------
+    - is a toolbox class designed to position a rectangle in both image space and geometry space,
+    - its main purpose is to simplify the manipulation of windows in rasters,
+    - has many accessors,
+    - has many algorithms,
+    - is a constant object,
+    - is designed to work with any rectangle in space (like non north-up/west-left rasters),
+    - is independent from projections, units and files,
+    - uses :code:`affine` library internally for conversions (https://github.com/sgillies/affine).
 
-    Method category                     | Method names
-    ------------------------------------|-----------------------------------------------------------
-    Footprint construction              |
-        from scratch                    | __init__, of_extent
-        from Footprint                  | __and__, intersection, erode, dilate, ...
-    Conversion                          | extent, coords, geom, __geo_interface__
-    Accessors                           |
-        Spatial - Size and vectors      | size, width, height, diagvec, ...
-        Spatial - Coordinates           | tl, bl, br, tr, ...
-        Spatial - Misc                  | area, length, semiminoraxis, ...
-        Raster - Size                   | rsize, rwidth, rheight, ...
-        Raster - Indices                | rtl, rbl, rbr, ttr, ...
-        Raster - Misc                   | rarea, rlength, rsemiminoraxis, ...
-        Affine transformations          | pxsize, pxvec, angle, ...
-    Binary predicates                   | __eq__, ...
-    Numpy                               | shape, meshgrid_raster, meshgrid_spatial, slice_in, ...
-    Coordinates conversions             | spatial_to_raster, raster_to_spatial
-    Geometry / Raster conversions       | find_polygons, burn_polygons, ...
-    Tiling                              | tile, tile_count, tile_occurrence
-    Serialization                       | __str__, ...
+    +-------------------------------------------------+--------------------------------------------------------+
+    | Method category                                 | Method names                                           |
+    +==============+==================================+========================================================+
+    | Footprint    | from scratch                     | __init__, of_extent                                    |
+    | construction +----------------------------------+--------------------------------------------------------+
+    |              | from :code:`Footprint`           | __and__, intersection, erode, dilate, ...              |
+    +--------------+----------------------------------+--------------------------------------------------------+
+    | Conversion                                      | extent, coords, geom, __geo_interface__                |
+    +--------------+----------------------------------+--------------------------------------------------------+
+    | Accessors    | Spatial - Size and vectors       | size, width, height, diagvec, ...                      |
+    |              +----------------------------------+--------------------------------------------------------+
+    |              | Spatial - Coordinates            | tl, bl, br, tr, ...                                    |
+    |              +----------------------------------+--------------------------------------------------------+
+    |              | Spatial - Misc                   | area, length, semiminoraxis, ...x                      |
+    |              +----------------------------------+--------------------------------------------------------+
+    |              | Raster - Size                    | rsize, rwidth, rheight, ...                            |
+    |              +----------------------------------+--------------------------------------------------------+
+    |              | Raster - Indices                 | rtl, rbl, rbr, ttr, ...                                |
+    |              +----------------------------------+--------------------------------------------------------+
+    |              | Raster - Misc                    | rarea, rlength, rsemiminoraxis, ...                    |
+    |              +----------------------------------+--------------------------------------------------------+
+    |              | Affine transformations           | pxsize, pxvec, angle, ...                              |
+    +--------------+----------------------------------+--------------------------------------------------------+
+    | Binary predicates                               | __eq__, ...                                            |
+    +-------------------------------------------------+--------------------------------------------------------+
+    | Numpy                                           | shape, meshgrid_raster, meshgrid_spatial, slice_in, ...|
+    +-------------------------------------------------+--------------------------------------------------------+
+    | Coordinates conversions                         | spatial_to_raster, raster_to_spatial                   |
+    +-------------------------------------------------+--------------------------------------------------------+
+    | Geometry / Raster conversions                   | find_polygons, burn_polygons, ...                      |
+    +-------------------------------------------------+--------------------------------------------------------+
+    | Tiling                                          | tile, tile_count, tile_occurrence                      |
+    +-------------------------------------------------+--------------------------------------------------------+
+    | Serialization                                   | __str__, ...                                           |
+    +-------------------------------------------------+--------------------------------------------------------+
 
-    Informations on geo transforms (gt) and affine matrices
-    -------------------------------------------------------
-    http://www.perrygeo.com/python-affine-transforms.html
-    https://pypi.python.org/pypi/affine/1.0
+    Informations on geo transforms (gt) and affine matrices:
 
-    GDAL ordering
+    - http://www.perrygeo.com/python-affine-transforms.html
+    - https://pypi.python.org/pypi/affine/1.0
+
+    GDAL ordering:
+
+    +-----+------------------+--------------+-----+-----------------+-------------------+
     | c   | a                | b            | f   | d               | e                 |
-    |-----|------------------|--------------|-----|-----------------|-------------------|
+    +-----+------------------+--------------+-----+-----------------+-------------------+
     | tlx | width of a pixel | row rotation | tly | column rotation | height of a pixel |
+    +-----+------------------+--------------+-----+-----------------+-------------------+
+
     >>> c, a, b, f, d, e = fp.gt
     >>> tlx, dx, rx, tly, ry, dy = fp.gt
 
-    Matrix ordering
+    Matrix ordering:
+
+    +------------------+--------------+-----+-----------------+-------------------+-----+
     | a                | b            | c   | d               | e                 | f   |
-    |------------------|--------------|-----|-----------------|-------------------|-----|
+    +------------------+--------------+-----+-----------------+-------------------+-----+
     | width of a pixel | row rotation | tlx | column rotation | height of a pixel | tly |
+    +------------------+--------------+-----+-----------------+-------------------+-----+
+
     >>> a, b, c, d, e, f = fp.aff6
     >>> dx, rx, tlx, ry, dy, tly = fp.aff6
+
     """
 
     __slots__ = ['_tl', '_bl', '_br', '_tr', '_aff', '_rsize', '_significant_min']
@@ -200,9 +222,10 @@ class Footprint(TileMixin, IntersectionMixin):
         extent: (nbr, nbr, nbr, nbr)
             Spatial coordinates of (minx, maxx, miny, maxy) defining a rectangle
         scale: nbr or (nbr, nbr)
-            Resolution of output Footprint
-            if nbr: resolution = [a, -a]
-            if (nbr, nbr): resolution [a, b]
+            Resolution of output Footprint:
+
+            * if nbr: resolution = [a, -a]
+            * if (nbr, nbr): resolution [a, b]
         """
         # Check extent parameter
         extent = np.asarray(extent, dtype='float64')
@@ -245,7 +268,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return cls(tl=rect.tl, size=size, rsize=rsize)
 
     def clip(self, startx, starty, endx, endy):
-        """Construct a new Footprint from by clipping self using pixel indices
+        """Construct a new Footprint by clipping self using pixel indices
 
         To clip using coordinates see `Footprint.intersection`.
 
@@ -262,7 +285,8 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Returns
         -------
-        Footprint
+        : Footprint
+            The new clipped :code:`Footprint`
         """
         startx, endx, _ = slice(startx, endx).indices(self.rsizex)
         starty, endy, _ = slice(starty, endy).indices(self.rsizey)
@@ -289,13 +313,13 @@ class Footprint(TileMixin, IntersectionMixin):
         )
 
     def erode(self, count):
-        """Construct a new Footprint from self, eroding all edges by `count` pixels"""
+        """Construct a new Footprint from self, eroding all edges by :code:`count` pixels"""
         assert count >= 0
         assert count == int(count)
         return self._morpho(-count)
 
     def dilate(self, count):
-        """Construct a new Footprint from self, dilating all edges by `count` pixels"""
+        """Construct a new Footprint from self, dilating all edges by :code:`count` pixels"""
         assert count >= 0
         assert count == int(count)
         return self._morpho(count)

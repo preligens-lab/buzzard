@@ -1,5 +1,5 @@
 """
-When you import :code:`buzzard` for the first time, you should always do it from the main thread.
+IMPORTANT: When you import :code:`buzzard` for the first time, you should always do it from the main thread.
 """
 
 # Import osgeo before cv2
