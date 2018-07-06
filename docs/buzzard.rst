@@ -9,12 +9,17 @@ buzzard
 Classes
 -------
 
-.. autoclass:: buzzard.Footprint
+.. autoclass:: buzzard.DataSource
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: buzzard.DataSource
+.. autoclass:: buzzard.Env
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. autoclass:: buzzard.Footprint
     :members:
     :undoc-members:
     :show-inheritance:
@@ -29,11 +34,6 @@ Classes
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: buzzard.Vector
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 .. autoclass:: buzzard.RasterPhysical
     :members:
     :undoc-members:
@@ -44,7 +44,7 @@ Classes
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: buzzard.Env
+.. autoclass:: buzzard.Vector
     :members:
     :undoc-members:
     :show-inheritance:

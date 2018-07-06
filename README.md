@@ -164,6 +164,13 @@ You can also:
 - get yourself familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
 - play with the examples [examples.ipynb](./docs/examples.ipynb)
 
+How to compile documentation on your local computer:
+```sh
+$> cd docs
+$> make html
+$> open _build/html/index.html
+```
+
 ## Contributions and feedback
 
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
