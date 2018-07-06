@@ -67,7 +67,7 @@ instance/
 # Sphinx build documentation
 docs/_build/
 
-# jupythe leftovers
+# jupyter leftovers
 docs/*.tif
 docs/*.tif.aux.xml
 docs/*.vrt
