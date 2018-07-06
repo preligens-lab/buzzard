@@ -75,7 +75,7 @@ def test_run(path, driver, fps, test_fields, test_coords_insertion):
         fields = []
 
     geom_type = 'polygon'
-    v = ds.acreate_vector(path, geom_type, fields, driver=driver, sr=SRS[0]['wkt'])
+    v = ds.create_avector(path, geom_type, fields, driver=driver, sr=SRS[0]['wkt'])
 
     def _build_data():
         rng = np.random.RandomState(42)
