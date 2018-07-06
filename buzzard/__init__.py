@@ -21,7 +21,7 @@ import buzzard.algo
 
 # Gather version
 import os
-version_file = open(os.path.join('.', 'VERSION'))
+version_file = open(os.path.join('..', 'VERSION'))
 version = version_file.read().strip()
 
 __version__ = version
