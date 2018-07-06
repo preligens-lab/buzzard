@@ -145,34 +145,34 @@ class _DeprecationPool(Singleton):
 
         Exemple
         -------
-        >>> def fn(newname='eee', **kwargs):
+        >>> def fn(newname='default', **kwargs):
         ...     newname, kwargs = deprecation_pool.streamline_with_kwargs(
         ...         new_name='newname', old_names={'oldname': '0.2.3'},
         ...         new_name_value=newname, context='the fn function',
-        ...         new_name_is_provided=newname != 'eee',
+        ...         new_name_is_provided=newname != 'default',
         ...         user_kwargs=kwargs,
         ...     )
         ...     return newname
 
         >>> fn() # Nothing happens
-        'eee'
+        'default'
 
-        >>> fn(newname='eee') # Nothing happens
-        'eee'
+        >>> fn(newname='default') # Nothing happens
+        'default'
 
         >>> fn(oldname='aha') # A warning is issued the first time
         WARNING:root:`oldname` is deprecated since v0.2.3, use `newname`
         'aha'
 
-        >>> fn(newname='eee', oldname='eee') # A warning is issued the first time
+        >>> fn(newname='default', oldname='default') # A warning is issued the first time
         WARNING:root:`oldname` is deprecated since v0.2.3, use `newname`
-        'eee'
+        'default'
 
-        >>> fn(newname='eee', oldname='aha') # A warning is issued the first time
+        >>> fn(newname='default', oldname='aha') # A warning is issued the first time
         WARNING:root:`oldname` is deprecated since v0.2.3, use `newname`
         'aha'
 
-        >>> fn(newname='aha', oldname='eee') # doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> fn(newname='aha', oldname='default') # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         NameError: Using both `newname` and `oldname`, `oldname` is deprecated
 
