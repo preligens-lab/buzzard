@@ -62,36 +62,48 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     Coordinates conversions
     -----------------------
-    A DataSource may perform coordinates conversions on the fly using osr by following a set of
-    rules. Those conversions only include vector files, raster files Footprints and basic raster
-    remapping. General raster warping is not included (yet).
+    A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
+    modes are available, a set of rules define how each mode work. Those conversions concern both
+    read operations and write operations, all are performed by OSR.
+
+    Those conversions are only perfomed on vector's data/metadata and raster's Footprints.
+    This implies that classic raster warping is not included (yet) in those conversions, only raster
+    shifting/scaling/rotation.
+
+    The `z` coordinates of vectors features are also converted, on the other hand elevations are not
+    converted in DEM rasters.
 
     If `analyse_transformation` is set to `True` (default), all coordinates conversions are
     tested against `buzz.env.significant` on file opening to ensure their feasibility or
-    raise an exception otherwise. This system is naive and very restrictive, a smarter and
-    smarter version is planned. Use with caution.
+    raise an exception otherwise. This system is naive and very restrictive, a smarter
+    version is planned. Use with caution.
 
     Terminology:
     `sr`: Spatial reference
-    `sr_work`: Spatial reference of all interactions with a DataSource.
-        (i.e. Footprints, polygons...)
-    `sr_forced`: Forced spatial reference of a file, wether or not it can be determined by reading it
-    `sr_stored`: Spatial reference of stored data
-    `sr_fallback`: Fallback spatial reference of a file if it cannot be determined by reading it
+    `sr_work`: The sr of all interactions with a DataSource (i.e. Footprints, extents, Polygons...),
+        may be missing
+    `sr_stored`: The sr written in the raster/vector storage, may be None or ignored
+    `sr_virtual`: The sr considered to be written in the raster/vector storage, it is usually the
+        same as `sr_stored`. When a raster/vector is read, a conversion is performed from
+        `sr_virtual` to `sr_work`. When a raster/vector is written, a conversion is performed from
+        `sr_work` to `sr_virtual`.
+    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`
+    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing
 
-    Parameters and modes:
-    | mode | sr_work | sr_fallback | sr_forced | How is the `sr` of a file determined                                                     |
-    |------|---------|-------------|-----------|------------------------------------------------------------------------------------------|
-    | 1    | None    | None        | None      | Not determined (no coordinates conversion for the lifetime of this DataSource)           |
-    | 2    | Some    | None        | None      | Read the `sr` of a file in its metadata. If missing raise an exception                   |
-    | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_fallback` |
-    | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_forced`                   |
+    DataSource parameters and modes:
+    | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a raster/vector determined                               |
+    |------|---------|-------------|-----------|-------------------------------------------------------------------------------------|
+    | 1    | None    | None        | None      | Use `sr_stored`, but no conversion is performed for the lifetime of this DataSource |
+    | 2    | string  | None        | None      | Use `sr_stored`, if None raise an exception                                         |
+    | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                       |
+    | 4    | string  | None        | string    | Use `sr_forced`                                                                     |
 
-    For example if all opened files are known to be all written in a same `sr` use `mode 1`, or
-    `mode 4` if you wish to work in a different `sr`.
-    On the other hand, if not all files are written in the same `sr`, `mode 2` and
-    `mode 3` may help, but make sure to use `buzz.Env(analyse_transformation=True)` to be
-    informed on the quality of the transformations performed.
+    - If all opened files are known to be written in a same sr, use `mode 1`. No conversions will
+        be performed, this is the safest way to work.
+    - If all opened files are known to be written in the same sr but you wish to work in a different
+        sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
+        concerning spatial references have no impacts on the data you manipulate.
+    - If you want to manipulate files in different sr, `mode2` and `mode3` should be used.
 
     A spatial reference parameter may be
     - A path to a file

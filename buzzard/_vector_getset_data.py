@@ -129,13 +129,13 @@ class VectorGetSetMixin(object):
     def _insert_data_unsafe(self, geom_type, geom, fields, index):
         if geom is None:
             pass
-        elif self._to_file:
+        elif self._to_virtual:
             if geom_type == 'coordinates':
                 geom = sg.asShape({
                     'type': self.type,
                     'coordinates': geom,
                 })
-            geom = shapely.ops.transform(self._to_file, geom)
+            geom = shapely.ops.transform(self._to_virtual, geom)
             geom = conv.ogr_of_shapely(geom)
             # TODO: Use json and unit test
             # mapping = sg.mapping(geom)

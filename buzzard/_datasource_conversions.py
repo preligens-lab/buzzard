@@ -16,38 +16,38 @@ class DataSourceConversionsMixin(object):
         self._sr_forced = sr_forced
         self._analyse_transformations = bool(analyse_transformation)
 
-    def _get_transforms(self, sr_stored, rect, rect_from='stored'):
-        """Retrieve the `to_work` and `to_stored` conversion functions.
+    def _get_transforms(self, sr_virtual, rect, rect_from='virtual'):
+        """Retrieve the `to_work` and `to_virtual` conversion functions.
 
         Parameters
         ----------
-        sr_stored: osr.SpatialReference
+        sr_virtual: osr.SpatialReference
         rect: Footprint or extent or None
-        rect_from: one of ('stored', 'work')
+        rect_from: one of ('virtual', 'work')
         """
-        assert rect_from in ['stored', 'work']
+        assert rect_from in ['virtual', 'work']
 
         if not self._sr_work:
             return None, None
         if self._sr_forced:
-            sr_stored = self._sr_forced
-        elif not sr_stored:
+            sr_virtual = self._sr_forced
+        elif not sr_virtual:
             if self._sr_fallback:
-                sr_stored = self._sr_fallback
+                sr_virtual = self._sr_fallback
             else:
-                raise ValueError("Missing stored's spatial reference")
+                raise ValueError("Missing virtual's spatial reference")
 
-        to_work = osr.CreateCoordinateTransformation(sr_stored, self._sr_work).TransformPoints
-        to_stored = osr.CreateCoordinateTransformation(self._sr_work, sr_stored).TransformPoints
+        to_work = osr.CreateCoordinateTransformation(sr_virtual, self._sr_work).TransformPoints
+        to_virtual = osr.CreateCoordinateTransformation(self._sr_work, sr_virtual).TransformPoints
 
         to_work = self._make_transfo(to_work)
-        to_stored = self._make_transfo(to_stored)
+        to_virtual = self._make_transfo(to_virtual)
 
         if self._analyse_transformations:
-            if rect_from == 'stored':
-                an = srs.Analysis(to_work, to_stored, rect)
+            if rect_from == 'virtual':
+                an = srs.Analysis(to_work, to_virtual, rect)
             else:
-                an = srs.Analysis(to_stored, to_work, rect)
+                an = srs.Analysis(to_virtual, to_work, rect)
             if rect is None:
                 pass
             elif isinstance(rect, Footprint):
@@ -63,7 +63,7 @@ class DataSourceConversionsMixin(object):
                             'Bad coord transformation for vector proxy: {}'.format(an.messages)
                         )
 
-        return to_work, to_stored
+        return to_work, to_virtual
 
     @staticmethod
     def _make_transfo(osr_transfo):
@@ -105,7 +105,7 @@ class DataSourceConversionsMixin(object):
     def _convert_footprint(self, fp, sr):
         sr_tmp = osr.GetUserInputAsWKT(sr)
         sr_tmp = osr.SpatialReference(sr_tmp)
-        _, to_stored = self._get_transforms(sr_tmp, fp, 'work')
-        if to_stored:
-            fp = fp.move(*to_stored([fp.tl, fp.tr, fp.br]))
+        _, to_virtual = self._get_transforms(sr_tmp, fp, 'work')
+        if to_virtual:
+            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
         return fp

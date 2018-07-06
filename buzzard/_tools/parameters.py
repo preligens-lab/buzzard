@@ -115,7 +115,7 @@ class _DeprecationPool(Singleton):
         key = (class_obj.__name__, new_name, old_name)
 
         @functools.wraps(getattr(class_obj, new_name))
-        def _f(*args, **kwargs):
+        def _f(this, *args, **kwargs):
             if key not in self._seen:
                 self._seen.add(key)
                 logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
