@@ -82,9 +82,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     `sr`: Spatial reference
     `sr_work`: The sr of all interactions with a DataSource (i.e. Footprints, extents, Polygons...),
         may be missing
-    `sr_stored`: The sr written in the raster/vector storage, may be None or ignored
-    `sr_virtual`: The sr considered to be written in the raster/vector storage, it is usually the
-        same as `sr_stored`. When a raster/vector is read, a conversion is performed from
+    `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None
+        or ignored
+    `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
+        often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
         `sr_virtual` to `sr_work`. When a raster/vector is written, a conversion is performed from
         `sr_work` to `sr_virtual`.
     `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`
@@ -165,6 +166,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             new_name_is_provided=sr_forced is not None,
             user_kwargs=kwargs,
         )
+        if kwargs:
+            raise NameError('Unknown parameters like `{}`'.format(
+                list(kwargs.keys())[0]
+            ))
 
         mode = (sr_work is not None, sr_fallback is not None, sr_forced is not None)
         if mode == (False, False, False):
@@ -741,7 +746,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     # Copy ************************************************************************************** **
     def copy(self):
-        return _restore(self.__reduce__())
+        f, args = self.__reduce__()
+        return f(*args)
 
     def __reduce__(self):
         params = {}

@@ -411,25 +411,31 @@ def test_pickling():
         return np.ones(fp.shape) * id(ds)
 
     def slave():
-        print('slave', dd.get_worker())
         """Slave process routine. `ds` and `oldid` live in the closure and are pickled by cloudpickle in Client.sumbit"""
-        assert id(ds) != oldid, 'this test makes sense if `ds` was pickled'
-        assert 'v1' in ds
-        assert 'v2' not in ds
-        assert 'r1' in ds
-        assert 'r2' not in ds
-        assert 'r3' in ds
-        assert (ds._queued_count, ds._locked_count, ds.v1.activated, ds.r1.activated, ds.r3.activated) == (0, 0, False, False, True)
-        assert ds.v1.get_data(0)[1] == str(oldid)
-        assert (ds.r1.get_data() == oldid).all()
-        assert (ds.r3.get_data() == id(ds)).all(), '`slave` and `pxfn` should share the same `ds` obj'
+        # At this point the `ds` was cloudpickled/uncloudpickled by dask through dask.distributed
+        local_ds = ds
 
-        ds.v1.insert_data((0, 1), ['42'])
-        ds.r1.fill(42)
-        assert ds.v1.get_data(1)[1] == '42'
-        assert (ds.r1.get_data() == 42).all()
+        # Perform an additional copy to unit test this feature too
 
-        ds.deactivate_all()
+        local_ds = local_ds.copy()
+
+        assert id(local_ds) != oldid, 'this test makes sense if `local_ds` was pickled'
+        assert 'v1' in local_ds
+        assert 'v2' not in local_ds
+        assert 'r1' in local_ds
+        assert 'r2' not in local_ds
+        assert 'r3' in local_ds
+        assert (local_ds._queued_count, local_ds._locked_count, local_ds.v1.activated, local_ds.r1.activated, local_ds.r3.activated) == (0, 0, False, False, True)
+        assert local_ds.v1.get_data(0)[1] == str(oldid)
+        assert (local_ds.r1.get_data() == oldid).all()
+        assert (local_ds.r3.get_data() == id(ds)).all(), '`slave` and `pxfn` should share the same `ds` obj'
+
+        local_ds.v1.insert_data((0, 1), ['42'])
+        local_ds.r1.fill(42)
+        assert local_ds.v1.get_data(1)[1] == '42'
+        assert (local_ds.r1.get_data() == 42).all()
+
+        local_ds.deactivate_all()
 
     ds = buzz.DataSource(max_activated=2)
     oldid = id(ds)

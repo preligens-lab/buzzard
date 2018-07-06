@@ -58,24 +58,36 @@ class Proxy(object):
 
     @property
     def wkt_virtual(self):
-        """File's spatial reference in WKT format"""
+        """The spatial reference considered to be written in the metadata of a raster/vector
+        storage, in WKT format.
+        string or None
+        """
         return self._wkt_virtual
 
     @property
     def proj4_virtual(self):
-        """File's spatial reference in proj4 format"""
+        """The spatial reference considered to be written in the metadata of a raster/vector
+        storage, in proj4 format.
+        string or None
+        """
         if self._wkt_virtual is None:
             return None # pragma: no cover
         return osr.SpatialReference(self._wkt_virtual).ExportToProj4()
 
     @property
     def wkt_stored(self):
-        """File's spatial reference in WKT format"""
+        """The spatial reference that can be found in the metadata of a raster/vector storage
+        storage, in wkt format.
+        string or None
+        """
         return self._c.wkt_stored
 
     @property
     def proj4_stored(self):
-        """File's spatial reference in proj4 format"""
+        """The spatial reference that can be found in the metadata of a raster/vector storage
+        storage, in proj4 format.
+        string or None
+        """
         if self._c.wkt_stored is None:
             return None # pragma: no cover
         return osr.SpatialReference(self._c.wkt_stored).ExportToProj4()
