@@ -19,4 +19,9 @@ from buzzard._env import Env, env
 import buzzard.srs
 import buzzard.algo
 
-__version__ = "0.4.3"
+# Gather version
+import os
+version_file = open(os.path.join('.', 'VERSION'))
+version = version_file.read().strip()
+
+__version__ = version
