@@ -25,7 +25,7 @@ Table of Contents
 
 ### Create the private image repository in ECS using ECR
 
-Example: `$> aws ecr create-repository --repository-name shrike --region us-east-1 --profile dev`
+Example: `$> aws ecr create-repository --repository-name buzzard --region us-east-1 --profile dev`
 
 ### Setting it up Docker on a Mac
 
