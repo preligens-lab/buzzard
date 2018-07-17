@@ -213,7 +213,7 @@ class _ThreadMapStackGetter(object):
     def __init__(self, key):
         self.key = key
 
-    def __call__(self, self2):
+    def __call__(self, current_env_self):
         return _LOCAL._mapstack[self.key]
 
 class _CurrentEnv(Singleton):
@@ -225,15 +225,9 @@ class _CurrentEnv(Singleton):
     8.0
 
     """
-    _instance = None
+    pass
 
-    def __new__(cls):
-        if cls._instance is None:
-            for k in _OPTIONS.keys():
-                setattr(cls, k, property(_ThreadMapStackGetter(k)))
-            cls._instance = object.__new__(cls)
-            return cls._instance
-        else:
-            assert False
+for k in _OPTIONS.keys():
+    setattr(_CurrentEnv, k, property(_ThreadMapStackGetter(k)))
 
 env = _CurrentEnv() # pylint: disable=invalid-name

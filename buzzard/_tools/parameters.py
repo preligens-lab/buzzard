@@ -4,6 +4,7 @@ import numbers
 import collections
 import logging
 import functools
+import six
 
 import numpy as np
 
@@ -126,9 +127,10 @@ class _DeprecationPool(Singleton):
         setattr(class_obj, old_name, _f)
 
     def add_deprecated_property(self, class_obj, new_name, old_name, deprecation_version):
+
         key = (class_obj.__name__, new_name, old_name)
 
-        @functools.wraps(getattr(class_obj, new_name))
+        @functools.wraps(getattr(class_obj, new_name).fget)
         def _f(this):
             if key not in self._seen:
                 self._seen.add(key)
@@ -181,7 +183,7 @@ class _DeprecationPool(Singleton):
         NameError: Using both `newname` and `oldname`, `oldname` is deprecated
 
         """
-        deprecated_names_used = old_names.keys() & user_kwargs.keys()
+        deprecated_names_used = six.viewkeys(old_names) & six.viewkeys(user_kwargs)
         if len(deprecated_names_used) == 0:
             return new_name_value, user_kwargs
         n = deprecated_names_used.pop()
