@@ -9,17 +9,34 @@ import numpy as np
 
 from buzzard import _datasource_tools
 from buzzard._proxy import Proxy
-from buzzard._raster_physical import RasterPhysical
+from buzzard._raster_stored import RasterStored
 from buzzard._raster_recipe import RasterRecipe
 from buzzard._vector import Vector
-from buzzard._tools import conv
+from buzzard._tools import conv, deprecation_pool
 from buzzard._datasource_conversions import DataSourceConversionsMixin
 
 class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
-    by assigning a key to each registered files.
+    by assigning a key to each registered file.
 
-    For actions specific to opened files, see Raster, RasterPhysical and VectorProxy classes
+    For actions specific to opened files, see Raster, RasterStored and VectorProxy classes
+
+    Parameters
+    ----------
+    sr_work: None or string (see `Coordinates conversions` below)
+    sr_fallback: None or string (see `Coordinates conversions` below)
+    sr_forced: None or string (see `Coordinates conversions` below)
+    analyse_transformation: bool
+        Whether or not to perform a basic analysis on two sr to check their compatibilty
+    ogr_layer_lock: one of ('none', 'wait', 'raise')
+        Mutex operations when reading or writing vector files
+    allow_none_geometry: bool
+    allow_interpolation: bool
+    max_activated: nbr >= 1
+        Maximum number of sources activated at the same time.
+    assert_no_change_on_activation: bool
+        When activating a deactivated file, check that the definition did not change
+        (see `Sources activation / deactivation` below)
 
     Example
     -------
@@ -34,14 +51,82 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
     ...     print(ds.rgb.fp)
     ...     arr = ds.rgb.get_data()
-    >>> with ds.open_araster('path/to/rgb.tif').close as rgb:
+    >>> with ds.aopen_raster('path/to/rgb.tif').close as rgb:
     ...     print(rgb.fp)
     ...     arr = rgb.get_data()
 
     Creation
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
-    >>> with ds.create_araster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
+    >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
     ...      cache.set_data(dem.get_data())
+
+    Coordinates conversions
+    -----------------------
+    A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
+    modes are available, a set of rules define how each mode work. Those conversions concern both
+    read operations and write operations, all are performed by OSR.
+
+    Those conversions are only perfomed on vector's data/metadata and raster's Footprints.
+    This implies that classic raster warping is not included (yet) in those conversions, only raster
+    shifting/scaling/rotation.
+
+    The `z` coordinates of vectors features are also converted, on the other hand elevations are not
+    converted in DEM rasters.
+
+    If `analyse_transformation` is set to `True` (default), all coordinates conversions are
+    tested against `buzz.env.significant` on file opening to ensure their feasibility or
+    raise an exception otherwise. This system is naive and very restrictive, a smarter
+    version is planned. Use with caution.
+
+    Terminology:
+    `sr`: Spatial reference
+    `sr_work`: The sr of all interactions with a DataSource (i.e. Footprints, extents, Polygons...),
+        may be missing
+    `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None
+        or ignored
+    `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
+        often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
+        `sr_virtual` to `sr_work`. When setting vector data, a conversion is performed from
+        `sr_work` to `sr_virtual`.
+    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`
+    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing
+
+    DataSource parameters and modes:
+    | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a raster/vector determined                               |
+    |------|---------|-------------|-----------|-------------------------------------------------------------------------------------|
+    | 1    | None    | None        | None      | Use `sr_stored`, but no conversion is performed for the lifetime of this DataSource |
+    | 2    | string  | None        | None      | Use `sr_stored`, if None raise an exception                                         |
+    | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                       |
+    | 4    | string  | None        | string    | Use `sr_forced`                                                                     |
+
+    - If all opened files are known to be written in a same sr, use `mode 1`. No conversions will
+        be performed, this is the safest way to work.
+    - If all opened files are known to be written in the same sr but you wish to work in a different
+        sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
+        concerning spatial references have no impacts on the data you manipulate.
+    - If you want to manipulate files in different sr, `mode 2` and `mode 3` should be used.
+       - Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
+         create a GeoJSON file in `mode 2`.
+
+    A spatial reference parameter may be
+    - A path to a file
+    - A [textual spatial reference](http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-)
+
+    Example
+    -------
+    mode 1
+    >>> ds = buzz.DataSource()
+
+    mode 2
+    >>> ds = buzz.DataSource(
+            sr_work=buzz.srs.wkt_of_file('path/to.tif', center=True),
+        )
+
+    mode 4
+    >>> ds = buzz.DataSource(
+            sr_work=buzz.srs.wkt_of_file('path/to.tif', unit='meter'),
+            sr_forced='path/to.tif',
+        )
 
     Sources activation / deactivation
     ---------------------------------
@@ -63,82 +148,32 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     """
 
-    def __init__(self, sr_work=None, sr_implicit=None, sr_origin=None,
+    def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
                  analyse_transformation=True,
                  ogr_layer_lock='raise',
                  allow_none_geometry=False,
                  allow_interpolation=False,
-                 max_activated=np.inf):
-        """Constructor
+                 max_activated=np.inf,
+                 assert_no_change_on_activation=True,
+                 **kwargs):
+        sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
+            new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
+            new_name_value=sr_fallback,
+            new_name_is_provided=sr_fallback is not None,
+            user_kwargs=kwargs,
+        )
+        sr_forced, kwargs = deprecation_pool.streamline_with_kwargs(
+            new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='DataSource.__init__',
+            new_name_value=sr_forced,
+            new_name_is_provided=sr_forced is not None,
+            user_kwargs=kwargs,
+        )
+        if kwargs:
+            raise NameError('Unknown parameters like `{}`'.format(
+                list(kwargs.keys())[0]
+            ))
 
-        Parameters
-        ----------
-        sr_work: None or string (see `Coordinates conversions` below)
-        sr_implicit: None or string (see `Coordinates conversions` below)
-        sr_origin: None or string (see `Coordinates conversions` below)
-        analyse_transformation: bool
-            Whether or not to perform a basic analysis on two sr to check their compatibilty
-        ogr_layer_lock: one of ('none', 'wait', 'raise')
-            Mutex operations when reading or writing vector files
-        allow_none_geometry: bool
-        allow_interpolation: bool
-        max_activated: nbr >= 1
-            Maximum number of sources activated at the same time.
-
-        Coordinates conversions
-        -----------------------
-        A DataSource may perform coordinates conversions on the fly using osr by following a set of
-        rules. Those conversions only include vector files, raster files Footprints and basic raster
-        remapping. General raster warping is not included (yet).
-
-        If `analyse_transformation` is set to `True` (default), all coordinates conversions are
-        tested against `buzz.env.significant` on file opening to ensure their feasibility or
-        raise an exception otherwise. This system is naive and very restrictive, a smarter and
-        smarter version is planned. Use with caution.
-
-        Terminology:
-        `sr`: Spatial reference
-        `sr_work`: Spatial reference of all interactions with a DataSource.
-            (i.e. Footprints, polygons...)
-        `sr_origin`: Spatial reference of data stored in a file
-        `sr_implicit`: Fallback spatial reference of a file if it cannot be determined by reading it
-
-        Parameters and modes:
-        | mode | sr_work | sr_implicit | sr_origin | How is the `sr` of a file determined                                                     |
-        |------|---------|-------------|-----------|------------------------------------------------------------------------------------------|
-        | 1    | None    | None        | None      | Not determined (no coordinates conversion for the lifetime of this DataSource)           |
-        | 2    | Some    | None        | None      | Read the `sr` of a file in its metadata. If missing raise an exception                   |
-        | 3    | Some    | Some        | None      | Read the `sr` of a file in its metadata. If missing it is considered to be `sr_implicit` |
-        | 4    | Some    | None        | Some      | Ignore sr read, consider all opened files to be encoded in `sr_origin`                   |
-
-        For example if all opened files are known to be all written in a same `sr` use `mode 1`, or
-        `mode 4` if you wish to work in a different `sr`.
-        On the other hand, if not all files are written in the same `sr`, `mode 2` and
-        `mode 3` may help, but make sure to use `buzz.Env(analyse_transformation=True)` to be
-        informed on the quality of the transformations performed.
-
-        A spatial reference parameter may be
-        - A path to a file
-        - A [textual spatial reference](http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-)
-
-        Example
-        -------
-        mode 1
-        >>> ds = buzz.DataSource()
-
-        mode 2
-        >>> ds = buzz.DataSource(
-                sr_work=buzz.srs.wkt_of_file('path/to.tif', center=True),
-            )
-
-        mode 4
-        >>> ds = buzz.DataSource(
-                sr_work=buzz.srs.wkt_of_file('path/to.tif', unit='meter'),
-                sr_origin='path/to.tif',
-            )
-
-        """
-        mode = (sr_work is not None, sr_implicit is not None, sr_origin is not None)
+        mode = (sr_work is not None, sr_fallback is not None, sr_forced is not None)
         if mode == (False, False, False):
             pass
         elif mode == (True, False, False):
@@ -158,6 +193,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
+        assert_no_change_on_activation = bool(assert_no_change_on_activation)
 
         if mode[0]:
             wkt_work = osr.GetUserInputAsWKT(sr_work)
@@ -166,29 +202,30 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             wkt_work = None
             sr_work = None
         if mode[1]:
-            wkt_implicit = osr.GetUserInputAsWKT(sr_implicit)
-            sr_implicit = osr.SpatialReference(wkt_implicit)
+            wkt_fallback = osr.GetUserInputAsWKT(sr_fallback)
+            sr_fallback = osr.SpatialReference(wkt_fallback)
         else:
-            wkt_implicit = None
-            sr_implicit = None
+            wkt_fallback = None
+            sr_fallback = None
         if mode[2]:
-            wkt_origin = osr.GetUserInputAsWKT(sr_origin)
-            sr_origin = osr.SpatialReference(wkt_origin)
+            wkt_forced = osr.GetUserInputAsWKT(sr_forced)
+            sr_forced = osr.SpatialReference(wkt_forced)
         else:
-            wkt_origin = None
-            sr_origin = None
+            wkt_forced = None
+            sr_forced = None
 
         DataSourceConversionsMixin.__init__(
-            self, sr_work, sr_implicit, sr_origin, analyse_transformation
+            self, sr_work, sr_fallback, sr_forced, analyse_transformation
         )
         _datasource_tools.DataSourceToolsMixin.__init__(self, max_activated)
 
         self._wkt_work = wkt_work
-        self._wkt_implicit = wkt_implicit
-        self._wkt_origin = wkt_origin
+        self._wkt_fallback = wkt_fallback
+        self._wkt_forced = wkt_forced
         self._ogr_layer_lock = ogr_layer_lock
         self._allow_interpolation = allow_interpolation
         self._allow_none_geometry = allow_none_geometry
+        self._assert_no_change_on_activation = assert_no_change_on_activation
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
@@ -209,34 +246,34 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.open_raster('ortho', '/path/to/ortho.tif')
-        >>> ortho = ds.open_araster('/path/to/ortho.tif')
+        >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
 
         """
         self._validate_key(key)
-        gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
+        gdal_ds = RasterStored._open_file(path, driver, options, mode)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=options, mode=mode
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([key], prox)
         self._register_new_activated(prox)
         return prox
 
-    def open_araster(self, path, driver='GTiff', options=(), mode='r'):
+    def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
         """Open a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_raster
         """
-        gdal_ds = RasterPhysical._open_file(path, driver, options, mode)
+        gdal_ds = RasterStored._open_file(path, driver, options, mode)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=list(options), mode=mode
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([], prox)
         self._register_new_activated(prox)
         return prox
@@ -295,12 +332,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> mask = ds.create_araster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
+        >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
         >>> fields = {
         ...     'nodata': -32767,
         ...     'interpretation': ['blackband', 'cyanband'],
         ... }
-        >>> out = ds.create_araster('output.tif', ds.dem.fp, 'float32', 2, fields)
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, fields)
 
         Caveat
         ------
@@ -310,19 +347,19 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._validate_key(key)
         if sr is not None:
             fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterPhysical._create_file(
+        gdal_ds = RasterStored._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
         options = [str(arg) for arg in options]
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=options, mode='w'
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([key], prox)
         self._register_new_activated(prox)
         return prox
 
-    def create_araster(self, path, fp, dtype, band_count, band_schema=None,
+    def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
                        driver='GTiff', options=(), sr=None):
         """Create a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
@@ -330,14 +367,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """
         if sr is not None:
             fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterPhysical._create_file(
+        gdal_ds = RasterStored._create_file(
             path, fp, dtype, band_count, band_schema, driver, options, sr
         )
         options = [str(arg) for arg in options]
-        consts = RasterPhysical._Constants(
+        consts = RasterStored._Constants(
             self, gdal_ds=gdal_ds, open_options=options, mode='w'
         )
-        prox = RasterPhysical(self, consts, gdal_ds)
+        prox = RasterStored(self, consts, gdal_ds)
         self._register([], prox)
         self._register_new_activated(prox)
         return prox
@@ -417,7 +454,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         ...         rsize=(size, size),
         ...     )
         ...     print('Recipe:{}'.format(fp))
-        ...     r = ds.create_recipe_araster(pixel_function, fp, 'uint8', {'nodata': 0})
+        ...     r = ds.acreate_recipe_raster(pixel_function, fp, 'uint8', {'nodata': 0})
         ...
         ...     focus = sg.Point(-1.1172, -0.221103)
         ...     for factor in [1, 4, 16, 64]:
@@ -467,7 +504,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def create_recipe_araster(self, fn, fp, dtype, band_schema=None, sr=None):
+    def acreate_recipe_raster(self, fn, fp, dtype, band_schema=None, sr=None):
         """Experimental feature!
 
         Create a raster recipe anonymously in this DataSource.
@@ -516,7 +553,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.open_vector('trees', '/path/to.shp')
-        >>> trees = ds.open_avector('/path/to.shp')
+        >>> trees = ds.aopen_vector('/path/to.shp')
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
 
         """
@@ -532,7 +569,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def open_avector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
+    def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
         """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_vector
@@ -610,7 +647,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
-        >>> lines = ds.create_avector('/path/to.shp', 'linestring')
+        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
 
         >>> fields = [
             {'name': 'name', 'type': str},
@@ -634,7 +671,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._register_new_activated(prox)
         return prox
 
-    def create_avector(self, path, geometry, fields=(), layer=None,
+    def acreate_vector(self, path, geometry, fields=(), layer=None,
                        driver='ESRI Shapefile', options=(), sr=None):
         """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
@@ -709,17 +746,22 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 prox.deactivate()
                 assert not prox.activated
 
-    # Pickling ********************************************************************************** **
+    # Copy ************************************************************************************** **
+    def copy(self):
+        f, args = self.__reduce__()
+        return f(*args)
+
     def __reduce__(self):
         params = {}
         params['sr_work'] = self._sr_work
-        params['sr_implicit'] = self._sr_implicit
-        params['sr_origin'] = self._sr_origin
+        params['sr_fallback'] = self._sr_fallback
+        params['sr_forced'] = self._sr_forced
         params['analyse_transformation'] = self._analyse_transformations
         params['ogr_layer_lock'] = self._ogr_layer_lock
         params['allow_none_geometry'] = self._allow_none_geometry
         params['allow_interpolation'] = self._allow_interpolation
         params['max_activated'] = self._max_activated
+        params['assert_no_change_on_activation'] = self._assert_no_change_on_activation
 
         proxies = []
         for prox, keys in self._keys_of_proxy.items():
@@ -734,6 +776,12 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_method(DataSource, 'aopen_raster', 'open_araster', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_araster', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
+deprecation_pool.add_deprecated_method(DataSource, 'acreate_recipe_raster', 'create_recipe_araster', '0.4.4')
 
 def _restore(params, proxies):
     ds = DataSource(**params)

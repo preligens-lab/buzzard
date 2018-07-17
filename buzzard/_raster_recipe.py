@@ -39,7 +39,7 @@ class RasterRecipe(Raster):
             ['VRT'],
         )
         if gdal_ds is None:
-            raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         gdal_ds.FlushCache()
         return gdal_ds
 
@@ -47,7 +47,7 @@ class RasterRecipe(Raster):
         """Instanciated by DataSource class, instanciation by user is undefined"""
         if gdal_ds is None:
             gdal_ds = self._create_vrt(
-                consts.fp_origin,
+                consts.fp_stored,
                 consts.dtype,
                 len(consts.band_schema['nodata']),
                 consts.band_schema,

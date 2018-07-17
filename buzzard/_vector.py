@@ -14,7 +14,7 @@ from osgeo import gdal, osr, ogr
 import shapely.geometry as sg
 
 from buzzard._proxy import Proxy
-from buzzard._tools import conv
+from buzzard._tools import conv, deprecation_pool
 from buzzard._vector_utils import VectorUtilsMixin
 from buzzard._vector_getset_data import VectorGetSetMixin
 from buzzard._env import Env
@@ -87,7 +87,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             #     gdal_ds = dr.CreateDataSource(path, options)
 
             if gdal_ds is None:
-                raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
+                raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
         if sr is not None:
             sr = osr.SpatialReference(osr.GetUserInputAsWKT(sr))
@@ -96,7 +96,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         lyr = gdal_ds.CreateLayer(layer, sr, geometry, options)
 
         if lyr is None:
-            raise Exception('Could not create layer (%s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not create layer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
         fields = cls._normalize_fields_defn(fields)
         for field in fields:
@@ -126,7 +126,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         )
         if gdal_ds is None:
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, gdal.GetLastErrorMsg()
+                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
         if layer is None:
             layer = 0
@@ -135,7 +135,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         else:
             lyr = gdal_ds.GetLayerByName(layer)
         if lyr is None:
-            raise Exception('Could not open layer (gdal error: %s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not open layer (gdal error: %s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         return gdal_ds, lyr
 
     def __init__(self, ds, consts, gdal_ds=None, lyr=None):
@@ -172,7 +172,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         >>> ds.roofs.close()
         >>> with ds.roofs.close:
                 # code...
-        >>> with ds.create_avector('./results.shp', 'linestring').close as roofs:
+        >>> with ds.acreate_vector('./results.shp', 'linestring').close as roofs:
                 # code...
         """
         def _close():
@@ -196,7 +196,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         >>> ds.polygons.delete()
         >>> with ds.polygons.delete:
                 # code...
-        >>> with ds.create_avector('/tmp/tmp.shp', 'polygon').delete as tmp:
+        >>> with ds.acreate_vector('/tmp/tmp.shp', 'polygon').delete as tmp:
                 # code...
         """
         if self._c.mode != 'w':
@@ -218,7 +218,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                    path, gdal.GetLastErrorMsg()
+                    path, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
         return _VectorDeleteRoutine(self, _delete)
@@ -242,7 +242,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             err = self._gdal_ds.DeleteLayer(lyr_name)
             if err:
                 raise RuntimeError('Could not delete layer `{}` (gdal error: `{}`)'.format(
-                    lyr_name, gdal.GetLastErrorMsg()
+                    lyr_name, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
             self._ds._unregister(self)
@@ -283,19 +283,20 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             self.path, self._c.layer, self.driver, self.open_options, self.mode
         )
 
-        # Check that self._c hasn't changed
-        consts_check = Vector._Constants(
-            self._ds, gdal_ds=gdal_ds, lyr=lyr, open_options=self.open_options, mode=self.mode, layer=self._c.layer,
-        )
-        new = consts_check.__dict__
-        old = self._c.__dict__
-        for k in new.keys():
-            oldv = old[k]
-            newv = new[k]
-            if oldv != newv:
-                raise RuntimeError("Vector's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
-                    k, oldv, newv
-                ))
+        if self._ds._assert_no_change_on_activation:
+            consts_check = Vector._Constants(
+                self._ds, gdal_ds=gdal_ds, lyr=lyr, open_options=self.open_options, mode=self.mode, layer=self._c.layer,
+            )
+            new = consts_check.__dict__
+            old = self._c.__dict__
+            for k in new.keys():
+                oldv = old[k]
+                newv = new[k]
+                if oldv != newv:
+                    raise RuntimeError("Vector's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
+                        k, oldv, newv
+                    ))
+
         self._gdal_ds = gdal_ds
         self._lyr = lyr
 
@@ -329,7 +330,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
     @property
     @_tools.ensure_activated
     def extent(self):
-        """Get file's extent. (`x` then `y`)
+        """Get the vector's extent in work spatial reference. (`x` then `y`)
 
         Example
         -------
@@ -347,8 +348,17 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @property
     @_tools.ensure_activated
+    def extent_stored(self):
+        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
+        extent = self._lyr.GetExtent()
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        return extent
+
+    @property
+    @_tools.ensure_activated
     def bounds(self):
-        """Get the file's bounds (`min` then `max`)
+        """Get the vector's bounds in work spatial reference. (`min` then `max`)
 
         Example
         -------
@@ -359,8 +369,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     @property
     @_tools.ensure_activated
-    def extent_origin(self):
-        """Get file's extent in origin spatial reference. (minx, miny, maxx, maxy)"""
+    def bounds_stored(self):
+        """Get the vector's bounds in stored spatial reference. (`min` then `max`)"""
         extent = self._lyr.GetExtent()
         if extent is None:
             raise ValueError('Could not compute extent')
@@ -631,6 +641,8 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_property(Vector, 'extent_stored', 'extent_origin', '0.4.4')
 
 _VectorCloseRoutine = type('_VectorCloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Vector.close.__doc__,

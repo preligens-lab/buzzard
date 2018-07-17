@@ -165,7 +165,7 @@ def test_raster(path, driver, band_details, options, save_proj):
     fp = buzz.Footprint(
         tl=(0, 10), size=(10, 10), rsize=(30, 30)
     )
-    write = ds.create_araster(
+    write = ds.acreate_raster(
         path, fp, dtype, band_count, band_schema, driver, options, SRS[0]['wkt'],
     )
     array = np.repeat(np.sum(fp.meshgrid_raster, 0)[:, :, np.newaxis], band_count, -1)
@@ -190,9 +190,9 @@ def test_vector(path, driver, test_fields):
     ]
     ds = buzz.DataSource()
     if test_fields:
-        out = ds.create_avector(path, 'polygon', fields, driver=driver, sr=SRS[0]['wkt'])
+        out = ds.acreate_vector(path, 'polygon', fields, driver=driver, sr=SRS[0]['wkt'])
     else:
-        out = ds.create_avector(path, 'polygon', [], driver=driver, sr=SRS[0]['wkt'])
+        out = ds.acreate_vector(path, 'polygon', [], driver=driver, sr=SRS[0]['wkt'])
 
     # insert features
     features = [
@@ -234,7 +234,7 @@ def test_gc():
 
     def _test():
         ds = buzz.DataSource()
-        prox = ds.create_araster('', fp, float, 1, driver='MEM')
+        prox = ds.acreate_raster('', fp, float, 1, driver='MEM')
         ds.create_vector('vec', '', 'point', driver='Memory')
         ws.add(ds)
         ws.add(prox)
@@ -244,7 +244,7 @@ def test_gc():
 
     def _test():
         ds = buzz.DataSource()
-        prox = ds.create_recipe_araster(pxfn, fp, float)
+        prox = ds.acreate_recipe_raster(pxfn, fp, float)
         ws.add(ds)
         ws.add(prox)
     _test()

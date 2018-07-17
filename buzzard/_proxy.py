@@ -2,6 +2,8 @@
 
 from osgeo import osr
 
+from buzzard._tools import deprecation_pool
+
 class Proxy(object):
     """Base class to all sources"""
 
@@ -16,8 +18,8 @@ class Proxy(object):
         - The constructor must be usable for constructions both from gdal pointers and unpickling
         - An information should not be duplicated inside a `_Constants` object
            - i.e. Raster.nodata can be derived from Raster._Constants.band_schema
-           - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_origin` and
-             `Proxy._Constants.wkt_origin`
+           - i.e. Raster.fp can be derived from `ds`, `Raster._Constants.fp_stored` and
+             `Proxy._Constants.wkt`
         - The `_Constants` class is contant and does not make any side effect
 
         """
@@ -29,42 +31,66 @@ class Proxy(object):
             )
 
     def __init__(self, ds, consts, rect):
-        wkt_origin = consts.wkt
+        wkt_virtual = consts.wkt
 
-        # If `ds` mode overrides file's origin
-        if ds._wkt_origin:
-            wkt_origin = ds._wkt_origin
+        # If `ds` mode overrides file's stored
+        if ds._wkt_forced:
+            wkt_virtual = ds._wkt_forced
 
-        # If origin missing and `ds` provides a fallback origin
-        if not wkt_origin and ds._wkt_implicit:
-            wkt_origin = ds._wkt_implicit
+        # If stored missing and `ds` provides a fallback stored
+        if not wkt_virtual and ds._wkt_fallback:
+            wkt_virtual = ds._wkt_fallback
 
         # Whether or not `ds` enforces a work projection
-        if wkt_origin:
-            sr_origin = osr.SpatialReference(wkt_origin)
+        if wkt_virtual:
+            sr_virtual = osr.SpatialReference(wkt_virtual)
         else:
-            sr_origin = None
+            sr_virtual = None
 
-        to_work, to_file = ds._get_transforms(sr_origin, rect)
+        to_work, to_virtual = ds._get_transforms(sr_virtual, rect)
 
         self._c = consts
         self._ds = ds
-        self._wkt_origin = wkt_origin
-        self._sr_origin = sr_origin
-        self._to_file = to_file
+        self._wkt_virtual = wkt_virtual
+        self._sr_virtual = sr_virtual
+        self._to_virtual = to_virtual
         self._to_work = to_work
 
     @property
-    def wkt_origin(self):
-        """File's spatial reference in WKT format"""
-        return self._wkt_origin
+    def wkt_virtual(self):
+        """The spatial reference considered to be written in the metadata of a raster/vector
+        storage, in WKT format.
+        string or None
+        """
+        return self._wkt_virtual
 
     @property
-    def proj4_origin(self):
-        """File's spatial reference in proj4 format"""
-        if not self._sr_origin:
+    def proj4_virtual(self):
+        """The spatial reference considered to be written in the metadata of a raster/vector
+        storage, in proj4 format.
+        string or None
+        """
+        if self._wkt_virtual is None:
             return None # pragma: no cover
-        return self._sr_origin.ExportToProj4()
+        return osr.SpatialReference(self._wkt_virtual).ExportToProj4()
+
+    @property
+    def wkt_stored(self):
+        """The spatial reference that can be found in the metadata of a raster/vector storage
+        storage, in wkt format.
+        string or None
+        """
+        return self._c.wkt_stored
+
+    @property
+    def proj4_stored(self):
+        """The spatial reference that can be found in the metadata of a raster/vector storage
+        storage, in proj4 format.
+        string or None
+        """
+        if self._c.wkt_stored is None:
+            return None # pragma: no cover
+        return osr.SpatialReference(self._c.wkt_stored).ExportToProj4()
 
     # Activation mechanisms ********************************************************************* **
     @property
@@ -139,3 +165,6 @@ class Proxy(object):
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+deprecation_pool.add_deprecated_property(Proxy, 'wkt_virtual', 'wkt_origin', '0.4.4')
+deprecation_pool.add_deprecated_property(Proxy, 'proj4_virtual', 'proj4_origin', '0.4.4')
