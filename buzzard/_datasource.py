@@ -17,7 +17,7 @@ from buzzard._datasource_conversions import DataSourceConversionsMixin
 
 class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
-    by assigning a key to each registered files.
+    by assigning a key to each registered file.
 
     For actions specific to opened files, see Raster, RasterStored and VectorProxy classes
 
@@ -86,7 +86,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         or ignored
     `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
         often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
-        `sr_virtual` to `sr_work`. When a raster/vector is written, a conversion is performed from
+        `sr_virtual` to `sr_work`. When setting vector data, a conversion is performed from
         `sr_work` to `sr_virtual`.
     `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`
     `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing
@@ -157,7 +157,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                  assert_no_change_on_activation=True,
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='sr_fallback', old_names={'sr_fallback': '0.4.4'}, context='DataSource.__init__',
+            new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
             new_name_value=sr_fallback,
             new_name_is_provided=sr_fallback is not None,
             user_kwargs=kwargs,
