@@ -1,4 +1,4 @@
-""">>> help(RasterPhysical)"""
+""">>> help(RasterStored)"""
 
 from __future__ import division, print_function
 import numbers
@@ -14,8 +14,8 @@ from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._raster import Raster
 
-class RasterPhysical(Raster):
-    """Concrete class of raster sources containing physical data"""
+class RasterStored(Raster):
+    """Concrete class of raster sources containing stored data"""
 
     class _Constants(Raster._Constants):
         """See Proxy._Constants"""
@@ -33,7 +33,7 @@ class RasterPhysical(Raster):
             self.path = kwargs.pop('path')
             self.driver = kwargs.pop('driver')
 
-            super(RasterPhysical._Constants, self).__init__(ds, **kwargs)
+            super(RasterStored._Constants, self).__init__(ds, **kwargs)
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
@@ -49,7 +49,7 @@ class RasterPhysical(Raster):
             path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
         )
         if gdal_ds is None:
-            raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         if sr is not None:
             gdal_ds.SetProjection(osr.GetUserInputAsWKT(sr))
         gdal_ds.SetGeoTransform(fp.gt)
@@ -72,7 +72,7 @@ class RasterPhysical(Raster):
         )
         if gdal_ds is None:
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, gdal.GetLastErrorMsg()
+                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
         return gdal_ds
 
@@ -102,7 +102,7 @@ class RasterPhysical(Raster):
         >>> ds.dem.delete()
         >>> with ds.dem.delete:
                 # code...
-        >>> with ds.create_araster('/tmp/tmp.tif', fp, float, 1).delete as tmp:
+        >>> with ds.acreate_raster('/tmp/tmp.tif', fp, float, 1).delete as tmp:
                 # code...
         """
         if self._c.mode != 'w':
@@ -123,7 +123,7 @@ class RasterPhysical(Raster):
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                    path, gdal.GetLastErrorMsg()
+                    path, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
         return _RasterDeleteRoutine(self, _delete)
@@ -133,7 +133,7 @@ class RasterPhysical(Raster):
     def deactivable(self):
         """See buzz.Proxy.deactivable"""
         v = self.driver != 'MEM'
-        v &= super(RasterPhysical, self).deactivable
+        v &= super(RasterStored, self).deactivable
         return v
 
     @property
@@ -154,19 +154,20 @@ class RasterPhysical(Raster):
         assert self._gdal_ds is None
         gdal_ds = self._open_file(self.path, self.driver, self.open_options, self.mode)
 
-        # Check that self._c hasn't changed
-        consts_check = RasterPhysical._Constants(
-            self._ds, gdal_ds=gdal_ds, open_options=self.open_options, mode=self.mode
-        )
-        new = consts_check.__dict__
-        old = self._c.__dict__
-        for k in new.keys():
-            oldv = old[k]
-            newv = new[k]
-            if oldv != newv:
-                raise RuntimeError("Raster's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
-                    k, oldv, newv
-                ))
+        if self._ds._assert_no_change_on_activation:
+            consts_check = RasterStored._Constants(
+                self._ds, gdal_ds=gdal_ds, open_options=self.open_options, mode=self.mode
+            )
+            new = consts_check.__dict__
+            old = self._c.__dict__
+            for k in new.keys():
+                oldv = old[k]
+                newv = new[k]
+                if oldv != newv:
+                    raise RuntimeError("Raster's `{}` changed between deactivation and activation!\nold: `{}`\nnew: `{}` ".format(
+                        k, oldv, newv
+                    ))
+
         self._gdal_ds = gdal_ds
 
     def _deactivate(self):
@@ -300,5 +301,5 @@ class RasterPhysical(Raster):
     # ******************************************************************************************* **
 
 _RasterDeleteRoutine = type('_RasterDeleteRoutine', (_tools.CallOrContext,), {
-    '__doc__': RasterPhysical.delete.__doc__,
+    '__doc__': RasterStored.delete.__doc__,
 })

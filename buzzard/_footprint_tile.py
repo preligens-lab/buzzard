@@ -157,16 +157,18 @@ class TileMixin(object):
         else:
             assert False # pragma: no cover
 
-        pxvec = self.pxvec * direction
-        pxvec_abs = np.abs(pxvec)
+        horiz_vec = self.pxlrvec * direction[0]
+        vert_vec = self.pxtbvec * direction[1]
 
         def _footprint_of_deltacoords(y, x, sizex, sizey):
-            tl = pxvec * [x, y] + origin
             rsize = np.asarray([sizex, sizey])
-            tl -= rsize * (direction == -1) * (1, -1)
+            gt = self.gt
+            tl = horiz_vec * x + vert_vec * y + origin
+            tl -= rsize * (direction == -1) * (1, -1) # I don't get this line :'(
+            gt[0] = tl[0]
+            gt[3] = tl[1]
             return self.__class__(
-                tl=tl,
-                size=[sizex, sizey] * pxvec_abs,
+                gt=gt,
                 rsize=rsize,
             )
 

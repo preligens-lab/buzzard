@@ -357,7 +357,7 @@ def _assert_all_list_of_fields_same(llf):
 
 def test_value_error(path):
     ds = buzz.DataSource()
-    v = ds.create_avector(path, 'polygon')
+    v = ds.acreate_vector(path, 'polygon')
 
     with pytest.raises(ValueError, match='geom_type'):
         list(v.iter_data(geom_type=''))

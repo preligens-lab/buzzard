@@ -4,6 +4,8 @@
 
 from __future__ import division, print_function
 
+import sys
+
 import numpy as np
 import pytest
 
@@ -21,17 +23,18 @@ def fps():
     """
     return make_tile_set.make_tile_set(3, [0.1, -0.1])
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason='python 2.7')
 def test_basic(fps):
     ds = buzz.DataSource()
 
-    ones = ds.create_araster('', fps.AI, 'float32', 1, driver='MEM')
+    ones = ds.acreate_raster('', fps.AI, 'float32', 1, driver='MEM')
     ones.fill(1)
 
     def pxfun(fp):
         return ones.get_data(fp=fp) * 2
 
     # araster
-    twos = ds.create_recipe_araster(pxfun, fps.AI, 'float32')
+    twos = ds.acreate_recipe_raster(pxfun, fps.AI, 'float32')
     assert ones.fp == twos.fp
     assert ones.dtype == twos.dtype
     for fp in fps.values():
@@ -48,6 +51,7 @@ def test_basic(fps):
 
     ones.close()
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason='python 2.7')
 def test_reproj():
     sr0 = SRS[0]
     sr1 = SRS[3]
@@ -69,14 +73,14 @@ def test_reproj():
         def pxfun(fp):
             assert (twos.fp_origin & fp) == fp, 'fp should be aligned and within twos.fp'
             return ones.get_data(fp=fp) * 2
-        twos = ds.create_recipe_araster(pxfun, fp, 'float32', sr=sr1['wkt'], band_schema={'nodata': 42})
+        twos = ds.acreate_recipe_raster(pxfun, fp, 'float32', sr=sr1['wkt'], band_schema={'nodata': 42})
 
         # Create `ones`, a raster from `sr1` to `sr1`
         # `ds2.wkt` in sr1
         # `ones.fp` in sr1
         # `ones.fp_origin` in sr1
         ds2 = buzz.DataSource(sr1['wkt'])
-        ones = ds2.create_araster('', twos.fp_origin, 'float32', 1, driver='MEM', sr=sr1['wkt'], band_schema={'nodata': 42})
+        ones = ds2.acreate_raster('', twos.fp_origin, 'float32', 1, driver='MEM', sr=sr1['wkt'], band_schema={'nodata': 42})
         ones.fill(1)
 
         # Test that `sr1` performs reprojection of `fp` before sending it to `pxfun`

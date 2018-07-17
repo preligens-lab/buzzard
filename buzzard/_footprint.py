@@ -17,6 +17,7 @@ from osgeo import ogr
 from osgeo import osr
 from six.moves import filterfalse
 import scipy.ndimage as ndi
+import skimage.morphology as skm
 
 from buzzard import _tools
 from buzzard._tools import conv
@@ -145,8 +146,10 @@ class Footprint(TileMixin, IntersectionMixin):
         if kwargs:
             raise ValueError('Unknown parameters [{}]'.format(kwargs.keys()))
 
-        if a + b == 0 or d + e == 0:
-            raise ValueError('Scale should not be 0')
+        if a * e - d * b == 0:
+            raise ValueError('Determinent should not be 0: {}'.format(
+                a * e - d * b
+            ))
         if b != 0 or d != 0 or a <= 0 or e >= 0:
             if not env.allow_complex_footprint:
                 arr = np.asarray([[a, b, c], [d, e, f]])
@@ -1260,7 +1263,7 @@ class Footprint(TileMixin, IntersectionMixin):
         # Check xy parameter
         xy = np.asarray(xy)
         if xy.shape[-1] != 2:
-            return ValueError('An array of shape (..., 2) was expected') # pragma: no cover
+            raise ValueError('An array of shape (..., 2) was expected') # pragma: no cover
 
         # Check dtype parameter
         if dtype is None:
@@ -1328,8 +1331,11 @@ class Footprint(TileMixin, IntersectionMixin):
         return xy2.reshape(xy.shape)
 
     # Geometry / Raster conversions ************************************************************* **
-    def find_lines(self, arr, output_offset='middle'):
+    def find_lines(self, arr, output_offset='middle', merge=True):
         """Experimental function!
+
+        # TODO: Update doc about skimage.thin and 2x2 squares collapsing
+        # TODO: Add skimage requirements?
 
         Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
         when several disconnected components
@@ -1410,12 +1416,11 @@ class Footprint(TileMixin, IntersectionMixin):
 
         DegreeView({(3.0, 2.0): 1, (1.0, 2.0): 3, (2.0, 4.0): 1, (3.0, 0.0): 1})
         """
+        # Step 1: Parameter checking ************************************************************ **
         if arr.shape != tuple(self.shape):
             raise ValueError('Incompatible shape between array:%s and self:%s' % (
                 arr.shape, self.shape
             )) # pragma: no cover
-        arr = arr.astype(bool)
-        arr = arr.astype('uint8')
 
         if output_offset == 'middle':
             output_offset = self.pxvec / 2
@@ -1426,12 +1431,36 @@ class Footprint(TileMixin, IntersectionMixin):
                     '`output_offset` should be "middle" or a sequence of float of length 2'
                 ) # pragma: no cover
 
+        # Step 2: Array normalization *********************************************************** **
+        arr = arr.astype(bool)
+        arr = skm.thin(arr)
+        arr = arr.astype('uint8')
+
+        # Step 3: Prepare to collapse 2x2 squares to single points ****************************** **
+        squares2x2_topleft_mask = ndi.convolve(
+            arr,[
+                [1, 1, 0],
+                [1, 1, 0],
+                [0, 0, 0],
+            ],
+            mode='constant',
+        ) == 4
+        squares2x2_yx_links = {
+            (int(y + dy), int(x + dx)): (int(y), (x))
+            for y, x in zip(*squares2x2_topleft_mask.nonzero())
+            for dy in range(2)
+            for dx in range(2)
+            # if dy + dx != 0
+        }
+
+        # Step 4: Retrieve pixel indices ******************************************************** **
         count = np.sum(arr)
         yx_lst = np.stack(arr.nonzero(), -1)
         index_lst = np.arange(count)
         index = np.empty(self.shape, dtype=int)
         index[arr != 0] = index_lst
 
+        # Step 5: Retrieve edge indices ********************************************************* **
         convolve = lambda arr, kernel: scipy.ndimage.convolve(arr, kernel, mode='constant', cval=0)
         has_top = convolve(arr, [[0, 0, 0], [0, 0, 0], [0, 1, 0]]) * arr
         has_right = convolve(arr, [[0, 0, 0], [1, 0, 0], [0, 0, 0]]) * arr
@@ -1456,18 +1485,35 @@ class Footprint(TileMixin, IntersectionMixin):
         if edges_indices.size == 0:
             return []
 
-        lines = [
-            shapely.geometry.LineString([
-                self.raster_to_spatial(np.flipud(yx_lst[n1])) + output_offset,
-                self.raster_to_spatial(np.flipud(yx_lst[n2])) + output_offset,
-            ])
-            for (n1, n2) in edges_indices
-        ]
-        mline = shapely.ops.linemerge(lines)
-        if isinstance(mline, shapely.geometry.LineString):
-            mline = sg.MultiLineString([mline])
+        # Step 6: Convert segments made of indices to segments made of shapely objets *********** **
+        lines = []
+        for (n1, n2) in edges_indices:
+            yx1 = tuple(yx_lst[n1].tolist())
+            yx2 = tuple(yx_lst[n2].tolist())
 
-        # Temporary check for badness, until further testing of this method
+            if yx1 in squares2x2_yx_links and yx2 in squares2x2_yx_links:
+                # Drop segments inside 2x2 squares
+                continue
+            points = [
+                yx1,
+                yx2,
+            ]
+            if points[0] in squares2x2_yx_links:
+                points.insert(0, squares2x2_yx_links[points[0]])
+            if points[-1] in squares2x2_yx_links:
+                points.append(squares2x2_yx_links[points[-1]])
+            l = shapely.geometry.LineString(self.raster_to_spatial(
+                list(map(np.flipud, points))
+            ) + output_offset)
+            lines.append(l)
+
+        # Step 7: Merge segments to polylines *************************************************** **
+        if merge:
+            mline = shapely.ops.linemerge(lines)
+            if isinstance(mline, shapely.geometry.LineString):
+                mline = sg.MultiLineString([mline])
+
+        # Step 8: Temporary check for badness, until further testing of this method ************* **
         check = arr.copy()
         check[:] = 0
 
@@ -1483,17 +1529,14 @@ class Footprint(TileMixin, IntersectionMixin):
             if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
                 check[sly, slx] = 1
 
-        assert (check == arr).all()
-
-        if mline.is_empty:
-            return []
+        # Step 9: Return ************************************************************************ **
         if isinstance(mline, shapely.geometry.LineString):
             return [mline]
         if isinstance(mline, shapely.geometry.MultiLineString):
             return list(mline.geoms)
         assert False # pragma: no cover
 
-    def burn_lines(self, obj, labelize=False):
+    def burn_lines(self, obj, all_touched=False, labelize=False):
         """Experimental function!
 
         Create a 2d image from lines
@@ -1537,17 +1580,21 @@ class Footprint(TileMixin, IntersectionMixin):
         rast_mem_lyr = rast_ogr_ds.CreateLayer('line', srs=sr)
         val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
         rast_mem_lyr.CreateField(val_field)
-
         for i, line in enumerate(lines, 1):
             feat = ogr.Feature(rast_mem_lyr.GetLayerDefn())
             wkt_geom = line.wkt
             feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
             feat.SetFieldInteger64(0, i)
             rast_mem_lyr.CreateFeature(feat)
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=["ATTRIBUTE=val"])
+
+        if all_touched:
+            options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
+        else:
+            options = ["ATTRIBUTE=val"]
+        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
         if err != 0:
             raise Exception(
-                'Got non-zero result code from gdal.RasterizeLayer (%s)' % gdal.GetLastErrorMsg()
+                'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype)
@@ -1616,7 +1663,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
         return list(_polygon_iterator())
 
-    def burn_polygons(self, obj, all_touched=False):
+    def burn_polygons(self, obj, all_touched=False, labelize=False):
         """Experimental function!
         Create a 2d image from polygons
 
@@ -1638,7 +1685,6 @@ class Footprint(TileMixin, IntersectionMixin):
         >>> burn_polygons([poly, poly])
         >>> burn_polygons([poly, poly, [poly, poly], multipoly, poly])
         """
-
         polys = list(_poly_iterator(obj))
 
         # https://svn.osgeo.org/gdal/trunk/autotest/alg/rasterize.py
@@ -1646,29 +1692,47 @@ class Footprint(TileMixin, IntersectionMixin):
         sr_wkt = 'LOCAL_CS["arbitrary"]'
         sr = osr.SpatialReference(sr_wkt)
 
+        if labelize:
+            if len(polys) >= 65535:
+                dtype = conv.dtype_of_any_downcast('uint32')
+            elif len(polys) >= 255:
+                dtype = conv.dtype_of_any_downcast('uint16')
+            else:
+                dtype = conv.dtype_of_any_downcast('uint8')
+        else:
+            dtype = conv.dtype_of_any_downcast('bool')
+        gdt = conv.gdt_of_any_equiv(dtype) # Set to downcast
+
         target_ds = gdal.GetDriverByName('MEM').Create(
-            '', int(self.rsizex), int(self.rsizey), 1, gdal.GDT_Byte
+            '', int(self.rsizex), int(self.rsizey), 1, gdt
         )
         target_ds.SetGeoTransform(self.gt)
         target_ds.SetProjection(sr_wkt)
 
         rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
-        rast_mem_lyr = rast_ogr_ds.CreateLayer('poly', srs=sr)
+        rast_mem_lyr = rast_ogr_ds.CreateLayer('polygon', srs=sr)
+        val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
+        rast_mem_lyr.CreateField(val_field)
 
-        for poly in polys:
+        for i, poly in enumerate(polys, 1):
             feat = ogr.Feature(rast_mem_lyr.GetLayerDefn())
             wkt_geom = poly.wkt
             feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
+            feat.SetFieldInteger64(0, i)
             rast_mem_lyr.CreateFeature(feat)
+
         if all_touched:
-            options = ["ALL_TOUCHED=TRUE"]
+            options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
         else:
-            options = []
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, burn_values=[1], options=options)
+            options = ["ATTRIBUTE=val"]
+
+        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
         if err != 0:
-            raise Exception('Got non-zero result code from gdal.RasterizeLayer')
+            raise Exception(
+                'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
+            )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(bool)
+        return arr.astype(dtype)
 
     # Tiling ************************************************************************************ **
     def tile(self, size, overlapx=0, overlapy=0,

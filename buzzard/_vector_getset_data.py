@@ -129,14 +129,20 @@ class VectorGetSetMixin(object):
     def _insert_data_unsafe(self, geom_type, geom, fields, index):
         if geom is None:
             pass
-        elif self._to_file:
+        elif self._to_virtual:
             if geom_type == 'coordinates':
                 geom = sg.asShape({
                     'type': self.type,
                     'coordinates': geom,
                 })
-            geom = shapely.ops.transform(self._to_file, geom)
+            geom = shapely.ops.transform(self._to_virtual, geom)
             geom = conv.ogr_of_shapely(geom)
+            # TODO: Use json and unit test
+            # mapping = sg.mapping(geom)
+            # geom = conv.ogr_of_coordinates(
+            #     mapping['coordinates'],
+            #     mapping['type'],
+            # )
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
@@ -149,6 +155,12 @@ class VectorGetSetMixin(object):
                 ))
         elif geom_type == 'shapely':
             geom = conv.ogr_of_shapely(geom)
+            # TODO: Use json and unit test
+            # mapping = sg.mapping(geom)
+            # geom = conv.ogr_of_coordinates(
+            #     mapping['coordinates'],
+            #     mapping['type'],
+            # )
             if geom is None:
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
@@ -163,7 +175,7 @@ class VectorGetSetMixin(object):
             if geom is not None:
                 err = ftr.SetGeometry(geom)
                 if err:
-                    raise ValueError('Could not set geometry (%s)' % gdal.GetLastErrorMsg())
+                    raise ValueError('Could not set geometry (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
                 if not self._ds._allow_none_geometry and ftr.GetGeometryRef() is None:
                     raise ValueError(
@@ -174,22 +186,22 @@ class VectorGetSetMixin(object):
             if index >= 0:
                 err = ftr.SetFID(index)
                 if err:
-                    raise ValueError('Could not set field id (%s)' % gdal.GetLastErrorMsg())
+                    raise ValueError('Could not set field id (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
             for i, field in enumerate(fields):
                 if field is not None:
                     err = ftr.SetField2(i, self._type_of_field_index[i](field))
                     if err:
                         raise ValueError('Could not set field #{} ({}) ({})'.format(
-                            i, field, gdal.GetLastErrorMsg()
+                            i, field, str(gdal.GetLastErrorMsg()).strip('\n')
                         ))
             passed = ftr.Validate(ogr.F_VAL_ALL, True)
             if not passed:
                 raise ValueError('Invalid feature {} ({})'.format(
-                    err, gdal.GetLastErrorMsg()
+                    err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
             err = self._lyr.CreateFeature(ftr)
             if err:
                 raise ValueError('Could not create feature {} ({})'.format(
-                    err, gdal.GetLastErrorMsg()
+                    err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))

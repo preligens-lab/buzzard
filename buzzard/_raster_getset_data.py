@@ -36,7 +36,7 @@ class RasterGetSetMixin(object):
                 )
                 if a is None:
                     raise ValueError('Could not read array (gdal error: `{}`)'.format(
-                        gdal.GetLastErrorMsg()
+                        str(gdal.GetLastErrorMsg()).strip('\n')
                     ))
                 samplebands.append(a)
             samplebands = np.stack(samplebands, -1)
@@ -69,7 +69,7 @@ class RasterGetSetMixin(object):
                     )
                     if a is None:
                         raise ValueError('Could not read array (gdal error: `{}`)'.format(
-                            gdal.GetLastErrorMsg()
+                            str(gdal.GetLastErrorMsg()).strip('\n')
                         ))
                     samplebands[:, :, dim][tileslice][sly, slx] = a
         return samplebands

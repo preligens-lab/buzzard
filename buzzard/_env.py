@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import cv2
 from osgeo import gdal, ogr, osr
-from buzzard._tools import conv
+from buzzard._tools import conv, Singleton
 
 try:
     from collections import ChainMap
@@ -80,12 +80,20 @@ def _set_up_check_with_invert_proj(new, _):
 def _set_up_buzz_trusted(new, _):
     conf = gdal.GetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES') or ''
     conf = conf.split(',')
-    conf = [elt for elt in conf if elt != 'buzzard._raster_recipe']
+    conf = [elt for elt in conf if elt not in {'buzzard._raster_recipe', ''}]
     if new:
         conf.append('buzzard._raster_recipe')
-        gdal.SetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES', ','.join(conf))
+        gdal.SetConfigOption(
+            'GDAL_VRT_PYTHON_TRUSTED_MODULES',
+            ','.join(conf)
+        )
     else:
-        gdal.SetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES', ','.join(conf))
+        pass
+        # Do not unset because it is not safe in multithreaded environment
+        # gdal.SetConfigOption(
+        #     'GDAL_VRT_PYTHON_TRUSTED_MODULES',
+        #     ','.join(conf) if conf else None
+        # )
 
 # Options declaration *************************************************************************** **
 _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
@@ -108,7 +116,7 @@ _OPTIONS = {
 }
 
 # Storage *************************************************************************************** **
-class _GlobalMapStack(object):
+class _GlobalMapStack(Singleton):
     """ChainMap updated to behave like a singleton stack"""
 
     _main_storage = None
@@ -147,7 +155,7 @@ _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
 class Env(object):
-    """Context manager to update buzzard states
+    """Context manager to update buzzard's states
 
     Parameters
     ----------
@@ -170,7 +178,7 @@ class Env(object):
     >>> import buzzard as buzz
     >>> with buzz.Env(default_index_dtype='uint64'):
             ds = buzz.DataSource()
-            dsm = ds.open_araster('dsm', 'path/to/dsm.tif')
+            dsm = ds.aopen_raster('dsm', 'path/to/dsm.tif')
             x, y = dsm.meshgrid_raster
             print(x.dtype)
     numpy.uint64
@@ -205,10 +213,10 @@ class _ThreadMapStackGetter(object):
     def __init__(self, key):
         self.key = key
 
-    def __call__(self, self2):
+    def __call__(self, current_env_self):
         return _LOCAL._mapstack[self.key]
 
-class _CurrentEnv(object):
+class _CurrentEnv(Singleton):
     """Namespace to access current values of buzzard's environment variable (see buzz.Env)
 
     Example
@@ -217,15 +225,9 @@ class _CurrentEnv(object):
     8.0
 
     """
-    _instance = None
+    pass
 
-    def __new__(cls):
-        if cls._instance is None:
-            for k in _OPTIONS.keys():
-                setattr(cls, k, property(_ThreadMapStackGetter(k)))
-            cls._instance = object.__new__(cls)
-            return cls._instance
-        else:
-            assert False
+for k in _OPTIONS.keys():
+    setattr(_CurrentEnv, k, property(_ThreadMapStackGetter(k)))
 
 env = _CurrentEnv() # pylint: disable=invalid-name

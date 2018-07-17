@@ -16,6 +16,15 @@ _REMAP_INTERPOLATIONS = {
     'cv_lanczos4': cv2.INTER_LANCZOS4,
 }
 
+_EXN_FORMAT = """Illegal remap attempt between two Footprints that do not lie on the same grid.
+src            -> {src!s}
+dst            -> {dst!s}
+scales         -> src:{src.scale}, dst:{dst.scale}
+grids distance -> {tldiff}
+`allow_interpolation` was set to `False` in `DataSource` constructor. It means that either
+1. there is a mistake in your code and you did not meant to perform this operation with an unaligned Footprint,
+2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`."""
+
 class RemapMixin(object):
     """Footprint Mixin containing remap subroutine"""
 
@@ -100,7 +109,14 @@ class RemapMixin(object):
             dstarray, dstmask = RemapMixin._remap_same_grid(src_fp, dst_fp, array, mask, nodata)
         else:
             if interpolation is None:
-                raise ValueError('trying to remap with interpolation but interpolation is None')
+                raise ValueError(_EXN_FORMAT.format(
+                    src=src_fp,
+                    dst=dst_fp,
+                    tldiff=dst_fp.tl - (
+                        src_fp.pxtbvec * np.around(~src_fp.affine * dst_fp.tl)[1] +
+                        src_fp.pxlrvec * np.around(~src_fp.affine * dst_fp.tl)[0]
+                    ) - src_fp.tl,
+                ))
             dstarray, dstmask = RemapMixin._remap_any(
                 src_fp, dst_fp, array, mask, nodata, mask_mode, interpolation
             )
@@ -175,7 +191,7 @@ class RemapMixin(object):
 
         if array is not None and array.dtype in [np.dtype('float64'), np.dtype('bool')]:
             raise ValueError(
-                'Type %s not handled by cv2.remap, (is interpolation enabled in DataSource?)' % (
+                'dtype %s not handled by cv2.remap' % (
                     repr(array.dtype)
                 )
             ) # pragma: no cover
