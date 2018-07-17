@@ -175,7 +175,7 @@ class VectorGetSetMixin(object):
             if geom is not None:
                 err = ftr.SetGeometry(geom)
                 if err:
-                    raise ValueError('Could not set geometry (%s)' % gdal.GetLastErrorMsg())
+                    raise ValueError('Could not set geometry (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
                 if not self._ds._allow_none_geometry and ftr.GetGeometryRef() is None:
                     raise ValueError(
@@ -186,22 +186,22 @@ class VectorGetSetMixin(object):
             if index >= 0:
                 err = ftr.SetFID(index)
                 if err:
-                    raise ValueError('Could not set field id (%s)' % gdal.GetLastErrorMsg())
+                    raise ValueError('Could not set field id (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
             for i, field in enumerate(fields):
                 if field is not None:
                     err = ftr.SetField2(i, self._type_of_field_index[i](field))
                     if err:
                         raise ValueError('Could not set field #{} ({}) ({})'.format(
-                            i, field, gdal.GetLastErrorMsg()
+                            i, field, str(gdal.GetLastErrorMsg()).strip('\n')
                         ))
             passed = ftr.Validate(ogr.F_VAL_ALL, True)
             if not passed:
                 raise ValueError('Invalid feature {} ({})'.format(
-                    err, gdal.GetLastErrorMsg()
+                    err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
             err = self._lyr.CreateFeature(ftr)
             if err:
                 raise ValueError('Could not create feature {} ({})'.format(
-                    err, gdal.GetLastErrorMsg()
+                    err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))

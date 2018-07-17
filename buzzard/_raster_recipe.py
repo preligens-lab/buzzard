@@ -39,7 +39,7 @@ class RasterRecipe(Raster):
             ['VRT'],
         )
         if gdal_ds is None:
-            raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         gdal_ds.FlushCache()
         return gdal_ds
 

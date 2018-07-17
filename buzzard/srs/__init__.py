@@ -30,7 +30,7 @@ def wkt_of_any(string):
                     prj = lyr.GetSpatialRef()
         if prj is not None:
             return prj.ExportToWkt()
-    raise ValueError('Could not convert to wkt ({})'.format(gdal.GetLastErrorMsg()))
+    raise ValueError('Could not convert to wkt ({})'.format(str(gdal.GetLastErrorMsg()).strip('\n')))
 
 def wkt_same(a, b):
     """Are two wkt equivalent"""

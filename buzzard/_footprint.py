@@ -1594,7 +1594,7 @@ class Footprint(TileMixin, IntersectionMixin):
         err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
         if err != 0:
             raise Exception(
-                'Got non-zero result code from gdal.RasterizeLayer (%s)' % gdal.GetLastErrorMsg()
+                'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype)
@@ -1729,7 +1729,7 @@ class Footprint(TileMixin, IntersectionMixin):
         err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
         if err != 0:
             raise Exception(
-                'Got non-zero result code from gdal.RasterizeLayer (%s)' % gdal.GetLastErrorMsg()
+                'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype)

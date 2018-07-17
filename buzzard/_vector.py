@@ -87,7 +87,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             #     gdal_ds = dr.CreateDataSource(path, options)
 
             if gdal_ds is None:
-                raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
+                raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
         if sr is not None:
             sr = osr.SpatialReference(osr.GetUserInputAsWKT(sr))
@@ -96,7 +96,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         lyr = gdal_ds.CreateLayer(layer, sr, geometry, options)
 
         if lyr is None:
-            raise Exception('Could not create layer (%s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not create layer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
         fields = cls._normalize_fields_defn(fields)
         for field in fields:
@@ -126,7 +126,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         )
         if gdal_ds is None:
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, gdal.GetLastErrorMsg()
+                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
         if layer is None:
             layer = 0
@@ -135,7 +135,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
         else:
             lyr = gdal_ds.GetLayerByName(layer)
         if lyr is None:
-            raise Exception('Could not open layer (gdal error: %s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not open layer (gdal error: %s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         return gdal_ds, lyr
 
     def __init__(self, ds, consts, gdal_ds=None, lyr=None):
@@ -218,7 +218,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                    path, gdal.GetLastErrorMsg()
+                    path, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
         return _VectorDeleteRoutine(self, _delete)
@@ -242,7 +242,7 @@ class Vector(Proxy, VectorUtilsMixin, VectorGetSetMixin):
             err = self._gdal_ds.DeleteLayer(lyr_name)
             if err:
                 raise RuntimeError('Could not delete layer `{}` (gdal error: `{}`)'.format(
-                    lyr_name, gdal.GetLastErrorMsg()
+                    lyr_name, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
             self._ds._unregister(self)

@@ -49,7 +49,7 @@ class RasterStored(Raster):
             path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
         )
         if gdal_ds is None:
-            raise Exception('Could not create gdal dataset (%s)' % gdal.GetLastErrorMsg())
+            raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         if sr is not None:
             gdal_ds.SetProjection(osr.GetUserInputAsWKT(sr))
         gdal_ds.SetGeoTransform(fp.gt)
@@ -72,7 +72,7 @@ class RasterStored(Raster):
         )
         if gdal_ds is None:
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, gdal.GetLastErrorMsg()
+                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
         return gdal_ds
 
@@ -123,7 +123,7 @@ class RasterStored(Raster):
             err = dr.Delete(path)
             if err:
                 raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                    path, gdal.GetLastErrorMsg()
+                    path, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
         return _RasterDeleteRoutine(self, _delete)
