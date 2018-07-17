@@ -104,7 +104,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     - If all opened files are known to be written in the same sr but you wish to work in a different
         sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
         concerning spatial references have no impacts on the data you manipulate.
-    - If you want to manipulate files in different sr, `mode2` and `mode3` should be used.
+    - If you want to manipulate files in different sr, `mode 2` and `mode 3` should be used.
+       - Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
+         create a GeoJSON file in `mode 2`.
 
     A spatial reference parameter may be
     - A path to a file
