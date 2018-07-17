@@ -226,6 +226,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         self._allow_interpolation = allow_interpolation
         self._allow_none_geometry = allow_none_geometry
         self._assert_no_change_on_activation = assert_no_change_on_activation
+        self._thread_pool_task_counter = collections.defaultdict(int)
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
