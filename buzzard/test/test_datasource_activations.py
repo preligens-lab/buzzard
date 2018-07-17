@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import resource
 import uuid
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -391,6 +392,7 @@ def test_maxfd():
     for i in range(cap + 1):
         ds[i].delete()
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason='python 2.7')
 def test_pickling():
 
     def pxfn(fp):
