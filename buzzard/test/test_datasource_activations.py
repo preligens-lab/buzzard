@@ -334,19 +334,6 @@ def test_raster():
                 r3.fill(3)
                 assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
 
-                # Test raster proxy
-                def pxfn(fp):
-                    return np.ones(fp.shape) * 42
-
-                with ds.acreate_recipe_raster(pxfn, fp, 'float32').close as r4:
-                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
-                    r4.deactivate()
-                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
-                    r4.activate()
-                    assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
-                    assert (r4.get_data() == 42).all()
-                assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated) == (2, 0, False, True, True)
-
                 # Test MEM raster (should behave like raster proxy in this case)
                 with ds.acreate_raster('', fp, float, 1, driver='MEM').close as r4:
                     assert (ds._queued_count, ds._locked_count, r1.activated, r2.activated, r3.activated, r4.activated) == (2, 0, False, True, True, True)
@@ -424,11 +411,9 @@ def test_pickling():
         assert 'v2' not in local_ds
         assert 'r1' in local_ds
         assert 'r2' not in local_ds
-        assert 'r3' in local_ds
-        assert (local_ds._queued_count, local_ds._locked_count, local_ds.v1.activated, local_ds.r1.activated, local_ds.r3.activated) == (0, 0, False, False, True)
+        assert (local_ds._queued_count, local_ds._locked_count, local_ds.v1.activated, local_ds.r1.activated) == (0, 0, False, False)
         assert local_ds.v1.get_data(0)[1] == str(oldid)
         assert (local_ds.r1.get_data() == oldid).all()
-        assert (local_ds.r3.get_data() == id(ds)).all(), '`slave` and `pxfn` should share the same `ds` obj'
 
         local_ds.v1.insert_data((0, 1), ['42'])
         local_ds.r1.fill(42)
@@ -453,7 +438,6 @@ def test_pickling():
     with ds.create_vector('v1', '/tmp/v1.shp', **V_META).delete:
         with ds.create_raster('r1', '/tmp/t1.shp', fp, float, 1).delete:
             ds.create_raster('r2', '', fp, float, 1, driver='MEM')
-            ds.create_recipe_raster('r3', pxfn, fp, float)
             ds.create_vector('v2',**MEMV_META)
 
             ds.v1.insert_data((0, 1), [str(oldid)])

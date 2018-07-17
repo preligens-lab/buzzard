@@ -4,6 +4,8 @@
 
 from __future__ import division, print_function
 
+import sys
+
 import numpy as np
 import pytest
 
@@ -21,6 +23,7 @@ def fps():
     """
     return make_tile_set.make_tile_set(3, [0.1, -0.1])
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason='python 2.7')
 def test_basic(fps):
     ds = buzz.DataSource()
 
@@ -48,6 +51,7 @@ def test_basic(fps):
 
     ones.close()
 
+@pytest.mark.skipif(sys.version_info.major == 2, reason='python 2.7')
 def test_reproj():
     sr0 = SRS[0]
     sr1 = SRS[3]
