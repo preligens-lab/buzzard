@@ -1,5 +1,7 @@
 from osgeo import osr
 
+from buzzard import _tools
+
 class AProxy(object):
 
     def __init__(self, ds, back):
@@ -54,7 +56,7 @@ class AProxy(object):
         >>> with ds.acreate_vector('results.shp', 'linestring').close as roofs:
                 # code...
         """
-        return _RasterCloseRoutine(self, self._back.close)
+        return _CloseRoutine(self, self._back.close)
 
     def __del__(self):
         self.close()
@@ -87,6 +89,10 @@ class ABackProxy(object):
         self.to_virtual = to_virtual
 
     def close(self):
+        """Virtual method:
+        - May be overriden
+        - Should always be called
+        """
         self._back_ds.unregister(self)
 
     @property
@@ -100,3 +106,7 @@ class ABackProxy(object):
         if self.wkt_stored is None:
             return None # pragma: no cover
         return osr.SpatialReference(self.wkt_stored).ExportToProj4()
+
+_CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
+    '__doc__': AProxy.close.__doc__,
+})

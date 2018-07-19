@@ -1,4 +1,4 @@
-from a_proxy import *
+from buzzard._a_proxy import *
 
 class AProxyRaster(AProxy):
 

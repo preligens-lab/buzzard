@@ -1,5 +1,5 @@
-from _a_stored import *
-from _a_proxy_raster import *
+from buzzard._a_stored import *
+from buzzard._a_proxy_raster import *
 
 class AStoredRaster(AStored, AProxyRaster):
 
