@@ -1,7 +1,7 @@
 from buzzard._a_stored import *
 from buzzard import _tools
 
-def AEmissary(AStored):
+class AEmissary(AStored):
 
     @property
     def driver(self):
@@ -33,27 +33,18 @@ def AEmissary(AStored):
         >>> with ds.acreate_vector('/tmp/tmp.shp', 'polygon').delete as tmp:
                 # code...
         """
-        return _DeleteRoutine(self, self._back.delete)
+        def _delete():
+            self.close()
 
-def ABackEmissary(ABackStored):
+        return _DeleteRoutine(self, _delete)
 
-    def __init__(self, driver_obj, driver, open_options, path, **kwargs):
+class ABackEmissary(ABackStored):
+
+    def __init__(self, driver, open_options, path, **kwargs):
         self.driver = driver
         self.open_options = open_options
         self.path = path
-        self.driver_obj = driver_obj
         super(ABackEmissary, self).__init__(**kwargs)
-
-    def delete(self):
-        """Virtual method:
-        - May be overriden
-        - Should always be called
-        """
-        self.close()
-
-    @property
-    def driver_obj(self):
-        return self.driver_obj
 
 _DeleteRoutine = type('_DeleteRoutine', (_tools.CallOrContext,), {
     '__doc__': AEmissary.delete.__doc__,

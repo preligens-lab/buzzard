@@ -56,10 +56,16 @@ class AProxy(object):
         >>> with ds.acreate_vector('results.shp', 'linestring').close as roofs:
                 # code...
         """
-        return _CloseRoutine(self, self._back.close)
+        def _close():
+            self._back.close()
+            del self._ds
+            del self._back
+
+        return _CloseRoutine(self, _close)
 
     def __del__(self):
-        self.close()
+        if hasattr(self, '_ds'):
+            self.close()
 
 class ABackProxy(object):
 
@@ -94,6 +100,7 @@ class ABackProxy(object):
         - Should always be called
         """
         self._back_ds.unregister(self)
+        del self._back_ds
 
     @property
     def proj4_virtual(self):
