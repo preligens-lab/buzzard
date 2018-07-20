@@ -211,8 +211,6 @@ class DataSource(object):
             max_active=max_active,
         )
 
-
-
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
         """Open a raster file in this DataSource under `key`. Only metadata are kept in memory.
@@ -236,22 +234,23 @@ class DataSource(object):
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
 
         """
+        # Parameter checking ***************************************************
         self._back.validate_key(key)
         path = str(path)
         driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
 
+        # Construction dispatch ************************************************
         if 'mem' in driver.lower():
             # Assert not parallel asked
             prox = ...
         elif True: # & not concurrent:
-            prox = SequentialGDALFileRaster(
-                self, path, driver, options, mode,
-            )
+            prox = SequentialGDALFileRaster(self, path, driver, options, mode)
         else:
             prox = ...
 
+        # DataSource Registering ***********************************************
         self._back.register([key], prox)
         return prox
 

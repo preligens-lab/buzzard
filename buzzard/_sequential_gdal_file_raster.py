@@ -8,7 +8,7 @@ class SequentialGDALFileRaster(APooledEmissaryRaster):
         back_ds = ds._back
 
         # uuid = uuid.uuid4()
-        # with back_ds.acquire(uuid, lambda: self._open_file(path, driver, open_options, mode)) as gdal_ds:
+        # with back_ds.acquire(uuid, lambda: TODO._open_file(path, driver, open_options, mode)) as gdal_ds:
         #     path = gdal_ds.GetDescription()
         #     driver = gdal_ds.GetDriver().ShortName
         #     fp_stored = Footprint(
@@ -57,4 +57,5 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
     def delete(self):
         pass
 
-    def allocator(self): pass
+    def allocator(self):
+        return TODO._open_file(self.path, self.driver, self.open_options, self.mode))

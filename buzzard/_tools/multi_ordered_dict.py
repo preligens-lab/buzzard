@@ -2,6 +2,7 @@ import collections
 import uuid
 
 class MultiOrderedDict(object):
+    """Data structure derived from collections.OrderedDict that accept several keys"""
 
     def __init__(self):
         self._od = collections.OrderedDict()
@@ -94,6 +95,8 @@ class MultiOrderedDict(object):
         return res
 
 class _MultiOrderedDict_NSquared(object):
+    """Class with the same specifications as MultiOrderedDict but with a simpler and less effective
+    implementation. It exsits for unit testing purposes"""
 
     def __init__(self):
         self._l = list()
@@ -153,7 +156,7 @@ class _MultiOrderedDict_NSquared(object):
 if __name__ == '__main__':
     # Stochastic test that proves that MultiOrderedDict behaves like _MultiOrderedDict_NSquared
     # Since _MultiOrderedDict_NSquared implementation is straightforward we can trust it, and
-    # transfer this confidence to MultiOrderedDict
+    # transfer this confidence to MultiOrderedDict using this test.
     import numpy as np
     from tqdm import tqdm
     import weakref
@@ -322,6 +325,6 @@ if __name__ == '__main__':
     print('seed is', seed)
     rng = np.random.RandomState(seed)
 
-    for _ in tqdm(range(1000000)):
+    for _ in tqdm(range(100000)):
         i = rng.randint(0, len(tests))
         tests[i]()
