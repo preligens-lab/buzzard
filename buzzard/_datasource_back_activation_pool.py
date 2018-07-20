@@ -19,12 +19,12 @@ class BackDataSourceActivationPoolMixin(object):
         self._ap_used = collections.Counter()
         super(BackDataSourceActivationPoolMixin, self).__init__(**kwargs)
 
-    def activate(self, uuid):
+    def activate(self, uuid, allocator):
         """Make sure at least one driver object is idle or used for uuid"""
         with self._ap_lock:
             if self._ap_used[uuid] == 0 and uuid not in self._ap_idle:
                 self._ensure_one_slot()
-                self._ap_idle.push_front(uuid, ...)
+                self._ap_idle.push_front(uuid, allocator())
 
     def deactivate(self, uuid):
         """Flush all occurrences of uuid from _ap_idle. Raises an exception if uuid is in _ap_used
@@ -39,7 +39,14 @@ class BackDataSourceActivationPoolMixin(object):
         with self._ap_lock:
             return self._ap_idle.count(uuid) + self._ap_used[uuid]
 
-    def acquire(self, uuid):
+    def acquire_driver_object(self, uuid, allocator):
+        """Return a context manager to acquire a driver object
+
+        Example
+        -------
+        >>> with back_ds.acquire(uuid) as gdal_obj:
+        ...     pass
+        """
         @contextlib.contextmanager
         def _acquire():
             with self._ap_lock:
@@ -47,7 +54,7 @@ class BackDataSourceActivationPoolMixin(object):
                     obj = self._ap_idle.pop_front_occurrence(uuid)
                 else:
                     self._ensure_one_slot()
-                    obj = ...
+                    obj = allocator()
                 self._ap_used[uuid] += 1
 
             yield obj

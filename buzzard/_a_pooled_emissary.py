@@ -22,7 +22,7 @@ class ABackPooledEmissary(ABackEmissary):
         super(ABackPooledEmissary, self).__init__(**kwargs)
 
     def activate(self):
-        self.back_ds.activate(self.uuid)
+        self.back_ds.activate(self.uuid, self.allocator)
 
     def deactivate(self):
         self.back_ds.deactivate(self.uuid)
@@ -37,7 +37,7 @@ class ABackPooledEmissary(ABackEmissary):
 
     @property
     def acquire_driver_object(self):
-        return self.back_ds.acquire(self.uuid)
+        return self.back_ds.acquire_driver_object(self.uuid, self.allocator)
 
     def close(self):
         """Virtual method:
@@ -46,3 +46,6 @@ class ABackPooledEmissary(ABackEmissary):
         """
         self.back_ds.deactivate(self.uuid)
         super(ABackPooledEmissary, self).close()
+
+    def allocator(self):
+        raise NotImplementedError('ABackPooledEmissary.allocator is virtual pure')
