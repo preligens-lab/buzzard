@@ -1,5 +1,3 @@
-""">>> help(DataSourceConversionsMixin)"""
-
 import numpy as np
 from osgeo import osr
 
@@ -10,29 +8,7 @@ class BackDataSourceConversionsMixin(object):
     """Private mixin for the DataSource class containing the spatial coordinates
     conversion subroutines"""
 
-    @staticmethod
-    def virtual_of_stored_given_mode(stored, work, fallback, forced):
-        virtual = stored
-
-        # Mode 4: If `ds` mode overrides file's stored
-        if forced is not None:
-            virtual = forced
-
-        # Mode 3: If stored missing and `ds` provides a fallback
-        if virtual is None and fallback is not None:
-            virtual = fallback
-
-        # Mode 2: If stored missing and `ds` does not provide a fallback
-        if virtual is None and work is not None:
-            raise ValueError("Missing proxy's spatial reference while using a `mode 2` DataSource")
-
-        # Mode 1:
-        if work is None:
-            pass
-
-        return virtual
-
-    def __init__(self, wkt_work, wkt_fallback, wkt_forced, analyse_transformation):
+    def __init__(self, wkt_work, wkt_fallback, wkt_forced, analyse_transformation, **kwargs):
 
         if wkt_work is not None:
             sr_work = osr.SpatialReference(wkt_work)
@@ -47,10 +23,14 @@ class BackDataSourceConversionsMixin(object):
         else:
             sr_forced = None
 
+        self.wkt_work = wkt_work
+        self.wkt_fallback = wkt_fallback
+        self.wkt_forced = wkt_forced
         self.sr_work = sr_work
         self.sr_fallback = sr_fallback
         self.sr_forced = sr_forced
         self.analyse_transformations = analyse_transformation
+        super(BackDataSourceConversionsMixin, self).__init__(**kwargs)
 
     def get_transforms(self, sr_virtual, rect, rect_from='virtual'):
         """Retrieve the `to_work` and `to_virtual` conversion functions.
@@ -140,3 +120,25 @@ class BackDataSourceConversionsMixin(object):
     #     if to_virtual:
     #         fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
     #     return fp
+
+    @staticmethod
+    def virtual_of_stored_given_mode(stored, work, fallback, forced):
+        virtual = stored
+
+        # Mode 4: If `ds` mode overrides file's stored
+        if forced is not None:
+            virtual = forced
+
+        # Mode 3: If stored missing and `ds` provides a fallback
+        if virtual is None and fallback is not None:
+            virtual = fallback
+
+        # Mode 2: If stored missing and `ds` does not provide a fallback
+        if virtual is None and work is not None:
+            raise ValueError("Missing proxy's spatial reference while using a `mode 2` DataSource")
+
+        # Mode 1:
+        if work is None:
+            pass
+
+        return virtual
