@@ -2,20 +2,22 @@
 
 # pylint: disable=too-many-lines
 
-import collections
+# import collections
 
 from osgeo import osr
 import numpy as np
 
-from buzzard import _datasource_tools
-from buzzard._proxy import Proxy
-from buzzard._raster_stored import RasterStored
-from buzzard._raster_recipe import RasterRecipe
-from buzzard._vector import Vector
-from buzzard._tools import conv, deprecation_pool
-from buzzard._datasource_conversions import DataSourceConversionsMixin
+# from buzzard import _datasource_tools
+# from buzzard._proxy import Proxy
+# from buzzard._raster_stored import RasterStored
+# from buzzard._raster_recipe import RasterRecipe
+# from buzzard._vector import Vector
+# from buzzard._tools import conv, deprecation_pool
+# from buzzard._datasource_conversions import DataSourceConversionsMixin
+from buzzard._datasource_back import *
 
-class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
+# class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
+class DataSource(object):
     """DataSource is a class that stores references to files, it allows quick manipulations
     by assigning a key to each registered file.
 
@@ -150,11 +152,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
                  analyse_transformation=True,
-                 ogr_layer_lock='raise',
                  allow_none_geometry=False,
                  allow_interpolation=False,
                  max_activated=np.inf,
-                 assert_no_change_on_activation=True,
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
@@ -177,56 +177,34 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if mode == (False, False, False):
             pass
         elif mode == (True, False, False):
-            pass
+            sr_work = osr.GetUserInputAsWKT(sr_work)
         elif mode == (True, True, False):
-            pass
+            sr_work = osr.GetUserInputAsWKT(sr_work)
+            sr_fallback = osr.GetUserInputAsWKT(sr_fallback)
         elif mode == (True, False, True):
-            pass
+            sr_work = osr.GetUserInputAsWKT(sr_work)
+            sr_forced = osr.GetUserInputAsWKT(sr_forced)
         else:
             raise ValueError('Bad combination of `sr_*` parameters') # pragma: no cover
-
-        if ogr_layer_lock not in frozenset({'none', 'wait', 'raise'}):
-            raise ValueError('Unknown `ogr_layer_lock` value') # pragma: no cover
 
         if max_activated < 1:
             raise ValueError('`max_activated` should be greater than 1')
 
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
-        assert_no_change_on_activation = bool(assert_no_change_on_activation)
+        analyse_transformation = bool(analyse_transformation)
 
-        if mode[0]:
-            wkt_work = osr.GetUserInputAsWKT(sr_work)
-            sr_work = osr.SpatialReference(wkt_work)
-        else:
-            wkt_work = None
-            sr_work = None
-        if mode[1]:
-            wkt_fallback = osr.GetUserInputAsWKT(sr_fallback)
-            sr_fallback = osr.SpatialReference(wkt_fallback)
-        else:
-            wkt_fallback = None
-            sr_fallback = None
-        if mode[2]:
-            wkt_forced = osr.GetUserInputAsWKT(sr_forced)
-            sr_forced = osr.SpatialReference(wkt_forced)
-        else:
-            wkt_forced = None
-            sr_forced = None
-
-        DataSourceConversionsMixin.__init__(
-            self, sr_work, sr_fallback, sr_forced, analyse_transformation
+        self._back = BackDataSource(
+            wkt_work=sr_work,
+            wkt_fallback=sr_fallback,
+            wkt_forced=sr_forced,
+            analyse_transformation=analyse_transformation,
+            allow_none_geometry=allow_none_geometry,
+            allow_interpolation=allow_interpolation,
+            max_activated=max_activated,
         )
-        _datasource_tools.DataSourceToolsMixin.__init__(self, max_activated)
 
-        self._wkt_work = wkt_work
-        self._wkt_fallback = wkt_fallback
-        self._wkt_forced = wkt_forced
-        self._ogr_layer_lock = ogr_layer_lock
-        self._allow_interpolation = allow_interpolation
-        self._allow_none_geometry = allow_none_geometry
-        self._assert_no_change_on_activation = assert_no_change_on_activation
-        self._thread_pool_task_counter = collections.defaultdict(int)
+
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):

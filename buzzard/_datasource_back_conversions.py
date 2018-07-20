@@ -6,17 +6,53 @@ from osgeo import osr
 from buzzard import srs
 from buzzard._footprint import Footprint
 
-class DataSourceConversionsMixin(object):
+class BackDataSourceConversionsMixin(object):
     """Private mixin for the DataSource class containing the spatial coordinates
     conversion subroutines"""
 
-    def __init__(self, sr_work, sr_fallback, sr_forced, analyse_transformation):
-        self._sr_work = sr_work
-        self._sr_fallback = sr_fallback
-        self._sr_forced = sr_forced
-        self._analyse_transformations = bool(analyse_transformation)
+    @staticmethod
+    def virtual_of_stored_given_mode(stored, work, fallback, forced):
+        virtual = stored
 
-    def _get_transforms(self, sr_virtual, rect, rect_from='virtual'):
+        # Mode 4: If `ds` mode overrides file's stored
+        if forced is not None:
+            virtual = forced
+
+        # Mode 3: If stored missing and `ds` provides a fallback
+        if virtual is None and fallback is not None:
+            virtual = fallback
+
+        # Mode 2: If stored missing and `ds` does not provide a fallback
+        if virtual is None and work is not None:
+            raise ValueError("Missing proxy's spatial reference while using a `mode 2` DataSource")
+
+        # Mode 1:
+        if work is None:
+            pass
+
+        return virtual
+
+    def __init__(self, wkt_work, wkt_fallback, wkt_forced, analyse_transformation):
+
+        if wkt_work is not None:
+            sr_work = osr.SpatialReference(wkt_work)
+        else:
+            sr_work = None
+        if wkt_fallback is not None:
+            sr_fallback = osr.SpatialReference(wkt_fallback)
+        else:
+            sr_fallback = None
+        if wkt_forced is not None:
+            sr_forced = osr.SpatialReference(wkt_forced)
+        else:
+            sr_forced = None
+
+        self.sr_work = sr_work
+        self.sr_fallback = sr_fallback
+        self.sr_forced = sr_forced
+        self.analyse_transformations = analyse_transformation
+
+    def get_transforms(self, sr_virtual, rect, rect_from='virtual'):
         """Retrieve the `to_work` and `to_virtual` conversion functions.
 
         Parameters
@@ -27,23 +63,18 @@ class DataSourceConversionsMixin(object):
         """
         assert rect_from in ['virtual', 'work']
 
-        if not self._sr_work:
+        if not self.sr_work:
             return None, None
-        if self._sr_forced:
-            sr_virtual = self._sr_forced
-        elif not sr_virtual:
-            if self._sr_fallback:
-                sr_virtual = self._sr_fallback
-            else:
-                raise ValueError("Missing virtual's spatial reference")
 
-        to_work = osr.CreateCoordinateTransformation(sr_virtual, self._sr_work).TransformPoints
-        to_virtual = osr.CreateCoordinateTransformation(self._sr_work, sr_virtual).TransformPoints
+        assert sr_virtual is not None
+
+        to_work = osr.CreateCoordinateTransformation(sr_virtual, self.sr_work).TransformPoints
+        to_virtual = osr.CreateCoordinateTransformation(self.sr_work, sr_virtual).TransformPoints
 
         to_work = self._make_transfo(to_work)
         to_virtual = self._make_transfo(to_virtual)
 
-        if self._analyse_transformations:
+        if self.analyse_transformations:
             if rect_from == 'virtual':
                 an = srs.Analysis(to_work, to_virtual, rect)
             else:
@@ -102,10 +133,10 @@ class DataSourceConversionsMixin(object):
 
         return _f
 
-    def _convert_footprint(self, fp, sr):
-        sr_tmp = osr.GetUserInputAsWKT(sr)
-        sr_tmp = osr.SpatialReference(sr_tmp)
-        _, to_virtual = self._get_transforms(sr_tmp, fp, 'work')
-        if to_virtual:
-            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
-        return fp
+    # def _convert_footprint(self, fp, sr):
+    #     sr_tmp = osr.GetUserInputAsWKT(sr)
+    #     sr_tmp = osr.SpatialReference(sr_tmp)
+    #     _, to_virtual = self._get_transforms(sr_tmp, fp, 'work')
+    #     if to_virtual:
+    #         fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
+    #     return fp

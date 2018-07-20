@@ -70,18 +70,11 @@ class AProxy(object):
 class ABackProxy(object):
 
     def __init__(self, back_ds, wkt_stored, rect):
-        wkt_virtual = wkt_stored
+        wkt_virtual = back_ds.virtual_of_stored_given_mode(
+            wkt_stored, back_ds.wkt_work, back_ds.wkt_fallback, back_ds.wkt_forced,
+        )
 
-        # If `ds` mode overrides file's stored
-        if back_ds.wkt_forced:
-            wkt_virtual = back_ds.wkt_forced
-
-        # If stored missing and `ds` provides a fallback stored
-        if wkt_virtual is None and back_ds.wkt_fallback:
-            wkt_virtual = back_ds.wkt_fallback
-
-        # Whether or not `ds` enforces a work projection
-        if wkt_virtual:
+        if wkt_virtual is not None:
             sr_virtual = osr.SpatialReference(wkt_virtual)
         else:
             sr_virtual = None
@@ -99,8 +92,8 @@ class ABackProxy(object):
         - May be overriden
         - Should always be called
         """
-        self._back_ds.unregister(self)
-        del self._back_ds
+        self.back_ds.unregister(self)
+        del self.back_ds
 
     @property
     def proj4_virtual(self):
