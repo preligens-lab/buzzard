@@ -17,8 +17,8 @@ class APooledEmissary(AEmissary):
 
 class ABackPooledEmissary(ABackEmissary):
 
-    def __init__(self, **kwargs):
-        self.uuid = uuid.uuid4()
+    def __init__(self, uuid, **kwargs):
+        self.uuid = uuid
         super(ABackPooledEmissary, self).__init__(**kwargs)
 
     def activate(self):

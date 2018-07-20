@@ -27,6 +27,10 @@ class AProxyRaster(AProxy):
         """Return the number of bands"""
         return len(self._back)
 
+    @property
+    def shared_band_index(self):
+        return self._back.shared_band_index
+
     def get_data(self, fp=None, band=1, mask=None, nodata=None, interpolation='cv_area', dtype=None,
                  op=np.rint):
         """Read data located at `fp` in raster file.

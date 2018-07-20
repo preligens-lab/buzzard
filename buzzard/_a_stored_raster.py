@@ -1,3 +1,4 @@
+from buzzard import _tools
 from buzzard._a_stored import *
 from buzzard._a_proxy_raster import *
 
@@ -69,9 +70,14 @@ class AStoredRaster(AStored, AProxyRaster):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
+        if self.mode != 'w':
+            raise RuntimeError('Cannot write a read-only raster file')
+
+        bands, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_index)
+
         self._back.fill(
             value=value,
-            fill=fill,
+            bands=bands,
         )
 
 class ABackStoredRaster(ABackStored, ABackProxyRaster):
@@ -79,5 +85,5 @@ class ABackStoredRaster(ABackStored, ABackProxyRaster):
     def set_data(self, array, fp, band, interpolation, mask, op):
         raise NotImplementedError('ABackStoredRaster.set_data is virtual pure')
 
-    def fill(self, value, band):
+    def fill(self, value, bands):
         raise NotImplementedError('ABackStoredRaster.fill is virtual pure')

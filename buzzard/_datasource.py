@@ -15,6 +15,7 @@ import numpy as np
 # from buzzard._tools import conv, deprecation_pool
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
+from buzzard._sequential_gdal_file_raster import *
 
 # class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
 class DataSource(object):
@@ -235,16 +236,23 @@ class DataSource(object):
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
 
         """
-        self._validate_key(key)
-        gdal_ds = RasterStored._open_file(path, driver, options, mode)
+        self._back.validate_key(key)
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=options, mode=mode
-        )
-        prox = RasterStored(self, consts, gdal_ds)
-        self._register([key], prox)
-        self._register_new_activated(prox)
+
+        if 'mem' in driver.lower():
+            # Assert not parallel asked
+            prox = ...
+        elif True: # & not concurrent:
+            prox = SequentialGDALFileRaster(
+                self, path, driver, options, mode,
+            )
+        else:
+            prox = ...
+
+        self._back.register([key], prox)
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
