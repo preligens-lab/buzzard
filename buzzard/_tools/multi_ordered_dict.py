@@ -14,6 +14,12 @@ class MultiOrderedDict(object):
     def __len__(self):
         return len(self._od)
 
+    def count(self, key):
+        m = len(self._ukeys_of_key[key])
+        if m == 0:
+            del self._ukeys_of_key[key]
+        return m
+
     def pop_back(self):
         ukey, value = self._od.popitem(last=False)
 
@@ -72,7 +78,7 @@ class MultiOrderedDict(object):
 
     def pop_all_occurrences(self, key):
         if key not in self:
-            raise KeyError('{} not in MultiOrderedDict'.format(key))
+            return []
 
         ukey_list = self._ukeys_of_key[key]
 
@@ -101,6 +107,12 @@ class _MultiOrderedDict_NSquared(object):
                 return True
         else:
             return False
+
+    def count(self, key):
+        return sum(
+            key == k
+            for k, _ in self._l
+        )
 
     def pop_back(self):
         if len(self._l) == 0:
@@ -134,8 +146,6 @@ class _MultiOrderedDict_NSquared(object):
         for i, (k, v) in enumerate(self._l):
             if k == key:
                 indices.append(i)
-        if len(indices) == 0:
-            raise KeyError('{} not in MultiOrderedDict'.format(key))
         for i in sorted(indices, reverse=True):
             res.append(self._l.pop(i)[1])
         return res
@@ -146,6 +156,27 @@ if __name__ == '__main__':
     # transfer this confidence to MultiOrderedDict
     import numpy as np
     from tqdm import tqdm
+    import weakref
+    import gc
+
+    class Value():
+        def __init__(self, i, h):
+            self.i = i
+            self.h = h
+
+        def __eq__(self, other):
+            return self.i == other.i
+
+        def __hash__(self):
+            return self.h.int
+
+        def __str__(self):
+            return '<{}, {}>'.format(
+                self.i, self.h
+            )
+
+        def __repr__(self):
+            return str(self)
 
     def _assert(ref_res, test_res):
         if isinstance(ref_res, Exception):
@@ -154,16 +185,29 @@ if __name__ == '__main__':
         else:
             assert ref_res == test_res, (ref_res, test_res, ref._l)
 
+    def _assert_collection():
+        if len(ref_wset) != len(test_wset):
+            gc.collect()
+        assert ref_wset == test_wset, (set(ref_wset), set(test_wset))
 
     def _testa():
         k = rng.randint(0, 5)
         v = rng.randint(9999)
+        h = uuid.uuid4()
+
+        vref = Value(v, h)
+        vtest = Value(v, h)
+        assert vref == vtest
 
         if verbose:
             print(f'{"push_front":>20}: k:{k:5} v:{v:5}')
 
-        ref.push_front(k, v)
-        test.push_front(k, v)
+        ref.push_front(k, vref)
+        test.push_front(k, vtest)
+
+        ref_wset.add(vref)
+        test_wset.add(vtest)
+        _assert_collection()
 
     def _testb():
         try:
@@ -180,7 +224,7 @@ if __name__ == '__main__':
                 print(f'{"pop_back":>20}:                     {test_res!r}')
             else:
                 k, v = test_res
-                print(f'{"pop_back":>20}: k:{k:5} v:{v:5}')
+                print(f'{"pop_back":>20}: k:{k:5} v:{v!s:5}')
         _assert(ref_res, test_res)
 
     def _testc():
@@ -198,8 +242,9 @@ if __name__ == '__main__':
             if isinstance(test_res, Exception):
                 print(f'{"pop_first_occurrence":>20}:                     {test_res!r}')
             else:
-                print(f'{"pop_first_occurrence":>20}: k:{k:5} v:{test_res:5}')
+                print(f'{"pop_first_occurrence":>20}: k:{k:5} v:{test_res!s:5}')
         _assert(ref_res, test_res)
+        _assert_collection()
 
     def _testd():
         k = rng.randint(0, 5)
@@ -216,8 +261,9 @@ if __name__ == '__main__':
             if isinstance(test_res, Exception):
                 print(f'{"pop_last_occurrence":>20}:                     {test_res!r}')
             else:
-                print(f'{"pop_last_occurrence":>20}: k:{k:5} v:{test_res:5}')
+                print(f'{"pop_last_occurrence":>20}: k:{k:5} v:{test_res!s:5}')
         _assert(ref_res, test_res)
+        _assert_collection()
 
     def _teste():
         k = rng.randint(0, 5)
@@ -243,6 +289,11 @@ if __name__ == '__main__':
             else:
                 print(f'{"pop_all_occurrences":>20}: k:{k:5} v:{test_res!s:5}')
         _assert(ref_res, test_res)
+        _assert_collection()
+
+    def _testh():
+        k = rng.randint(0, 5)
+        assert ref.count(k) == test.count(k)
 
     tests = [
         _testa,
@@ -252,17 +303,22 @@ if __name__ == '__main__':
         _testd,
         _teste,
         _testf,
+
         _testg,
+        _testh,
     ]
 
 
     ref = _MultiOrderedDict_NSquared()
     test = MultiOrderedDict()
 
+    ref_wset = weakref.WeakSet()
+    test_wset = weakref.WeakSet()
+
     # verbose = True
     verbose = False
     seed = np.random.randint(9999)
-    # seed = 3877
+    seed = 3877
     print('seed is', seed)
     rng = np.random.RandomState(seed)
 
