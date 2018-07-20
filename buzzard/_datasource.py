@@ -34,8 +34,8 @@ class DataSource(object):
         Mutex operations when reading or writing vector files
     allow_none_geometry: bool
     allow_interpolation: bool
-    max_activated: nbr >= 1
-        Maximum number of sources activated at the same time.
+    max_active: nbr >= 1
+        Maximum number of sources active at the same time.
     assert_no_change_on_activation: bool
         When activating a deactivated file, check that the definition did not change
         (see `Sources activation / deactivation` below)
@@ -154,7 +154,7 @@ class DataSource(object):
                  analyse_transformation=True,
                  allow_none_geometry=False,
                  allow_interpolation=False,
-                 max_activated=np.inf,
+                 max_active=np.inf,
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
@@ -166,6 +166,12 @@ class DataSource(object):
             new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='DataSource.__init__',
             new_name_value=sr_forced,
             new_name_is_provided=sr_forced is not None,
+            user_kwargs=kwargs,
+        )
+        max_active, kwargs = deprecation_pool.streamline_with_kwargs(
+            new_name='max_active', old_names={'max_activated': '0.5.0'}, context='DataSource.__init__',
+            new_name_value=max_active,
+            new_name_is_provided=max_active != np.inf,
             user_kwargs=kwargs,
         )
         if kwargs:
@@ -187,8 +193,8 @@ class DataSource(object):
         else:
             raise ValueError('Bad combination of `sr_*` parameters') # pragma: no cover
 
-        if max_activated < 1:
-            raise ValueError('`max_activated` should be greater than 1')
+        if max_active < 1:
+            raise ValueError('`max_active` should be greater than 1')
 
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
@@ -201,7 +207,7 @@ class DataSource(object):
             analyse_transformation=analyse_transformation,
             allow_none_geometry=allow_none_geometry,
             allow_interpolation=allow_interpolation,
-            max_activated=max_activated,
+            max_active=max_active,
         )
 
 
