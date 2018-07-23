@@ -172,7 +172,7 @@ class RemapMixin(object):
                     borderValue=0.,
                 )
             else:
-                border = 4
+                border = 0
                 arr = np.pad(arr, border, mode='constant', constant_values=nodata)
                 dstnodatamask = cv2.remap(
                     (arr == nodata).astype('float32'), mapx + border, mapy + border,
@@ -206,7 +206,7 @@ class RemapMixin(object):
             dstarray = np.stack(dstbands, -1)
 
         if mask is not None:
-            border = 4
+            border = 0
             if mask_mode == 'erode':
                 mask = np.pad(mask, border, mode='constant', constant_values=0)
                 dstmask = cv2.remap(

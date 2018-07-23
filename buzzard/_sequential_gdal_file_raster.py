@@ -48,8 +48,70 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
             path=path,
             uuid=uuid,
         )
+        functools.partial(
+            _sample_bands, allocator=...,
+        )
 
-    def get_data(self): pass
+    def _build_sampling_footprint(self, fp):
+        if fp.same_grid(self.fp):
+            return fp
+        if not fp.share_area(dst_fp):
+            return None
+        if not self.back_ds.allow_interpolation:
+            raise TODOTheRightMessage
+        dilate_size = 4 * self.fp.pxsizex / fp.pxsizex # hyperparameter
+        dilate_size = max(2, np.ceil(dilate_size))
+        fp = fp.dilate(dilate_size)
+        fp = fp & self.fp
+        return fp
+
+    @staticmethod
+    def _remap(src_fp, dst_fp, array, mask, src_nodata, dst_nodata, mask_mode, interpolation):
+        """Function matching the signature of RasterRecipe@resample_array parameter"""
+        return ...
+
+    @staticmethod
+    def _sample(fp, bands, prim_arrays, prim_fps, raster):
+        """Function matching the signature of RasterRecipe@compute_array parameter"""
+        import six # TODO: Move
+        assert six.viewkeys(prim_arrays) == six.viewkeys(prim_fps)
+        assert not prim_arrays
+        assert not prim_fps
+
+        if raster is None:
+            @contextlib.contextmanager
+            def _f():
+                yield allocator()
+            context = _f()
+        else:
+            if isinstance(raster, (SequentialGDALFileRaster, ConcurrentGDALFileRaster)): # TODO! How do we get those pointers from back!?!?!?!?!?!
+                context = raster.back_ds.acquire(raster.uuid, raster._allocator)
+            elif isinstance(raster, GDALMemRaster):
+                context = contextlib.contextmanager(lambda: iter([self._gdal_obj]))
+            else:
+                assert False
+
+        with context as gdal_obj:
+            gdal_obj
+
+
+    def get_data(self, fp, bands, outshape, dst_nodata, interpolation):
+        samplefp = self._build_sampling_footprint(fp)
+        array = self._sample(samplefp, bands, {}, {}, None)
+        array = self._remap(
+            samplefp,
+            fp,
+            interpolation=interpolation,
+            array=array,
+            mask=None,
+            src_nodata=self.nodata,
+            dst_nodata=dst_nodata,
+            mask_mode='erode',
+        )
+        array = array.astype(self.dtype)
+        array = array.reshape(outshape)
+        return array
+
     def set_data(self): pass
 
     def fill(self, value, bands):
@@ -80,8 +142,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
 
     @staticmethod
     def _open_file(path, driver, options, mode):
-        """Open a raster datasource"""
-        options = [str(arg) for arg in options]
+        """Open a raster dataset"""
         gdal_ds = gdal.OpenEx(
             path,
             conv.of_of_mode(mode) | conv.of_of_str('raster'),

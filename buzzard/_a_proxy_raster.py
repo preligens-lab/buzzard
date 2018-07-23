@@ -1,5 +1,7 @@
 from buzzard._a_proxy import *
 
+from buzzard._footprint import Footprint
+
 class AProxyRaster(AProxy):
 
     @property
@@ -31,36 +33,31 @@ class AProxyRaster(AProxy):
     def shared_band_index(self):
         return self._back.shared_band_index
 
-    def get_data(self, fp=None, band=1, mask=None, nodata=None, interpolation='cv_area', dtype=None,
-                 op=np.rint):
-        """Read data located at `fp` in raster file.
+    def get_data(self, fp=None, band=1, dst_nodata=None, interpolation='cv_area'):
+        """Read a rectangle of data on several channels from the raster source.
+        If `fp` is not fully within the source raster, the external pixels are set to nodata. If
+        nodata is missing, 0 is used.
+        If `fp` is not on the same grid as the source raster, remapping is performed using
+        `interpolation` algorithm. (It fails if the `allow_interpolation` parameter is set to
+        False in `DataSource` (default)). When remapping, the nodata values are not interpolated,
+        they are correctly spread to the output.
+        If `dst_nodata` is provided, source's nodata values are converted to `dst_nodata`.
 
-        If `nodata` is set in raster or provided as an argument, fp can lie partially or fully
-        outside of raster.
-
-        If `allow_interpolation` is enabled in the DataSource constructor, it is then possible to
-        use a `fp` that is not aligned with the source raster, interpolation in then used to
-        remap source to `fp`. `nodata` values are also handled and spreaded to the output through
-        remapping.
-
-        (experimental) An optional `mask` may be provided. GDAL band sampling is only performed near
-        `True` pixels. Current implementation might be extremely slow.
+        The alpha bands are currently resampled like any other band, this behavior may change in
+        the future. To normalize a `rgba` array after a resampling operation, use this
+        piece of code:
+        >>> arr = np.where(arr[..., -1] == 255, arr, 0)
 
         Parameters
         ----------
-        fp: Footprint of shape (Y, X)
-            If None: return the full raster
+        fp: Footprint of shape (Y, X) or None
+            If None: return the full source raster
             If Footprint: return this window from the raster
         band: band index or sequence of band index (see `Band Indices` below)
-        mask: numpy array of shape (Y, X)
-        nodata: Number
-            Override self.get_nodata()
-        interpolation: one of ('cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4')
+        dst_nodata: nbr
+            Value of nodata in output array
+        interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
             Resampling method
-        dtype: type
-            Override gdal output type
-        op: None or vector function
-            Rounding function following an interpolation when output type is integer
 
         Returns
         -------
@@ -78,13 +75,36 @@ class AProxyRaster(AProxy):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
+        # Normalize and check fp parameter
+        if fp is None:
+            fp = self.fp
+        elif not isinstance(fp, Footprint):
+            raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp)) # pragma: no cover
+
+        # Normalize and check band parameter
+        bands, is_flat = _tools.normalize_band_parameter(band, len(self), self._shared_band_index)
+        if is_flat:
+            outshape = tuple(fp.shape)
+        else:
+            outshape = tuple(fp.shape) + (len(bands),)
+        del band
+
+        # Normalize and check dst_nodata parameter
+        if dst_nodata is not None:
+            dst_nodata = self.dtype.type(dst_nodata)
+        elif self.nodata is not None:
+            dst_nodata = self.nodata
+        else:
+            dst_nodata = self.dtype.type(0)
+
+        # TODO: Check interpolation parameter here
+
         return self._back.get_data(
             fp=fp,
-            band=band,
-            nodata=nodata,
+            bands=bands,
+            outshape=outshape,
+            dst_nodata=dst_nodata,
             interpolation=interpolation,
-            dtype=dtype,
-            op=op,
         )
 
 class ABackProxyRaster(ABackProxy):
@@ -121,5 +141,5 @@ class ABackProxyRaster(ABackProxy):
     def __len__(self):
         return len(self.band_schema['nodata'])
 
-    def get_data(self, fp, band, mask, nodata, interpolation, dtype, op):
+    def get_data(self, fp, bands, outshape, dst_nodata, interpolation):
         raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')
