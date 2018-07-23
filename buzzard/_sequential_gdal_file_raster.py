@@ -1,4 +1,7 @@
+
 import uuid
+
+from osgeo import gdal
 
 from _a_pooled_emissary_raster import *
 
@@ -8,7 +11,7 @@ class SequentialGDALFileRaster(APooledEmissaryRaster):
         back_ds = ds._back
 
         # uuid = uuid.uuid4()
-        # with back_ds.acquire(uuid, lambda: TODO._open_file(path, driver, open_options, mode)) as gdal_ds:
+        # with back_ds.acquire(uuid, lambda: BackSequentialGDALFileRaster._open_file(path, driver, open_options, mode)) as gdal_ds:
         #     path = gdal_ds.GetDescription()
         #     driver = gdal_ds.GetDriver().ShortName
         #     fp_stored = Footprint(
@@ -50,12 +53,43 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
     def set_data(self): pass
 
     def fill(self, value, bands):
-        for gdalband in [self._gdalband_of_index(i) for i in bands]:
-            gdalband.Fill(value)
+        with self.back_ds.acquire_driver_object(self, self.uuid, self.allocator) as gdal_ds:
+            for gdalband in [self._gdalband_of_index(gdal_ds, i) for i in bands]:
+                gdalband.Fill(value)
 
-    @property
     def delete(self):
-        pass
+        super(BackSequentialGDALFileRaster, self).delete()
+
+        dr = gdal.GetDriverByName(self.driver)
+        err = dr.Delete(self.path)
+        if err:
+            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
+                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
+            ))
 
     def allocator(self):
         return TODO._open_file(self.path, self.driver, self.open_options, self.mode))
+
+    @staticmethod
+    def _gdalband_of_index(gdal_ds, index):
+        """Convert a band index to a gdal band"""
+        if isinstance(index, int):
+            return gdal_ds.GetRasterBand(index)
+        else:
+            return gdal_ds.GetRasterBand(int(index.imag)).GetMaskBand()
+
+    @staticmethod
+    def _open_file(path, driver, options, mode):
+        """Open a raster datasource"""
+        options = [str(arg) for arg in options]
+        gdal_ds = gdal.OpenEx(
+            path,
+            conv.of_of_mode(mode) | conv.of_of_str('raster'),
+            [driver],
+            options,
+        )
+        if gdal_ds is None:
+            raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
+                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
+            ))
+        return gdal_ds

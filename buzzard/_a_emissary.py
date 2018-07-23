@@ -34,7 +34,7 @@ class AEmissary(AStored):
                 # code...
         """
         def _delete():
-            self.close()
+            self._back.delete()
 
         return _DeleteRoutine(self, _delete)
 
@@ -45,6 +45,14 @@ class ABackEmissary(ABackStored):
         self.open_options = open_options
         self.path = path
         super(ABackEmissary, self).__init__(**kwargs)
+
+
+    def delete(self):
+        """Virtual method:
+        - May be overriden
+        - Should always be called
+        """
+        self.close()
 
 _DeleteRoutine = type('_DeleteRoutine', (_tools.CallOrContext,), {
     '__doc__': AEmissary.delete.__doc__,
