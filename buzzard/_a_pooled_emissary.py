@@ -47,5 +47,5 @@ class ABackPooledEmissary(ABackEmissary):
         self.back_ds.deactivate(self.uuid)
         super(ABackPooledEmissary, self).close()
 
-    def allocator(self):
-        raise NotImplementedError('ABackPooledEmissary.allocator is virtual pure')
+    # def allocator(self):
+    #     raise NotImplementedError('ABackPooledEmissary.allocator is virtual pure')

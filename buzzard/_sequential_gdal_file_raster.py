@@ -53,7 +53,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
     def set_data(self): pass
 
     def fill(self, value, bands):
-        with self.back_ds.acquire_driver_object(self, self.uuid, self.allocator) as gdal_ds:
+        with self.back_ds.acquire_driver_object(self, self.uuid, self._allocator) as gdal_ds:
             for gdalband in [self._gdalband_of_index(gdal_ds, i) for i in bands]:
                 gdalband.Fill(value)
 
@@ -67,7 +67,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                 self.path, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
 
-    def allocator(self):
+    def _allocator(self):
         return TODO._open_file(self.path, self.driver, self.open_options, self.mode))
 
     @staticmethod

@@ -52,10 +52,18 @@ class BackDataSourceActivationPoolMixin(object):
             with self._ap_lock:
                 if uuid in self._ap_idle:
                     obj = self._ap_idle.pop_front_occurrence(uuid)
+                    allocate = False
                 else:
                     self._ensure_one_slot()
-                    obj = allocator()
+                    allocate = True
                 self._ap_used[uuid] += 1
+
+            if allocate:
+                try:
+                    obj = allocator()
+                except:
+                    self._ap_used[uuid] -= 1
+                    raise
 
             yield obj
 
