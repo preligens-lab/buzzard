@@ -283,27 +283,51 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
     @staticmethod
     def _sample(fp, bands, prim_arrays, prim_fps, raster):
         """Function matching the signature of RasterRecipe@compute_array parameter"""
-        import six # TODO: Move
-        assert six.viewkeys(prim_arrays) == six.viewkeys(prim_fps)
+        # import six # TODO: Move
+        # assert six.viewkeys(prim_arrays) == six.viewkeys(prim_fps)
         assert not prim_arrays
         assert not prim_fps
+        assert fp.same_grid(raster.fp)
 
-        if raster is None:
-            @contextlib.contextmanager
-            def _f():
-                yield allocator()
-            context = _f()
-        else:
-            if isinstance(raster, (SequentialGDALFileRaster, ConcurrentGDALFileRaster)): # TODO! How do we get those pointers from back!?!?!?!?!?!
-                context = raster.back_ds.acquire(raster.uuid, raster._allocator)
-            elif isinstance(raster, GDALMemRaster):
-                context = contextlib.contextmanager(lambda: iter([self._gdal_obj]))
-            else:
-                assert False
+        with raster._back.back_ds.acquire(raster._back.uuid, raster._back._allocator) as gdal_obj:
+            return _sample_gdal_ds(fp, bands, gdal_ds, raster)
 
-        with context as gdal_obj:
-            gdal_obj
+        # if raster is None:
+        #     @contextlib.contextmanager
+        #     def _f():
+        #         yield allocator()
+        #     context = _f()
+        # else:
+        #     if isinstance(raster, (SequentialGDALFileRaster, ConcurrentGDALFileRaster)): # TODO! How do we get those pointers from back!?!?!?!?!?!
+        #         context = raster.back_ds.acquire(raster.uuid, raster._allocator)
+        #     elif isinstance(raster, GDALMemRaster):
+        #         context = contextlib.contextmanager(lambda: iter([self._gdal_obj]))
+        #     else:
+        #         assert False
 
+        # with context as gdal_ds:
+
+    @staticmethod
+    def _sample_gdal_ds(fp, bands, gdal_ds, raster):
+        rtlx, rtly = raster.fp.spatial_to_raster(fp.tl)
+        assert rtlx >= 0 and rtlx < raster.fp.rsizex
+        assert rtly >= 0 and rtly < raster.fp.rsizey
+
+        dstarray = np.empty(np.r_[fp.shape, len(bands)], raster.dtype)
+        for i, band in enumerate(bands):
+            gdal_band = _gdalband_of_index(gdal_ds, band)
+            a = gdal_band.ReadAsArray(
+                int(rtlx),
+                int(rtly),
+                int(fp.rsizex),
+                int(fp.rsizey),
+                buf_obj=dst_array[..., i],
+            )
+            if a is None:
+                raise ValueError('Could not read array (gdal error: `{}`)'.format(
+                    gdal.GetLastErrorMsg()
+                ))
+        return dstarray
 
     def get_data(self, fp, bands, outshape, dst_nodata, interpolation):
         samplefp = self._build_sampling_footprint(fp)
@@ -311,12 +335,12 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
         array = self._remap(
             samplefp,
             fp,
-            interpolation=interpolation,
             array=array,
             mask=None,
             src_nodata=self.nodata,
             dst_nodata=dst_nodata,
             mask_mode='erode',
+            interpolation=interpolation,
         )
         array = array.astype(self.dtype, copy=False).reshape(outshape)
         array = array.reshape(outshape)
