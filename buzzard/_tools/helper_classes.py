@@ -96,3 +96,10 @@ class Query(object):
         self.is_flat = is_flat
 
         self.was_included_in_graph = False
+
+class _Any(object):
+    """Helper for pattern matching"""
+    def __eq__(self, _):
+        return True
+
+ANY = _Any()

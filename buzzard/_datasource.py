@@ -12,7 +12,7 @@ import numpy as np
 # from buzzard._raster_stored import RasterStored
 # from buzzard._raster_recipe import RasterRecipe
 # from buzzard._vector import Vector
-# from buzzard._tools import conv, deprecation_pool
+from buzzard._tools import conv, deprecation_pool
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
 from buzzard._sequential_gdal_file_raster import *

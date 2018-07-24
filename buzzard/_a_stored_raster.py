@@ -1,3 +1,5 @@
+import numpy as np
+
 from buzzard import _tools
 from buzzard._a_stored import *
 from buzzard._a_proxy_raster import *
