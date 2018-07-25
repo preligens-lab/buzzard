@@ -55,14 +55,16 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
         )
 
     def _build_sampling_footprint(self, fp):
-        if fp.same_grid(self.fp):
-            return fp
         if not fp.share_area(dst_fp):
             return None
+        if fp.same_grid(self.fp):
+            fp = fp & self.fp
+            assert fp.same_grid(self.fp)
+            return fp
         if not self.back_ds.allow_interpolation:
             raise TODOTheRightMessage
         dilate_size = 4 * self.fp.pxsizex / fp.pxsizex # hyperparameter
-        dilate_size = max(2, np.ceil(dilate_size))
+        dilate_size = max(2, np.ceil(dilate_size)) # hyperparameter too
         fp = fp.dilate(dilate_size)
         fp = fp & self.fp
         return fp
@@ -165,12 +167,13 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                     borderMode=cv2.BORDER_TRANSPARENT,
                 )
                 dstnodatamask = dstnodatamask != 0
-                dstarray = np.atleast_3d(cv2.remap(
+                dstarray = np.full(np.r_[dst_fp.shape, array.shape[-1]], dst_nodata, array.dtype)
+                cv2.remap(
                     array, mapx, mapy,
                     interpolation=interpolation,
-                    borderMode=cv2.BORDER_CONSTANT,
-                    borderValue=dst_nodata,
-                ))
+                    borderMode=cv2.BORDER_TRANSPARENT,
+                    dst=dstarray,
+                )
                 print('dstarray', dstarray.shape, array.shape)
                 dstarray[dstnodatamask] = dst_nodata
         else:
@@ -204,8 +207,8 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
 
         Caveat
         ------
-        For performance reasons, output array might be the same as input array, or share memory
-        with it. If a nodata conversion is then performed, the input array will be modified.
+        For performance reasons, output array might share the same memory space as the input array.
+        If a nodata conversion is then performed, the input array will be modified.
         """
         # Parameters cheking ******************************************************************** **
         arr_mode = array is not None, mask is not None
@@ -342,7 +345,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
             mask_mode='erode',
             interpolation=interpolation,
         )
-        array = array.astype(self.dtype, copy=False).reshape(outshape)
+        array = array.astype(self.dtype, copy=False)
         array = array.reshape(outshape)
         return array
 
