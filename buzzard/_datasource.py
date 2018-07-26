@@ -263,15 +263,25 @@ class DataSource(DataSourceRegisterMixin):
 
         See DataSource.open_raster
         """
-        gdal_ds = RasterStored._open_file(path, driver, options, mode)
+        # Parameter checking ***************************************************
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=list(options), mode=mode
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem':
+            assert False
+        elif True: # & not concurrent:
+            allocator = lambda: BackSequentialGDALFileRaster._open_file(
+                path, driver, options, mode
+            )
+            prox = SequentialGDALFileRaster(self, allocator, options, mode)
+        else:
+            prox = ...
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
@@ -357,17 +367,8 @@ class DataSource(DataSourceRegisterMixin):
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )
             prox = SequentialGDALFileRaster(self, allocator, options, 'w')
-            # prox = SequentialGDALFileRaster(self, path, driver, options, mode)
         else:
             prox = ...
-
-        # gdal_ds = RasterStored._create_file(
-        #     path, fp, dtype, band_count, band_schema, driver, options, sr
-        # )
-        # consts = RasterStored._Constants(
-        #     self, gdal_ds=gdal_ds, open_options=options, mode='w'
-        # )
-        # prox = RasterStored(self, consts, gdal_ds)
 
         # DataSource Registering ***********************************************
         self._register([key], prox)
@@ -379,18 +380,27 @@ class DataSource(DataSourceRegisterMixin):
 
         See DataSource.create_raster
         """
-        if sr is not None:
-            fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterStored._create_file(
-            path, fp, dtype, band_count, band_schema, driver, options, sr
-        )
+        # Parameter checking ***************************************************
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=options, mode='w'
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem':
+            # Assert not parallel asked
+            prox = ...
+        elif True: # & not concurrent:
+            allocator = lambda: BackSequentialGDALFileRaster._create_file(
+                path, fp, dtype, band_count, band_schema, driver, options, sr
+            )
+            prox = SequentialGDALFileRaster(self, allocator, options, 'w')
+        else:
+            prox = ...
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):

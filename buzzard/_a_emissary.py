@@ -35,6 +35,7 @@ class AEmissary(AStored):
         """
         def _delete():
             self._back.delete()
+            self.close()
 
         return _DeleteRoutine(self, _delete)
 
@@ -52,7 +53,7 @@ class ABackEmissary(ABackStored):
         - May be overriden
         - Should always be called
         """
-        self.close()
+        pass
 
 _DeleteRoutine = type('_DeleteRoutine', (_tools.CallOrContext,), {
     '__doc__': AEmissary.delete.__doc__,

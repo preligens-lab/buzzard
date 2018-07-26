@@ -103,10 +103,9 @@ class AProxyRaster(AProxy):
         return self._back.get_data(
             fp=fp,
             band_ids=band_ids,
-            outshape=outshape,
             dst_nodata=dst_nodata,
             interpolation=interpolation,
-        )
+        ).reshape(outshape)
 
 class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
 
@@ -142,5 +141,5 @@ class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
     def __len__(self):
         return len(self.band_schema['nodata'])
 
-    def get_data(self, fp, band_ids, outshape, dst_nodata, interpolation):
+    def get_data(self, fp, band_ids, dst_nodata, interpolation):
         raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')

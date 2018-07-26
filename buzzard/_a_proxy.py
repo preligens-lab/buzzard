@@ -107,6 +107,9 @@ class ABackProxy(object):
             return None # pragma: no cover
         return osr.SpatialReference(self.wkt_stored).ExportToProj4()
 
+_tools.deprecation_pool.add_deprecated_property(AProxy, 'wkt_virtual', 'wkt_origin', '0.4.4')
+_tools.deprecation_pool.add_deprecated_property(AProxy, 'proj4_virtual', 'proj4_origin', '0.4.4')
+
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': AProxy.close.__doc__,
 })

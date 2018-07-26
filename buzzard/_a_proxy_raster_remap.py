@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 
+from buzzard._tools import ANY, conv
+
 class ABackProxyRasterRemapMixin(object):
 
     _REMAP_MASK_MODES = frozenset(['dilate', 'erode', ])
@@ -29,7 +31,7 @@ class ABackProxyRasterRemapMixin(object):
             dilate_size = 4 * self.fp.pxsizex / fp.pxsizex # hyperparameter
         dilate_size = max(2, np.ceil(dilate_size)) # hyperparameter too
         fp = fp.dilate(dilate_size)
-        fp = fp & self.fp
+        fp = self.fp & fp
         return fp
 
     @classmethod

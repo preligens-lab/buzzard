@@ -6,7 +6,7 @@ from osgeo import gdal
 import cv2
 
 from buzzard._a_pooled_emissary_raster import *
-from buzzard._tools import ANY, conv
+from buzzard._tools import conv
 
 class SequentialGDALFileRaster(APooledEmissaryRaster):
 
@@ -47,7 +47,10 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
         )
 
     def _sample(self, fp, band_ids):
-        assert fp.same_grid(self.fp)
+        assert fp.same_grid(self.fp), (
+            str(fp),
+            str(self.fp),
+        )
         with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
             return self.get_data_driver(fp, band_ids, gdal_ds)
 
@@ -72,10 +75,14 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                 ))
         return dstarray
 
-    def get_data(self, fp, band_ids, outshape, dst_nodata, interpolation):
+    def get_data(self, fp, band_ids, dst_nodata, interpolation):
         samplefp = self.build_sampling_footprint(fp, interpolation)
         if samplefp is None:
-            assert False, 'todo'
+            return np.full(
+                np.r_[fp.shape, len(band_ids)],
+                dst_nodata,
+                self.dtype
+            )
         array = self._sample(samplefp, band_ids)
         array = self.remap(
             samplefp,
@@ -88,7 +95,6 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
             interpolation=interpolation,
         )
         array = array.astype(self.dtype, copy=False)
-        array = array.reshape(outshape)
         return array
 
     def set_data(self, array, fp, band_ids, interpolation, mask):

@@ -303,7 +303,9 @@ def test_setdata(gb, queryfp, centerfp, ref_centerdat):
         dat[centerfp.slice_in(queryfp)] = ref_centerdat
     gb.out.set_data(dat, fp=queryfp)
     dst_full = gb.out.get_data()
+    assert dst_full.shape == tuple(gb.out.fp.shape)
     dst = gb.out.get_data(fp=queryfp)
+    assert dst.shape == tuple(queryfp.shape)
     if (dat != TIF_NODATA).all():
         assert (dst_full != TIF_NODATA).all()
     undertainty_border = np.ceil(1 / queryfp.pxsizex) * 2
