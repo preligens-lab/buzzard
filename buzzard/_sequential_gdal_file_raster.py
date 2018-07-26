@@ -91,7 +91,54 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
         array = array.reshape(outshape)
         return array
 
-    def set_data(self): pass
+    def set_data(self, array, fp, band_ids, interpolation, mask):
+        if not fp.share_area(self.fp):
+            return
+        if not fp.same_grid(self.fp) and mask is None:
+            mask = np.ones(fp.shape, bool)
+
+        dstfp = self.fp.intersection(fp)
+        # if array.dtype == np.int8:
+        #     array = array.astype('uint8')
+
+        # Remap ****************************************************************
+        ret = self.remap(
+            fp,
+            dstfp,
+            array=array,
+            mask=mask,
+            src_nodata=self.nodata,
+            dst_nodata=self.nodata or 0,
+            mask_mode='erode',
+            interpolation=interpolation,
+        )
+        if mask is not None:
+            array, mask = ret
+        else:
+            array = ret
+        del ret
+        array = array.astype(self.dtype, copy=False)
+        fp = dstfp
+        del dstfp
+
+        # Write ****************************************************************
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
+            for i, band_id in enumerate(band_ids):
+                leftx, topy = self.fp.spatial_to_raster(fp.tl)
+                gdalband = self._gdalband_of_band_id(gdal_ds, band_id)
+
+                for sl in self._slices_of_matrix(mask):
+                    a = array[:, :, i][sl]
+                    assert a.ndim == 2
+                    x = int(sl[1].start + leftx)
+                    y = int(sl[0].start + topy)
+                    assert x >= 0
+                    assert y >= 0
+                    assert x + a.shape[1] <= self.fp.rsizex
+                    assert y + a.shape[0] <= self.fp.rsizey
+                    gdalband.WriteArray(a, x, y)
+
+            # gdal_ds.FlushCache()
 
     def fill(self, value, band_ids):
         with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
@@ -290,3 +337,54 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                     raise ValueError('per_dataset mask must be shared with same flags')
 
         return ret
+
+    @staticmethod
+    def _slices_of_vector(vec):
+        """Generates slices of oneline mask parts"""
+        assert vec.ndim == 1
+        diff = np.diff(np.r_[[False], vec, [False]].astype('int'))
+        starts = np.where(diff == 1)[0]
+        ends = np.where(diff == -1)[0]
+        for s, e in zip(starts, ends):
+            yield slice(s, e)
+
+    @classmethod
+    def _slices_of_matrix(cls, mask):
+        """Generates slices of mask parts"""
+        if mask is None:
+            yield slice(0, None), slice(0, None)
+            return
+
+        ystart = None
+        y = 0
+        while True:
+            # Iteration analysis
+            if y == 0:
+                begin_group = True
+                send_group = False
+                stop = False
+            elif y == mask.shape[0]:
+                begin_group = False
+                send_group = True
+                stop = True
+            elif (mask[y - 1] != mask[y]).any():
+                begin_group = True
+                send_group = True
+                stop = False
+            else:
+                begin_group = False
+                send_group = False
+                stop = False
+
+            # Actions
+            if send_group:
+                yslice = slice(ystart, y)
+                for xslice in cls._slices_of_vector(mask[ystart]):
+                    yield yslice, xslice
+            if begin_group:
+                ystart = y
+
+            # Loop control
+            if stop:
+                break
+            y += 1
