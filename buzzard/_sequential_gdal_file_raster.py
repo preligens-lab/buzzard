@@ -26,7 +26,6 @@ class SequentialGDALFileRaster(APooledEmissaryRaster):
 
         back = BackSequentialGDALFileRaster(
             back_ds,
-            ...
         )
 
         super(SequentialGDALFileRaster, self).__init__(ds=ds, back=back)
@@ -37,22 +36,19 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                  # gdal_ds,
                  # path, driver, open_options, mode
     ):
-
-        super(..., self).__init__(
-            back_ds=back_ds,
-            wkt_stored=wkt_stored,
-            band_schema=band_schema,
-            dtype=dtype,
-            fp_stored=fp_stored,
-            mode=mode,
-            driver=driver,
-            open_options=open_options,
-            path=path,
-            uuid=uuid,
-        )
-        functools.partial(
-            _sample_bands, allocator=...,
-        )
+        pass
+        # super(..., self).__init__(
+        #     back_ds=back_ds,
+        #     wkt_stored=wkt_stored,
+        #     band_schema=band_schema,
+        #     dtype=dtype,
+        #     fp_stored=fp_stored,
+        #     mode=mode,
+        #     driver=driver,
+        #     open_options=open_options,
+        #     path=path,
+        #     uuid=uuid,
+        # )
 
     def _build_sampling_footprint(self, fp):
         if not fp.share_area(dst_fp):

@@ -5,8 +5,8 @@ from buzzard import _tools
 class AProxy(object):
 
     def __init__(self, ds, back):
-        self._ds = _ds
-        self._back = _back
+        self._ds = ds
+        self._back = back
 
     @property
     def wkt_stored(self):

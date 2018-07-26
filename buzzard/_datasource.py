@@ -16,9 +16,10 @@ from buzzard._tools import conv, deprecation_pool
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
 from buzzard._sequential_gdal_file_raster import *
+from buzzard._datasource_register import *
 
 # class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
-class DataSource(object):
+class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
     by assigning a key to each registered file.
 
@@ -210,6 +211,7 @@ class DataSource(object):
             allow_interpolation=allow_interpolation,
             max_active=max_active,
         )
+        super(DataSource, self).__init__()
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
@@ -235,7 +237,7 @@ class DataSource(object):
 
         """
         # Parameter checking ***************************************************
-        self._back.validate_key(key)
+        self._validate_key(key)
         path = str(path)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -251,7 +253,7 @@ class DataSource(object):
             prox = ...
 
         # DataSource Registering ***********************************************
-        self._back.register([key], prox)
+        self._register([key], prox)
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
