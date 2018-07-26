@@ -63,10 +63,16 @@ class BackDataSourceActivationPoolMixin(object):
                 try:
                     obj = allocator()
                 except:
-                    self._ap_used[uid] -= 1
+                    with self._ap_lock:
+                        self._ap_used[uid] -= 1
                     raise
 
-            yield obj
+            try:
+                yield obj
+            except:
+                with self._ap_lock:
+                    self._ap_used[uid] -= 1
+                raise
 
             with self._ap_lock:
                 self._ap_used[uid] -= 1

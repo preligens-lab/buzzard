@@ -244,11 +244,13 @@ class DataSource(DataSourceRegisterMixin):
         _ = conv.of_of_mode(mode)
 
         # Construction dispatch ************************************************
-        if 'mem' in driver.lower():
-            # Assert not parallel asked
-            prox = ...
+        if driver.lower() == 'mem':
+            assert False
         elif True: # & not concurrent:
-            prox = SequentialGDALFileRaster(self, path, driver, options, mode)
+            allocator = lambda: BackSequentialGDALFileRaster._open_file(
+                path, driver, options, mode
+            )
+            prox = SequentialGDALFileRaster(self, allocator, options, mode)
         else:
             prox = ...
 
@@ -327,30 +329,48 @@ class DataSource(DataSourceRegisterMixin):
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
         >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
-        >>> fields = {
+        >>> band_schema = {
         ...     'nodata': -32767,
         ...     'interpretation': ['blackband', 'cyanband'],
         ... }
-        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, fields)
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, band_schema)
 
         Caveat
         ------
         When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        if sr is not None:
-            fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterStored._create_file(
-            path, fp, dtype, band_count, band_schema, driver, options, sr
-        )
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=options, mode='w'
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem':
+            # Assert not parallel asked
+            prox = ...
+        elif True: # & not concurrent:
+            allocator = lambda: BackSequentialGDALFileRaster._create_file(
+                path, fp, dtype, band_count, band_schema, driver, options, sr
+            )
+            prox = SequentialGDALFileRaster(self, allocator, options, 'w')
+            # prox = SequentialGDALFileRaster(self, path, driver, options, mode)
+        else:
+            prox = ...
+
+        # gdal_ds = RasterStored._create_file(
+        #     path, fp, dtype, band_count, band_schema, driver, options, sr
+        # )
+        # consts = RasterStored._Constants(
+        #     self, gdal_ds=gdal_ds, open_options=options, mode='w'
+        # )
+        # prox = RasterStored(self, consts, gdal_ds)
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,

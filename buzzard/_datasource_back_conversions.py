@@ -113,13 +113,13 @@ class BackDataSourceConversionsMixin(object):
 
         return _f
 
-    # def _convert_footprint(self, fp, sr):
-    #     sr_tmp = osr.GetUserInputAsWKT(sr)
-    #     sr_tmp = osr.SpatialReference(sr_tmp)
-    #     _, to_virtual = self._get_transforms(sr_tmp, fp, 'work')
-    #     if to_virtual:
-    #         fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
-    #     return fp
+    def convert_footprint(self, fp, sr):
+        sr_tmp = osr.GetUserInputAsWKT(sr)
+        sr_tmp = osr.SpatialReference(sr_tmp)
+        _, to_virtual = self.get_transforms(sr_tmp, fp, 'work')
+        if to_virtual:
+            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
+        return fp
 
     @staticmethod
     def virtual_of_stored_given_mode(stored, work, fallback, forced):

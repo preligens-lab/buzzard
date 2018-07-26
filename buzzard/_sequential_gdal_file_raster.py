@@ -1,5 +1,6 @@
 
 import uuid
+import os
 
 from osgeo import gdal
 import cv2
@@ -9,20 +10,19 @@ from buzzard._tools import ANY, conv
 
 class SequentialGDALFileRaster(APooledEmissaryRaster):
 
-    def __init__(self, ds, path, driver, open_options, mode):
-        back_ds = ds._back
-
+    def __init__(self, ds, allocator, open_options, mode):
         back = BackSequentialGDALFileRaster(
-            back_ds, path, driver, open_options, mode
+            ds._back, allocator, open_options, mode,
         )
 
         super(SequentialGDALFileRaster, self).__init__(ds=ds, back=back)
 
 class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
 
-    def __init__(self, back_ds, path, driver, open_options, mode):
+    def __init__(self, back_ds, allocator, open_options, mode):
         uid = uuid.uuid4()
-        with back_ds.acquire_driver_object(uid, lambda: self._open_file(path, driver, open_options, mode)) as gdal_ds:
+
+        with back_ds.acquire_driver_object(uid, allocator) as gdal_ds:
             path = gdal_ds.GetDescription()
             driver = gdal_ds.GetDriver().ShortName
             fp_stored = Footprint(
@@ -94,8 +94,8 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
     def set_data(self): pass
 
     def fill(self, value, band_ids):
-        with self.back_ds._acquire_driver_object(self, self.uid, self._allocator) as gdal_ds:
-            for gdalband in [self._gdalband_of_band_id(gdal_ds, band_id) for band_id in bands]:
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
+            for gdalband in [self._gdalband_of_band_id(gdal_ds, band_id) for band_id in band_ids]:
                 gdalband.Fill(value)
 
     def delete(self):
@@ -132,6 +132,31 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
                 path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
+        return gdal_ds
+
+    @classmethod
+    def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
+        """Create a raster datasource"""
+        dr = gdal.GetDriverByName(driver)
+        if os.path.isfile(path):
+            err = dr.Delete(path)
+            if err:
+                raise Exception('Could not delete %s' % path)
+
+        options = [str(arg) for arg in options]
+        gdal_ds = dr.Create(
+            path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
+        )
+        if gdal_ds is None:
+            raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
+        if sr is not None:
+            gdal_ds.SetProjection(osr.GetUserInputAsWKT(sr))
+        gdal_ds.SetGeoTransform(fp.gt)
+
+        band_schema = cls._sanitize_band_schema(band_schema, band_count)
+        cls._apply_band_schema(gdal_ds, band_schema)
+
+        gdal_ds.FlushCache()
         return gdal_ds
 
     _BAND_SCHEMA_PARAMS = {
@@ -179,6 +204,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
     @classmethod
     def _sanitize_band_schema(cls, band_schema, band_count):
         """Used on file/recipe creation"""
+        import numbers # TODO: move
         ret = {}
 
         def _test_length(val, name):
