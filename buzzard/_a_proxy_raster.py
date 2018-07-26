@@ -1,6 +1,7 @@
 from buzzard._a_proxy import *
-
+from buzzard._a_proxy_raster_remap import *
 from buzzard._footprint import Footprint
+from buzzard import _tools
 
 class AProxyRaster(AProxy):
 
@@ -30,8 +31,8 @@ class AProxyRaster(AProxy):
         return len(self._back)
 
     @property
-    def shared_band_index(self):
-        return self._back.shared_band_index
+    def shared_band_id(self):
+        return self._back.shared_band_id
 
     def get_data(self, fp=None, band=1, dst_nodata=None, interpolation='cv_area'):
         """Read a rectangle of data on several channels from the raster source.
@@ -53,7 +54,7 @@ class AProxyRaster(AProxy):
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
             If Footprint: return this window from the raster
-        band: band index or sequence of band index (see `Band Indices` below)
+        band: band id or sequence of band id (see `Band Identifiers` below)
         dst_nodata: nbr
             Value of nodata in output array
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
@@ -64,9 +65,9 @@ class AProxyRaster(AProxy):
         numpy.ndarray
             of shape (Y, X) or (Y, X, B)
 
-        Band Indices
+        Band Identifiers
         ------------
-        | index type | index value     | meaning          |
+        | id type    | id value        | meaning          |
         |------------|-----------------|------------------|
         | int        | -1              | All bands        |
         | int        | 1, 2, 3, ...    | Band `i`         |
@@ -82,11 +83,11 @@ class AProxyRaster(AProxy):
             raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp)) # pragma: no cover
 
         # Normalize and check band parameter
-        bands, is_flat = _tools.normalize_band_parameter(band, len(self), self._shared_band_index)
+        band_ids, is_flat = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
         if is_flat:
             outshape = tuple(fp.shape)
         else:
-            outshape = tuple(fp.shape) + (len(bands),)
+            outshape = tuple(fp.shape) + (len(band_ids),)
         del band
 
         # Normalize and check dst_nodata parameter
@@ -101,13 +102,13 @@ class AProxyRaster(AProxy):
 
         return self._back.get_data(
             fp=fp,
-            bands=bands,
+            band_ids=band_ids,
             outshape=outshape,
             dst_nodata=dst_nodata,
             interpolation=interpolation,
         )
 
-class ABackProxyRaster(ABackProxy):
+class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
 
     def __init__(self, band_schema, dtype, fp_stored, **kwargs):
         super(ABackProxyRaster, self).__init__(rect=fp_stored, **kwargs)
@@ -119,10 +120,10 @@ class ABackProxyRaster(ABackProxy):
         else:
             fp = fp_stored
 
-        self.shared_band_index = None
+        self.shared_band_id = None
         for i, type in enumerate(band_schema['mask'], 1):
             if type == 'per_dataset':
-                self.shared_band_index = i
+                self.shared_band_id = i
                 break
 
         self.band_schema = band_schema
@@ -141,5 +142,5 @@ class ABackProxyRaster(ABackProxy):
     def __len__(self):
         return len(self.band_schema['nodata'])
 
-    def get_data(self, fp, bands, outshape, dst_nodata, interpolation):
+    def get_data(self, fp, band_ids, outshape, dst_nodata, interpolation):
         raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')

@@ -26,16 +26,16 @@ class AStoredRaster(AStored, AProxyRaster):
         fp: Footprint
             Of shape (Y, X)
             Within in raster file
-        band: band index or sequence of band index (see `Band Indices` below)
+        band: band ids or sequence of band ids (see `Band Identifiers` below)
         interpolation: one of ('cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4')
             Resampling method
         mask: numpy array of shape (Y, X) OR inputs accepted by Footprint.burn_polygons
         op: None or vector function
             Rounding function following an interpolation when file type is integer
 
-        Band Indices
+        Band Identifiers
         ------------
-        | index type | index value     | meaning          |
+        | id type    | id value        | meaning          |
         |------------|-----------------|------------------|
         | int        | -1              | All bands        |
         | int        | 1, 2, 3, ...    | Band `i`         |
@@ -47,7 +47,7 @@ class AStoredRaster(AStored, AProxyRaster):
         self._back.set_data(
             array=array,
             fp=fp,
-            band=band,
+            band_ids=...,
             interpolation=interpolation,
             mask=mask,
             op=op,
@@ -59,11 +59,11 @@ class AStoredRaster(AStored, AProxyRaster):
         Parameters
         ----------
         value: nbr
-        band: band index or sequence of band index (see `Band Indices` below)
+        band: band ids or sequence of band ids (see `Band Identifiers` below)
 
-        Band Indices
+        Band Identifiers
         ------------
-        | index type | index value     | meaning          |
+        | id type    | id value        | meaning          |
         |------------|-----------------|------------------|
         | int        | -1              | All bands        |
         | int        | 1, 2, 3, ...    | Band `i`         |
@@ -75,17 +75,17 @@ class AStoredRaster(AStored, AProxyRaster):
         if self.mode != 'w':
             raise RuntimeError('Cannot write a read-only raster file')
 
-        bands, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_index)
+        band_ids, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
 
         self._back.fill(
             value=value,
-            bands=bands,
+            band_ids=band_ids,
         )
 
 class ABackStoredRaster(ABackStored, ABackProxyRaster):
 
-    def set_data(self, array, fp, band, interpolation, mask, op):
+    def set_data(self, array, fp, band_ids, interpolation, mask, op):
         raise NotImplementedError('ABackStoredRaster.set_data is virtual pure')
 
-    def fill(self, value, bands):
+    def fill(self, value, band_ids):
         raise NotImplementedError('ABackStoredRaster.fill is virtual pure')

@@ -58,6 +58,7 @@ class AProxy(object):
         """
         def _close():
             self._back.close()
+            self._ds._unregister(self)
             del self._ds
             del self._back
 
@@ -92,7 +93,6 @@ class ABackProxy(object):
         - May be overriden
         - Should always be called
         """
-        self.back_ds.unregister(self)
         del self.back_ds
 
     @property

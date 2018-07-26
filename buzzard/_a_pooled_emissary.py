@@ -17,34 +17,34 @@ class APooledEmissary(AEmissary):
 
 class ABackPooledEmissary(ABackEmissary):
 
-    def __init__(self, uuid, **kwargs):
-        self.uuid = uuid
+    def __init__(self, uid, **kwargs):
+        self.uid = uid
         super(ABackPooledEmissary, self).__init__(**kwargs)
 
     def activate(self):
-        self.back_ds.activate(self.uuid, self.allocator)
+        self.back_ds.activate(self.uid, self.allocator)
 
     def deactivate(self):
-        self.back_ds.deactivate(self.uuid)
+        self.back_ds.deactivate(self.uid)
 
     @property
     def active_count(self):
-        return self.back_ds.active_count(self.uuid)
+        return self.back_ds.active_count(self.uid)
 
     @property
     def active(self):
-        return self.back_ds.active_count(self.uuid) > 0
+        return self.back_ds.active_count(self.uid) > 0
 
     @property
     def acquire_driver_object(self):
-        return self.back_ds.acquire_driver_object(self.uuid, self.allocator)
+        return self.back_ds.acquire_driver_object(self.uid, self.allocator)
 
     def close(self):
         """Virtual method:
         - May be overriden
         - Should always be called
         """
-        self.back_ds.deactivate(self.uuid)
+        self.back_ds.deactivate(self.uid)
         super(ABackPooledEmissary, self).close()
 
     # def allocator(self):
