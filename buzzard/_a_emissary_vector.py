@@ -1,0 +1,14 @@
+from buzzard._a_stored_vector import *
+from buzzard._a_emissary import *
+
+class AEmissaryVector(AEmissary, AStoredVector):
+
+    @property
+    def layer(self):
+        return self._back.layer
+
+class ABackEmissaryVector(ABackEmissary, ABackStoredVector):
+
+    def __init__(self, layer, **kwargs):
+        super(ABackEmissaryVector, self).__init__(**kwargs)
+        self.layer = layer
