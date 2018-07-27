@@ -521,159 +521,130 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
-        """Experimental feature!
+    # def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
+    #     """Experimental feature!
 
-        Create a raster recipe and register it under `key` in this DataSource.
+    #     Create a raster recipe and register it under `key` in this DataSource.
 
-        A recipe is a read-only raster that behaves like any other raster, pixel values are computed
-        on-the-fly with calls to the provided `pixel functions`. A pixel function maps a Footprint to
-        a numpy array of the same shape, it may be called several time to compute a result.
+    #     A recipe is a read-only raster that behaves like any other raster, pixel values are computed
+    #     on-the-fly with calls to the provided `pixel functions`. A pixel function maps a Footprint to
+    #     a numpy array of the same shape, it may be called several time to compute a result.
 
-        Parameters
-        ----------
-        key: hashable (like a string)
-            File identifier within DataSource
-        fn: callable or sequence of callable
-            pixel functions, one per band
-            A pixel function take a Footprint and return a np.ndarray with the same shape.
-        path: string
-        fp: Footprint
-            Location and size of the raster to create.
-        dtype: numpy type (or any alias)
-        band_schema: dict or None
-            Band(s) metadata. (see `DataSource.create_raster` below)
-        sr: string or None
-            Spatial reference of the new file
+    #     Parameters
+    #     ----------
+    #     key: hashable (like a string)
+    #         File identifier within DataSource
+    #     fn: callable or sequence of callable
+    #         pixel functions, one per band
+    #         A pixel function take a Footprint and return a np.ndarray with the same shape.
+    #     path: string
+    #     fp: Footprint
+    #         Location and size of the raster to create.
+    #     dtype: numpy type (or any alias)
+    #     band_schema: dict or None
+    #         Band(s) metadata. (see `DataSource.create_raster` below)
+    #     sr: string or None
+    #         Spatial reference of the new file
 
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+    #         if None: don't set a spatial reference
+    #         if string:
+    #             if path: Use same projection as file at `path`
+    #             if textual spatial reference:
+    #                 http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
-        Exemple
-        -------
-        Computing the Mandelbrot fractal using buzzard
+    #     Exemple
+    #     -------
+    #     Computing the Mandelbrot fractal using buzzard
 
-        >>> import buzzard as buzz
-        ... import numpy as np
-        ... from numba import jit
-        ... import matplotlib.pyplot as plt
-        ... import shapely.geometry as sg
-        ...
-        ... @jit(nopython=True, nogil=True, cache=True)
-        ... def mandelbrot_jit(array, tl, scale, maxit):
-        ...     for j in range(array.shape[0]):
-        ...         y0 = tl[1] + j * scale[1]
-        ...         for i in range(array.shape[1]):
-        ...             x0 = tl[0] + i * scale[0]
-        ...             x = 0.0
-        ...             y = 0.0
-        ...             x2 = 0.0
-        ...             y2 = 0.0
-        ...             iteration = 0
-        ...             while x2 + y2 < 4 and iteration < maxit:
-        ...                 y = 2 * x * y + y0
-        ...                 x = x2 - y2 + x0
-        ...                 x2 = x * x
-        ...                 y2 = y * y
-        ...                 iteration += 1
-        ...             array[j][i] = iteration * 255 / maxit
-        ...
-        ... with buzz.Env(allow_complex_footprint=True, warnings=False):
-        ...     ds = buzz.DataSource()
-        ...
-        ...     def pixel_function(fp):
-        ...         print('  Computing {}'.format(fp))
-        ...         array = np.empty(fp.shape, 'uint8')
-        ...         mandelbrot_jit(array, fp.tl, fp.scale, maxit)
-        ...         return array
-        ...
-        ...     size = 5000
-        ...     fp = buzz.Footprint(
-        ...         gt=(-2, 4 / size, 0, -2, 0, 4 / size),
-        ...         rsize=(size, size),
-        ...     )
-        ...     print('Recipe:{}'.format(fp))
-        ...     r = ds.acreate_recipe_raster(pixel_function, fp, 'uint8', {'nodata': 0})
-        ...
-        ...     focus = sg.Point(-1.1172, -0.221103)
-        ...     for factor in [1, 4, 16, 64]:
-        ...         buffer = 2 / factor
-        ...         maxit = 25 * factor
-        ...         fp = fp.dilate(buffer // fp.pxsizex) & focus.buffer(buffer)
-        ...         print('Zoom:{}, radius:{}, max-iteration:{}, fp:{}'.format(factor, buffer, maxit, fp))
-        ...         a = r.get_data(fp=fp)
-        ...         plt.imshow(a, origin='upper', extent=(fp.lx, fp.rx, fp.by, fp.ty))
-        ...         plt.show()
-        ...
-        Recipe:     Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5000, 5000))
-        Zoom:1, radius:2.0, max-iteration:25,
-                 fp:Footprint(tl=(-3.117600, -2.221600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5001, 5001))
-          Computing Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(3609, 4729))
-        Zoom:4, radius:0.5, max-iteration:100,
-                 fp:Footprint(tl=(-1.617600, -0.721600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1251, 1251))
-          Computing Footprint(tl=(-1.620800, -0.724800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1259, 1259))
-        Zoom:16, radius:0.125, max-iteration:400,
-                 fp:Footprint(tl=(-1.242400, -0.346400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(313, 313))
-          Computing Footprint(tl=(-1.246400, -0.350400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(323, 323))
-        Zoom:64, radius:0.03125, max-iteration:1600,
-                 fp:Footprint(tl=(-1.148800, -0.252800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(79, 79))
-          Computing Footprint(tl=(-1.152800, -0.256800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(89, 89))
+    #     >>> import buzzard as buzz
+    #     ... import numpy as np
+    #     ... from numba import jit
+    #     ... import matplotlib.pyplot as plt
+    #     ... import shapely.geometry as sg
+    #     ...
+    #     ... @jit(nopython=True, nogil=True, cache=True)
+    #     ... def mandelbrot_jit(array, tl, scale, maxit):
+    #     ...     for j in range(array.shape[0]):
+    #     ...         y0 = tl[1] + j * scale[1]
+    #     ...         for i in range(array.shape[1]):
+    #     ...             x0 = tl[0] + i * scale[0]
+    #     ...             x = 0.0
+    #     ...             y = 0.0
+    #     ...             x2 = 0.0
+    #     ...             y2 = 0.0
+    #     ...             iteration = 0
+    #     ...             while x2 + y2 < 4 and iteration < maxit:
+    #     ...                 y = 2 * x * y + y0
+    #     ...                 x = x2 - y2 + x0
+    #     ...                 x2 = x * x
+    #     ...                 y2 = y * y
+    #     ...                 iteration += 1
+    #     ...             array[j][i] = iteration * 255 / maxit
+    #     ...
+    #     ... with buzz.Env(allow_complex_footprint=True, warnings=False):
+    #     ...     ds = buzz.DataSource()
+    #     ...
+    #     ...     def pixel_function(fp):
+    #     ...         print('  Computing {}'.format(fp))
+    #     ...         array = np.empty(fp.shape, 'uint8')
+    #     ...         mandelbrot_jit(array, fp.tl, fp.scale, maxit)
+    #     ...         return array
+    #     ...
+    #     ...     size = 5000
+    #     ...     fp = buzz.Footprint(
+    #     ...         gt=(-2, 4 / size, 0, -2, 0, 4 / size),
+    #     ...         rsize=(size, size),
+    #     ...     )
+    #     ...     print('Recipe:{}'.format(fp))
+    #     ...     r = ds.acreate_recipe_raster(pixel_function, fp, 'uint8', {'nodata': 0})
+    #     ...
+    #     ...     focus = sg.Point(-1.1172, -0.221103)
+    #     ...     for factor in [1, 4, 16, 64]:
+    #     ...         buffer = 2 / factor
+    #     ...         maxit = 25 * factor
+    #     ...         fp = fp.dilate(buffer // fp.pxsizex) & focus.buffer(buffer)
+    #     ...         print('Zoom:{}, radius:{}, max-iteration:{}, fp:{}'.format(factor, buffer, maxit, fp))
+    #     ...         a = r.get_data(fp=fp)
+    #     ...         plt.imshow(a, origin='upper', extent=(fp.lx, fp.rx, fp.by, fp.ty))
+    #     ...         plt.show()
+    #     ...
+    #     Recipe:     Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5000, 5000))
+    #     Zoom:1, radius:2.0, max-iteration:25,
+    #              fp:Footprint(tl=(-3.117600, -2.221600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5001, 5001))
+    #       Computing Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(3609, 4729))
+    #     Zoom:4, radius:0.5, max-iteration:100,
+    #              fp:Footprint(tl=(-1.617600, -0.721600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1251, 1251))
+    #       Computing Footprint(tl=(-1.620800, -0.724800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1259, 1259))
+    #     Zoom:16, radius:0.125, max-iteration:400,
+    #              fp:Footprint(tl=(-1.242400, -0.346400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(313, 313))
+    #       Computing Footprint(tl=(-1.246400, -0.350400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(323, 323))
+    #     Zoom:64, radius:0.03125, max-iteration:1600,
+    #              fp:Footprint(tl=(-1.148800, -0.252800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(79, 79))
+    #       Computing Footprint(tl=(-1.152800, -0.256800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(89, 89))
 
-        """
-        self._validate_key(key)
-        if sr is not None:
-            fp = self._convert_footprint(fp, sr)
+    #     """
+    #     self._validate_key(key)
+    #     if sr is not None:
+    #         fp = self._convert_footprint(fp, sr)
 
-        if hasattr(fn, '__call__'):
-            fn_lst = (fn,)
-        elif not isinstance(fn, collections.Container):
-            fn_lst = tuple(fn)
-            for fn_elt in fn_lst:
-                if not hasattr(fn_elt, '__call__'):
-                    raise TypeError('fn should be a callable or a sequence of callables')
-        else:
-            raise TypeError('fn should be a callable or a sequence of callables')
+    #     if hasattr(fn, '__call__'):
+    #         fn_lst = (fn,)
+    #     elif not isinstance(fn, collections.Container):
+    #         fn_lst = tuple(fn)
+    #         for fn_elt in fn_lst:
+    #             if not hasattr(fn_elt, '__call__'):
+    #                 raise TypeError('fn should be a callable or a sequence of callables')
+    #     else:
+    #         raise TypeError('fn should be a callable or a sequence of callables')
 
-        gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        consts = RasterRecipe._Constants(
-            self, gdal_ds=gdal_ds, fn_list=fn_lst,
-        )
-        prox = RasterRecipe(self, consts, gdal_ds)
-        self._register([key], prox)
-        self._register_new_activated(prox)
-        return prox
-
-    def acreate_recipe_raster(self, fn, fp, dtype, band_schema=None, sr=None):
-        """Experimental feature!
-
-        Create a raster recipe anonymously in this DataSource.
-
-        See DataSource.create_recipe_raster
-        """
-        if sr is not None:
-            fp = self._convert_footprint(fp, sr)
-
-        if hasattr(fn, '__call__'):
-            fn_lst = (fn,)
-        elif not isinstance(fn, collections.Container):
-            fn_lst = tuple(fn)
-            for fn_elt in fn_lst:
-                if not hasattr(fn_elt, '__call__'):
-                    raise TypeError('fn should be a callable or a sequence of callables')
-        else:
-            raise TypeError('fn should be a callable or a sequence of callables')
-
-        gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        consts = RasterRecipe._Constants(
-            self, gdal_ds=gdal_ds, fn_list=fn_lst,
-        )
-        prox = RasterRecipe(self, consts, gdal_ds)
-        self._register([], prox)
-        self._register_new_activated(prox)
-        return prox
+    #     gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
+    #     consts = RasterRecipe._Constants(
+    #         self, gdal_ds=gdal_ds, fn_list=fn_lst,
+    #     )
+    #     prox = RasterRecipe(self, consts, gdal_ds)
+    #     self._register([key], prox)
+    #     self._register_new_activated(prox)
+    #     return prox
 
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
@@ -699,16 +670,32 @@ class DataSource(DataSourceRegisterMixin):
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        path = str(path)
+        if layer is None:
+            layer = 0
+        elif isinstance(layer, numbers.Integral):
+            layer = int(layer)
+        else:
+            layer = str(layer)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            raise ValueError("Can't open a MEMORY vector, user create_vector")
+        elif True:
+            allocator = lambda: BackGDALFileVector._open_file(
+                path, layer, driver, options, mode
+            )
+            prox = GDALFileVector(self, allocator, options, mode)
+        else:
+            prox = ...
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
