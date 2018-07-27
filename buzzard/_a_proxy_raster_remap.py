@@ -62,7 +62,6 @@ class ABackProxyRasterRemapMixin(object):
         # Parameters cheking ******************************************************************** **
         arr_mode = array is not None, mask is not None
         fp_mode = (
-            src_fp == dst_fp,
             src_fp.same_grid(dst_fp),
             src_fp.poly.contains(dst_fp.poly),
         )
@@ -95,21 +94,19 @@ class ABackProxyRasterRemapMixin(object):
             ))
 
         # Remapping ***************************************************************************** **
-        if fp_mode == (True, True, True):
-            pass
-        elif fp_mode == (False, True, True):
+        if fp_mode == (True, True):
             array, mask = cls._remap_slice(
                 src_fp, dst_fp,
                 array, mask,
                 src_nodata, dst_nodata,
             )
-        elif fp_mode == (False, True, False):
+        elif fp_mode == (True, False):
             array, mask = cls._remap_copy(
                 src_fp, dst_fp,
                 array, mask,
                 src_nodata, dst_nodata,
             )
-        elif fp_mode == (False, False, ANY):
+        elif fp_mode == (False, ANY):
             array, mask = cls._remap_interpolate(
                 src_fp, dst_fp,
                 array, mask,
@@ -169,7 +166,6 @@ class ABackProxyRasterRemapMixin(object):
     @classmethod
     def _remap_interpolate(cls, src_fp, dst_fp, array, mask, src_nodata, dst_nodata,
                            mask_mode, interpolation):
-
         if array is not None and array.dtype in [np.dtype('float64'), np.dtype('bool')]:
             raise ValueError(
                 'dtype {!r} not handled by cv2.remap'.format(array.dtype)

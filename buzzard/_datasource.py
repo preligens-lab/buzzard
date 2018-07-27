@@ -18,6 +18,7 @@ from buzzard import _tools
 from buzzard._datasource_back import *
 from buzzard._gdal_file_raster import *
 from buzzard._datasource_register import *
+from buzzard._numpy_raster import *
 
 # class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
 class DataSource(DataSourceRegisterMixin):
@@ -358,7 +359,7 @@ class DataSource(DataSourceRegisterMixin):
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
-        band_schema = _tools.sanitize_band_schema(band_schema)
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
         if sr is not None:
@@ -395,7 +396,7 @@ class DataSource(DataSourceRegisterMixin):
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
-        band_schema = _tools.sanitize_band_schema(band_schema)
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
         if sr is not None:
@@ -420,7 +421,7 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    def register_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='r'):
+    def register_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this DataSource.
 
         Parameters
@@ -470,7 +471,8 @@ class DataSource(DataSourceRegisterMixin):
             raise ValueError('Incompatible shape between `array` and `fp`')
         if array.ndim not in [2, 3]:
             raise ValueError('Array should have 2 or 3 dimensions')
-        band_schema = _tools.sanitize_band_schema(band_schema)
+        band_count = 1 if array.ndim == 2 else array.shape[-1]
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
             sr = osr.GetUserInputAsWKT(sr)
         _ = conv.of_of_mode(mode)
@@ -485,7 +487,7 @@ class DataSource(DataSourceRegisterMixin):
         self._register([key], prox)
         return prox
 
-    def aregister_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='r'):
+    def aregister_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster anonymously in this DataSource.
 
         See DataSource.register_numpy_raster
@@ -498,7 +500,8 @@ class DataSource(DataSourceRegisterMixin):
             raise ValueError('Incompatible shape between `array` and `fp`')
         if array.ndim not in [2, 3]:
             raise ValueError('Array should have 2 or 3 dimensions')
-        band_schema = _tools.sanitize_band_schema(band_schema)
+        band_count = 1 if array.ndim == 2 else array.shape[-1]
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
             sr = osr.GetUserInputAsWKT(sr)
         _ = conv.of_of_mode(mode)

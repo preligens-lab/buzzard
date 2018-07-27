@@ -206,7 +206,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster):
             gdal_ds.SetProjection(wkt)
         gdal_ds.SetGeoTransform(fp.gt)
 
-        band_schema = cls._sanitize_band_schema(band_schema, band_count)
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         cls._apply_band_schema(gdal_ds, band_schema)
 
         gdal_ds.FlushCache()

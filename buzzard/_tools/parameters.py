@@ -166,6 +166,7 @@ def sanitize_band_schema(band_schema, band_count):
         else:
             _test_length(val, 'nodata')
             ret['interpretation'] = [conv.gci_of_str(elt) for elt in val]
+        ret['interpretation'] = [conv.str_of_gci(v) for v in ret['interpretation']]
 
     if 'offset' in band_schema:
         ret['offset'] = list(_normalize_multi_layer(
@@ -196,6 +197,7 @@ def sanitize_band_schema(band_schema, band_count):
             shared = [elt for elt in ret['mask'] if elt & shared_bit]
             if len(set(shared)) > 1:
                 raise ValueError('per_dataset mask must be shared with same flags')
+        ret['mask'] = [conv.str_of_gmf(v) for v in ret['mask']]
 
     return ret
 
