@@ -13,9 +13,10 @@ import numpy as np
 # from buzzard._raster_recipe import RasterRecipe
 # from buzzard._vector import Vector
 from buzzard._tools import conv, deprecation_pool
+from buzzard import _tools
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
-from buzzard._sequential_gdal_file_raster import *
+from buzzard._gdal_file_raster import *
 from buzzard._datasource_register import *
 
 # class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
@@ -227,7 +228,7 @@ class DataSource(DataSourceRegisterMixin):
             http://www.gdal.org/formats_list.html
         options: sequence of str
             options for gdal
-        mode: one of ('r', 'w')
+        mode: one of {'r', 'w'}
 
         Example
         -------
@@ -247,10 +248,10 @@ class DataSource(DataSourceRegisterMixin):
         if driver.lower() == 'mem':
             assert False
         elif True: # & not concurrent:
-            allocator = lambda: BackSequentialGDALFileRaster._open_file(
+            allocator = lambda: BackGDALFileRaster._open_file(
                 path, driver, options, mode
             )
-            prox = SequentialGDALFileRaster(self, allocator, options, mode)
+            prox = GDALFileRaster(self, allocator, options, mode)
         else:
             prox = ...
 
@@ -273,10 +274,10 @@ class DataSource(DataSourceRegisterMixin):
         if driver.lower() == 'mem':
             assert False
         elif True: # & not concurrent:
-            allocator = lambda: BackSequentialGDALFileRaster._open_file(
+            allocator = lambda: BackGDALFileRaster._open_file(
                 path, driver, options, mode
             )
-            prox = SequentialGDALFileRaster(self, allocator, options, mode)
+            prox = GDALFileRaster(self, allocator, options, mode)
         else:
             prox = ...
 
@@ -353,8 +354,16 @@ class DataSource(DataSourceRegisterMixin):
         # Parameter checking ***************************************************
         self._validate_key(key)
         path = str(path)
+        if not isinstance(fp, Footprint):
+            raise TypeError('`fp` should be a Footprint')
+        dtype = np.dtype(dtype)
+        band_count = int(band_count)
+        band_schema = _tools.sanitize_band_schema(band_schema)
         driver = str(driver)
         options = [str(arg) for arg in options]
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
         if sr is not None:
             fp = self._back.convert_footprint(fp, sr)
 
@@ -363,10 +372,10 @@ class DataSource(DataSourceRegisterMixin):
             # Assert not parallel asked
             prox = ...
         elif True: # & not concurrent:
-            allocator = lambda: BackSequentialGDALFileRaster._create_file(
+            allocator = lambda: BackGDALFileRaster._create_file(
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )
-            prox = SequentialGDALFileRaster(self, allocator, options, 'w')
+            prox = GDALFileRaster(self, allocator, options, 'w')
         else:
             prox = ...
 
@@ -382,8 +391,16 @@ class DataSource(DataSourceRegisterMixin):
         """
         # Parameter checking ***************************************************
         path = str(path)
+        if not isinstance(fp, Footprint):
+            raise TypeError('`fp` should be a Footprint')
+        dtype = np.dtype(dtype)
+        band_count = int(band_count)
+        band_schema = _tools.sanitize_band_schema(band_schema)
         driver = str(driver)
         options = [str(arg) for arg in options]
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
         if sr is not None:
             fp = self._back.convert_footprint(fp, sr)
 
@@ -392,12 +409,105 @@ class DataSource(DataSourceRegisterMixin):
             # Assert not parallel asked
             prox = ...
         elif True: # & not concurrent:
-            allocator = lambda: BackSequentialGDALFileRaster._create_file(
+            allocator = lambda: BackGDALFileRaster._create_file(
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )
-            prox = SequentialGDALFileRaster(self, allocator, options, 'w')
+            prox = GDALFileRaster(self, allocator, options, 'w')
         else:
             prox = ...
+
+        # DataSource Registering ***********************************************
+        self._register([], prox)
+        return prox
+
+    def register_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='r'):
+        """Register a numpy array as a raster under `key` in this DataSource.
+
+        Parameters
+        ----------
+        key: hashable (like a string)
+            File identifier within DataSource
+        fp: Footprint of shape (Y, X)
+            Description of the location and size of the raster to create.
+        array: ndarray of shape (Y, X) or (Y, X, B)
+        band_schema: dict or None
+            Band(s) metadata. (see `Band fields` below)
+        sr: string or None
+            Spatial reference of the new file
+
+            if None: don't set a spatial reference
+            if string:
+                if path: Use same projection as file at `path`
+                if textual spatial reference:
+                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+        mode: one of {'r', 'w'}
+
+        Band fields
+        -----------
+        Fields:
+            'nodata': None or number
+            'interpretation': None or str
+            'offset': None or number
+            'scale': None or number
+            'mask': None or one of ('')
+        Interpretation values:
+            undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
+            saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
+        Mask values:
+            all_valid, per_dataset, alpha, nodata
+
+        A field missing or None is kept to default value.
+        A field can be passed as:
+            a value: All bands are set to this value
+            a sequence of length `band_count` of value: All bands will be set to respective state
+        """
+        # Parameter checking ***************************************************
+        self._validate_key(key)
+        if not isinstance(fp, Footprint):
+            raise TypeError('`fp` should be a Footprint')
+        array = np.asarray(array)
+        if array.shape[:2] != tuple(fp.shape):
+            raise ValueError('Incompatible shape between `array` and `fp`')
+        if array.ndim not in [2, 3]:
+            raise ValueError('Array should have 2 or 3 dimensions')
+        band_schema = _tools.sanitize_band_schema(band_schema)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+        _ = conv.of_of_mode(mode)
+
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        # Construction *********************************************************
+        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
+
+        # DataSource Registering ***********************************************
+        self._register([key], prox)
+        return prox
+
+    def aregister_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='r'):
+        """Register a numpy array as a raster anonymously in this DataSource.
+
+        See DataSource.register_numpy_raster
+        """
+        # Parameter checking ***************************************************
+        if not isinstance(fp, Footprint):
+            raise TypeError('`fp` should be a Footprint')
+        array = np.asarray(array)
+        if array.shape[:2] != tuple(fp.shape):
+            raise ValueError('Incompatible shape between `array` and `fp`')
+        if array.ndim not in [2, 3]:
+            raise ValueError('Array should have 2 or 3 dimensions')
+        band_schema = _tools.sanitize_band_schema(band_schema)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+        _ = conv.of_of_mode(mode)
+
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        # Construction *********************************************************
+        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
 
         # DataSource Registering ***********************************************
         self._register([], prox)
@@ -572,7 +682,7 @@ class DataSource(DataSourceRegisterMixin):
             http://www.gdal.org/ogr_formats.html
         options: sequence of str
             options for ogr
-        mode: one of ('r', 'w')
+        mode: one of {'r', 'w'}
 
         Example
         -------

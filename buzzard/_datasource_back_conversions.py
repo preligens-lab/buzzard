@@ -113,10 +113,9 @@ class BackDataSourceConversionsMixin(object):
 
         return _f
 
-    def convert_footprint(self, fp, sr):
-        sr_tmp = osr.GetUserInputAsWKT(sr)
-        sr_tmp = osr.SpatialReference(sr_tmp)
-        _, to_virtual = self.get_transforms(sr_tmp, fp, 'work')
+    def convert_footprint(self, fp, wkt):
+        sr = osr.SpatialReference(wkt)
+        _, to_virtual = self.get_transforms(sr, fp, 'work')
         if to_virtual:
             fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
         return fp

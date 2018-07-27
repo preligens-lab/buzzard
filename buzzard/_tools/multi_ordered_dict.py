@@ -1,5 +1,6 @@
 import collections
 import uuid
+import itertools
 
 class MultiOrderedDict(object):
     """Data structure derived from collections.OrderedDict that accept several keys"""
@@ -8,6 +9,14 @@ class MultiOrderedDict(object):
         self._od = collections.OrderedDict()
         self._key_of_ukey = {}
         self._ukeys_of_key = collections.defaultdict(list)
+
+    def __str__(self):
+        l = []
+        for key, g in itertools.groupby(map(self._key_of_ukey.get, self._od.keys())):
+            l += ['{} x{}'.format(
+                key, len(list(g))
+            )]
+        return '<' + ', '.join(l) + '>'
 
     def __contains__(self, key):
         return key in self._ukeys_of_key

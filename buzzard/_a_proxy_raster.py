@@ -98,7 +98,11 @@ class AProxyRaster(AProxy):
         else:
             dst_nodata = self.dtype.type(0)
 
-        # TODO: Check interpolation parameter here
+        # Check interpolation parameter here
+        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS):
+            raise ValueError('`interpolation` should be None or one of {}'.format(
+                set(self._back.REMAP_INTERPOLATIONS.keys())
+            ))
 
         return self._back.get_data(
             fp=fp,

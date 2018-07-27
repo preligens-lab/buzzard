@@ -77,7 +77,11 @@ class AStoredRaster(AStored, AProxyRaster):
             else:
                 mask = fp.burn_polygons(mask)
 
-        # TODO: Check interpolation parameter here
+        # Check interpolation parameter here
+        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS):
+            raise ValueError('`interpolation` should be None or one of {}'.format(
+                set(self._back.REMAP_INTERPOLATIONS.keys())
+            ))
 
         return self._back.set_data(
             array=array,

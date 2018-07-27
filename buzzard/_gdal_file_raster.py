@@ -7,17 +7,17 @@ import cv2
 
 from buzzard._a_pooled_emissary_raster import *
 from buzzard._tools import conv
+from buzzard import _tools
 
-class SequentialGDALFileRaster(APooledEmissaryRaster):
+class GDALFileRaster(APooledEmissaryRaster):
 
     def __init__(self, ds, allocator, open_options, mode):
-        back = BackSequentialGDALFileRaster(
+        back = BackGDALFileRaster(
             ds._back, allocator, open_options, mode,
         )
+        super(GDALFileRaster, self).__init__(ds=ds, back=back)
 
-        super(SequentialGDALFileRaster, self).__init__(ds=ds, back=back)
-
-class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
+class BackGDALFileRaster(ABackPooledEmissaryRaster):
 
     def __init__(self, back_ds, allocator, open_options, mode):
         uid = uuid.uuid4()
@@ -33,7 +33,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
             dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
             wkt_stored = gdal_ds.GetProjection()
 
-        super(BackSequentialGDALFileRaster, self).__init__(
+        super(BackGDALFileRaster, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             band_schema=band_schema,
@@ -133,7 +133,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                 leftx, topy = self.fp.spatial_to_raster(fp.tl)
                 gdalband = self._gdalband_of_band_id(gdal_ds, band_id)
 
-                for sl in self._slices_of_matrix(mask):
+                for sl in _tools.slices_of_matrix(mask):
                     a = array[:, :, i][sl]
                     assert a.ndim == 2
                     x = int(sl[1].start + leftx)
@@ -152,7 +152,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
                 gdalband.Fill(value)
 
     def delete(self):
-        super(BackSequentialGDALFileRaster, self).delete()
+        super(BackGDALFileRaster, self).delete()
 
         dr = gdal.GetDriverByName(self.driver)
         err = dr.Delete(self.path)
@@ -188,7 +188,7 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
         return gdal_ds
 
     @classmethod
-    def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, sr):
+    def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):
         """Create a raster datasource"""
         dr = gdal.GetDriverByName(driver)
         if os.path.isfile(path):
@@ -202,8 +202,8 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
         )
         if gdal_ds is None:
             raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
-        if sr is not None:
-            gdal_ds.SetProjection(osr.GetUserInputAsWKT(sr))
+        if wkt is not None:
+            gdal_ds.SetProjection(wkt)
         gdal_ds.SetGeoTransform(fp.gt)
 
         band_schema = cls._sanitize_band_schema(band_schema, band_count)
@@ -211,10 +211,6 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
 
         gdal_ds.FlushCache()
         return gdal_ds
-
-    _BAND_SCHEMA_PARAMS = {
-        'nodata', 'interpretation', 'offset', 'scale', 'mask',
-    }
 
     @staticmethod
     def _apply_band_schema(gdal_ds, band_schema):
@@ -253,144 +249,3 @@ class BackSequentialGDALFileRaster(ABackPooledEmissaryRaster):
             'scale': [band.GetScale() if band.GetScale() is not None else 1. for band in bands],
             'mask': [conv.str_of_gmf(band.GetMaskFlags()) for band in bands],
         }
-
-    @classmethod
-    def _sanitize_band_schema(cls, band_schema, band_count):
-        """Used on file/recipe creation"""
-        import numbers # TODO: move
-        ret = {}
-
-        def _test_length(val, name):
-            count = len(val)
-            if count > band_count:
-                raise ValueError('Too many values provided for %s (%d instead of %d)' % (
-                    name, count, band_count
-                ))
-            elif count < band_count:
-                raise ValueError('Not enough values provided for %s (%d instead of %d)' % (
-                    name, count, band_count
-                ))
-
-        if band_schema is None:
-            return {}
-        diff = set(band_schema.keys()) - cls._BAND_SCHEMA_PARAMS
-        if diff:
-            raise ValueError('Unknown band_schema keys `%s`' % diff)
-
-        def _normalize_multi_layer(name, val, type_, cleaner, default):
-            if val is None:
-                for _ in range(band_count):
-                    yield default
-            elif isinstance(val, type_):
-                val = cleaner(val)
-                for _ in range(band_count):
-                    yield val
-            else:
-                _test_length(val, name)
-                for elt in val:
-                    if elt is None:
-                        yield default
-                    elif isinstance(elt, type_):
-                        yield cleaner(elt)
-                    else:
-                        raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
-
-        if 'nodata' in band_schema:
-            ret['nodata'] = list(_normalize_multi_layer(
-                'nodata',
-                band_schema['nodata'],
-                numbers.Number,
-                lambda val: float(val),
-                None,
-            ))
-
-        if 'interpretation' in band_schema:
-            val = band_schema['interpretation']
-            if isinstance(val, str):
-                ret['interpretation'] = [conv.gci_of_str(val)] * band_count
-            else:
-                _test_length(val, 'nodata')
-                ret['interpretation'] = [conv.gci_of_str(elt) for elt in val]
-
-        if 'offset' in band_schema:
-            ret['offset'] = list(_normalize_multi_layer(
-                'offset',
-                band_schema['offset'],
-                numbers.Number,
-                lambda val: float(val),
-                0.,
-            ))
-
-        if 'scale' in band_schema:
-            ret['scale'] = list(_normalize_multi_layer(
-                'scale',
-                band_schema['scale'],
-                numbers.Number,
-                lambda val: float(val),
-                1.,
-            ))
-
-        if 'mask' in band_schema:
-            val = band_schema['mask']
-            if isinstance(val, str):
-                ret['mask'] = [conv.gmf_of_str(val)] * band_count
-            else:
-                _test_length(val, 'mask')
-                ret['mask'] = [conv.gmf_of_str(elt) for elt in val]
-                shared_bit = conv.gmf_of_str('per_dataset')
-                shared = [elt for elt in ret['mask'] if elt & shared_bit]
-                if len(set(shared)) > 1:
-                    raise ValueError('per_dataset mask must be shared with same flags')
-
-        return ret
-
-    @staticmethod
-    def _slices_of_vector(vec):
-        """Generates slices of oneline mask parts"""
-        assert vec.ndim == 1
-        diff = np.diff(np.r_[[False], vec, [False]].astype('int'))
-        starts = np.where(diff == 1)[0]
-        ends = np.where(diff == -1)[0]
-        for s, e in zip(starts, ends):
-            yield slice(s, e)
-
-    @classmethod
-    def _slices_of_matrix(cls, mask):
-        """Generates slices of mask parts"""
-        if mask is None:
-            yield slice(0, None), slice(0, None)
-            return
-
-        ystart = None
-        y = 0
-        while True:
-            # Iteration analysis
-            if y == 0:
-                begin_group = True
-                send_group = False
-                stop = False
-            elif y == mask.shape[0]:
-                begin_group = False
-                send_group = True
-                stop = True
-            elif (mask[y - 1] != mask[y]).any():
-                begin_group = True
-                send_group = True
-                stop = False
-            else:
-                begin_group = False
-                send_group = False
-                stop = False
-
-            # Actions
-            if send_group:
-                yslice = slice(ystart, y)
-                for xslice in cls._slices_of_vector(mask[ystart]):
-                    yield yslice, xslice
-            if begin_group:
-                ystart = y
-
-            # Loop control
-            if stop:
-                break
-            y += 1

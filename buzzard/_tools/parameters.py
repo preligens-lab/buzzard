@@ -4,11 +4,16 @@ import numbers
 import collections
 import logging
 import functools
-import six
+import numbers
 
+import six
 import numpy as np
 
 from .helper_classes import Singleton
+
+BAND_SCHEMA_PARAMS = frozenset({
+    'nodata', 'interpretation', 'offset', 'scale', 'mask',
+})
 
 def _coro_parameter_0or1dim(val, clean_fn, name):
     """Normalize a parameter that can be an sequence or not.
@@ -105,6 +110,95 @@ def normalize_band_parameter(band, band_count, shared_mask_index):
     elif len(indices) > 1:
         is_flat = False
     return indices, is_flat
+
+def sanitize_band_schema(band_schema, band_count):
+    """Used on file/recipe creation"""
+    ret = {}
+
+    def _test_length(val, name):
+        count = len(val)
+        if count > band_count:
+            raise ValueError('Too many values provided for %s (%d instead of %d)' % (
+                name, count, band_count
+            ))
+        elif count < band_count:
+            raise ValueError('Not enough values provided for %s (%d instead of %d)' % (
+                name, count, band_count
+            ))
+
+    if band_schema is None:
+        return {}
+    diff = set(band_schema.keys()) - BAND_SCHEMA_PARAMS
+    if diff:
+        raise ValueError('Unknown band_schema keys `%s`' % diff)
+
+    def _normalize_multi_layer(name, val, type_, cleaner, default):
+        if val is None:
+            for _ in range(band_count):
+                yield default
+        elif isinstance(val, type_):
+            val = cleaner(val)
+            for _ in range(band_count):
+                yield val
+        else:
+            _test_length(val, name)
+            for elt in val:
+                if elt is None:
+                    yield default
+                elif isinstance(elt, type_):
+                    yield cleaner(elt)
+                else:
+                    raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
+
+    if 'nodata' in band_schema:
+        ret['nodata'] = list(_normalize_multi_layer(
+            'nodata',
+            band_schema['nodata'],
+            numbers.Number,
+            lambda val: float(val),
+            None,
+        ))
+
+    if 'interpretation' in band_schema:
+        val = band_schema['interpretation']
+        if isinstance(val, str):
+            ret['interpretation'] = [conv.gci_of_str(val)] * band_count
+        else:
+            _test_length(val, 'nodata')
+            ret['interpretation'] = [conv.gci_of_str(elt) for elt in val]
+
+    if 'offset' in band_schema:
+        ret['offset'] = list(_normalize_multi_layer(
+            'offset',
+            band_schema['offset'],
+            numbers.Number,
+            lambda val: float(val),
+            0.,
+        ))
+
+    if 'scale' in band_schema:
+        ret['scale'] = list(_normalize_multi_layer(
+            'scale',
+            band_schema['scale'],
+            numbers.Number,
+            lambda val: float(val),
+            1.,
+        ))
+
+    if 'mask' in band_schema:
+        val = band_schema['mask']
+        if isinstance(val, str):
+            ret['mask'] = [conv.gmf_of_str(val)] * band_count
+        else:
+            _test_length(val, 'mask')
+            ret['mask'] = [conv.gmf_of_str(elt) for elt in val]
+            shared_bit = conv.gmf_of_str('per_dataset')
+            shared = [elt for elt in ret['mask'] if elt & shared_bit]
+            if len(set(shared)) > 1:
+                raise ValueError('per_dataset mask must be shared with same flags')
+
+    return ret
+
 
 class _DeprecationPool(Singleton):
     """Singleton class designed to handle function parameter renaming"""

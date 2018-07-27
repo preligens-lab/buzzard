@@ -3,10 +3,19 @@ import cv2
 
 from buzzard._tools import ANY, conv
 
+_EXN_FORMAT = """Illegal remap attempt between two Footprints that do not lie on the same grid.
+full raster    -> {src!s}
+argument       -> {dst!s}
+scales         -> full raster:{src.scale}, argument:{dst.scale}
+grids distance -> {tldiff}
+`allow_interpolation` was set to `False` in `DataSource` constructor. It means that either
+1. there is a mistake in your code and you did not meant to perform this operation with an unaligned Footprint,
+2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`."""
+
 class ABackProxyRasterRemapMixin(object):
 
     _REMAP_MASK_MODES = frozenset(['dilate', 'erode', ])
-    _REMAP_INTERPOLATIONS = {
+    REMAP_INTERPOLATIONS = {
         'cv_area': cv2.INTER_AREA,
         'cv_nearest': cv2.INTER_NEAREST,
         'cv_linear': cv2.INTER_LINEAR,
@@ -22,7 +31,14 @@ class ABackProxyRasterRemapMixin(object):
             assert fp.same_grid(self.fp)
             return fp
         if not self.back_ds.allow_interpolation:
-            raise TODOTheRightMessage
+            raise ValueError(_EXN_FORMAT.format(
+                src=self.fp,
+                dst=fp,
+                tldiff=fp.tl - (
+                    self.fp.pxtbvec * np.around(~self.fp.affine * fp.tl)[1] +
+                    self.fp.pxlrvec * np.around(~self.fp.affine * fp.tl)[0]
+                ) - self.fp.tl,
+            ))
         if interpolation in {'cv_nearest'}:
             dilate_size = 1 * self.fp.pxsizex / fp.pxsizex # hyperparameter
         elif interpolation in {'cv_linear', 'cv_area'}:
@@ -73,9 +89,9 @@ class ABackProxyRasterRemapMixin(object):
             ))
 
         # Check interpolation **************************************************
-        if not (interpolation is None or interpolation in cls._REMAP_INTERPOLATIONS):
+        if not (interpolation is None or interpolation in cls.REMAP_INTERPOLATIONS):
             raise ValueError('interpolation should be None or one of {}'.format(
-                _REMAP_INTERPOLATIONS.keys(),
+                REMAP_INTERPOLATIONS.keys(),
             ))
 
         # Remapping ***************************************************************************** **
@@ -164,7 +180,7 @@ class ABackProxyRasterRemapMixin(object):
             mapx, mapy, cv2.CV_16SC2,
             nninterpolation=interpolation=='cv_nearest',
         ) # At this point mapx/mapy are not really mapx/mapy any more, but who cares?
-        interpolation = cls._REMAP_INTERPOLATIONS[interpolation]
+        interpolation = cls.REMAP_INTERPOLATIONS[interpolation]
 
         if array is not None:
             # "Bug" 1 with cv2.BORDER_CONSTANT *********************************
@@ -213,7 +229,6 @@ class ABackProxyRasterRemapMixin(object):
                     borderMode=cv2.BORDER_TRANSPARENT,
                     dst=dstarray,
                 )
-                print('dstarray', dstarray.shape, array.shape)
                 dstarray[dstnodatamask] = dst_nodata
         else:
             dstarray = None
