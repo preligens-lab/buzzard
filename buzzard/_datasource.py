@@ -17,6 +17,7 @@ from buzzard import _tools
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
 from buzzard._gdal_file_raster import *
+from buzzard._gdal_mem_raster import *
 from buzzard._datasource_register import *
 from buzzard._numpy_raster import *
 
@@ -247,8 +248,8 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            assert False
-        elif True: # & not concurrent:
+            raise ValueError("Can't open a MEM raster, user create_raster")
+        elif True:
             allocator = lambda: BackGDALFileRaster._open_file(
                 path, driver, options, mode
             )
@@ -273,8 +274,8 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            assert False
-        elif True: # & not concurrent:
+            raise ValueError("Can't open a MEM raster, user acreate_raster")
+        elif True:
             allocator = lambda: BackGDALFileRaster._open_file(
                 path, driver, options, mode
             )
@@ -370,9 +371,11 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            # Assert not parallel asked
-            prox = ...
-        elif True: # & not concurrent:
+            # TODO: Check not concurrent
+            prox = GDALMemRaster(
+                self, fp, dtype, band_count, band_schema, options, sr
+            )
+        elif True:
             allocator = lambda: BackGDALFileRaster._create_file(
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )
@@ -407,9 +410,11 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            # Assert not parallel asked
-            prox = ...
-        elif True: # & not concurrent:
+            # TODO: Check not concurrent
+            prox = GDALMemRaster(
+                self, fp, dtype, band_count, band_schema, options, sr
+            )
+        elif True:
             allocator = lambda: BackGDALFileRaster._create_file(
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )

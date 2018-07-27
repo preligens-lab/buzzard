@@ -1,48 +1,49 @@
-import numpy as np
-import uuid
 import os
+import numpy as np
 
 from osgeo import gdal
 
-from buzzard._a_pooled_emissary_raster import *
+from buzzard._a_emissary_raster import *
 from buzzard._tools import conv
 from buzzard import _tools
 
-class GDALFileRaster(APooledEmissaryRaster):
+class GDALMemRaster(AEmissaryRaster):
 
-    def __init__(self, ds, allocator, open_options, mode):
-        back = BackGDALFileRaster(
-            ds._back, allocator, open_options, mode,
+    def __init__(self, ds, fp, dtype, band_count, band_schema, open_options, sr):
+        back = BackGDALMemRaster(
+            ds._back, fp, dtype, band_count, band_schema, open_options, sr,
         )
-        super(GDALFileRaster, self).__init__(ds=ds, back=back)
+        super(GDALMemRaster, self).__init__(ds=ds, back=back)
 
-class BackGDALFileRaster(ABackPooledEmissaryRaster):
+class BackGDALMemRaster(ABackEmissaryRaster):
 
-    def __init__(self, back_ds, allocator, open_options, mode):
-        uid = uuid.uuid4()
+    def __init__(self, back_ds, fp, dtype, band_count, band_schema, open_options, sr):
 
-        with back_ds.acquire_driver_object(uid, allocator) as gdal_ds:
-            path = gdal_ds.GetDescription()
-            driver = gdal_ds.GetDriver().ShortName
-            fp_stored = Footprint(
-                gt=gdal_ds.GetGeoTransform(),
-                rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
-            )
-            band_schema = self._band_schema_of_gdal_ds(gdal_ds)
-            dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
-            wkt_stored = gdal_ds.GetProjection()
+        gdal_ds = self._create_file(
+            '', fp, dtype, band_count, band_schema, 'MEM', open_options, sr
+        )
+        self._gdal_ds = gdal_ds
 
-        super(BackGDALFileRaster, self).__init__(
+        path = gdal_ds.GetDescription()
+        driver = gdal_ds.GetDriver().ShortName
+        fp_stored = Footprint(
+            gt=gdal_ds.GetGeoTransform(),
+            rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
+        )
+        band_schema = self._band_schema_of_gdal_ds(gdal_ds)
+        dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+        wkt_stored = gdal_ds.GetProjection()
+
+        super(BackGDALMemRaster, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             band_schema=band_schema,
             dtype=dtype,
             fp_stored=fp_stored,
-            mode=mode,
+            mode='w',
             driver=driver,
             open_options=open_options,
             path=path,
-            uid=uid,
         )
 
     def _sample(self, fp, band_ids):
@@ -50,8 +51,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster):
             str(fp),
             str(self.fp),
         )
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
-            return self.get_data_driver(fp, band_ids, gdal_ds)
+        return self.get_data_driver(fp, band_ids, self._gdal_ds)
 
     def get_data_driver(self, fp, band_ids, driver_obj):
         rtlx, rtly = self.fp.spatial_to_raster(fp.tl)
@@ -127,7 +127,8 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster):
         del dstfp
 
         # Write ****************************************************************
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
+        gdal_ds = self._gdal_ds
+        if True:
             for i, band_id in enumerate(band_ids):
                 leftx, topy = self.fp.spatial_to_raster(fp.tl)
                 gdalband = self._gdalband_of_band_id(gdal_ds, band_id)
@@ -146,22 +147,11 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster):
             # gdal_ds.FlushCache()
 
     def fill(self, value, band_ids):
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
-            for gdalband in [self._gdalband_of_band_id(gdal_ds, band_id) for band_id in band_ids]:
-                gdalband.Fill(value)
+        for gdalband in [self._gdalband_of_band_id(self._gdal_ds, band_id) for band_id in band_ids]:
+            gdalband.Fill(value)
 
     def delete(self):
-        super(BackGDALFileRaster, self).delete()
-
-        dr = gdal.GetDriverByName(self.driver)
-        err = dr.Delete(self.path)
-        if err:
-            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
-            ))
-
-    def _allocator(self):
-        return self._open_file(self.path, self.driver, self.open_options, self.mode)
+        raise NotImplementedError('GDAL MEM driver does no allow deletion, use `close`')
 
     @staticmethod
     def _gdalband_of_band_id(gdal_ds, id):
@@ -170,21 +160,6 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster):
             return gdal_ds.GetRasterBand(id)
         else:
             return gdal_ds.GetRasterBand(int(id.imag)).GetMaskBand()
-
-    @staticmethod
-    def _open_file(path, driver, options, mode):
-        """Open a raster dataset"""
-        gdal_ds = gdal.OpenEx(
-            path,
-            conv.of_of_mode(mode) | conv.of_of_str('raster'),
-            [driver],
-            options,
-        )
-        if gdal_ds is None:
-            raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
-            ))
-        return gdal_ds
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):

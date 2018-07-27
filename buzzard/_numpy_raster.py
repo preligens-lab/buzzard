@@ -1,16 +1,12 @@
-import os
-
-from osgeo import gdal
-import cv2
+import numpy as np
 
 from buzzard._a_stored_raster import *
-from buzzard._tools import conv
 from buzzard import _tools
 
 class NumpyRaster(AStoredRaster):
 
     def __init__(self, ds, fp, array, band_schema, wkt, mode):
-        # self._arr = array
+        self._arr = array
         back = BackNumpyRaster(
             ds._back, fp, array, band_schema, wkt, mode
         )
@@ -18,8 +14,11 @@ class NumpyRaster(AStoredRaster):
 
     @property
     def array(self):
-        # return self._arr
-        return self._back._arr
+        assert (
+            self._arr.__array_interface__['data'][0] ==
+            self._back._arr.__array_interface__['data'][0]
+        )
+        return self._arr
 
 class BackNumpyRaster(ABackStoredRaster):
 
