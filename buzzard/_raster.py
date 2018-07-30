@@ -6,10 +6,12 @@ import threading
 import datetime
 import queue
 import uuid
+import multiprocessing as mp
 
 import numpy as np
 from buzzard import _tools
 from buzzard._tools import Query, GetDataWithPrimitive
+from buzzard._footprint import Footprint
 
 # import get_uname, qeinfo, qrinfo
 
@@ -24,18 +26,18 @@ class Raster(object):
                  dtype='float32',
                  nbands=1,
                  nodata=None,
-                 srs=None,
+                 sr=None,
                  computation_function=None,
                  cached=False,
                  overwrite=False,
                  cache_dir=None,
-                 cache_fps=None,
+                 cache_tiles=None,
                  io_pool=None,
                  computation_pool=None,
                  primitives=None,
                  to_collect_of_to_compute=None,
                  max_computation_size=None,
-                 computation_fps=None,
+                 computation_tiles=None,
                  merge_pool=None,
                  merge_function=None,
                  debug_callbacks=None):
@@ -44,24 +46,101 @@ class Raster(object):
         """
         if footprint is None:
             raise ValueError("footprint must be provided")
+
+        if computation_function is None:
+            raise ValueError("computation function must be provided")
+
+
+        if io_pool is None:
+            io_pool = mp.pool.ThreadPool()
+        elif isinstance(io_pool, int):
+            io_pool = mp.pool.ThreadPool(io_pool)
+        else:
+            pass
+
+        if computation_pool is None:
+            computation_pool = mp.pool.ThreadPool()
+        elif isinstance(computation_pool, int):
+            computation_pool = mp.pool.ThreadPool(computation_pool)
+        else:
+            pass
+
+        if merge_pool is None:
+            merge_pool = mp.pool.ThreadPool()
+        elif isinstance(merge_pool, int):
+            merge_pool = mp.pool.ThreadPool(merge_pool)
+        else:
+            pass
+
+
+        if primitives is None:
+            primitives = {}
+
+        if not isinstance(primitives, dict):
+            raise ValueError("primitives must be dict or None")
+
+        if primitives.keys() and to_collect_of_to_compute is None:
+            raise ValueError("must provide to_collect_of_to_compute when having primitives")
+
+        
+        if max_computation_size is not None:
+            max_computation_size = np.asarray(max_computation_size).astype(int)
+            max_computation_size = np.atleast_1d(max_computation_size)
+            if max_computation_size.shape == (2,):
+                pass
+            elif max_computation_size.shape == (1,):
+                max_computation_size = np.r_[max_computation_size, max_computation_size]
+            else:
+                raise ValueError("max_computation_size invalid")
+
+
+        def default_merge_data(out_fp, in_fps, in_arrays):
+            """
+            Default merge function: burning
+            """
+            out_data = np.full(
+                tuple(out_fp.shape) + (self._num_bands,),
+                self.nodata or 0,
+                dtype=self.dtype
+            )
+            for to_burn_fp, to_burn_data in zip(in_fps, in_arrays):
+                out_data[to_burn_fp.slice_in(out_fp, clip=True)] = to_burn_data[out_fp.slice_in(to_burn_fp, clip=True)]
+            return out_data
+
+
+        if merge_function is None:
+            self._merge_data = default_merge_data
+        else:
+            self._merge_data = merge_function
+
+
         if cached:
             if cache_dir is None:
                 raise ValueError("cache_dir must be provided when cached")
+
+            if cache_tiles is None:
+                raise ValueError("cache tiles must be provided")
+            if not isinstance(cache_tiles, np.ndarray):
+                raise ValueError("cache tiles must be in np array")
+            cache_fps = list(cache_tiles.flat)
+            if not isinstance(cache_fps[0], Footprint):
+                raise ValueError("cache tiles must be footprints")
+
             backend_raster = BackendCachedRaster(ds,
                                                  footprint,
                                                  dtype,
                                                  nbands,
                                                  nodata,
-                                                 srs,
+                                                 sr,
                                                  computation_function,
                                                  overwrite,
                                                  cache_dir,
-                                                 np.asarray(cache_fps),
+                                                 np.asarray(cache_tiles),
                                                  io_pool,
                                                  computation_pool,
                                                  primitives,
                                                  to_collect_of_to_compute,
-                                                 computation_fps,
+                                                 computation_tiles,
                                                  merge_pool,
                                                  merge_function,
                                                  debug_callbacks
@@ -72,7 +151,7 @@ class Raster(object):
                                            dtype,
                                            nbands,
                                            nodata,
-                                           srs,
+                                           sr,
                                            computation_function,
                                            io_pool,
                                            computation_pool,

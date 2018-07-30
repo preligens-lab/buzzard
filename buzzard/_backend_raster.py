@@ -8,10 +8,12 @@ import datetime
 import collections
 from collections import defaultdict
 import uuid
+import typing
 
 import numpy as np
 import networkx as nx
 
+from buzzard._footprint import Footprint
 from buzzard._tools import DebugCtxMngmnt
 # get_uname, qeinfo, qrinfo, self._ds.thread_pool_task_counter
 
@@ -22,18 +24,18 @@ class BackendRaster(object):
     """
     def __init__(self,
                  ds,
-                 footprint,
+                 footprint: Footprint,
                  dtype,
-                 nbands,
-                 nodata,
-                 srs,
+                 nbands: int,
+                 nodata: typing.Union[None, float],
+                 sr,
                  computation_function,
-                 io_pool,
-                 computation_pool,
-                 primitives,
+                 io_pool: mp.pool.Pool,
+                 computation_pool: mp.pool.Pool,
+                 primitives: dict,
                  to_collect_of_to_compute,
                  max_computation_size,
-                 merge_pool,
+                 merge_pool: mp.pool.Pool,
                  merge_function,
                  debug_callbacks):
 
@@ -48,31 +50,7 @@ class BackendRaster(object):
         self._dtype = dtype
         self._num_bands = nbands
         self._nodata = nodata
-        self._wkt_origin = srs
-
-        if io_pool is None:
-            self._io_pool = mp.pool.ThreadPool()
-        elif isinstance(io_pool, int):
-            self._io_pool = mp.pool.ThreadPool(io_pool)
-        else:
-            self._io_pool = io_pool
-
-        if computation_pool is None:
-            self._computation_pool = mp.pool.ThreadPool()
-        elif isinstance(computation_pool, int):
-            self._computation_pool = mp.pool.ThreadPool(computation_pool)
-        else:
-            self._computation_pool = computation_pool
-
-        if merge_pool is None:
-            self._merge_pool = mp.pool.ThreadPool()
-        elif isinstance(merge_pool, int):
-            self._merge_pool = mp.pool.ThreadPool(merge_pool)
-        else:
-            self._merge_pool = merge_pool
-
-        if primitives is None:
-            primitives = {}
+        self._wkt_origin = sr
 
         self._primitive_functions = primitives
         self._primitive_rasters = {
@@ -80,9 +58,10 @@ class BackendRaster(object):
             for key in primitives
         }
 
+        self._io_pool = io_pool
+        self._computation_pool = computation_pool
+        self._merge_pool = merge_pool
 
-        if primitives.keys() and to_collect_of_to_compute is None:
-            raise ValueError("must provide to_collect_of_to_compute when having primitives")
         self._to_collect_of_to_compute = to_collect_of_to_compute
 
         self._max_computation_size = max_computation_size
@@ -92,23 +71,7 @@ class BackendRaster(object):
 
         self._graph = nx.DiGraph()
 
-        def default_merge_data(out_fp, in_fps, in_arrays):
-            """
-            Default merge function: burning
-            """
-            out_data = np.full(
-                tuple(out_fp.shape) + (self._num_bands,),
-                self.nodata or 0,
-                dtype=self.dtype
-            )
-            for to_burn_fp, to_burn_data in zip(in_fps, in_arrays):
-                out_data[to_burn_fp.slice_in(out_fp, clip=True)] = to_burn_data[out_fp.slice_in(to_burn_fp, clip=True)]
-            return out_data
-
-        if merge_function is None:
-            self._merge_data = default_merge_data
-        else:
-            self._merge_data = merge_function
+        self._merge_data = merge_function
 
         # Used to track the number of pending tasks
         self._num_pending = defaultdict(int)
