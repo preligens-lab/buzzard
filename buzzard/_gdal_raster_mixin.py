@@ -8,7 +8,7 @@ from buzzard._a_pooled_emissary_raster import *
 from buzzard._tools import conv
 from buzzard import _tools
 
-class BackGDALRasterMixin(object):
+class BackGDALRasterMixin(ABackProxyRaster):
 
     def get_data_driver(self, fp, band_ids, driver_obj):
         rtlx, rtly = self.fp.spatial_to_raster(fp.tl)
