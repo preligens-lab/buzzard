@@ -116,6 +116,9 @@ class BackNumpyRaster(ABackStoredRaster):
         for i in self._indices_of_band_ids(band_ids):
             self._arr[..., i] = value
 
+    def delete(self):
+        raise NotImplementedError('GDAL MEM driver does no allow deletion, use `close`')
+
     @staticmethod
     def _indices_of_band_ids(band_ids):
         l = []
