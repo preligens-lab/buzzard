@@ -1,4 +1,4 @@
-"""Resampling tests for *Raster.get_data() methods"""
+"""Resampling tests for *Raster.get_data() methods (not testing rotations)"""
 
 # pylint: disable=redefined-outer-name
 
@@ -44,7 +44,7 @@ INTERPOLATIONS_OUTSIDE_UNCERTAINTY_BORDER = {
 }
 
 # CONSTANTS - TIF GENERATION ******************************************************************** **
-TIF_NODATA = -30
+TIF_NODATA = 200
 TIF_FP = Footprint(
     tl=(100, 110), size=(10, 10), rsize=(10, 10)
 )
@@ -83,31 +83,40 @@ def ds():
 
 @pytest.fixture(
     scope='module',
-    params=['GTiff', 'MEM', 'numpy'],
+    params=[
+        ('GTiff', 1, 'float32'),
+        ('GTiff', 3, 'uint8'),
+        ('MEM', 1, 'float32'),
+        ('MEM', 3, 'uint8'),
+        ('numpy', 1, 'float32'),
+        ('numpy', 3, 'uint8'),
+    ],
 )
 def dsm(request, ds):
     """Fixture for the datasource creation"""
     fp = TIF_FP
-    driver = request.param
+    driver, band_count, dtype = request.param
     if driver == 'numpy':
         dsm = ds.aregister_numpy_raster(
             fp,
-            TIF_VALUES.copy(),
+            np.dstack([TIF_VALUES.copy().astype(dtype=dtype)] * band_count),
             band_schema=dict(nodata=TIF_NODATA),
             sr=None,
             mode='r',
         )
     elif driver == 'MEM':
         dsm = ds.acreate_raster(
-            '', fp, 'float32', 1, band_schema=dict(nodata=TIF_NODATA), driver='MEM',
+            '', fp, dtype, band_count, band_schema=dict(nodata=TIF_NODATA), driver='MEM',
         )
-        dsm.set_data(TIF_VALUES)
+        for band_id in range(1, len(dsm) + 1):
+            dsm.set_data(TIF_VALUES, band=band_id)
     else:
         path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
         dsm = ds.acreate_raster(
-            path, fp, 'float32', 1, band_schema=dict(nodata=TIF_NODATA), driver=driver
+            path, fp, dtype, band_count, band_schema=dict(nodata=TIF_NODATA), driver=driver
         )
-        dsm.set_data(TIF_VALUES)
+        for band_id in range(1, len(dsm) + 1):
+            dsm.set_data(TIF_VALUES, band=band_id)
     yield dsm
     if driver in {'numpy', 'MEM'}:
         dsm.close()
@@ -137,46 +146,52 @@ def fp(size1, scale1, offset1, offset_factor2):
 
 # TESTS ***************************************************************************************** **
 def test_getdata(dsm, fp, interpolation):
-    res = dsm.get_data(fp=fp, interpolation=interpolation)
+    for band_id in range(1, len(dsm) + 1):
+        res = dsm.get_data(band=band_id, fp=fp, interpolation=interpolation)
 
-    # 1 - Assert absent nodata within input pixels (pixels being points not areas)
-    xs, ys = fp.meshgrid_spatial
-    b = INTERPOLATIONS_INSIDE_UNCERTAINTY_BORDER[interpolation]
-    deep_inside_data_mask = (
-        (xs > TIF_DATA_MINX + TIF_FP.pxsizex * b) &
-        (xs < TIF_DATA_MAXX - TIF_FP.pxsizex * b) &
-        (ys > TIF_DATA_MINX + TIF_FP.pxsizex * b) &
-        (ys < TIF_DATA_MAXX - TIF_FP.pxsizex * b)
-    )
-    assert np.all(
-        res[deep_inside_data_mask] != TIF_NODATA
-    )
-
-    # 2 - Test the difference of values between two neighboring columns/rows
-    if deep_inside_data_mask.any():
-        xs, ys = fp.meshgrid_raster
-        data_slice = (
-            slice(ys[deep_inside_data_mask].min(), ys[deep_inside_data_mask].max() + 1),
-            slice(xs[deep_inside_data_mask].min(), xs[deep_inside_data_mask].max() + 1),
+        # 1 - Assert absent nodata within input pixels (pixels being points not areas)
+        xs, ys = fp.meshgrid_spatial
+        b = INTERPOLATIONS_INSIDE_UNCERTAINTY_BORDER[interpolation]
+        deep_inside_data_mask = (
+            (xs > TIF_DATA_MINX + TIF_FP.pxsizex * b) &
+            (xs < TIF_DATA_MAXX - TIF_FP.pxsizex * b) &
+            (ys > TIF_DATA_MINX + TIF_FP.pxsizex * b) &
+            (ys < TIF_DATA_MAXX - TIF_FP.pxsizex * b)
         )
-        below_minus_above = np.diff(res[data_slice], axis=0)
-        right_minus_left = np.diff(res[data_slice], axis=1)
-        vertical_errors = np.abs(below_minus_above - fp.pxsizex)
-        horizontal_errors = np.abs(right_minus_left - fp.pxsizex)
-        if vertical_errors.size:
-            assert vertical_errors.max() <= INTERPOLATIONS_MAX_VALUE_ERROR[interpolation]
-        if horizontal_errors.size:
-            assert horizontal_errors.max() <= INTERPOLATIONS_MAX_VALUE_ERROR[interpolation]
+        assert np.all(
+            res[deep_inside_data_mask] != TIF_NODATA
+        )
 
-    # 3 - Assert only nodata far from data
-    xs, ys = fp.meshgrid_spatial
-    b = INTERPOLATIONS_OUTSIDE_UNCERTAINTY_BORDER[interpolation]
-    far_outside_data_mask = (
-        (xs < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
-        (xs > TIF_DATA_MAXX + TIF_FP.pxsizex * b) |
-        (ys < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
-        (ys > TIF_DATA_MAXX + TIF_FP.pxsizex * b)
-    )
-    assert np.all(
-        res[far_outside_data_mask] == TIF_NODATA
-    )
+        # 2 - Test the difference of values between two neighboring columns/rows
+        if deep_inside_data_mask.any():
+            xs, ys = fp.meshgrid_raster
+            data_slice = (
+                slice(ys[deep_inside_data_mask].min(), ys[deep_inside_data_mask].max() + 1),
+                slice(xs[deep_inside_data_mask].min(), xs[deep_inside_data_mask].max() + 1),
+            )
+            below_minus_above = np.diff(res[data_slice], axis=0)
+            right_minus_left = np.diff(res[data_slice], axis=1)
+
+            vertical_errors = np.abs(below_minus_above - fp.pxsizex)
+            horizontal_errors = np.abs(right_minus_left - fp.pxsizex)
+            if np.issubdtype(dsm.dtype, np.integer):
+                maxerr = np.ceil(INTERPOLATIONS_MAX_VALUE_ERROR[interpolation])
+            else:
+                maxerr = INTERPOLATIONS_MAX_VALUE_ERROR[interpolation]
+            if vertical_errors.size:
+                assert vertical_errors.max() <= maxerr
+            if horizontal_errors.size:
+                assert horizontal_errors.max() <= maxerr
+
+        # 3 - Assert only nodata far from data
+        xs, ys = fp.meshgrid_spatial
+        b = INTERPOLATIONS_OUTSIDE_UNCERTAINTY_BORDER[interpolation]
+        far_outside_data_mask = (
+            (xs < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
+            (xs > TIF_DATA_MAXX + TIF_FP.pxsizex * b) |
+            (ys < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
+            (ys > TIF_DATA_MAXX + TIF_FP.pxsizex * b)
+        )
+        assert np.all(
+            res[far_outside_data_mask] == TIF_NODATA
+        )
