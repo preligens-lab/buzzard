@@ -14,38 +14,39 @@ from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._env import Env
 
-class GDALFileVector(APooledEmissaryVector):
+class GDALMemoryVector(AEmissaryVector):
 
-    def __init__(self, ds, allocator, open_options, mode, layer):
-        back = BackGDALFileVector(
-            ds._back, allocator, open_options, mode, layer,
+    def __init__(self, ds, geometry, fields, open_options, mode, layer, sr):
+        back = BackGDALMemoryVector(
+            ds._back, geometry, fields, open_options, mode, layer, sr,
         )
-        super(GDALFileVector, self).__init__(ds=ds, back=back)
+        super(GDALMemoryVector, self).__init__(ds=ds, back=back)
 
-class BackGDALFileVector(ABackPooledEmissaryVector):
+class BackGDALMemoryVector(ABackEmissaryVector):
 
-    def __init__(self, back_ds, allocator, open_options, mode, layer):
-        uid = uuid.uuid4()
+    def __init__(self, back_ds, geometry, fields, open_options, mode, layer, sr):
+        gdal_ds, lyr = self._create_file('', geometry, fields, layer, 'Memory', open_options, sr)
 
-        with back_ds.acquire_driver_object(uid, allocator) as gdal_objds:
-            gdal_ds, lyr = gdal_objds
-            rect = None
-            if lyr is not None:
-                rect = lyr.GetExtent()
-            path = gdal_ds.GetDescription()
-            driver = gdal_ds.GetDriver().ShortName
-            wkt_stored = gdal_ds.GetProjection()
-            fields = BackGDALFileVector._fields_of_lyr(lyr)
-            type = conv.str_of_wkbgeom(lyr.GetGeomType())
+        self._gdal_ds = gdal_ds
+        self._lyr = lyr
 
-        super(BackGDALFileVector, self).__init__(
+        rect = None
+        if lyr is not None:
+            rect = lyr.GetExtent()
+
+        path = gdal_ds.GetDescription()
+        driver = gdal_ds.GetDriver().ShortName
+        wkt_stored = gdal_ds.GetProjection()
+        fields = BackGDALMemoryVector._fields_of_lyr(lyr)
+        type = conv.str_of_wkbgeom(lyr.GetGeomType())
+
+        super(BackGDALMemoryVector, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             mode=mode,
             driver=driver,
             open_options=open_options,
             path=path,
-            uid=uid,
             layer=layer,
             fields=fields,
             rect=rect,
@@ -67,9 +68,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         -------
         >>> minx, maxx, miny, maxy = ds.roofs.extent
         """
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            extent = lyr.GetExtent()
+        extent = self._lyr.GetExtent()
 
         if extent is None:
             raise ValueError('Could not compute extent')
@@ -83,9 +82,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
     @property
     def extent_stored(self):
         """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            extent = lyr.GetExtent()
+        extent = self._lyr.GetExtent()
 
         if extent is None:
             raise ValueError('Could not compute extent')
@@ -199,8 +196,9 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         else:
             assert False # pragma: no cover
 
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
-            _, lyr = gdal_objds
+        with self.__class__._LayerIteration(self._lyr, self._lock,
+                                            self._ds._ogr_layer_lock == 'wait'):
+            lyr = self._lyr
             ftr = ogr.Feature(lyr.GetLayerDefn())
 
             if geom is not None:
@@ -239,41 +237,11 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
 
 
     def delete(self):
-        super(BackGDALFileVector, self).delete()
+        raise NotImplementedError('GDAL Memory driver does no allow deletion, use `close`')
 
-        dr = gdal.GetDriverByName(self.driver)
-        err = dr.Delete(self.path)
-        if err:
-            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
-            ))
-
-    def _allocator(self):
-        return self._open_file(self.path, self.layer, self.driver, self.open_options, self.mode)
-
-    @staticmethod
-    def _open_file(path, layer, driver, options, mode):
-        """Open a vector datasource"""
-        options = [str(arg) for arg in options] if len(options) else []
-        gdal_ds = gdal.OpenEx(
-            path,
-            conv.of_of_mode(mode) | conv.of_of_str('vector'),
-            [driver],
-            options,
-        )
-        if gdal_ds is None:
-            raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
-            ))
-        if layer is None:
-            layer = 0
-        if isinstance(layer, numbers.Integral):
-            lyr = gdal_ds.GetLayer(layer)
-        else:
-            lyr = gdal_ds.GetLayerByName(layer)
-        if lyr is None:
-            raise Exception('Could not open layer (gdal error: %s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
-        return gdal_ds, lyr
+    def close(self):
+        super(BackGDALMemoryVector, self).close()
+        del self._gdal_ds
 
 
     @classmethod
@@ -340,8 +308,9 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         return gdal_ds, lyr
 
     def _iter_feature(self, slicing, mask_poly, mask_rect):
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
-            _, lyr = gdal_objds
+        with self.__class__._LayerIteration(self._lyr, self._lock,
+                                            self._ds._ogr_layer_lock == 'wait'):
+            lyr = self._lyr
             if mask_poly is not None:
                 lyr.SetSpatialFilter(mask_poly)
             elif mask_rect is not None:
@@ -420,3 +389,23 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         featdef = lyr.GetLayerDefn()
         field_count = featdef.GetFieldCount()
         return [cls._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]
+
+    class _LayerIteration(object):
+        """Context manager to control layer iteration"""
+
+        def __init__(self, lyr, lock, wait):
+            self._lock = lock
+            self._wait = wait
+            self._lyr = lyr
+
+        def __enter__(self):
+            if self._lock is not None:
+                got_lock = self._lock.acquire(self._wait)
+                if not got_lock:
+                    raise Exception('ogr layer is already locked')
+
+        def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+            self._lyr.ResetReading()
+            self._lyr.SetSpatialFilter(None)
+            if self._lock is not None:
+                self._lock.release()

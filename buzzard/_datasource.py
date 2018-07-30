@@ -19,6 +19,7 @@ from buzzard._datasource_back import *
 from buzzard._gdal_file_raster import *
 from buzzard._gdal_file_vector import *
 from buzzard._gdal_mem_raster import *
+from buzzard._gdal_memory_vector import *
 from buzzard._datasource_register import *
 from buzzard._numpy_raster import *
 
@@ -810,7 +811,9 @@ class DataSource(DataSourceRegisterMixin):
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
             # TODO: Check not concurrent
-            ...
+            prox = GDALMemoryVector(
+                self, geometry, fields, options, 'w', layer, sr
+            )
         elif True:
             allocator = lambda: BackGDALFileVector._create_file(
                 path, geometry, fields, layer, driver, options, sr
@@ -839,7 +842,9 @@ class DataSource(DataSourceRegisterMixin):
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
             # TODO: Check not concurrent
-            ...
+            prox = GDALMemoryVector(
+                self, geometry, fields, options, 'w', layer, sr
+            )
         elif True:
             allocator = lambda: BackGDALFileVector._create_file(
                 path, geometry, fields, layer, driver, options, sr
