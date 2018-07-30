@@ -153,6 +153,10 @@ class BackGDALMemRaster(ABackEmissaryRaster):
     def delete(self):
         raise NotImplementedError('GDAL MEM driver does no allow deletion, use `close`')
 
+    def close(self):
+        super(BackGDALMemRaster, self).close()
+        del self._gdal_ds
+
     @staticmethod
     def _gdalband_of_band_id(gdal_ds, id):
         """Convert a band identifier to a gdal band"""

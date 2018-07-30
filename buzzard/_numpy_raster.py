@@ -20,6 +20,10 @@ class NumpyRaster(AStoredRaster):
         )
         return self._arr
 
+    def close(self):
+        super(NumpyRaster, self).close()
+        del self._arr
+
 class BackNumpyRaster(ABackStoredRaster):
 
     def __init__(self, back_ds, fp, array, band_schema, wkt, mode):
@@ -118,6 +122,10 @@ class BackNumpyRaster(ABackStoredRaster):
 
     def delete(self):
         raise NotImplementedError('GDAL MEM driver does no allow deletion, use `close`')
+
+    def close(self):
+        super(BackNumpyRaster, self).close()
+        del self._arr
 
     @staticmethod
     def _indices_of_band_ids(band_ids):
