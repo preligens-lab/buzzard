@@ -17,6 +17,7 @@ from buzzard import _tools
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
 from buzzard._gdal_file_raster import *
+from buzzard._gdal_file_vector import *
 from buzzard._gdal_mem_raster import *
 from buzzard._datasource_register import *
 from buzzard._numpy_raster import *
@@ -690,7 +691,7 @@ class DataSource(DataSourceRegisterMixin):
             allocator = lambda: BackGDALFileVector._open_file(
                 path, layer, driver, options, mode
             )
-            prox = GDALFileVector(self, allocator, options, mode)
+            prox = GDALFileVector(self, allocator, options, mode, layer)
         else:
             prox = ...
 
@@ -698,20 +699,31 @@ class DataSource(DataSourceRegisterMixin):
         self._register([key], prox)
         return prox
 
+
+
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
         """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_vector
         """
-        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            raise ValueError("Can't open a MEMORY vector, user create_vector")
+        elif True:
+            allocator = lambda: BackGDALFileVector._open_file(
+                path, layer, driver, options, mode
+            )
+            prox = GDALFileVector(self, allocator, options, mode, layer)
+        else:
+            prox = ...
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     def create_vector(self, key, path, geometry, fields=(), layer=None,
@@ -787,17 +799,28 @@ class DataSource(DataSourceRegisterMixin):
         >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        gdal_ds, lyr = Vector._create_file(
-            path, geometry, fields, layer, driver, options, sr
-        )
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            # TODO: Check not concurrent
+            ...
+        elif True:
+            allocator = lambda: BackGDALFileVector._create_file(
+                path, geometry, fields, layer, driver, options, sr
+            )
+            prox = GDALFileVector(self, allocator, options, 'w', layer)
+        else:
+            prox = ...
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def acreate_vector(self, path, geometry, fields=(), layer=None,
@@ -806,16 +829,27 @@ class DataSource(DataSourceRegisterMixin):
 
         See DataSource.create_vector
         """
-        gdal_ds, lyr = Vector._create_file(
-            path, geometry, fields, layer, driver, options, sr
-        )
+        # Parameter checking ***************************************************
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            # TODO: Check not concurrent
+            ...
+        elif True:
+            allocator = lambda: BackGDALFileVector._create_file(
+                path, geometry, fields, layer, driver, options, sr
+            )
+            prox = GDALFileVector(self, allocator, options, 'w', layer)
+        else:
+            prox = ...
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     # Proxy getters ********************************************************* **

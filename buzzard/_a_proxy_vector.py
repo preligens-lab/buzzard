@@ -214,7 +214,7 @@ class AProxyVector(AProxy):
 class ABackProxyVector(ABackProxy):
 
     def __init__(self, type, fields, **kwargs):
-        super(ABackProxyVector, self).__init__(rect=None, **kwargs) # TODO: Should pass rect
+        super(ABackProxyVector, self).__init__(**kwargs)
         self.type = type
         self.fields = fields
 

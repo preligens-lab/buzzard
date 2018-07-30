@@ -27,28 +27,16 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
     def __init__(self, back_ds, allocator, open_options, mode, layer):
         uid = uuid.uuid4()
 
-        with back_ds.acquire_driver_object(uid, allocator) as gdal_ds:
-            gdal_ds, lyr = gdal_ds[0], gdal_ds[1]
+        with back_ds.acquire_driver_object(uid, allocator) as gdal_objds:
+            gdal_ds, lyr = gdal_objds
+            rect = None
+            if lyr is not None:
+                rect = lyr.GetExtent()
             path = gdal_ds.GetDescription()
             driver = gdal_ds.GetDriver().ShortName
             wkt_stored = gdal_ds.GetProjection()
-
-            self.extent_stored = extent = lyr.GetExtent()
-
-            if extent is None:
-                raise ValueError('Could not compute extent')
-            if self.to_work:
-                xa, xb, ya, yb = extent
-                extent = self.to_work([[xa, ya], [xb, yb]])
-                extent = np.asarray(extent)[:, :2]
-                extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
-
-            self.extent = extent
-
-        self._type_of_field_index = [
-            conv.type_of_oftstr(field['type'])
-            for field in self._c.fields
-        ]
+            fields = BackGDALFileVector._fields_of_lyr(lyr)
+            type = conv.str_of_wkbgeom(lyr.GetGeomType())
 
         super(BackGDALFileVector, self).__init__(
             back_ds=back_ds,
@@ -59,8 +47,49 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
             path=path,
             uid=uid,
             layer=layer,
-            rect=np.asarray([extent[0], extent[2], extent[1], extent[3]]),
+            fields=fields,
+            rect=rect,
+            type=type
         )
+
+        self._type_of_field_index = [
+            conv.type_of_oftstr(field['type'])
+            for field in self.fields
+        ]
+
+
+
+    @property
+    def extent(self):
+        """Get the vector's extent in work spatial reference. (`x` then `y`)
+
+        Example
+        -------
+        >>> minx, maxx, miny, maxy = ds.roofs.extent
+        """
+        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+            _, lyr = gdal_objds
+            extent = lyr.GetExtent()
+
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        if self.to_work:
+            xa, xb, ya, yb = extent
+            extent = self._to_work([[xa, ya], [xb, yb]])
+            extent = np.asarray(extent)[:, :2]
+            extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
+        return np.asarray(extent)
+
+    @property
+    def extent_stored(self):
+        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
+        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+            gdal_ds, lyr = gdal_objds
+            extent = lyr.GetExtent()
+
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        return extent
 
 
     def get_bounds(self):
@@ -170,8 +199,8 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         else:
             assert False # pragma: no cover
 
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_ds:
-            lyr = gdal_ds[1]
+        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+            _, lyr = gdal_objds
             ftr = ogr.Feature(lyr.GetLayerDefn())
 
             if geom is not None:
@@ -183,7 +212,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
                     raise ValueError(
                         'Invalid geometry inserted '
                         '(allow None geometry in DataSource constructor to silence)'
-                   )
+                    )
 
             if index >= 0:
                 err = ftr.SetFID(index)
@@ -311,8 +340,8 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         return gdal_ds, lyr
 
     def _iter_feature(self, slicing, mask_poly, mask_rect):
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_ds:
-            lyr = gdal_ds[1]
+        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+            _, lyr = gdal_objds
             if mask_poly is not None:
                 lyr.SetSpatialFilter(mask_poly)
             elif mask_rect is not None:
@@ -339,3 +368,55 @@ class BackGDALFileVector(ABackPooledEmissaryVector):
         # Necessary to prevent the old swig bug
         # https://trac.osgeo.org/gdal/ticket/6749
         del slicing, mask_poly, mask_rect, ftr
+
+    @staticmethod
+    def _normalize_fields_defn(fields):
+        """Used on file creation"""
+        if not isinstance(fields, collections.Iterable):
+            raise TypeError('Bad fields definition type')
+
+        def _sanitize_dict(dic):
+            dic = dict(dic)
+            name = dic.pop('name')
+            type_ = dic.pop('type')
+            precision = dic.pop('precision', None)
+            width = dic.pop('width', None)
+            nullable = dic.pop('nullable', None)
+            default = dic.pop('default', None)
+            oft = conv.oft_of_any(type_)
+            if default is not None:
+                default = str(conv.type_of_oftstr(conv.str_of_oft(oft))(default))
+            if len(dic) != 0:
+                raise ValueError('unexpected keys in {} dict: {}'.format(name, dic))
+            return dict(
+                name=name,
+                type=oft,
+                precision=precision,
+                width=width,
+                nullable=nullable,
+                default=default,
+            )
+        return [_sanitize_dict(dic) for dic in fields]
+
+    @staticmethod
+    def _field_of_def(fielddef):
+        """Used on file opening / creation"""
+        oft = fielddef.type
+        oftstr = conv.str_of_oft(oft)
+        type_ = conv.type_of_oftstr(oftstr)
+        default = fielddef.GetDefault()
+        return {
+            'name': fielddef.name,
+            'precision': fielddef.precision,
+            'width': fielddef.width,
+            'nullable': bool(fielddef.IsNullable()),
+            'default': None if default is None else type_(default),
+            'type': oftstr,
+        }
+
+    @classmethod
+    def _fields_of_lyr(cls, lyr):
+        """Used on file opening / creation"""
+        featdef = lyr.GetLayerDefn()
+        field_count = featdef.GetFieldCount()
+        return [cls._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]
