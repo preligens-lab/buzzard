@@ -910,7 +910,7 @@ deprecation_pool.add_deprecated_method(DataSource, 'aopen_raster', 'open_araster
 deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_araster', '0.4.4')
 deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
 deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_recipe_raster', 'create_recipe_araster', '0.4.4')
+# deprecation_pool.add_deprecated_method(DataSource, 'acreate_recipe_raster', 'create_recipe_araster', '0.4.4')
 
 def _restore(params, proxies):
     ds = DataSource(**params)
