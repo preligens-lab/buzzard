@@ -15,11 +15,11 @@ from buzzard._datasource import (
     wrap_numpy_raster
 )
 
-from buzzard._proxy import Proxy
-# from buzzard._raster import Raster
-# from buzzard._vector import Vector
-# from buzzard._raster_stored import RasterStored
-# from buzzard._raster_recipe import RasterRecipe
+from buzzard._gdal_file_raster import GDALFileRaster
+from buzzard._gdal_mem_raster import GDALMemRaster
+from buzzard._numpy_raster import NumpyRaster
+from buzzard._gdal_file_vector import GDALFileVector
+from buzzard._gdal_memory_vector import GDALMemoryVector
 
 from buzzard._env import Env, env
 import buzzard.srs
