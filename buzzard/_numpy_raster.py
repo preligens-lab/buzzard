@@ -20,9 +20,11 @@ class NumpyRaster(AStoredRaster):
         )
         return self._arr
 
+    @property
     def close(self):
-        super(NumpyRaster, self).close()
+        rv = super(NumpyRaster, self).close
         del self._arr
+        return rv
 
 class BackNumpyRaster(ABackStoredRaster):
 
