@@ -1,20 +1,12 @@
-import numpy as np
 import uuid
-import os
 import numbers
-import ntpath
-import collections
 import contextlib
 
-from osgeo import gdal, ogr
-import shapely
-import shapely.geometry as sg
+from osgeo import gdal
 
 from buzzard._a_pooled_emissary_vector import *
 from buzzard._a_gdal_vector import *
 from buzzard._tools import conv
-from buzzard import _tools
-from buzzard._env import Env
 
 class GDALFileVector(APooledEmissaryVector):
 
@@ -83,54 +75,13 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             raise Exception('Could not open layer (gdal error: %s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         return gdal_ds, lyr
 
-    # Read operations *************************************************************************** **
-    @property
-    def extent(self):
-        """Get the vector's extent in work spatial reference. (`x` then `y`)
-
-        Example
-        -------
-        >>> minx, maxx, miny, maxy = ds.roofs.extent
-        """
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
-            _, lyr = gdal_objs
-            extent = lyr.GetExtent()
-
-        if extent is None:
-            raise ValueError('Could not compute extent')
-        if self.to_work:
-            xa, xb, ya, yb = extent
-            extent = self.to_work([[xa, ya], [xb, yb]])
-            extent = np.asarray(extent)[:, :2]
-            extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
-        return np.asarray(extent)
-
-    @property
-    def extent_stored(self):
-        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
-            _, lyr = gdal_objs
-            extent = lyr.GetExtent()
-        if extent is None:
-            raise ValueError('Could not compute extent')
-        return extent
-
-    def __len__(self):
-        """Return the number of features in vector layer"""
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
-            _, lyr = gdal_objs
-            return len(lyr)
-
-    def iter_features(self, slicing, mask_poly, mask_rect):
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
-            _, lyr = gdal_objs
-            return self.iter_features_driver(slicing, mask_poly, mask_rect, lyr)
-
-    # Write operations ************************************************************************** **
-    def insert_data(self, geom, fields, index):
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
-            _, lyr = gdal_objs
-            self.insert_data_driver(geom, fields, index, lyr)
+    @contextlib.contextmanager
+    def acquire_driver_object(self):
+        with self.back_ds.acquire_driver_object(
+                self.uid,
+                lambda: self._open_file(self.path, self.layer, self.driver, self.open_options, self.mode),
+        ) as gdal_objs:
+            yield gdal_objs
 
     def delete(self):
         super(BackGDALFileVector, self).delete()
@@ -141,7 +92,3 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                 self.path, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
-
-    # Misc ************************************************************************************** **
-    def _allocator(self):
-        return self._open_file(self.path, self.layer, self.driver, self.open_options, self.mode)

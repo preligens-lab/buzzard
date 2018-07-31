@@ -8,16 +8,40 @@ from buzzard._a_pooled_emissary_raster import *
 from buzzard._tools import conv
 from buzzard import _tools
 
-class ABackGDALRaster(ABackProxyRaster):
+class ABackGDALRaster(ABackStoredRaster):
 
-    def get_data_driver(self, fp, band_ids, driver_obj):
+    # get_data implementation ******************************************************************* **
+    def get_data(self, fp, band_ids, dst_nodata, interpolation):
+        samplefp = self.build_sampling_footprint(fp, interpolation)
+        if samplefp is None:
+            return np.full(
+                np.r_[fp.shape, len(band_ids)],
+                dst_nodata,
+                self.dtype
+            )
+        with self.acquire_driver_object() as gdal_ds:
+            array = self.sample_bands_driver(samplefp, band_ids, gdal_ds)
+        array = self.remap(
+            samplefp,
+            fp,
+            array=array,
+            mask=None,
+            src_nodata=self.nodata,
+            dst_nodata=dst_nodata,
+            mask_mode='erode',
+            interpolation=interpolation,
+        )
+        array = array.astype(self.dtype, copy=False)
+        return array
+
+    def sample_bands_driver(self, fp, band_ids, gdal_ds):
         rtlx, rtly = self.fp.spatial_to_raster(fp.tl)
         assert rtlx >= 0 and rtlx < self.fp.rsizex
         assert rtly >= 0 and rtly < self.fp.rsizey
 
         dstarray = np.empty(np.r_[fp.shape, len(band_ids)], self.dtype)
         for i, band_id in enumerate(band_ids):
-            gdal_band = self._gdalband_of_band_id(driver_obj, band_id)
+            gdal_band = self._gdalband_of_band_id(gdal_ds, band_id)
             a = gdal_band.ReadAsArray(
                 int(rtlx),
                 int(rtly),
@@ -31,27 +55,64 @@ class ABackGDALRaster(ABackProxyRaster):
                 ))
         return dstarray
 
-    def get_data(self, fp, band_ids, dst_nodata, interpolation):
-        samplefp = self.build_sampling_footprint(fp, interpolation)
-        if samplefp is None:
-            return np.full(
-                np.r_[fp.shape, len(band_ids)],
-                dst_nodata,
-                self.dtype
-            )
-        array = self._sample(samplefp, band_ids)
-        array = self.remap(
-            samplefp,
+    # set_data implementation ******************************************************************* **
+    def set_data(self, array, fp, band_ids, interpolation, mask):
+        if not fp.share_area(self.fp):
+            return
+        if not fp.same_grid(self.fp) and mask is None:
+            mask = np.ones(fp.shape, bool)
+
+        dstfp = self.fp.intersection(fp)
+        # if array.dtype == np.int8:
+        #     array = array.astype('uint8')
+
+        # Remap ****************************************************************
+        ret = self.remap(
             fp,
+            dstfp,
             array=array,
-            mask=None,
+            mask=mask,
             src_nodata=self.nodata,
-            dst_nodata=dst_nodata,
+            dst_nodata=self.nodata or 0,
             mask_mode='erode',
             interpolation=interpolation,
         )
+        if mask is not None:
+            array, mask = ret
+        else:
+            array = ret
+        del ret
         array = array.astype(self.dtype, copy=False)
-        return array
+        fp = dstfp
+        del dstfp
+
+        # Write ****************************************************************
+        with self.acquire_driver_object() as gdal_ds:
+            for i, band_id in enumerate(band_ids):
+                leftx, topy = self.fp.spatial_to_raster(fp.tl)
+                gdalband = self._gdalband_of_band_id(gdal_ds, band_id)
+
+                for sl in _tools.slices_of_matrix(mask):
+                    a = array[:, :, i][sl]
+                    assert a.ndim == 2
+                    x = int(sl[1].start + leftx)
+                    y = int(sl[0].start + topy)
+                    assert x >= 0
+                    assert y >= 0
+                    assert x + a.shape[1] <= self.fp.rsizex
+                    assert y + a.shape[0] <= self.fp.rsizey
+                    gdalband.WriteArray(a, x, y)
+            # gdal_ds.FlushCache()
+
+    # fill implementation *********************************************************************** **
+    def fill(self, value, band_ids):
+        with self.acquire_driver_object() as gdal_ds:
+            for gdalband in [self._gdalband_of_band_id(gdal_ds, band_id) for band_id in band_ids]:
+                gdalband.Fill(value)
+
+    # Misc ************************************************************************************** **
+    def acquire_driver_object(self):
+        raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
     def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):
@@ -77,7 +138,6 @@ class ABackGDALRaster(ABackProxyRaster):
 
         gdal_ds.FlushCache()
         return gdal_ds
-
 
     @staticmethod
     def _gdalband_of_band_id(gdal_ds, id):

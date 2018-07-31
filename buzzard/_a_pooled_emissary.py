@@ -35,10 +35,6 @@ class ABackPooledEmissary(ABackEmissary):
     def active(self):
         return self.back_ds.active_count(self.uid) > 0
 
-    @property
-    def acquire_driver_object(self):
-        return self.back_ds.acquire_driver_object(self.uid, self.allocator)
-
     def close(self):
         """Virtual method:
         - May be overriden
@@ -46,6 +42,3 @@ class ABackPooledEmissary(ABackEmissary):
         """
         self.back_ds.deactivate(self.uid)
         super(ABackPooledEmissary, self).close()
-
-    # def allocator(self):
-    #     raise NotImplementedError('ABackPooledEmissary.allocator is virtual pure')

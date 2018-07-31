@@ -1,6 +1,7 @@
 import numpy as np
 import uuid
 import os
+import contextlib
 
 from osgeo import gdal
 
@@ -46,68 +47,13 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             uid=uid,
         )
 
-    def _sample(self, fp, band_ids):
-        assert fp.same_grid(self.fp), (
-            str(fp),
-            str(self.fp),
-        )
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
-            return self.get_data_driver(fp, band_ids, gdal_ds)
-
-
-    def set_data(self, array, fp, band_ids, interpolation, mask):
-        if not fp.share_area(self.fp):
-            return
-        if not fp.same_grid(self.fp) and mask is None:
-            mask = np.ones(fp.shape, bool)
-
-        dstfp = self.fp.intersection(fp)
-        # if array.dtype == np.int8:
-        #     array = array.astype('uint8')
-
-        # Remap ****************************************************************
-        ret = self.remap(
-            fp,
-            dstfp,
-            array=array,
-            mask=mask,
-            src_nodata=self.nodata,
-            dst_nodata=self.nodata or 0,
-            mask_mode='erode',
-            interpolation=interpolation,
-        )
-        if mask is not None:
-            array, mask = ret
-        else:
-            array = ret
-        del ret
-        array = array.astype(self.dtype, copy=False)
-        fp = dstfp
-        del dstfp
-
-        # Write ****************************************************************
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
-            for i, band_id in enumerate(band_ids):
-                leftx, topy = self.fp.spatial_to_raster(fp.tl)
-                gdalband = self._gdalband_of_band_id(gdal_ds, band_id)
-
-                for sl in _tools.slices_of_matrix(mask):
-                    a = array[:, :, i][sl]
-                    assert a.ndim == 2
-                    x = int(sl[1].start + leftx)
-                    y = int(sl[0].start + topy)
-                    assert x >= 0
-                    assert y >= 0
-                    assert x + a.shape[1] <= self.fp.rsizex
-                    assert y + a.shape[0] <= self.fp.rsizey
-                    gdalband.WriteArray(a, x, y)
-
-            # gdal_ds.FlushCache()
-
-    def fill(self, value, band_ids):
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_ds:
-            for gdalband in [self._gdalband_of_band_id(gdal_ds, band_id) for band_id in band_ids]:
-                gdalband.Fill(value)
+    @contextlib.contextmanager
+    def acquire_driver_object(self):
+        with self.back_ds.acquire_driver_object(
+                self.uid,
+                lambda: self._open_file(self.path, self.driver, self.open_options, self.mode)
+        ) as gdal_ds:
+            yield gdal_ds
 
     def delete(self):
         super(BackGDALFileRaster, self).delete()
@@ -118,9 +64,6 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                 self.path, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
-
-    def _allocator(self):
-        return self._open_file(self.path, self.driver, self.open_options, self.mode)
 
     @staticmethod
     def _open_file(path, driver, options, mode):

@@ -121,6 +121,7 @@ class AProxyVector(AProxy):
             raise ValueError('`clip` is True but `mask` is None')
 
         # Normalize and check mask parameter
+        # TODO: Convert to_work
         mask_poly, mask_rect = self._normalize_mask_parameter(mask)
         del mask
 
@@ -274,7 +275,6 @@ class ABackProxyVector(ABackProxy):
             for field in self.fields
         ]
         self.all_nullable = all(field['nullable'] for field in self.fields)
-
 
     @property
     def extent(self):
