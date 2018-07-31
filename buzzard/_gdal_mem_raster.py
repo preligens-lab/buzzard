@@ -4,7 +4,7 @@ import numpy as np
 from osgeo import gdal
 
 from buzzard._a_emissary_raster import *
-from buzzard._gdal_raster_mixin import *
+from buzzard._a_gdal_raster import *
 from buzzard._tools import conv
 from buzzard import _tools
 
@@ -16,7 +16,7 @@ class GDALMemRaster(AEmissaryRaster):
         )
         super(GDALMemRaster, self).__init__(ds=ds, back=back)
 
-class BackGDALMemRaster(ABackEmissaryRaster, BackGDALRasterMixin):
+class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
 
     def __init__(self, back_ds, fp, dtype, band_count, band_schema, open_options, sr):
 

@@ -5,7 +5,7 @@ import os
 from osgeo import gdal
 
 from buzzard._a_pooled_emissary_raster import *
-from buzzard._gdal_raster_mixin import *
+from buzzard._a_gdal_raster import *
 from buzzard._tools import conv
 from buzzard import _tools
 
@@ -17,7 +17,7 @@ class GDALFileRaster(APooledEmissaryRaster):
         )
         super(GDALFileRaster, self).__init__(ds=ds, back=back)
 
-class BackGDALFileRaster(ABackPooledEmissaryRaster, BackGDALRasterMixin):
+class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
 
     def __init__(self, back_ds, allocator, open_options, mode):
         uid = uuid.uuid4()

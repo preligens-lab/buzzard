@@ -14,7 +14,7 @@ from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._env import Env
 
-class BackGDALVectorMixin(ABackProxyVector):
+class ABackGDALVector(ABackProxyVector):
 
     def get_bounds(self):
         extent = self.extent

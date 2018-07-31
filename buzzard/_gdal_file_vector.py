@@ -10,7 +10,7 @@ import shapely
 import shapely.geometry as sg
 
 from buzzard._a_pooled_emissary_vector import *
-from buzzard._gdal_vector_mixin import *
+from buzzard._a_gdal_vector import *
 from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._env import Env
@@ -23,7 +23,7 @@ class GDALFileVector(APooledEmissaryVector):
         )
         super(GDALFileVector, self).__init__(ds=ds, back=back)
 
-class BackGDALFileVector(ABackPooledEmissaryVector, BackGDALVectorMixin):
+class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
 
     def __init__(self, back_ds, allocator, open_options, mode, layer):
         uid = uuid.uuid4()
@@ -240,5 +240,3 @@ class BackGDALFileVector(ABackPooledEmissaryVector, BackGDALVectorMixin):
         # Necessary to prevent the old swig bug
         # https://trac.osgeo.org/gdal/ticket/6749
         del slicing, mask_poly, mask_rect, ftr
-
-

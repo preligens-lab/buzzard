@@ -10,7 +10,7 @@ import shapely
 import shapely.geometry as sg
 
 from buzzard._a_pooled_emissary_vector import *
-from buzzard._gdal_vector_mixin import *
+from buzzard._a_gdal_vector import *
 from buzzard._tools import conv
 from buzzard import _tools
 from buzzard._env import Env
@@ -23,7 +23,7 @@ class GDALMemoryVector(AEmissaryVector):
         )
         super(GDALMemoryVector, self).__init__(ds=ds, back=back)
 
-class BackGDALMemoryVector(ABackEmissaryVector, BackGDALVectorMixin):
+class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
 
     def __init__(self, back_ds, geometry, fields, open_options, mode, layer, sr):
         gdal_ds, lyr = self._create_file('', geometry, fields, layer, 'Memory', open_options, sr)
