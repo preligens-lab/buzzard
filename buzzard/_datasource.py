@@ -428,7 +428,7 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    def register_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
+    def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this DataSource.
 
         Parameters
@@ -494,10 +494,10 @@ class DataSource(DataSourceRegisterMixin):
         self._register([key], prox)
         return prox
 
-    def aregister_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
+    def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster anonymously in this DataSource.
 
-        See DataSource.register_numpy_raster
+        See DataSource.wrap_numpy_raster
         """
         # Parameter checking ***************************************************
         if not isinstance(fp, Footprint):
@@ -950,6 +950,18 @@ deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_ara
 deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
 deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
 # deprecation_pool.add_deprecated_method(DataSource, 'acreate_recipe_raster', 'create_recipe_araster', '0.4.4')
+
+def open_raster(*args, **kwargs):
+    """Shortcut for `DataSource().open_araster`"""
+    return DataSource().open_araster(*args, **kwargs)
+
+def open_vector(*args, **kwargs):
+    """Shortcut for `DataSource().open_avector`"""
+    return DataSource().open_avector(*args, **kwargs)
+
+def wrap_numpy_raster(*args, **kwargs):
+    """Shortcut for `DataSource().awrap_numpy_raster`"""
+    return DataSource().wrap_numpy_raster(*args, **kwargs)
 
 def _restore(params, proxies):
     ds = DataSource(**params)

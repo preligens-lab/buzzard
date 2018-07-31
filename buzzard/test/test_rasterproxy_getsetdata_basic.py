@@ -44,7 +44,7 @@ def rast(ds, driver, band_count, dtype, src_nodata):
         tl=(100, 110), size=(10, 10), rsize=(10, 10)
     )
     if driver == 'numpy':
-        rast = ds.aregister_numpy_raster(
+        rast = ds.awrap_numpy_raster(
             fp,
             np.empty(np.r_[fp.shape, band_count], dtype=dtype),
             band_schema=dict(nodata=src_nodata),

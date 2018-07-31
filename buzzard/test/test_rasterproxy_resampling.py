@@ -97,7 +97,7 @@ def rast(request, ds):
     fp = TIF_FP
     driver, band_count, dtype = request.param
     if driver == 'numpy':
-        rast = ds.aregister_numpy_raster(
+        rast = ds.awrap_numpy_raster(
             fp,
             np.dstack([TIF_VALUES.copy().astype(dtype=dtype)] * band_count),
             band_schema=dict(nodata=TIF_NODATA),

@@ -8,7 +8,12 @@ import osgeo as _
 import cv2 as _
 
 from buzzard._footprint import Footprint
-from buzzard._datasource import DataSource
+from buzzard._datasource import (
+    DataSource,
+    open_raster,
+    open_vector,
+    wrap_numpy_raster
+)
 
 from buzzard._proxy import Proxy
 # from buzzard._raster import Raster
