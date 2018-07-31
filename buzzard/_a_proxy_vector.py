@@ -1,3 +1,5 @@
+import collections
+
 from buzzard._a_proxy import *
 from buzzard import _tools
 
@@ -206,7 +208,7 @@ class AProxyVector(AProxy):
     def get_geojson(self, index, mask=None, clip=False):
         """Fetch a single feature in vector. See AProxyVector.iter_geojson"""
         index = int(index)
-        for val in self.iter_geojson(fields, geom_type, mask, clip, slice(index, index + 1, 1)):
+        for val in self.iter_geojson(mask, clip, slice(index, index + 1, 1)):
             return val
         else:
             raise IndexError('Feature `{}` not found'.format(index))

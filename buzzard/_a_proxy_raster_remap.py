@@ -84,13 +84,13 @@ class ABackProxyRasterRemapMixin(object):
         # Check mask_mode ******************************************************
         if mask_mode not in cls._REMAP_MASK_MODES:
             raise ValueError('mask_mode should be one of {}'.format(
-                _REMAP_MASK_MODES,
+                cls._REMAP_MASK_MODES,
             ))
 
         # Check interpolation **************************************************
         if not (interpolation is None or interpolation in cls.REMAP_INTERPOLATIONS):
             raise ValueError('interpolation should be None or one of {}'.format(
-                REMAP_INTERPOLATIONS.keys(),
+                cls.REMAP_INTERPOLATIONS.keys(),
             ))
 
         # Remapping ***************************************************************************** **

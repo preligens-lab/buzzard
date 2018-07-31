@@ -1,4 +1,5 @@
 import numpy as np
+import shapely.geometry as sg
 
 from buzzard import _tools
 from buzzard._a_stored import *
