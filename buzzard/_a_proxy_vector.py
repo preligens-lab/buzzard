@@ -241,3 +241,5 @@ class ABackProxyVector(ABackProxy):
 
     def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip):
         raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')
+
+_tools.deprecation_pool.add_deprecated_property(AProxyVector, 'extent_stored', 'extent_origin', '0.4.4')
