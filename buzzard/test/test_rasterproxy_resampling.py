@@ -92,12 +92,12 @@ def ds():
         ('numpy', 3, 'uint8'),
     ],
 )
-def dsm(request, ds):
+def rast(request, ds):
     """Fixture for the datasource creation"""
     fp = TIF_FP
     driver, band_count, dtype = request.param
     if driver == 'numpy':
-        dsm = ds.aregister_numpy_raster(
+        rast = ds.aregister_numpy_raster(
             fp,
             np.dstack([TIF_VALUES.copy().astype(dtype=dtype)] * band_count),
             band_schema=dict(nodata=TIF_NODATA),
@@ -105,23 +105,23 @@ def dsm(request, ds):
             mode='r',
         )
     elif driver == 'MEM':
-        dsm = ds.acreate_raster(
+        rast = ds.acreate_raster(
             '', fp, dtype, band_count, band_schema=dict(nodata=TIF_NODATA), driver='MEM',
         )
-        for band_id in range(1, len(dsm) + 1):
-            dsm.set_data(TIF_VALUES, band=band_id)
+        for band_id in range(1, len(rast) + 1):
+            rast.set_data(TIF_VALUES, band=band_id)
     else:
         path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
-        dsm = ds.acreate_raster(
+        rast = ds.acreate_raster(
             path, fp, dtype, band_count, band_schema=dict(nodata=TIF_NODATA), driver=driver
         )
-        for band_id in range(1, len(dsm) + 1):
-            dsm.set_data(TIF_VALUES, band=band_id)
-    yield dsm
+        for band_id in range(1, len(rast) + 1):
+            rast.set_data(TIF_VALUES, band=band_id)
+    yield rast
     if driver in {'numpy', 'MEM'}:
-        dsm.close()
+        rast.close()
     else:
-        dsm.delete()
+        rast.delete()
 
 def pytest_generate_tests(metafunc):
     values = []
@@ -145,9 +145,12 @@ def fp(size1, scale1, offset1, offset_factor2):
     return fp
 
 # TESTS ***************************************************************************************** **
-def test_getdata(dsm, fp, interpolation):
-    for band_id in range(1, len(dsm) + 1):
-        res = dsm.get_data(band=band_id, fp=fp, interpolation=interpolation)
+def test_getdata(rast, fp, interpolation):
+    all_res = rast.get_data(band=-1, fp=fp, interpolation=interpolation)
+    all_res = np.atleast_3d(all_res)
+
+    for i in range(len(rast)):
+        res = all_res[..., i]
 
         # 1 - Assert absent nodata within input pixels (pixels being points not areas)
         xs, ys = fp.meshgrid_spatial
@@ -174,7 +177,7 @@ def test_getdata(dsm, fp, interpolation):
 
             vertical_errors = np.abs(below_minus_above - fp.pxsizex)
             horizontal_errors = np.abs(right_minus_left - fp.pxsizex)
-            if np.issubdtype(dsm.dtype, np.integer):
+            if np.issubdtype(rast.dtype, np.integer):
                 maxerr = np.ceil(INTERPOLATIONS_MAX_VALUE_ERROR[interpolation])
             else:
                 maxerr = INTERPOLATIONS_MAX_VALUE_ERROR[interpolation]
