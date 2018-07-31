@@ -2,8 +2,8 @@ import numpy as np
 import uuid
 import os
 import numbers
-import ntpath
 import collections
+import contextlib
 
 from osgeo import gdal, ogr
 import shapely
@@ -16,73 +16,9 @@ from buzzard._env import Env
 
 class ABackGDALVector(ABackProxyVector):
 
-    def get_bounds(self):
-        extent = self.extent
-        return np.asarray([extent[0], extent[2], extent[1], extent[3]])
-
-    def get_bounds_stored(self,):
-        extent = self.extent_stored
-        return np.asarray([extent[0], extent[2], extent[1], extent[3]])
-
-    def iter_data(self, geom_type, field_indices, slicing,
-                          mask_poly, mask_rect, clip):
-        clip_poly = None
-        if mask_poly is not None:
-            mask_poly = conv.ogr_of_shapely(mask_poly)
-            if clip:
-                clip_poly = mask_poly
-        elif mask_rect is not None:
-            if clip:
-                clip_poly = conv.ogr_of_shapely(sg.box(*mask_rect))
-
-        ftr = None # Necessary to prevent the old swig bug
-        geom = None # Necessary to prevent the old swig bug
-        for ftr in self._iter_feature(slicing, mask_poly, mask_rect):
-            geom = ftr.geometry()
-            if geom is None or geom.IsEmpty():
-                # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever?
-                geom = None
-                if not self.back_ds.allow_none_geometry:
-                    raise Exception(
-                        'None geometry in feature '
-                        '(allow None geometry in DataSource constructor to silence)'
-                    )
-            else:
-                if clip:
-                    geom = geom.Intersection(clip_poly)
-                    assert not geom.IsEmpty()
-                geom = conv.shapely_of_ogr(geom)
-                if self.to_work:
-                    geom = shapely.ops.transform(self.to_work, geom)
-                if geom_type == 'coordinates':
-                    geom = sg.mapping(geom)['coordinates']
-                elif geom_type == 'geojson':
-                    geom = sg.mapping(geom)
-            yield (geom,) + tuple([
-                self._type_of_field_index[index](ftr.GetField(index))
-                if ftr.GetField(index) is not None
-                else None
-                for index in field_indices
-            ])
-
-        # Necessary to prevent the old swig bug
-        # https://trac.osgeo.org/gdal/ticket/6749
-        del geom
-        del ftr
-        del clip_poly
-        del mask_rect, mask_poly
-
-
     @classmethod
     def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
         """Create a vector datasource"""
-
-        if layer is None:
-            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
-        elif not isinstance(layer, str):
-            raise TypeError('layer should be None or str')
-
-        options = [str(arg) for arg in options] if len(options) else []
 
         with Env(_osgeo_use_exceptions=False):
             dr = gdal.GetDriverByName(driver)
@@ -120,7 +56,6 @@ class ABackGDALVector(ABackProxyVector):
         if lyr is None:
             raise Exception('Could not create layer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
-        fields = cls._normalize_fields_defn(fields)
         for field in fields:
             flddef = ogr.FieldDefn(field['name'], field['type'])
             if field['precision'] is not None:
@@ -136,35 +71,131 @@ class ABackGDALVector(ABackProxyVector):
         gdal_ds.FlushCache()
         return gdal_ds, lyr
 
+    # Read operations *************************************************************************** **
+    def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip):
+        clip_poly = None
+        if mask_poly is not None:
+            mask_poly = conv.ogr_of_shapely(mask_poly)
+            if clip:
+                clip_poly = mask_poly
+        elif mask_rect is not None:
+            if clip:
+                clip_poly = conv.ogr_of_shapely(sg.box(*mask_rect))
 
-    @staticmethod
-    def _normalize_fields_defn(fields):
-        """Used on file creation"""
-        if not isinstance(fields, collections.Iterable):
-            raise TypeError('Bad fields definition type')
+        ftr = None # Necessary to prevent the old swig bug
+        geom = None # Necessary to prevent the old swig bug
+        for ftr in self.iter_features(slicing, mask_poly, mask_rect):
+            geom = ftr.geometry()
+            if geom is None or geom.IsEmpty():
+                # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever?
+                geom = None
+                if not self.back_ds.allow_none_geometry:
+                    raise Exception(
+                        'None geometry in feature '
+                        '(allow None geometry in DataSource constructor to silence)'
+                    )
+            else:
+                if clip:
+                    geom = geom.Intersection(clip_poly)
+                    assert not geom.IsEmpty()
+                geom = conv.shapely_of_ogr(geom)
+                if self.to_work:
+                    geom = shapely.ops.transform(self.to_work, geom)
+                if geom_type == 'coordinates':
+                    geom = sg.mapping(geom)['coordinates']
+                elif geom_type == 'geojson':
+                    geom = sg.mapping(geom)
+            yield (geom,) + tuple([
+                self._type_of_field_index[index](ftr.GetField(index))
+                if ftr.GetField(index) is not None
+                else None
+                for index in field_indices
+            ])
 
-        def _sanitize_dict(dic):
-            dic = dict(dic)
-            name = dic.pop('name')
-            type_ = dic.pop('type')
-            precision = dic.pop('precision', None)
-            width = dic.pop('width', None)
-            nullable = dic.pop('nullable', None)
-            default = dic.pop('default', None)
-            oft = conv.oft_of_any(type_)
-            if default is not None:
-                default = str(conv.type_of_oftstr(conv.str_of_oft(oft))(default))
-            if len(dic) != 0:
-                raise ValueError('unexpected keys in {} dict: {}'.format(name, dic))
-            return dict(
-                name=name,
-                type=oft,
-                precision=precision,
-                width=width,
-                nullable=nullable,
-                default=default,
-            )
-        return [_sanitize_dict(dic) for dic in fields]
+        # Necessary to prevent the old swig bug
+        # https://trac.osgeo.org/gdal/ticket/6749
+        del geom
+        del ftr
+        del clip_poly
+        del mask_rect, mask_poly
+
+    def iter_features_driver(self, slicing, mask_poly, mask_rect, lyr):
+        with contextlib.ExitStack() as stack:
+            stack.push(lambda *args, **kwargs: lyr.ResetReading())
+            if mask_poly is not None:
+                lyr.SetSpatialFilter(mask_poly)
+                stack.push(lambda *args, **kwargs: lyr.SetSpatialFilter(None))
+            elif mask_rect is not None:
+                lyr.SetSpatialFilterRect(*mask_rect)
+                stack.push(lambda *args, **kwargs: lyr.SetSpatialFilter(None))
+
+            start, stop, step = slicing.indices(len(lyr))
+            indices = range(start, stop, step)
+            ftr = None # Necessary to prevent the old swig bug
+            if step == 1:
+                lyr.SetNextByIndex(start)
+                for i in indices:
+                    ftr = lyr.GetNextFeature()
+                    if ftr is None:
+                        raise IndexError('Feature #{} not found'.format(i))
+                    yield ftr
+            else:
+                for i in indices:
+                    lyr.SetNextByIndex(i)
+                    ftr = lyr.GetNextFeature()
+                    if ftr is None:
+                        raise IndexError('Feature #{} not found'.format(i))
+                    yield ftr
+
+        # Necessary to prevent the old swig bug
+        # https://trac.osgeo.org/gdal/ticket/6749
+        del slicing, mask_poly, mask_rect, ftr
+
+    # Write operations ************************************************************************** **
+    def insert_data_driver(self, geom, fields, index, lyr):
+        ftr = ogr.Feature(lyr.GetLayerDefn())
+
+        if geom is not None:
+            err = ftr.SetGeometry(geom)
+            if err:
+                raise ValueError('Could not set geometry (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
+
+            if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None:
+                raise ValueError(
+                    'Invalid geometry inserted '
+                    '(allow None geometry in DataSource constructor to silence)'
+                )
+
+        if index >= 0:
+            err = ftr.SetFID(index)
+            if err:
+                raise ValueError('Could not set field id (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
+        for i, field in enumerate(fields):
+            if field is not None:
+                err = ftr.SetField2(i, self._type_of_field_index[i](field))
+                if err:
+                    raise ValueError('Could not set field #{} ({}) ({})'.format(
+                        i, field, str(gdal.GetLastErrorMsg()).strip('\n')
+                    ))
+        passed = ftr.Validate(ogr.F_VAL_ALL, True)
+        if not passed:
+            raise ValueError('Invalid feature {} ({})'.format(
+                err, str(gdal.GetLastErrorMsg()).strip('\n')
+            ))
+
+        err = lyr.CreateFeature(ftr)
+        if err:
+            raise ValueError('Could not create feature {} ({})'.format(
+                err, str(gdal.GetLastErrorMsg()).strip('\n')
+            ))
+
+    # Misc ************************************************************************************** **
+    @classmethod
+    def _fields_of_lyr(cls, lyr):
+        """Used on file opening / creation"""
+        featdef = lyr.GetLayerDefn()
+        field_count = featdef.GetFieldCount()
+        return [cls._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]
 
     @staticmethod
     def _field_of_def(fielddef):
@@ -181,10 +212,3 @@ class ABackGDALVector(ABackProxyVector):
             'default': None if default is None else type_(default),
             'type': oftstr,
         }
-
-    @classmethod
-    def _fields_of_lyr(cls, lyr):
-        """Used on file opening / creation"""
-        featdef = lyr.GetLayerDefn()
-        field_count = featdef.GetFieldCount()
-        return [cls._field_of_def(featdef.GetFieldDefn(i)) for i in range(field_count)]

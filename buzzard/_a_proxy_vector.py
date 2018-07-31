@@ -20,10 +20,6 @@ class AProxyVector(AProxy):
         """Fields definition"""
         return [dict(d) for d in self._back.fields]
 
-    def __len__(self):
-        """Return the number of features in vector"""
-        return len(self._back)
-
     @property
     def extent(self):
         """Get the vector's extent in work spatial reference. (`x` then `y`)
@@ -53,6 +49,10 @@ class AProxyVector(AProxy):
     def bounds_stored(self):
         """Get the vector's bounds in stored spatial reference. (`min` then `max`)"""
         return self._back.bounds_stored
+
+    def __len__(self):
+        """Return the number of features in vector"""
+        return len(self._back)
 
     def iter_data(self, fields=-1, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
@@ -276,9 +276,6 @@ class ABackProxyVector(ABackProxy):
         self.all_nullable = all(field['nullable'] for field in self.fields)
 
 
-    def __len__(self):
-        raise NotImplementedError('ABackProxyVector.__len__ is virtual pure')
-
     @property
     def extent(self):
         raise NotImplementedError('ABackProxyVector.extent is virtual pure')
@@ -289,11 +286,16 @@ class ABackProxyVector(ABackProxy):
 
     @property
     def bounds(self):
-        raise NotImplementedError('ABackProxyVector.bounds is virtual pure')
+        extent = self.extent
+        return np.asarray([extent[0], extent[2], extent[1], extent[3]])
 
     @property
     def bounds_stored(self):
-        raise NotImplementedError('ABackProxyVector.bounds_stored is virtual pure')
+        extent = self.extent_stored
+        return np.asarray([extent[0], extent[2], extent[1], extent[3]])
+
+    def __len__(self):
+        raise NotImplementedError('ABackProxyVector.__len__ is virtual pure')
 
     def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip):
         raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')

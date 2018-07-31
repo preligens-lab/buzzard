@@ -299,4 +299,32 @@ class _DeprecationPool(Singleton):
         del user_kwargs[n]
         return v, user_kwargs
 
+def normalize_fields_defn(fields):
+    """Used on file creation"""
+    if not isinstance(fields, collections.Iterable):
+        raise TypeError('Bad fields definition type')
+
+    def _sanitize_dict(dic):
+        dic = dict(dic)
+        name = dic.pop('name')
+        type_ = dic.pop('type')
+        precision = dic.pop('precision', None)
+        width = dic.pop('width', None)
+        nullable = dic.pop('nullable', None)
+        default = dic.pop('default', None)
+        oft = conv.oft_of_any(type_)
+        if default is not None:
+            default = str(conv.type_of_oftstr(conv.str_of_oft(oft))(default))
+        if len(dic) != 0:
+            raise ValueError('unexpected keys in {} dict: {}'.format(name, dic))
+        return dict(
+            name=name,
+            type=oft,
+            precision=precision,
+            width=width,
+            nullable=nullable,
+            default=default,
+        )
+    return [_sanitize_dict(dic) for dic in fields]
+
 deprecation_pool = _DeprecationPool()

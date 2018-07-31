@@ -4,6 +4,7 @@ import os
 import numbers
 import ntpath
 import collections
+import contextlib
 
 from osgeo import gdal, ogr
 import shapely
@@ -28,8 +29,8 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     def __init__(self, back_ds, allocator, open_options, mode, layer):
         uid = uuid.uuid4()
 
-        with back_ds.acquire_driver_object(uid, allocator) as gdal_objds:
-            gdal_ds, lyr = gdal_objds
+        with back_ds.acquire_driver_object(uid, allocator) as gdal_objs:
+            gdal_ds, lyr = gdal_objs
             rect = None
             if lyr is not None:
                 rect = lyr.GetExtent()
@@ -58,137 +59,6 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             for field in self.fields
         ]
 
-    @property
-    def extent(self):
-        """Get the vector's extent in work spatial reference. (`x` then `y`)
-
-        Example
-        -------
-        >>> minx, maxx, miny, maxy = ds.roofs.extent
-        """
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            extent = lyr.GetExtent()
-
-        if extent is None:
-            raise ValueError('Could not compute extent')
-        if self.to_work:
-            xa, xb, ya, yb = extent
-            extent = self.to_work([[xa, ya], [xb, yb]])
-            extent = np.asarray(extent)[:, :2]
-            extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
-        return np.asarray(extent)
-
-    @property
-    def extent_stored(self):
-        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            extent = lyr.GetExtent()
-
-        if extent is None:
-            raise ValueError('Could not compute extent')
-        return extent
-
-    def __len__(self):
-        """Return the number of features in vector layer"""
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            return len(lyr)
-
-    def insert_data(self, geom_type, geom, fields, index):
-        if geom is None:
-            pass
-        elif self.to_virtual:
-            if geom_type == 'coordinates':
-                geom = sg.asShape({
-                    'type': self.type,
-                    'coordinates': geom,
-                })
-            geom = shapely.ops.transform(self.to_virtual, geom)
-            geom = conv.ogr_of_shapely(geom)
-            # TODO: Use json and unit test
-            # mapping = sg.mapping(geom)
-            # geom = conv.ogr_of_coordinates(
-            #     mapping['coordinates'],
-            #     mapping['type'],
-            # )
-            if geom is None:
-                raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
-                    geom_type, self.type
-                ))
-        elif geom_type == 'coordinates':
-            geom = conv.ogr_of_coordinates(geom, self.type)
-            if geom is None:
-                raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
-                    geom_type, self.type
-                ))
-        elif geom_type == 'shapely':
-            geom = conv.ogr_of_shapely(geom)
-            # TODO: Use json and unit test
-            # mapping = sg.mapping(geom)
-            # geom = conv.ogr_of_coordinates(
-            #     mapping['coordinates'],
-            #     mapping['type'],
-            # )
-            if geom is None:
-                raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
-                    geom_type, self.type
-                ))
-        else:
-            assert False # pragma: no cover
-
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            ftr = ogr.Feature(lyr.GetLayerDefn())
-
-            if geom is not None:
-                err = ftr.SetGeometry(geom)
-                if err:
-                    raise ValueError('Could not set geometry (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
-
-                if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None:
-                    raise ValueError(
-                        'Invalid geometry inserted '
-                        '(allow None geometry in DataSource constructor to silence)'
-                    )
-
-            if index >= 0:
-                err = ftr.SetFID(index)
-                if err:
-                    raise ValueError('Could not set field id (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
-            for i, field in enumerate(fields):
-                if field is not None:
-                    err = ftr.SetField2(i, self._type_of_field_index[i](field))
-                    if err:
-                        raise ValueError('Could not set field #{} ({}) ({})'.format(
-                            i, field, str(gdal.GetLastErrorMsg()).strip('\n')
-                        ))
-            passed = ftr.Validate(ogr.F_VAL_ALL, True)
-            if not passed:
-                raise ValueError('Invalid feature {} ({})'.format(
-                    err, str(gdal.GetLastErrorMsg()).strip('\n')
-                ))
-
-            err = lyr.CreateFeature(ftr)
-            if err:
-                raise ValueError('Could not create feature {} ({})'.format(
-                    err, str(gdal.GetLastErrorMsg()).strip('\n')
-                ))
-
-    def delete(self):
-        super(BackGDALFileVector, self).delete()
-
-        dr = gdal.GetDriverByName(self.driver)
-        err = dr.Delete(self.path)
-        if err:
-            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
-            ))
-
-    def _allocator(self):
-        return self._open_file(self.path, self.layer, self.driver, self.open_options, self.mode)
-
     @staticmethod
     def _open_file(path, layer, driver, options, mode):
         """Open a vector datasource"""
@@ -213,32 +83,65 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             raise Exception('Could not open layer (gdal error: %s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         return gdal_ds, lyr
 
-    def _iter_feature(self, slicing, mask_poly, mask_rect):
-        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
-            _, lyr = gdal_objds
-            if mask_poly is not None:
-                lyr.SetSpatialFilter(mask_poly)
-            elif mask_rect is not None:
-                lyr.SetSpatialFilterRect(*mask_rect)
+    # Read operations *************************************************************************** **
+    @property
+    def extent(self):
+        """Get the vector's extent in work spatial reference. (`x` then `y`)
 
-            start, stop, step = slicing.indices(len(lyr))
-            indices = range(start, stop, step)
-            ftr = None # Necessary to prevent the old swig bug
-            if step == 1:
-                lyr.SetNextByIndex(start)
-                for i in indices:
-                    ftr = lyr.GetNextFeature()
-                    if ftr is None:
-                        raise IndexError('Feature #{} not found'.format(i))
-                    yield ftr
-            else:
-                for i in indices:
-                    lyr.SetNextByIndex(i)
-                    ftr = lyr.GetNextFeature()
-                    if ftr is None:
-                        raise IndexError('Feature #{} not found'.format(i))
-                    yield ftr
+        Example
+        -------
+        >>> minx, maxx, miny, maxy = ds.roofs.extent
+        """
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
+            _, lyr = gdal_objs
+            extent = lyr.GetExtent()
 
-        # Necessary to prevent the old swig bug
-        # https://trac.osgeo.org/gdal/ticket/6749
-        del slicing, mask_poly, mask_rect, ftr
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        if self.to_work:
+            xa, xb, ya, yb = extent
+            extent = self.to_work([[xa, ya], [xb, yb]])
+            extent = np.asarray(extent)[:, :2]
+            extent = extent[0, 0], extent[1, 0], extent[0, 1], extent[1, 1]
+        return np.asarray(extent)
+
+    @property
+    def extent_stored(self):
+        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
+            _, lyr = gdal_objs
+            extent = lyr.GetExtent()
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        return extent
+
+    def __len__(self):
+        """Return the number of features in vector layer"""
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
+            _, lyr = gdal_objs
+            return len(lyr)
+
+    def iter_features(self, slicing, mask_poly, mask_rect):
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
+            _, lyr = gdal_objs
+            return self.iter_features_driver(slicing, mask_poly, mask_rect, lyr)
+
+    # Write operations ************************************************************************** **
+    def insert_data(self, geom, fields, index):
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objs:
+            _, lyr = gdal_objs
+            self.insert_data_driver(geom, fields, index, lyr)
+
+    def delete(self):
+        super(BackGDALFileVector, self).delete()
+
+        dr = gdal.GetDriverByName(self.driver)
+        err = dr.Delete(self.path)
+        if err:
+            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
+                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
+            ))
+
+    # Misc ************************************************************************************** **
+    def _allocator(self):
+        return self._open_file(self.path, self.layer, self.driver, self.open_options, self.mode)
