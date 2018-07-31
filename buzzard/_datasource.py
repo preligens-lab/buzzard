@@ -16,6 +16,7 @@ from buzzard._tools import conv, deprecation_pool
 from buzzard import _tools
 # from buzzard._datasource_conversions import DataSourceConversionsMixin
 from buzzard._datasource_back import *
+from buzzard._a_proxy import AProxy
 from buzzard._gdal_file_raster import *
 from buzzard._gdal_file_vector import *
 from buzzard._gdal_mem_raster import *
@@ -864,7 +865,7 @@ class DataSource(DataSourceRegisterMixin):
 
     def __contains__(self, item):
         """Is key or proxy registered in DataSource"""
-        if isinstance(item, Proxy):
+        if isinstance(item, AProxy):
             return item in self._keys_of_proxy
         return item in self._proxy_of_key
 
