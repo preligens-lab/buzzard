@@ -51,7 +51,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
     def acquire_driver_object(self):
         with self.back_ds.acquire_driver_object(
                 self.uid,
-                lambda: self._open_file(self.path, self.driver, self.open_options, self.mode)
+                lambda: self.open_file(self.path, self.driver, self.open_options, self.mode)
         ) as gdal_ds:
             yield gdal_ds
 
@@ -66,7 +66,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             ))
 
     @staticmethod
-    def _open_file(path, driver, options, mode):
+    def open_file(path, driver, options, mode):
         """Open a raster dataset"""
         gdal_ds = gdal.OpenEx(
             path,

@@ -115,7 +115,7 @@ class ABackGDALRaster(ABackStoredRaster):
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
-    def _create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):
+    def create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):
         """Create a raster datasource"""
         dr = gdal.GetDriverByName(driver)
         if os.path.isfile(path):

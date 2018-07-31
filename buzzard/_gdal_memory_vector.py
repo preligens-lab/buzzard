@@ -15,7 +15,7 @@ class GDALMemoryVector(AEmissaryVector):
 class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
 
     def __init__(self, back_ds, geometry, fields, open_options, mode, layer, sr):
-        gdal_ds, lyr = self._create_file('', geometry, fields, layer, 'Memory', open_options, sr)
+        gdal_ds, lyr = self.create_file('', geometry, fields, layer, 'Memory', open_options, sr)
 
         self._gdal_ds = gdal_ds
         self._lyr = lyr

@@ -52,7 +52,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
         ]
 
     @staticmethod
-    def _open_file(path, layer, driver, options, mode):
+    def open_file(path, layer, driver, options, mode):
         """Open a vector datasource"""
         options = [str(arg) for arg in options] if len(options) else []
         gdal_ds = gdal.OpenEx(
@@ -79,7 +79,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     def acquire_driver_object(self):
         with self.back_ds.acquire_driver_object(
                 self.uid,
-                lambda: self._open_file(self.path, self.layer, self.driver, self.open_options, self.mode),
+                lambda: self.open_file(self.path, self.layer, self.driver, self.open_options, self.mode),
         ) as gdal_objs:
             yield gdal_objs
 

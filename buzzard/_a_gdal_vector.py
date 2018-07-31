@@ -218,7 +218,7 @@ class ABackGDALVector(ABackStoredVector):
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
-    def _create_file(cls, path, geometry, fields, layer, driver, options, sr):
+    def create_file(cls, path, geometry, fields, layer, driver, options, sr):
         """Create a vector datasource"""
 
         with Env(_osgeo_use_exceptions=False):

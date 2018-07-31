@@ -245,7 +245,7 @@ class DataSource(DataSourceRegisterMixin):
         if driver.lower() == 'mem':
             raise ValueError("Can't open a MEM raster, user create_raster")
         elif True:
-            allocator = lambda: BackGDALFileRaster._open_file(
+            allocator = lambda: BackGDALFileRaster.open_file(
                 path, driver, options, mode
             )
             prox = GDALFileRaster(self, allocator, options, mode)
@@ -271,7 +271,7 @@ class DataSource(DataSourceRegisterMixin):
         if driver.lower() == 'mem':
             raise ValueError("Can't open a MEM raster, user acreate_raster")
         elif True:
-            allocator = lambda: BackGDALFileRaster._open_file(
+            allocator = lambda: BackGDALFileRaster.open_file(
                 path, driver, options, mode
             )
             prox = GDALFileRaster(self, allocator, options, mode)
@@ -371,7 +371,7 @@ class DataSource(DataSourceRegisterMixin):
                 self, fp, dtype, band_count, band_schema, options, sr
             )
         elif True:
-            allocator = lambda: BackGDALFileRaster._create_file(
+            allocator = lambda: BackGDALFileRaster.create_file(
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
@@ -410,7 +410,7 @@ class DataSource(DataSourceRegisterMixin):
                 self, fp, dtype, band_count, band_schema, options, sr
             )
         elif True:
-            allocator = lambda: BackGDALFileRaster._create_file(
+            allocator = lambda: BackGDALFileRaster.create_file(
                 path, fp, dtype, band_count, band_schema, driver, options, sr
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
@@ -557,7 +557,7 @@ class DataSource(DataSourceRegisterMixin):
         if driver.lower() == 'memory':
             raise ValueError("Can't open a MEMORY vector, user create_vector")
         elif True:
-            allocator = lambda: BackGDALFileVector._open_file(
+            allocator = lambda: BackGDALFileVector.open_file(
                 path, layer, driver, options, mode
             )
             prox = GDALFileVector(self, allocator, options, mode, layer)
@@ -588,7 +588,7 @@ class DataSource(DataSourceRegisterMixin):
         if driver.lower() == 'memory':
             raise ValueError("Can't open a MEMORY vector, user create_vector")
         elif True:
-            allocator = lambda: BackGDALFileVector._open_file(
+            allocator = lambda: BackGDALFileVector.open_file(
                 path, layer, driver, options, mode
             )
             prox = GDALFileVector(self, allocator, options, mode, layer)
@@ -693,7 +693,7 @@ class DataSource(DataSourceRegisterMixin):
                 self, geometry, fields, options, 'w', layer, sr
             )
         elif True:
-            allocator = lambda: BackGDALFileVector._create_file(
+            allocator = lambda: BackGDALFileVector.create_file(
                 path, geometry, fields, layer, driver, options, sr
             )
             prox = GDALFileVector(self, allocator, options, 'w', layer)
@@ -730,7 +730,7 @@ class DataSource(DataSourceRegisterMixin):
                 self, geometry, fields, options, 'w', layer, sr
             )
         elif True:
-            allocator = lambda: BackGDALFileVector._create_file(
+            allocator = lambda: BackGDALFileVector.create_file(
                 path, geometry, fields, layer, driver, options, sr
             )
             prox = GDALFileVector(self, allocator, options, 'w', layer)
