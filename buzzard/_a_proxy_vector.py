@@ -1,7 +1,12 @@
 import collections
+import numbers
+
+import shapely.geometry as sg
 
 from buzzard._a_proxy import *
 from buzzard import _tools
+from buzzard._footprint import Footprint
+from buzzard._tools import conv
 
 class AProxyVector(AProxy):
 
@@ -110,14 +115,14 @@ class AProxyVector(AProxy):
         if geom_type not in ['shapely', 'coordinates']:
             raise ValueError('Bad parameter `geom_type`')
 
-        # Normalize and check mask parameter
-        mask_poly, mask_rect = self._normalize_mask_parameter(mask)
-        del mask
-
         # Normalize and check clip parameter
         clip = bool(clip)
         if mask is None and clip is True:
             raise ValueError('`clip` is True but `mask` is None')
+
+        # Normalize and check mask parameter
+        mask_poly, mask_rect = self._normalize_mask_parameter(mask)
+        del mask
 
         # Normalize and check slicing parameter
         if not isinstance(slicing, slice):
@@ -179,14 +184,14 @@ class AProxyVector(AProxy):
                     geojson['properties']['volume']
                 ))
         """
-        # Normalize and check mask parameter
-        mask_poly, mask_rect = self._normalize_mask_parameter(mask)
-        del mask
-
         # Normalize and check clip parameter
         clip = bool(clip)
         if mask is None and clip is True:
             raise ValueError('`clip` is True but `mask` is None')
+
+        # Normalize and check mask parameter
+        mask_poly, mask_rect = self._normalize_mask_parameter(mask)
+        del mask
 
         # Normalize and check slicing parameter
         if not isinstance(slicing, slice):
@@ -213,12 +218,63 @@ class AProxyVector(AProxy):
         else:
             raise IndexError('Feature `{}` not found'.format(index))
 
+    def _iter_user_intput_field_keys(self, keys):
+        """Used on features reading"""
+        if keys == -1:
+            for i in range(len(self._back.fields)):
+                yield i
+        elif isinstance(keys, str):
+            for str_ in keys.replace(' ', ',').split(','):
+                if str_ != '':
+                    yield self._back.index_of_field_name[str_]
+        elif keys is None:
+            return
+        elif isinstance(keys, collections.Iterable):
+            for val in keys:
+                if isinstance(val, numbers.Number):
+                    val = int(val)
+                    if val >= len(self._back.fields):
+                        raise ValueError('Out of bound %d' % val)
+                    yield val
+                elif isinstance(val, str):
+                    yield self._back.index_of_field_name[val]
+                else:
+                    raise TypeError('bad type in `fields`')
+        else:
+            raise TypeError('bad `fields` type')
+
+    @staticmethod
+    def _normalize_mask_parameter(mask):
+        if isinstance(mask, sg.base.BaseGeometry):
+            return mask, None
+        elif isinstance(mask, Footprint):
+            return mask.poly, None
+        elif isinstance(mask, collections.Container):
+            mask = [float(v) for v in mask]
+            minx, maxx, miny, maxy = mask
+            mask = minx, miny, maxx, maxy
+            return None, mask
+        elif mask is None:
+            return None, None
+        else:
+            raise TypeError('`mask` should be a Footprint, an extent or a shapely object')
+
 class ABackProxyVector(ABackProxy):
 
     def __init__(self, type, fields, **kwargs):
         super(ABackProxyVector, self).__init__(**kwargs)
         self.type = type
         self.fields = fields
+        self.index_of_field_name = {
+            field['name']: i
+            for i, field in enumerate(self.fields)
+        }
+        self.type_of_field_index = [
+            conv.type_of_oftstr(field['type'])
+            for field in self.fields
+        ]
+        self.all_nullable = all(field['nullable'] for field in self.fields)
+
 
     def __len__(self):
         raise NotImplementedError('ABackProxyVector.__len__ is virtual pure')

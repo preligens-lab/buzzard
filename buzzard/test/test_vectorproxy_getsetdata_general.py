@@ -67,6 +67,7 @@ def path(suffix, driver):
 
 
 def test_run(path, driver, fps, test_fields, test_coords_insertion):
+    # Step 1 - Build file according to fixture parameters **********************
     ds = buzz.DataSource()
 
     if test_fields:
@@ -93,11 +94,14 @@ def test_run(path, driver, fps, test_fields, test_coords_insertion):
     v.close()
     del ds
 
+    # Step 2 - Test geometries read routines ***********************************
     _test_geom_read(path, driver, fps, data)
+
+    # Step 3 - Test field read routines ****************************************
     if test_fields:
         _test_fields_read(path, driver, data)
 
-# Test write slaves ***************************************************************************** **
+# Depth 1 - Write subroutines ******************************************************************* **
 FIELDS = [
     {'name': 'rarea', 'type': int},
     {'name': 'fpname', 'type': str},
@@ -172,7 +176,7 @@ def _fields_of_fp(rng, fp, fpname):
                     l.append(None)
             return l
 
-# Test read slaves 1 **************************************************************************** **
+# Depth 1 - Read subroutines ******************************************************************** **
 def _test_fields_read(path, driver, data):
     """Test fields reading with iter_data
 
@@ -225,6 +229,7 @@ def _test_fields_read(path, driver, data):
         _assert_all_list_of_fields_same(queries_results)
 
 def _test_geom_read(path, driver, fps, data):
+    """Test many combinations of parameters for iter/get_data/geojson. Only check geometry"""
     ds = buzz.DataSource()
     v = ds.open_vector('v', path, driver=driver)
 
@@ -266,7 +271,7 @@ def _test_geom_read(path, driver, fps, data):
         for geom, geom_ref in zip(geoms, geoms_ref):
             assert (geom ^ geom_ref).is_empty
 
-# Test read slaves 2 **************************************************************************** **
+# Depth 2 - Read subroutines ******************************************************************** **
 def _build_geom_read_queries(v, fps):
     slicings = [
         slice(None),

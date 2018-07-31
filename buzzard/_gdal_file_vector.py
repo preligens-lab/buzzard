@@ -58,8 +58,6 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             for field in self.fields
         ]
 
-
-
     @property
     def extent(self):
         """Get the vector's extent in work spatial reference. (`x` then `y`)
@@ -68,7 +66,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
         -------
         >>> minx, maxx, miny, maxy = ds.roofs.extent
         """
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
             _, lyr = gdal_objds
             extent = lyr.GetExtent()
 
@@ -84,7 +82,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     @property
     def extent_stored(self):
         """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
             _, lyr = gdal_objds
             extent = lyr.GetExtent()
 
@@ -92,11 +90,16 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             raise ValueError('Could not compute extent')
         return extent
 
+    def __len__(self):
+        """Return the number of features in vector layer"""
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
+            _, lyr = gdal_objds
+            return len(lyr)
 
     def insert_data(self, geom_type, geom, fields, index):
         if geom is None:
             pass
-        elif self._to_virtual:
+        elif self.to_virtual:
             if geom_type == 'coordinates':
                 geom = sg.asShape({
                     'type': self.type,
@@ -135,7 +138,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
         else:
             assert False # pragma: no cover
 
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
             _, lyr = gdal_objds
             ftr = ogr.Feature(lyr.GetLayerDefn())
 
@@ -144,7 +147,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
                 if err:
                     raise ValueError('Could not set geometry (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
-                if not self._ds._allow_none_geometry and ftr.GetGeometryRef() is None:
+                if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None:
                     raise ValueError(
                         'Invalid geometry inserted '
                         '(allow None geometry in DataSource constructor to silence)'
@@ -172,7 +175,6 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
                 raise ValueError('Could not create feature {} ({})'.format(
                     err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
-
 
     def delete(self):
         super(BackGDALFileVector, self).delete()
@@ -212,7 +214,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
         return gdal_ds, lyr
 
     def _iter_feature(self, slicing, mask_poly, mask_rect):
-        with self.back_ds.acquire_driver_object(self.uid, self.allocator) as gdal_objds:
+        with self.back_ds.acquire_driver_object(self.uid, self._allocator) as gdal_objds:
             _, lyr = gdal_objds
             if mask_poly is not None:
                 lyr.SetSpatialFilter(mask_poly)

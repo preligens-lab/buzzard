@@ -2,6 +2,7 @@ import numpy as np
 import shapely.geometry as sg
 
 from buzzard import _tools
+from buzzard._tools import conv
 from buzzard._a_stored import *
 from buzzard._a_proxy_vector import *
 
@@ -46,7 +47,39 @@ class AStoredVector(AStored, AProxyVector):
         fields = self._normalize_field_values(fields)
         self._back.insert_data(geom_type, geom, fields, index)
 
+    def _normalize_field_values(self, fields):
+        """Used on feature insertion"""
+        if isinstance(fields, collections.Mapping):
+            lst = [None] * len(self._back.fields)
+            for k, v in fields.items():
+                if v is None:
+                    pass
+                else:
+                    i = self._back.index_of_field_name[k]
+                    lst[i] = self._back.type_of_field_index[i](v)
+            for defn, val in zip(self._back.fields, lst):
+                if val is None and defn['nullable'] is False:
+                    raise ValueError('{} not nullable'.format(defn))
+            return lst
+        elif isinstance(fields, collections.Iterable):
+            if len(fields) == 0 and self._back.all_nullable:
+                return [None] * len(self._back.fields)
+            elif len(fields) != len(self._back.fields):
+                raise ValueError('{} fields provided instead of {}'.format(
+                    len(fields), len(self._back.fields),
+                ))
+            else:
+                return [
+                    norm(val) if val is not None else None
+                    for (norm, val) in zip(self._back.type_of_field_index, fields)
+                ]
+        else:
+            raise TypeError('Bad fields type')
+
 class ABackStoredVector(ABackStored, ABackProxyVector):
+
+    def __init__(self, **kwargs):
+        super(ABackStoredVector, self).__init__(**kwargs)
 
     def insert_data(self, geom_type, geom, fields, index):
         raise NotImplementedError('ABackStoredVector.insert_data is virtual pure')

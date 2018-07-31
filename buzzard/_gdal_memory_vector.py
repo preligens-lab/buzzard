@@ -59,7 +59,6 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
             for field in self.fields
         ]
 
-
     @property
     def extent(self):
         """Get the vector's extent in work spatial reference. (`x` then `y`)
@@ -88,11 +87,14 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
             raise ValueError('Could not compute extent')
         return extent
 
+    def __len__(self):
+        """Return the number of features in vector layer"""
+        return len(self._lyr)
 
     def insert_data(self, geom_type, geom, fields, index):
         if geom is None:
             pass
-        elif self._to_virtual:
+        elif self.to_virtual:
             if geom_type == 'coordinates':
                 geom = sg.asShape({
                     'type': self.type,
@@ -170,14 +172,12 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
                     err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
-
     def delete(self):
         raise NotImplementedError('GDAL Memory driver does no allow deletion, use `close`')
 
     def close(self):
         super(BackGDALMemoryVector, self).close()
         del self._gdal_ds
-
 
     def _iter_feature(self, slicing, mask_poly, mask_rect):
         with self.__class__._LayerIteration(self._lyr, self._lock,
