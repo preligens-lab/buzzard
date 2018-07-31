@@ -97,6 +97,7 @@ class BackGDALRasterMixin(ABackProxyRaster):
                     gdal_ds.GetRasterBand(i).SetNoDataValue(val)
         if 'interpretation' in band_schema:
             for i, val in enumerate(band_schema['interpretation'], 1):
+                val = conv.gci_of_str(val)
                 gdal_ds.GetRasterBand(i).SetColorInterpretation(val)
         if 'offset' in band_schema:
             for i, val in enumerate(band_schema['offset'], 1):
@@ -107,10 +108,12 @@ class BackGDALRasterMixin(ABackProxyRaster):
         if 'mask' in band_schema:
             shared_bit = conv.gmf_of_str('per_dataset')
             for i, val in enumerate(band_schema['mask'], 1):
+                val = conv.gmf_of_str(val)
                 if val & shared_bit:
                     gdal_ds.CreateMaskBand(val)
                     break
             for i, val in enumerate(band_schema['mask'], 1):
+                val = conv.gmf_of_str(val)
                 if not val & shared_bit:
                     gdal_ds.GetRasterBand(i).CreateMaskBand(val)
 

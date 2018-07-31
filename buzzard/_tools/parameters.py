@@ -10,6 +10,7 @@ import six
 import numpy as np
 
 from .helper_classes import Singleton
+from . import conv
 
 BAND_SCHEMA_PARAMS = frozenset({
     'nodata', 'interpretation', 'offset', 'scale', 'mask',

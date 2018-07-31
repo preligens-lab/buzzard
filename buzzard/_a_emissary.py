@@ -33,6 +33,9 @@ class AEmissary(AStored):
         >>> with ds.acreate_vector('/tmp/tmp.shp', 'polygon').delete as tmp:
                 # code...
         """
+        if self.mode != 'w':
+            raise RuntimeError('Cannot remove a read-only file')
+
         def _delete():
             self._back.delete()
             self.close()
