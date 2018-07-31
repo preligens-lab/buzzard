@@ -44,7 +44,7 @@ classifiers = [
 
 setup(
     name='buzzard',
-    version='0.4.4',
+    version='0.5.0.dev1',
     author='ngoguey',
     author_email='ngoguey@airware.com',
     license='Apache License 2.0',
