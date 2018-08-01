@@ -212,7 +212,7 @@ if __name__ == '__main__':
         assert vref == vtest
 
         if verbose:
-            print(f'{"push_front":>20}: k:{k:5} v:{v:5}')
+            print('{:>20}: k:{:5} v:{:5}'.format("push_front", k, v))
 
         ref.push_front(k, vref)
         test.push_front(k, vtest)
@@ -233,7 +233,7 @@ if __name__ == '__main__':
 
         if verbose:
             if isinstance(test_res, Exception):
-                print(f'{"pop_back":>20}:                     {test_res!r}')
+                print('{:>20}:                     {!r}'.format("pop_back", test_res))
             else:
                 k, v = test_res
                 print('{:>20}: k:{:5} v:{!s:5}'.format("pop_back", k, v))
