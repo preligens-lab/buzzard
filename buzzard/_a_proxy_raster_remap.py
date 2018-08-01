@@ -13,6 +13,7 @@ grids distance -> {tldiff}
 2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`."""
 
 class ABackProxyRasterRemapMixin(object):
+    """Raster Mixin containing remap subroutine"""
 
     _REMAP_MASK_MODES = frozenset(['dilate', 'erode', ])
     REMAP_INTERPOLATIONS = {

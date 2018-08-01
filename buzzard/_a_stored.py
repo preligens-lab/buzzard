@@ -1,6 +1,7 @@
 from buzzard._a_proxy import *
 
 class AStored(AProxy):
+    """Proxy that has some kind of storage (RAM or disk), and opening mode"""
 
     @property
     def mode(self):
@@ -8,6 +9,7 @@ class AStored(AProxy):
         return self._back.mode
 
 class ABackStored(ABackProxy):
+    """Implementation of AStored's specifications"""
 
     def __init__(self, mode, **kwargs):
         self.mode = mode

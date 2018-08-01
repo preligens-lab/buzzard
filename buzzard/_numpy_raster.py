@@ -4,6 +4,7 @@ from buzzard._a_stored_raster import *
 from buzzard import _tools
 
 class NumpyRaster(AStoredRaster):
+    """Proxy for numpy array rasters"""
 
     def __init__(self, ds, fp, array, band_schema, wkt, mode):
         self._arr = array
@@ -27,6 +28,7 @@ class NumpyRaster(AStoredRaster):
         return rv
 
 class BackNumpyRaster(ABackStoredRaster):
+    """Impklementation of NumpyRaster"""
 
     def __init__(self, back_ds, fp, array, band_schema, wkt, mode):
         array = np.atleast_3d(array)

@@ -9,6 +9,7 @@ from buzzard._footprint import Footprint
 from buzzard._tools import conv
 
 class AProxyVector(AProxy):
+    """Base abstract class defining the common behavior of all vectors"""
 
     @property
     def type(self):
@@ -261,6 +262,7 @@ class AProxyVector(AProxy):
             raise TypeError('`mask` should be a Footprint, an extent or a shapely object')
 
 class ABackProxyVector(ABackProxy):
+    """Implementation of AProxyVector's specifications"""
 
     def __init__(self, type, fields, **kwargs):
         super(ABackProxyVector, self).__init__(**kwargs)

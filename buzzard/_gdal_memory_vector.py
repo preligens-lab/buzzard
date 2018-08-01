@@ -5,6 +5,7 @@ from buzzard._a_gdal_vector import *
 from buzzard._tools import conv
 
 class GDALMemoryVector(AEmissaryVector):
+    """Proxy for 'Memory' driver vector GDAL datasets"""
 
     def __init__(self, ds, geometry, fields, open_options, mode, layer, sr):
         back = BackGDALMemoryVector(
@@ -13,6 +14,7 @@ class GDALMemoryVector(AEmissaryVector):
         super(GDALMemoryVector, self).__init__(ds=ds, back=back)
 
 class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
+    """Implementation of GDALMemoryVector"""
 
     def __init__(self, back_ds, geometry, fields, open_options, mode, layer, sr):
         gdal_ds, lyr = self.create_file('', geometry, fields, layer, 'Memory', open_options, sr)

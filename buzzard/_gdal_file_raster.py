@@ -11,6 +11,7 @@ from buzzard._tools import conv
 from buzzard import _tools
 
 class GDALFileRaster(APooledEmissaryRaster):
+    """Proxy for file raster GDAL datasets"""
 
     def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileRaster(
@@ -19,6 +20,7 @@ class GDALFileRaster(APooledEmissaryRaster):
         super(GDALFileRaster, self).__init__(ds=ds, back=back)
 
 class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
+    """Implementation of GDALFileRaster"""
 
     def __init__(self, back_ds, allocator, open_options, mode):
         uid = uuid.uuid4()

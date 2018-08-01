@@ -9,6 +9,7 @@ from buzzard._tools import conv
 from buzzard import _tools
 
 class ABackGDALRaster(ABackStoredRaster):
+    """Abstract class defining the common implementation of all GDAL rasters"""
 
     # get_data implementation ******************************************************************* **
     def get_data(self, fp, band_ids, dst_nodata, interpolation):

@@ -7,6 +7,9 @@ from buzzard._a_stored import *
 from buzzard._a_proxy_vector import *
 
 class AStoredVector(AStored, AProxyVector):
+    """>>> help(AStored)
+    >>> help(AProxyRaster)
+    """
 
     def insert_data(self, geom, fields=(), index=-1):
         """Insert a feature in vector
@@ -76,6 +79,7 @@ class AStoredVector(AStored, AProxyVector):
             raise TypeError('Bad fields type')
 
 class ABackStoredVector(ABackStored, ABackProxyVector):
+    """Implementation of AStoredRaster's specifications"""
 
     def __init__(self, **kwargs):
         super(ABackStoredVector, self).__init__(**kwargs)

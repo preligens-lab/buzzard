@@ -9,6 +9,7 @@ from buzzard._a_gdal_vector import *
 from buzzard._tools import conv
 
 class GDALFileVector(APooledEmissaryVector):
+    """Proxy for file vector GDAL datasets"""
 
     def __init__(self, ds, allocator, open_options, mode, layer):
         back = BackGDALFileVector(
@@ -17,6 +18,7 @@ class GDALFileVector(APooledEmissaryVector):
         super(GDALFileVector, self).__init__(ds=ds, back=back)
 
 class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
+    """Implementation of GDALFileVector"""
 
     def __init__(self, back_ds, allocator, open_options, mode, layer):
         uid = uuid.uuid4()

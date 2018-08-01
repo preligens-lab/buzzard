@@ -4,6 +4,7 @@ from buzzard._footprint import Footprint
 from buzzard import _tools
 
 class AProxyRaster(AProxy):
+    """Base abstract class defining the common behavior of all rasters"""
 
     @property
     def fp_stored(self):
@@ -112,6 +113,7 @@ class AProxyRaster(AProxy):
         ).reshape(outshape)
 
 class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
+    """Implementation of AProxyRaster's specifications"""
 
     def __init__(self, band_schema, dtype, fp_stored, **kwargs):
         super(ABackProxyRaster, self).__init__(rect=fp_stored, **kwargs)

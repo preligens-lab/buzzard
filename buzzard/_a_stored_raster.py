@@ -5,6 +5,9 @@ from buzzard._a_stored import *
 from buzzard._a_proxy_raster import *
 
 class AStoredRaster(AStored, AProxyRaster):
+    """>>> help(AStored)
+    >>> help(AProxyRaster)
+    """
 
     def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None):
         """Write a rectangle of data on several channels to the destination raster. An optional
@@ -121,6 +124,7 @@ class AStoredRaster(AStored, AProxyRaster):
         )
 
 class ABackStoredRaster(ABackStored, ABackProxyRaster):
+    """Implementation of AStoredRaster's specifications"""
 
     def set_data(self, array, fp, band_ids, interpolation, mask):
         raise NotImplementedError('ABackStoredRaster.set_data is virtual pure')

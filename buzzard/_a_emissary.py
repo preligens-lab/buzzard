@@ -2,6 +2,7 @@ from buzzard._a_stored import *
 from buzzard import _tools
 
 class AEmissary(AStored):
+    """Stored proxy that has a driver notion"""
 
     @property
     def driver(self):
@@ -43,6 +44,7 @@ class AEmissary(AStored):
         return _DeleteRoutine(self, _delete)
 
 class ABackEmissary(ABackStored):
+    """Implementation of AEmissary's specifications"""
 
     def __init__(self, driver, open_options, path, **kwargs):
         self.driver = driver

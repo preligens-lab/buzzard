@@ -15,6 +15,7 @@ from buzzard import _tools
 from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
+    """Abstract class defining the common implementation of all GDAL vectors"""
 
     # extent/len implementation ***************************************************************** **
     @property

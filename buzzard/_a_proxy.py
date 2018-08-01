@@ -3,6 +3,7 @@ from osgeo import osr
 from buzzard import _tools
 
 class AProxy(object):
+    """Base abstract class defining the common behavior of all sources"""
 
     def __init__(self, ds, back):
         self._ds = ds
@@ -69,6 +70,7 @@ class AProxy(object):
             self.close()
 
 class ABackProxy(object):
+    """Implementation of AProxy's specifications"""
 
     def __init__(self, back_ds, wkt_stored, rect):
         wkt_virtual = back_ds.virtual_of_stored_given_mode(

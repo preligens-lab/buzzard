@@ -1,6 +1,8 @@
 from buzzard._a_emissary import *
 
 class APooledEmissary(AEmissary):
+    """Emissary that has a notion of activation/deactivation (file descriptor)"""
+
     def activate(self):
         self._back.activate()
 
@@ -16,6 +18,7 @@ class APooledEmissary(AEmissary):
         return self._back.active
 
 class ABackPooledEmissary(ABackEmissary):
+    """Implementation of APooledEmissary"""
 
     def __init__(self, uid, **kwargs):
         self.uid = uid
