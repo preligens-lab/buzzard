@@ -242,11 +242,12 @@ def test_gc():
     gc.collect()
     assert len(ws) == 0
 
-    def _test():
-        ds = buzz.DataSource()
-        prox = ds.acreate_recipe_raster(pxfn, fp, float)
-        ws.add(ds)
-        ws.add(prox)
-    _test()
+    # TODO: ds.acreate_raster('', fp, float, 1, driver='Recipe')
+    # def _test():
+    #     ds = buzz.DataSource()
+    #     prox = ds.acreate_recipe_raster(pxfn, fp, float)
+    #     ws.add(ds)
+    #     ws.add(prox)
+    # _test()
     gc.collect()
     assert len(ws) == 0
