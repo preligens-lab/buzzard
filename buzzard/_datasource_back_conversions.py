@@ -43,7 +43,7 @@ class BackDataSourceConversionsMixin(object):
         """
         assert rect_from in ['virtual', 'work']
 
-        if not self.sr_work:
+        if self.sr_work is None:
             return None, None
 
         assert sr_virtual is not None
