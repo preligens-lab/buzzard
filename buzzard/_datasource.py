@@ -758,18 +758,18 @@ class DataSource(DataSourceRegisterMixin):
         """DataSource's work spatial reference in WKT proj4.
         Returns None if none set.
         """
-        if self._sr_work is None:
+        if self._back.wkt_work is None:
             return None
-        return self._sr_work.ExportToProj4()
+        return self._back.wkt_work.ExportToProj4()
 
     @property
     def wkt(self):
         """DataSource's work spatial reference in WKT format.
         Returns None if none set.
         """
-        if self._sr_work is None:
+        if self._back.wkt_work is None:
             return None
-        return self._wkt_work
+        return self._back.wkt_work
 
     # Activation mechanisms ********************************************************************* **
     def activate_all(self):
