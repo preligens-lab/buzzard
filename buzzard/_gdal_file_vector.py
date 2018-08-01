@@ -31,7 +31,6 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             path = gdal_ds.GetDescription()
             driver = gdal_ds.GetDriver().ShortName
             wkt_stored = lyr.GetSpatialRef().ExportToWkt()
-            print(wkt_stored)
             fields = BackGDALFileVector._fields_of_lyr(lyr)
             type = conv.str_of_wkbgeom(lyr.GetGeomType())
 
