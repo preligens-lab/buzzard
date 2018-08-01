@@ -236,7 +236,7 @@ if __name__ == '__main__':
                 print(f'{"pop_back":>20}:                     {test_res!r}')
             else:
                 k, v = test_res
-                print(f'{"pop_back":>20}: k:{k:5} v:{v!s:5}')
+                print('{:>20}: k:{:5} v:{!s:5}'.format("pop_back", k, v))
         _assert(ref_res, test_res)
 
     def _testc():
@@ -252,9 +252,9 @@ if __name__ == '__main__':
 
         if verbose:
             if isinstance(test_res, Exception):
-                print(f'{"pop_first_occurrence":>20}:                     {test_res!r}')
+                print('{:>20}:                     {!r}'.format("pop_first_occurrence", test_res))
             else:
-                print(f'{"pop_first_occurrence":>20}: k:{k:5} v:{test_res!s:5}')
+                print('{:>20}: k:{:5} v:{!s:5}'.format("pop_first_occurrence", k, test_res))
         _assert(ref_res, test_res)
         _assert_collection()
 
@@ -271,9 +271,9 @@ if __name__ == '__main__':
 
         if verbose:
             if isinstance(test_res, Exception):
-                print(f'{"pop_last_occurrence":>20}:                     {test_res!r}')
+                print('{:>20}:                     {!r}'.format("pop_last_occurrence", test_res))
             else:
-                print(f'{"pop_last_occurrence":>20}: k:{k:5} v:{test_res!s:5}')
+                print('{:>20}: k:{:5} v:{!s:5}'.format("pop_last_occurrence", k, test_res))
         _assert(ref_res, test_res)
         _assert_collection()
 
@@ -297,9 +297,9 @@ if __name__ == '__main__':
 
         if verbose:
             if isinstance(test_res, Exception):
-                print(f'{"pop_all_occurrences":>20}:                     {test_res!r}')
+                print('{:>20}:                     {!r}'.format("pop_all_occurrences", test_res))
             else:
-                print(f'{"pop_all_occurrences":>20}: k:{k:5} v:{test_res!s:5}')
+                print('{:>20}: k:{:5} v:{!s:5}'.format("pop_all_occurrences", k, test_res))
         _assert(ref_res, test_res)
         _assert_collection()
 
