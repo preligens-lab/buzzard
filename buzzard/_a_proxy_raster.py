@@ -27,6 +27,10 @@ class AProxyRaster(AProxy):
         """Accessor for first band's nodata value"""
         return self._back.nodata
 
+    def get_nodata(self, band=1):
+        """Accessor for nodata value"""
+        return self._back.get_nodata(band)
+
     def __len__(self):
         """Return the number of bands"""
         return len(self._back)
