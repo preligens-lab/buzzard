@@ -760,7 +760,9 @@ class DataSource(DataSourceRegisterMixin):
         """
         if self._back.wkt_work is None:
             return None
-        return self._back.wkt_work.ExportToProj4()
+        sr_work = osr.SpatialReference()
+        sr_work.ImportFromWkt(self._back.wkt_work)
+        return sr_work.ExportToProj4()
 
     @property
     def wkt(self):
