@@ -174,7 +174,7 @@ class DataSource(DataSourceRegisterMixin):
             new_name_is_provided=max_active != np.inf,
             user_kwargs=kwargs,
         )
-        if kwargs:
+        if kwargs: # pragma: no cover
             raise NameError('Unknown parameters like `{}`'.format(
                 list(kwargs.keys())[0]
             ))
@@ -193,7 +193,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             raise ValueError('Bad combination of `sr_*` parameters') # pragma: no cover
 
-        if max_active < 1:
+        if max_active < 1: # pragma: no cover
             raise ValueError('`max_active` should be greater than 1')
 
         allow_interpolation = bool(allow_interpolation)
@@ -242,7 +242,7 @@ class DataSource(DataSourceRegisterMixin):
         _ = conv.of_of_mode(mode)
 
         # Construction dispatch ************************************************
-        if driver.lower() == 'mem':
+        if driver.lower() == 'mem': # pragma: no cover
             raise ValueError("Can't open a MEM raster, user create_raster")
         elif True:
             allocator = lambda: BackGDALFileRaster.open_file(
@@ -268,7 +268,7 @@ class DataSource(DataSourceRegisterMixin):
         _ = conv.of_of_mode(mode)
 
         # Construction dispatch ************************************************
-        if driver.lower() == 'mem':
+        if driver.lower() == 'mem': # pragma: no cover
             raise ValueError("Can't open a MEM raster, user acreate_raster")
         elif True:
             allocator = lambda: BackGDALFileRaster.open_file(
@@ -351,7 +351,7 @@ class DataSource(DataSourceRegisterMixin):
         # Parameter checking ***************************************************
         self._validate_key(key)
         path = str(path)
-        if not isinstance(fp, Footprint):
+        if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
@@ -390,7 +390,7 @@ class DataSource(DataSourceRegisterMixin):
         """
         # Parameter checking ***************************************************
         path = str(path)
-        if not isinstance(fp, Footprint):
+        if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
@@ -464,12 +464,12 @@ class DataSource(DataSourceRegisterMixin):
         """
         # Parameter checking ***************************************************
         self._validate_key(key)
-        if not isinstance(fp, Footprint):
+        if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         array = np.asarray(array)
-        if array.shape[:2] != tuple(fp.shape):
+        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
             raise ValueError('Incompatible shape between `array` and `fp`')
-        if array.ndim not in [2, 3]:
+        if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
         band_count = 1 if array.ndim == 2 else array.shape[-1]
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
@@ -493,12 +493,12 @@ class DataSource(DataSourceRegisterMixin):
         See DataSource.wrap_numpy_raster
         """
         # Parameter checking ***************************************************
-        if not isinstance(fp, Footprint):
+        if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         array = np.asarray(array)
-        if array.shape[:2] != tuple(fp.shape):
+        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
             raise ValueError('Incompatible shape between `array` and `fp`')
-        if array.ndim not in [2, 3]:
+        if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
         band_count = 1 if array.ndim == 2 else array.shape[-1]
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
@@ -554,7 +554,7 @@ class DataSource(DataSourceRegisterMixin):
         _ = conv.of_of_mode(mode)
 
         # Construction dispatch ************************************************
-        if driver.lower() == 'memory':
+        if driver.lower() == 'memory': # pragma: no cover
             raise ValueError("Can't open a MEMORY vector, user create_vector")
         elif True:
             allocator = lambda: BackGDALFileVector.open_file(
@@ -585,7 +585,7 @@ class DataSource(DataSourceRegisterMixin):
         _ = conv.of_of_mode(mode)
 
         # Construction dispatch ************************************************
-        if driver.lower() == 'memory':
+        if driver.lower() == 'memory': # pragma: no cover
             raise ValueError("Can't open a MEMORY vector, user create_vector")
         elif True:
             allocator = lambda: BackGDALFileVector.open_file(

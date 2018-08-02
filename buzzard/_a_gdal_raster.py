@@ -121,14 +121,14 @@ class ABackGDALRaster(ABackStoredRaster):
         dr = gdal.GetDriverByName(driver)
         if os.path.isfile(path):
             err = dr.Delete(path)
-            if err:
+            if err: # pragma: no cover
                 raise Exception('Could not delete %s' % path)
 
         options = [str(arg) for arg in options]
         gdal_ds = dr.Create(
             path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
         )
-        if gdal_ds is None:
+        if gdal_ds is None: # pragma: no cover
             raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
         if wkt is not None:
             gdal_ds.SetProjection(wkt)
@@ -147,7 +147,6 @@ class ABackGDALRaster(ABackStoredRaster):
             return gdal_ds.GetRasterBand(id)
         else:
             return gdal_ds.GetRasterBand(int(id.imag)).GetMaskBand()
-
 
     @staticmethod
     def _apply_band_schema(gdal_ds, band_schema):
