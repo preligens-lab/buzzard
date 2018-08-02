@@ -1,6 +1,7 @@
 """Resampling tests for *Raster.get_data() methods (not testing rotations)
 
 TODO: Unit test set_data with resampling
+TODO: Unit test `remap` mixin on one side and `getsetdata_remap` elsewhere
 """
 
 # pylint: disable=redefined-outer-name

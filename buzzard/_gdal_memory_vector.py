@@ -28,7 +28,11 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
 
         path = gdal_ds.GetDescription()
         driver = gdal_ds.GetDriver().ShortName
-        wkt_stored = gdal_ds.GetProjection()
+        sr = lyr.GetSpatialRef()
+        if sr is None:
+            wkt_stored = None
+        else:
+            wkt_stored = sr.ExportToWkt()
         fields = BackGDALMemoryVector._fields_of_lyr(lyr)
         type = conv.str_of_wkbgeom(lyr.GetGeomType())
 
@@ -54,7 +58,7 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
     def acquire_driver_object(self):
         yield self._gdal_ds, self._lyr
 
-    def delete(self):
+    def delete(self): # pragma: no cover
         raise NotImplementedError('GDAL Memory driver does no allow deletion, use `close`')
 
     def close(self):

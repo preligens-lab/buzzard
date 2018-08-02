@@ -70,7 +70,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             [driver],
             options,
         )
-        if gdal_ds is None:
+        if gdal_ds is None: # pragma: no cover
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
                 path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
@@ -80,8 +80,12 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             lyr = gdal_ds.GetLayer(layer)
         else:
             lyr = gdal_ds.GetLayerByName(layer)
-        if lyr is None:
-            raise Exception('Could not open layer (gdal error: %s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
+        if lyr is None: # pragma: no cover
+            raise Exception('Could not open layer `{}` ({} layers available) (gdal error: %s)'.format(
+                layer,
+                gdal_ds.GetLayerCount(),
+                str(gdal.GetLastErrorMsg()).strip('\n'),
+            ))
         return gdal_ds, lyr
 
     @contextlib.contextmanager
@@ -97,7 +101,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
 
         dr = gdal.GetDriverByName(self.driver)
         err = dr.Delete(self.path)
-        if err:
+        if err: # pragma: no cover
             raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                 self.path, str(gdal.GetLastErrorMsg()).strip('\n')
             ))

@@ -40,7 +40,7 @@ class AStoredVector(AStored, AProxyVector):
         driver cache is flushed to disk, call `.close` or `.deactivate` on this Vector.
 
         """
-        if geom is None:
+        if geom is None: # pragma: no cover
             if not self._back.back_ds.allow_none_geometry:
                 raise TypeError(
                     'Inserting None geometry not allowed '
@@ -90,5 +90,5 @@ class ABackStoredVector(ABackStored, ABackProxyVector):
     def __init__(self, **kwargs):
         super(ABackStoredVector, self).__init__(**kwargs)
 
-    def insert_data(self, geom, geom_type, fields, index):
+    def insert_data(self, geom, geom_type, fields, index): # pragma: no cover
         raise NotImplementedError('ABackStoredVector.insert_data is virtual pure')

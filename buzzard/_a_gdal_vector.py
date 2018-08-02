@@ -24,7 +24,7 @@ class ABackGDALVector(ABackStoredVector):
             _, lyr = gdal_objs
             extent = lyr.GetExtent()
 
-        if extent is None:
+        if extent is None: # pragma: no cover
             raise ValueError('Could not compute extent')
         if self.to_work:
             xa, xb, ya, yb = extent
@@ -38,9 +38,9 @@ class ABackGDALVector(ABackStoredVector):
         with self.acquire_driver_object() as gdal_objs:
             _, lyr = gdal_objs
             extent = lyr.GetExtent()
-        if extent is None:
+        if extent is None: # pragma: no cover
             raise ValueError('Could not compute extent')
-        return extent
+        return np.asarray(extent)
 
     def __len__(self):
         """Return the number of features in vector layer"""
@@ -68,7 +68,7 @@ class ABackGDALVector(ABackStoredVector):
                 if geom is None or geom.IsEmpty():
                     # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever?
                     geom = None
-                    if not self.back_ds.allow_none_geometry:
+                    if not self.back_ds.allow_none_geometry: # pragma: no cover
                         raise Exception(
                             'None geometry in feature '
                             '(allow None geometry in DataSource constructor to silence)'
@@ -115,14 +115,14 @@ class ABackGDALVector(ABackStoredVector):
                 lyr.SetNextByIndex(start)
                 for i in indices:
                     ftr = lyr.GetNextFeature()
-                    if ftr is None:
+                    if ftr is None: # pragma: no cover
                         raise IndexError('Feature #{} not found'.format(i))
                     yield ftr
             else:
                 for i in indices:
                     lyr.SetNextByIndex(i)
                     ftr = lyr.GetNextFeature()
-                    if ftr is None:
+                    if ftr is None: # pragma: no cover
                         raise IndexError('Feature #{} not found'.format(i))
                     yield ftr
 
@@ -139,10 +139,10 @@ class ABackGDALVector(ABackStoredVector):
 
             if geom is not None:
                 err = ftr.SetGeometry(geom)
-                if err:
+                if err: # pragma: no cover
                     raise ValueError('Could not set geometry (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
-                if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None:
+                if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None: # pragma: no cover
                     raise ValueError(
                         'Invalid geometry inserted '
                         '(allow None geometry in DataSource constructor to silence)'
@@ -150,23 +150,23 @@ class ABackGDALVector(ABackStoredVector):
 
             if index >= 0:
                 err = ftr.SetFID(index)
-                if err:
+                if err: # pragma: no cover
                     raise ValueError('Could not set field id (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
             for i, field in enumerate(fields):
                 if field is not None:
                     err = ftr.SetField2(i, self._type_of_field_index[i](field))
-                    if err:
+                    if err: # pragma: no cover
                         raise ValueError('Could not set field #{} ({}) ({})'.format(
                             i, field, str(gdal.GetLastErrorMsg()).strip('\n')
                         ))
             passed = ftr.Validate(ogr.F_VAL_ALL, True)
-            if not passed:
+            if not passed: # pragma: no cover
                 raise ValueError('Invalid feature {} ({})'.format(
                     err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
 
             err = lyr.CreateFeature(ftr)
-            if err:
+            if err: # pragma: no cover
                 raise ValueError('Could not create feature {} ({})'.format(
                     err, str(gdal.GetLastErrorMsg()).strip('\n')
                 ))
@@ -181,32 +181,32 @@ class ABackGDALVector(ABackStoredVector):
                     'coordinates': geom,
                 })
             geom = shapely.ops.transform(self.to_virtual, geom)
-            geom = conv.ogr_of_shapely(geom)
+            # geom = conv.ogr_of_shapely(geom)
             # TODO: Use json and unit test
-            # mapping = sg.mapping(geom)
-            # geom = conv.ogr_of_coordinates(
-            #     mapping['coordinates'],
-            #     mapping['type'],
-            # )
-            if geom is None:
+            mapping = sg.mapping(geom)
+            geom = conv.ogr_of_coordinates(
+                mapping['coordinates'],
+                mapping['type'],
+            )
+            if geom is None: # pragma: no cover
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
                 ))
         elif geom_type == 'coordinates':
             geom = conv.ogr_of_coordinates(geom, self.type)
-            if geom is None:
+            if geom is None: # pragma: no cover
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
                 ))
         elif geom_type == 'shapely':
-            geom = conv.ogr_of_shapely(geom)
+            # geom = conv.ogr_of_shapely(geom)
             # TODO: Use json and unit test
-            # mapping = sg.mapping(geom)
-            # geom = conv.ogr_of_coordinates(
-            #     mapping['coordinates'],
-            #     mapping['type'],
-            # )
-            if geom is None:
+            mapping = sg.mapping(geom)
+            geom = conv.ogr_of_coordinates(
+                mapping['coordinates'],
+                mapping['type'],
+            )
+            if geom is None: # pragma: no cover
                 raise ValueError('Could not convert `{}` of type `{}` to `ogr.Geometry`'.format(
                     geom_type, self.type
                 ))
@@ -215,7 +215,7 @@ class ABackGDALVector(ABackStoredVector):
         return geom
 
     # Misc ************************************************************************************** **
-    def acquire_driver_object(self):
+    def acquire_driver_object(self): # pragma: no cover
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
@@ -233,7 +233,7 @@ class ABackGDALVector(ABackStoredVector):
             if gdal_ds is None:
                 gdal_ds = dr.Create(path, 0, 0, 0, 0, options)
             else:
-                if gdal_ds.GetLayerByName(layer) is not None:
+                if gdal_ds.GetLayerByName(layer) is not None: # pragma: no cover
                     err = gdal_ds.DeleteLayer(layer)
                     if err:
                         raise Exception('Could not delete %s' % path)
@@ -246,7 +246,7 @@ class ABackGDALVector(ABackStoredVector):
             #         raise Exception('Could not delete %s' % path)
             #     gdal_ds = dr.CreateDataSource(path, options)
 
-            if gdal_ds is None:
+            if gdal_ds is None: # pragma: no cover
                 raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
         if sr is not None:
@@ -255,7 +255,7 @@ class ABackGDALVector(ABackStoredVector):
         geometry = conv.wkbgeom_of_str(geometry)
         lyr = gdal_ds.CreateLayer(layer, sr, geometry, options)
 
-        if lyr is None:
+        if lyr is None: # pragma: no cover
             raise Exception('Could not create layer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
 
         for field in fields:

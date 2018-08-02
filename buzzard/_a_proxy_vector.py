@@ -2,6 +2,7 @@ import collections
 import numbers
 
 import shapely.geometry as sg
+import numpy as np
 
 from buzzard._a_proxy import *
 from buzzard import _tools
@@ -113,12 +114,12 @@ class AProxyVector(AProxy):
         del fields
 
         # Normalize and check geom_type parameter
-        if geom_type not in ['shapely', 'coordinates']:
+        if geom_type not in ['shapely', 'coordinates']: # pragma: no cover
             raise ValueError('Bad parameter `geom_type`')
 
         # Normalize and check clip parameter
         clip = bool(clip)
-        if mask is None and clip is True:
+        if mask is None and clip is True: # pragma: no cover
             raise ValueError('`clip` is True but `mask` is None')
 
         # Normalize and check mask parameter
@@ -127,7 +128,7 @@ class AProxyVector(AProxy):
         del mask
 
         # Normalize and check slicing parameter
-        if not isinstance(slicing, slice):
+        if not isinstance(slicing, slice): # pragma: no cover
             raise TypeError('`slicing` of type `{}` instead of `slice'.format(
                 type(slicing),
             ))
@@ -144,7 +145,7 @@ class AProxyVector(AProxy):
         index = int(index)
         for val in self.iter_data(fields, geom_type, mask, clip, slice(index, index + 1, 1)):
             return val
-        else:
+        else: # pragma: no cover
             raise IndexError('Feature `{}` not found'.format(index))
 
     def iter_geojson(self, mask=None, clip=False, slicing=slice(0, None, 1)):
@@ -188,7 +189,7 @@ class AProxyVector(AProxy):
         """
         # Normalize and check clip parameter
         clip = bool(clip)
-        if mask is None and clip is True:
+        if mask is None and clip is True: # pragma: no cover
             raise ValueError('`clip` is True but `mask` is None')
 
         # Normalize and check mask parameter
@@ -196,7 +197,7 @@ class AProxyVector(AProxy):
         del mask
 
         # Normalize and check slicing parameter
-        if not isinstance(slicing, slice):
+        if not isinstance(slicing, slice): # pragma: no cover
             raise TypeError('`slicing` of type `{}` instead of `slice'.format(
                 type(slicing),
             ))
@@ -217,7 +218,7 @@ class AProxyVector(AProxy):
         index = int(index)
         for val in self.iter_geojson(mask, clip, slice(index, index + 1, 1)):
             return val
-        else:
+        else: # pragma: no cover
             raise IndexError('Feature `{}` not found'.format(index))
 
     def _iter_user_intput_field_keys(self, keys):
@@ -235,14 +236,14 @@ class AProxyVector(AProxy):
             for val in keys:
                 if isinstance(val, numbers.Number):
                     val = int(val)
-                    if val >= len(self._back.fields):
+                    if val >= len(self._back.fields): # pragma: no cover
                         raise ValueError('Out of bound %d' % val)
                     yield val
                 elif isinstance(val, str):
                     yield self._back.index_of_field_name[val]
-                else:
+                else: # pragma: no cover
                     raise TypeError('bad type in `fields`')
-        else:
+        else: # pragma: no cover
             raise TypeError('bad `fields` type')
 
     @staticmethod
@@ -258,7 +259,7 @@ class AProxyVector(AProxy):
             return None, mask
         elif mask is None:
             return None, None
-        else:
+        else: # pragma: no cover
             raise TypeError('`mask` should be a Footprint, an extent or a shapely object')
 
 class ABackProxyVector(ABackProxy):
@@ -279,10 +280,10 @@ class ABackProxyVector(ABackProxy):
         self.all_nullable = all(field['nullable'] for field in self.fields)
 
     @property
-    def extent(self):
+    def extent(self): # pragma: no cover
         raise NotImplementedError('ABackProxyVector.extent is virtual pure')
 
-    @property
+    @property # pragma: no cover
     def extent_stored(self):
         raise NotImplementedError('ABackProxyVector.extent_stored is virtual pure')
 
@@ -296,10 +297,10 @@ class ABackProxyVector(ABackProxy):
         extent = self.extent_stored
         return np.asarray([extent[0], extent[2], extent[1], extent[3]])
 
-    def __len__(self):
+    def __len__(self): # pragma: no cover
         raise NotImplementedError('ABackProxyVector.__len__ is virtual pure')
 
-    def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip):
+    def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip): # pragma: no cover
         raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')
 
 _tools.deprecation_pool.add_deprecated_property(AProxyVector, 'extent_stored', 'extent_origin', '0.4.4')

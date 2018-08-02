@@ -234,8 +234,7 @@ def pytest_generate_tests(metafunc):
             if 'meta_file' in metafunc.fixturenames and subtest['driver'] not in {'MEM', 'numpy'}:
                 ext = subtest.pop('ext')
                 meta.update(subtest)
-                if meta['driver'] not in {'MEM'}:
-                    tests.append((meta, ext))
+                tests.append((meta, ext))
             if 'meta_mem' in metafunc.fixturenames and subtest['driver'] == 'MEM':
                 meta['path'] = ''
                 meta.update(subtest)
