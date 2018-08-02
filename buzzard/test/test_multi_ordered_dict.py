@@ -230,6 +230,6 @@ def test_multi_ordered_dict():
         _test_h,
     ]
 
-    for _ in range(300000):
+    for _ in range(5000):
         i = rng.randint(0, len(tests))
-    tests[i](ref, test, ref_wset, test_wset, rng, False)
+        tests[i](ref, test, ref_wset, test_wset, rng, False)

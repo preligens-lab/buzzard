@@ -10,7 +10,7 @@ class MultiOrderedDict(object):
         self._key_of_ukey = {}
         self._ukeys_of_key = collections.defaultdict(list)
 
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         l = []
         for key, g in itertools.groupby(map(self._key_of_ukey.get, self._od.keys())):
             l += ['{} x{}'.format(
@@ -53,7 +53,7 @@ class MultiOrderedDict(object):
         self._od[ukey] = value
 
     def pop_first_occurrence(self, key):
-        if key not in self:
+        if key not in self: # pragma: no cover
             raise KeyError('{} not in MultiOrderedDict'.format(key))
 
         ukey_list = self._ukeys_of_key[key]
@@ -70,7 +70,7 @@ class MultiOrderedDict(object):
         return value
 
     def pop_last_occurrence(self, key):
-        if key not in self:
+        if key not in self: # pragma: no cover
             raise KeyError('{} not in MultiOrderedDict'.format(key))
 
         ukey_list = self._ukeys_of_key[key]
