@@ -1,3 +1,9 @@
+"""Test:
+- Raster opening
+- Raster creation
+- Attributes validity
+- Raster deletion
+"""
 
 # pylint: disable=redefined-outer-name
 
@@ -233,8 +239,8 @@ def pytest_generate_tests(metafunc):
             if 'meta_mem' in metafunc.fixturenames and subtest['driver'] == 'MEM':
                 meta['path'] = ''
                 meta.update(subtest)
-                tests.append((meta, 'MEM', DataSource.acreate_raster))
-            if 'meta_mem' in metafunc.fixturenames and subtest['driver'] == 'numpy':
+                tests.append(meta)
+            if 'meta_numpy' in metafunc.fixturenames and subtest['driver'] == 'numpy':
                 meta = dict(
                     fp=meta['fp'],
                     array=np.empty(
@@ -244,7 +250,7 @@ def pytest_generate_tests(metafunc):
                     band_schema=meta['band_schema'],
                     sr=meta['sr'],
                 )
-                tests.append((meta, 'numpy', DataSource.awrap_numpy_raster))
+                tests.append(meta)
 
     if 'meta_file' in metafunc.fixturenames:
         metafunc.parametrize(
@@ -253,7 +259,12 @@ def pytest_generate_tests(metafunc):
         )
     if 'meta_mem' in metafunc.fixturenames:
         metafunc.parametrize(
-            argnames='meta_mem,driver,ds_method',
+            argnames='meta_mem',
+            argvalues=tests,
+        )
+    if 'meta_numpy' in metafunc.fixturenames:
+        metafunc.parametrize(
+            argnames='meta_numpy',
             argvalues=tests,
         )
 
@@ -277,7 +288,6 @@ def test_file(meta_file, path):
 
     with ds.acreate_raster(path, **meta).close as r:
         r.set_data(arr, band=-1)
-        # TODO: Test Numpy attributes
 
         if DRIVER_STORES_SRS[meta['driver']]:
             assert r.wkt_stored == meta['sr']
@@ -326,37 +336,61 @@ def test_file(meta_file, path):
         assert r.mode == 'w'
     assert not os.path.isfile(path)
 
-def test_mem(meta_mem, driver, ds_method):
+def test_mem(meta_mem):
     meta = meta_mem
     fp = meta['fp']
-    if driver == 'MEM':
-        band_count = meta['band_count']
-        dtype = meta['dtype']
-    elif driver == 'numpy':
-        band_count = meta['array'].shape[-1]
-        dtype = meta['array'].dtype
-    else:
-        assert False
 
     ds = DataSource()
     arr = np.add(*fp.meshgrid_raster)
-    arr = np.repeat(arr[..., np.newaxis], band_count, -1)
+    arr = np.repeat(arr[..., np.newaxis], meta['band_count'], -1)
 
-    r = ds_method(ds, **meta)
-    with r.close as r:
+    with ds.acreate_raster(**meta).close as r:
         r.set_data(arr, band=-1)
 
         assert r.wkt_stored == meta['sr']
         assert r.wkt_virtual == meta['sr']
         for k, v in meta['band_schema'].items():
             assert r.band_schema[k] == v
-        assert r.dtype == np.dtype(dtype)
+        assert r.dtype == np.dtype(meta['dtype'])
         assert r.fp_stored == fp
         if 'nodata' in meta['band_schema']:
             assert r.nodata == meta['band_schema']['nodata'][0]
         else:
             assert r.nodata == None
-        assert len(r) == band_count
+        assert len(r) == meta['band_count']
         assert r.fp == fp
         assert r.mode == 'w'
         assert np.all(r.get_data(band=[-1]) == arr)
+
+def test_numpy(meta_numpy):
+    meta = meta_numpy
+    arrptr = meta_numpy['array'].__array_interface__['data'][0]
+
+    fp = meta['fp']
+
+    ds = DataSource()
+    arr = np.add(*fp.meshgrid_raster)
+    arr = np.repeat(arr[..., np.newaxis], meta['array'].shape[-1], -1)
+
+    with ds.awrap_numpy_raster(**meta).close as r:
+        r.set_data(arr, band=-1)
+
+        assert r.wkt_stored == meta['sr']
+        assert r.wkt_virtual == meta['sr']
+        for k, v in meta['band_schema'].items():
+            assert r.band_schema[k] == v
+        assert r.dtype == meta['array'].dtype
+        assert r.fp_stored == fp
+        if 'nodata' in meta['band_schema']:
+            assert r.nodata == meta['band_schema']['nodata'][0]
+        else:
+            assert r.nodata == None
+        assert len(r) == meta['array'].shape[-1]
+        assert r.fp == fp
+        assert r.mode == 'w'
+        assert np.all(r.get_data(band=[-1]) == arr)
+        r.array
+        assert (
+            meta_numpy['array'].__array_interface__['data'][0] ==
+            r.array.__array_interface__['data'][0]
+        )

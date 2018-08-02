@@ -31,7 +31,7 @@ class ABackProxyRasterRemapMixin(object):
             fp = fp & self.fp
             assert fp.same_grid(self.fp)
             return fp
-        if not self.back_ds.allow_interpolation:
+        if not self.back_ds.allow_interpolation: # pragma: no cover
             raise ValueError(_EXN_FORMAT.format(
                 src=self.fp,
                 dst=fp,
@@ -83,13 +83,13 @@ class ABackProxyRasterRemapMixin(object):
         assert dst_nodata is not None
 
         # Check mask_mode ******************************************************
-        if mask_mode not in cls._REMAP_MASK_MODES:
+        if mask_mode not in cls._REMAP_MASK_MODES: # pragma: no cover
             raise ValueError('mask_mode should be one of {}'.format(
                 cls._REMAP_MASK_MODES,
             ))
 
         # Check interpolation **************************************************
-        if not (interpolation is None or interpolation in cls.REMAP_INTERPOLATIONS):
+        if not (interpolation is None or interpolation in cls.REMAP_INTERPOLATIONS): # pragma: no cover
             raise ValueError('interpolation should be None or one of {}'.format(
                 cls.REMAP_INTERPOLATIONS.keys(),
             ))
@@ -115,7 +115,7 @@ class ABackProxyRasterRemapMixin(object):
                 mask_mode, interpolation,
             )
         else:
-            assert False
+            assert False # pragma: no cover
 
         # Return ******************************************************************************** **
         if arr_mode[0]:
@@ -128,7 +128,7 @@ class ABackProxyRasterRemapMixin(object):
         elif arr_mode == (False, True):
             return mask
         else:
-            assert False
+            assert False # pragma: no cover
 
 
     @staticmethod
@@ -154,13 +154,13 @@ class ABackProxyRasterRemapMixin(object):
             if src_nodata is not None and dst_nodata != src_nodata:
                 dstarray[dst_slice][dstarray[dst_slice] == src_nodata] = dst_nodata
         else:
-            dstarray = None
+            dstarray = None # pragma: no cover
 
         if mask is not None:
             dstmask = np.full(dst_fp.shape, 0, mask.dtype)
             dstmask[dst_slice] = mask[src_slice]
         else:
-            dstmask = None
+            dstmask = None # pragma: no cover
 
         return dstarray, dstmask
 
@@ -203,14 +203,6 @@ class ABackProxyRasterRemapMixin(object):
                     dst=dstarray,
                 )
             else:
-                # TODO: Remove comment
-                # print('nodata mask before:')
-                # a = (array == src_nodata).astype('int')
-                # a = np.atleast_3d(a)
-                # for i in range(a.shape[-1]):
-                #     print(f'channel {i}')
-                #     print(a[..., i])
-
                 dstnodatamask = np.ones(np.r_[dst_fp.shape, array.shape[-1]], 'float32')
                 cv2.remap(
                     (array == src_nodata).astype('float32'), mapx, mapy,
@@ -228,7 +220,7 @@ class ABackProxyRasterRemapMixin(object):
                 )
                 dstarray[dstnodatamask] = dst_nodata
         else:
-            dstarray = None
+            dstarray = None # pragma: no cover
 
         if mask is not None:
             if mask_mode == 'erode':
@@ -246,8 +238,8 @@ class ABackProxyRasterRemapMixin(object):
                     borderValue=0.,
                 ) != 0.
             else:
-                assert False
+                assert False # pragma: no cover
         else:
-            dstmask = None
+            dstmask = None # pragma: no cover
 
         return dstarray, dstmask

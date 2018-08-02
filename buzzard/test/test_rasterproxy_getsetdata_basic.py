@@ -117,6 +117,9 @@ def test_get_data_dst_nodata(rast, dst_nodata, dst_arr):
 
     arr = rast.get_data(band=[-1], dst_nodata=dst_nodata, fp=fp)
 
+    arr2 = rast.get_data(band=[-1], dst_nodata=dst_nodata, fp=fp.erode(1))
+    assert np.all(arr2 == arr[inner_slice])
+
     if rast.nodata is not None:
         assert np.all(arr[inner_slice][np.diag_indices(dst_arr.shape[0])] == dst_nodata)
         arr[inner_slice][np.diag_indices(dst_arr.shape[0])] = rast.nodata

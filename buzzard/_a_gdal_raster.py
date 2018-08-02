@@ -50,7 +50,7 @@ class ABackGDALRaster(ABackStoredRaster):
                 int(fp.rsizey),
                 buf_obj=dstarray[..., i],
             )
-            if a is None:
+            if a is None: # pragma: no cover
                 raise ValueError('Could not read array (gdal error: `{}`)'.format(
                     gdal.GetLastErrorMsg()
                 ))
@@ -112,7 +112,7 @@ class ABackGDALRaster(ABackStoredRaster):
                 gdalband.Fill(value)
 
     # Misc ************************************************************************************** **
-    def acquire_driver_object(self):
+    def acquire_driver_object(self): # pragma: no cover
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod

@@ -66,7 +66,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
 
         dr = gdal.GetDriverByName(self.driver)
         err = dr.Delete(self.path)
-        if err:
+        if err: # pragma: no cover
             raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                 self.path, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
@@ -83,7 +83,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             [driver],
             options,
         )
-        if gdal_ds is None:
+        if gdal_ds is None: # pragma: no cover
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
                 path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
             ))

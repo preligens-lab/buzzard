@@ -104,7 +104,7 @@ class AProxyRaster(AProxy):
             dst_nodata = self.dtype.type(0)
 
         # Check interpolation parameter here
-        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS):
+        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS): # pragma: no cover
             raise ValueError('`interpolation` should be None or one of {}'.format(
                 set(self._back.REMAP_INTERPOLATIONS.keys())
             ))
@@ -151,7 +151,7 @@ class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
     def __len__(self):
         return len(self.band_schema['nodata'])
 
-    def get_data(self, fp, band_ids, dst_nodata, interpolation):
+    def get_data(self, fp, band_ids, dst_nodata, interpolation): # pragma: no cover
         raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')
 
 _tools.deprecation_pool.add_deprecated_property(AProxyRaster, 'fp_stored', 'fp_origin', '0.4.4')

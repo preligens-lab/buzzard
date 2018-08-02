@@ -1,4 +1,7 @@
-"""Resampling tests for *Raster.get_data() methods (not testing rotations)"""
+"""Resampling tests for *Raster.get_data() methods (not testing rotations)
+
+TODO: Unit test set_data with resampling
+"""
 
 # pylint: disable=redefined-outer-name
 
@@ -58,6 +61,10 @@ TIF_DATA_MAXY = YS[TIF_DATAMASK].max()
 TIF_DATA_MINY = YS[TIF_DATAMASK].min()
 TIF_DATA_MAXX = XS[TIF_DATAMASK].max()
 TIF_DATA_MINX = XS[TIF_DATAMASK].min()
+TIF_MAXY = YS.max()
+TIF_MINY = YS.min()
+TIF_MAXX = XS.max()
+TIF_MINX = XS.min()
 del XS, YS
 
 # CONSTANTS - SCENARIOS ************************************************************************* **
@@ -84,36 +91,36 @@ def ds():
 @pytest.fixture(
     scope='module',
     params=[
-        ('GTiff', 1, 'float32'),
-        ('GTiff', 3, 'uint8'),
-        ('MEM', 1, 'float32'),
-        ('MEM', 3, 'uint8'),
-        ('numpy', 1, 'float32'),
-        ('numpy', 3, 'uint8'),
+        ('GTiff', 1, 'float32', TIF_NODATA),
+        ('GTiff', 3, 'uint8', None),
+        ('MEM', 1, 'float32', TIF_NODATA),
+        ('MEM', 3, 'uint8', None),
+        ('numpy', 1, 'float32', None),
+        ('numpy', 3, 'uint8', TIF_NODATA),
     ],
 )
 def rast(request, ds):
     """Fixture for the datasource creation"""
     fp = TIF_FP
-    driver, band_count, dtype = request.param
+    driver, band_count, dtype, nodata = request.param
     if driver == 'numpy':
         rast = ds.awrap_numpy_raster(
             fp,
             np.dstack([TIF_VALUES.copy().astype(dtype=dtype)] * band_count),
-            band_schema=dict(nodata=TIF_NODATA),
+            band_schema=dict(nodata=nodata),
             sr=None,
             mode='r',
         )
     elif driver == 'MEM':
         rast = ds.acreate_raster(
-            '', fp, dtype, band_count, band_schema=dict(nodata=TIF_NODATA), driver='MEM',
+            '', fp, dtype, band_count, band_schema=dict(nodata=nodata), driver='MEM',
         )
         for band_id in range(1, len(rast) + 1):
             rast.set_data(TIF_VALUES, band=band_id)
     else:
         path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
         rast = ds.acreate_raster(
-            path, fp, dtype, band_count, band_schema=dict(nodata=TIF_NODATA), driver=driver
+            path, fp, dtype, band_count, band_schema=dict(nodata=nodata), driver=driver
         )
         for band_id in range(1, len(rast) + 1):
             rast.set_data(TIF_VALUES, band=band_id)
@@ -146,7 +153,11 @@ def fp(size1, scale1, offset1, offset_factor2):
 
 # TESTS ***************************************************************************************** **
 def test_getdata(rast, fp, interpolation):
-    all_res = rast.get_data(band=-1, fp=fp, interpolation=interpolation)
+    if rast.nodata is None:
+        all_res = rast.get_data(band=-1, fp=fp, interpolation=interpolation, dst_nodata=TIF_NODATA)
+    else:
+        all_res = rast.get_data(band=-1, fp=fp, interpolation=interpolation)
+
     all_res = np.atleast_3d(all_res)
 
     for i in range(len(rast)):
@@ -189,12 +200,20 @@ def test_getdata(rast, fp, interpolation):
         # 3 - Assert only nodata far from data
         xs, ys = fp.meshgrid_spatial
         b = INTERPOLATIONS_OUTSIDE_UNCERTAINTY_BORDER[interpolation]
-        far_outside_data_mask = (
-            (xs < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
-            (xs > TIF_DATA_MAXX + TIF_FP.pxsizex * b) |
-            (ys < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
-            (ys > TIF_DATA_MAXX + TIF_FP.pxsizex * b)
-        )
+        if rast.nodata is not None:
+            far_outside_data_mask = (
+                (xs < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
+                (xs > TIF_DATA_MAXX + TIF_FP.pxsizex * b) |
+                (ys < TIF_DATA_MINX - TIF_FP.pxsizex * b) |
+                (ys > TIF_DATA_MAXX + TIF_FP.pxsizex * b)
+            )
+        else:
+            far_outside_data_mask = (
+                (xs < TIF_MINX - TIF_FP.pxsizex * b) |
+                (xs > TIF_MAXX + TIF_FP.pxsizex * b) |
+                (ys < TIF_MINX - TIF_FP.pxsizex * b) |
+                (ys > TIF_MAXX + TIF_FP.pxsizex * b)
+            )
         assert np.all(
             res[far_outside_data_mask] == TIF_NODATA
         )

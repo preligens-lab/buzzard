@@ -54,7 +54,7 @@ class AStoredRaster(AStored, AProxyRaster):
         driver cache is flushed to disk, call `.close` or `.deactivate` on this Raster.
 
         """
-        if self.mode != 'w':
+        if self.mode != 'w': # pragma: no cover
             raise RuntimeError('Cannot write a read-only raster file')
 
         # Normalize and check fp parameter
@@ -68,26 +68,26 @@ class AStoredRaster(AStored, AProxyRaster):
 
         # Normalize and check array parameter
         array = np.atleast_3d(array)
-        if array.ndim != 3:
+        if array.ndim != 3: # pragma: no cover
             raise ValueError('Input array should have 2 or 3 dimensions')
-        if array.shape[:2] != tuple(fp.shape):
+        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
             raise ValueError('Incompatible shape between input `array` and `fp`')
-        if len(band_ids) != array.shape[-1]:
+        if len(band_ids) != array.shape[-1]: # pragma: no cover
             raise ValueError('Incompatible number of channels between input `array` and `band`')
 
         # Normalize and check mask parameter
         if mask is not None:
             if isinstance(mask, np.ndarray):
                 mask = mask.astype(bool, copy=False)
-                if mask.ndim != 2:
+                if mask.ndim != 2: # pragma: no cover
                     raise ValueError('Input `mask` should 2 dimensions')
-                if mask.shape[:2] != tuple(fp.shape):
+                if mask.shape[:2] != tuple(fp.shape): # pragma: no cover
                     raise ValueError('Incompatible shape between input `mask` and `fp`')
             else:
                 mask = fp.burn_polygons(mask)
 
         # Check interpolation parameter here
-        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS):
+        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS): # pragma: no cover
             raise ValueError('`interpolation` should be None or one of {}'.format(
                 set(self._back.REMAP_INTERPOLATIONS.keys())
             ))
@@ -125,7 +125,7 @@ class AStoredRaster(AStored, AProxyRaster):
         driver cache is flushed to disk, call `.close` or `.deactivate` on this Raster.
 
         """
-        if self.mode != 'w':
+        if self.mode != 'w': # pragma: no cover
             raise RuntimeError('Cannot write a read-only raster file')
 
         band_ids, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
@@ -138,8 +138,8 @@ class AStoredRaster(AStored, AProxyRaster):
 class ABackStoredRaster(ABackStored, ABackProxyRaster):
     """Implementation of AStoredRaster's specifications"""
 
-    def set_data(self, array, fp, band_ids, interpolation, mask):
+    def set_data(self, array, fp, band_ids, interpolation, mask): # pragma: no cover
         raise NotImplementedError('ABackStoredRaster.set_data is virtual pure')
 
-    def fill(self, value, band_ids):
+    def fill(self, value, band_ids): # pragma: no cover
         raise NotImplementedError('ABackStoredRaster.fill is virtual pure')

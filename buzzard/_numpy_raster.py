@@ -7,7 +7,8 @@ class NumpyRaster(AStoredRaster):
     """Proxy for numpy array rasters"""
 
     def __init__(self, ds, fp, array, band_schema, wkt, mode):
-        self._arr = array
+        self._arr_shape = array.shape
+        self._arr_address = array.__array_interface__['data'][0]
         back = BackNumpyRaster(
             ds._back, fp, array, band_schema, wkt, mode
         )
@@ -16,16 +17,9 @@ class NumpyRaster(AStoredRaster):
     @property
     def array(self):
         assert (
-            self._arr.__array_interface__['data'][0] ==
-            self._back._arr.__array_interface__['data'][0]
+            self._arr_address == self._back._arr.__array_interface__['data'][0]
         )
-        return self._arr
-
-    @property
-    def close(self):
-        rv = super(NumpyRaster, self).close
-        del self._arr
-        return rv
+        return self._back._arr.reshape(*self._arr_shape)
 
 class BackNumpyRaster(ABackStoredRaster):
     """Implementation of NumpyRaster"""
@@ -124,7 +118,7 @@ class BackNumpyRaster(ABackStoredRaster):
         for i in self._indices_of_band_ids(band_ids):
             self._arr[..., i] = value
 
-    def delete(self):
+    def delete(self): # pragma: no cover
         raise NotImplementedError('Numpy Raster does no allow deletion, use `close`')
 
     def close(self):
@@ -138,7 +132,7 @@ class BackNumpyRaster(ABackStoredRaster):
         for band_id in band_ids:
             if isinstance(band_id, int):
                 l.append(band_id - 1)
-            else:
+            else: # pragma: no cover
                 raise NotImplementedError("cmon...")
         return l
 
@@ -149,7 +143,7 @@ class BackNumpyRaster(ABackStoredRaster):
         for band_id in band_ids:
             if isinstance(band_id, int):
                 l.append(band_id - 1)
-            else:
+            else: # pragma: no cover
                 raise NotImplementedError("cmon...")
 
         if np.all(np.diff(l) == 1):

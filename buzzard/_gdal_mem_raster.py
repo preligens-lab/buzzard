@@ -58,7 +58,7 @@ class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
     def acquire_driver_object(self):
         yield self._gdal_ds
 
-    def delete(self):
+    def delete(self): # pragma: no cover
         raise NotImplementedError('GDAL MEM driver does no allow deletion, use `close`')
 
     def close(self):
