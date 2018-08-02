@@ -34,7 +34,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             if sr is None:
                 wkt_stored = None
             else:
-                wkt_stored = lyr.GetSpatialRef().ExportToWkt()
+                wkt_stored = sr.ExportToWkt()
             fields = BackGDALFileVector._fields_of_lyr(lyr)
             type = conv.str_of_wkbgeom(lyr.GetGeomType())
 

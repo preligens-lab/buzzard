@@ -34,10 +34,11 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             )
             band_schema = self._band_schema_of_gdal_ds(gdal_ds)
             dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
-            if gdal_ds.GetProjection() == '':
+            sr = gdal_ds.GetProjection()
+            if sr == '':
                 wkt_stored = None
             else:
-                wkt_stored = gdal_ds.GetProjection()
+                wkt_stored = sr
 
         super(BackGDALFileRaster, self).__init__(
             back_ds=back_ds,
