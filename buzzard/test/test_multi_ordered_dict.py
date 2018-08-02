@@ -1,3 +1,8 @@
+""" Stochastic test that proves that MultiOrderedDict behaves like _MultiOrderedDict_NSquared
+Since _MultiOrderedDict_NSquared implementation is straightforward we can trust it, and
+transfer this confidence to MultiOrderedDict using this test.
+"""
+
 import weakref
 import gc
 import collections
