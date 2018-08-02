@@ -57,7 +57,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
     def acquire_driver_object(self):
         with self.back_ds.acquire_driver_object(
                 self.uid,
-                lambda: self.open_file(self.path, self.driver, self.open_options, self.mode)
+                self.allocator
         ) as gdal_ds:
             yield gdal_ds
 
@@ -70,6 +70,9 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
                 self.path, str(gdal.GetLastErrorMsg()).strip('\n')
             ))
+
+    def allocator(self):
+        return self.open_file(self.path, self.driver, self.open_options, self.mode)
 
     @staticmethod
     def open_file(path, driver, options, mode):

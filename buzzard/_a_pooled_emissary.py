@@ -25,7 +25,7 @@ class ABackPooledEmissary(ABackEmissary):
         super(ABackPooledEmissary, self).__init__(**kwargs)
 
     def activate(self):
-        self.back_ds.activate(self.uid, self.acquire_driver_object)
+        self.back_ds.activate(self.uid, self.allocator)
 
     def deactivate(self):
         self.back_ds.deactivate(self.uid)

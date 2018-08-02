@@ -28,7 +28,7 @@ class NumpyRaster(AStoredRaster):
         return rv
 
 class BackNumpyRaster(ABackStoredRaster):
-    """Impklementation of NumpyRaster"""
+    """Implementation of NumpyRaster"""
 
     def __init__(self, back_ds, fp, array, band_schema, wkt, mode):
         array = np.atleast_3d(array)

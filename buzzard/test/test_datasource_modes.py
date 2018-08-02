@@ -43,6 +43,7 @@ def shp1_path(fps):
     ds.create_vector('poly', path, 'polygon', sr=SR1['wkt'])
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
+    ds.poly.close()
     del ds
     yield path
     gdal.GetDriverByName('ESRI Shapefile').Delete(path)
@@ -58,6 +59,7 @@ def tif1_path(fps):
         fp = fps[letter]
         arr = np.full(fp.shape, ord(letter), dtype=int)
         ds.rast.set_data(arr, fp=fp)
+    ds.rast.close()
     del ds
     yield path
     gdal.GetDriverByName('GTiff').Delete(path)
@@ -71,6 +73,7 @@ def shp2_path(fps):
     ds.create_vector('poly', path, 'polygon', sr=SR2['wkt'])
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
+    ds.poly.close()
     del ds
     yield path
     gdal.GetDriverByName('ESRI Shapefile').Delete(path)

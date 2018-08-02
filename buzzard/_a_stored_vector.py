@@ -12,7 +12,7 @@ class AStoredVector(AStored, AProxyVector):
     """
 
     def insert_data(self, geom, fields=(), index=-1):
-        """Insert a feature in vector
+        """Insert a feature in vector.
 
         Parameters
         ----------
@@ -32,6 +32,12 @@ class AStoredVector(AStored, AProxyVector):
         >>> poly = shapely.geometry.box(10, 10, 42, 43)
         >>> fields = {'volume': 42.24}
         >>> ds.stocks.insert_data(poly, fields)
+
+        Caveat
+        ------
+        When using a Vector backed by a driver (like an OGR driver), the data might be flushed to
+        disk only after the garbage collection of the driver object. To be absolutely sure that the
+        driver cache is flushed to disk, call `.close` or `.deactivate` on this Vector.
 
         """
         if geom is None:

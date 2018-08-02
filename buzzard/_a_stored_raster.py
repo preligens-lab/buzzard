@@ -47,6 +47,12 @@ class AStoredRaster(AStored, AProxyRaster):
         | complex    | 0j              | Shared mask band |
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
+        Caveat
+        ------
+        When using a Raster backed by a driver (like a GDAL driver), the data might be flushed to
+        disk only after the garbage collection of the driver object. To be absolutely sure that the
+        driver cache is flushed to disk, call `.close` or `.deactivate` on this Raster.
+
         """
         if self.mode != 'w':
             raise RuntimeError('Cannot write a read-only raster file')
@@ -111,6 +117,12 @@ class AStoredRaster(AStored, AProxyRaster):
         | complex    | -1j             | All bands mask   |
         | complex    | 0j              | Shared mask band |
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
+
+        Caveat
+        ------
+        When using a Raster backed by a driver (like a GDAL driver), the data might be flushed to
+        disk only after the garbage collection of the driver object. To be absolutely sure that the
+        driver cache is flushed to disk, call `.close` or `.deactivate` on this Raster.
 
         """
         if self.mode != 'w':

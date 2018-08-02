@@ -57,6 +57,9 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             for field in self.fields
         ]
 
+    def allocator(self):
+        return self.open_file(self.path, self.layer, self.driver, self.open_options, self.mode)
+
     @staticmethod
     def open_file(path, layer, driver, options, mode):
         """Open a vector datasource"""
@@ -85,7 +88,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     def acquire_driver_object(self):
         with self.back_ds.acquire_driver_object(
                 self.uid,
-                lambda: self.open_file(self.path, self.layer, self.driver, self.open_options, self.mode),
+                self.allocator,
         ) as gdal_objs:
             yield gdal_objs
 
