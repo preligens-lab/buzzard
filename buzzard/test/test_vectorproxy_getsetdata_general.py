@@ -326,7 +326,7 @@ def _build_geom_read_queries(v, fps, test_fields):
         ),
     ]
     if test_fields:
-        queries.append(
+        queries += [
             ((v.iter_geojson(mask, clip, slicing), slicing, 'geojson', mask, clip)
              for slicing, mask, clip in prod(slicings, masks, clips)
              if not (clip is True and mask is None)
@@ -336,7 +336,7 @@ def _build_geom_read_queries(v, fps, test_fields):
              for slicing, mask, clip in prod(slicings, masks, clips)
              if not (clip is True and mask is None)
             ),
-        )
+        ]
 
     queries = itertools.chain(*queries)
     return queries

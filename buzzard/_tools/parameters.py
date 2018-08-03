@@ -118,11 +118,11 @@ def sanitize_band_schema(band_schema, band_count):
 
     def _test_length(val, name):
         count = len(val)
-        if count > band_count:
+        if count > band_count: # pragma: no cover
             raise ValueError('Too many values provided for %s (%d instead of %d)' % (
                 name, count, band_count
             ))
-        elif count < band_count:
+        elif count < band_count: # pragma: no cover
             raise ValueError('Not enough values provided for %s (%d instead of %d)' % (
                 name, count, band_count
             ))
@@ -130,7 +130,7 @@ def sanitize_band_schema(band_schema, band_count):
     if band_schema is None:
         return {}
     diff = set(band_schema.keys()) - BAND_SCHEMA_PARAMS
-    if diff:
+    if diff: # pragma: no cover
         raise ValueError('Unknown band_schema keys `%s`' % diff)
 
     def _normalize_multi_layer(name, val, type_, cleaner, default):
@@ -148,7 +148,7 @@ def sanitize_band_schema(band_schema, band_count):
                     yield default
                 elif isinstance(elt, type_):
                     yield cleaner(elt)
-                else:
+                else: # pragma: no cover
                     raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
 
     if 'nodata' in band_schema:
@@ -196,7 +196,7 @@ def sanitize_band_schema(band_schema, band_count):
             ret['mask'] = [conv.gmf_of_str(elt) for elt in val]
             shared_bit = conv.gmf_of_str('per_dataset')
             shared = [elt for elt in ret['mask'] if elt & shared_bit]
-            if len(set(shared)) > 1:
+            if len(set(shared)) > 1: # pragma: no cover
                 raise ValueError('per_dataset mask must be shared with same flags')
         ret['mask'] = [conv.str_of_gmf(v) for v in ret['mask']]
 
@@ -301,7 +301,7 @@ class _DeprecationPool(Singleton):
 
 def normalize_fields_defn(fields):
     """Used on file creation"""
-    if not isinstance(fields, collections.Iterable):
+    if not isinstance(fields, collections.Iterable): # pragma: no cover
         raise TypeError('Bad fields definition type')
 
     def _sanitize_dict(dic):
@@ -315,7 +315,7 @@ def normalize_fields_defn(fields):
         oft = conv.oft_of_any(type_)
         if default is not None:
             default = str(conv.type_of_oftstr(conv.str_of_oft(oft))(default))
-        if len(dic) != 0:
+        if len(dic) != 0: # pragma: no cover
             raise ValueError('unexpected keys in {} dict: {}'.format(name, dic))
         return dict(
             name=name,

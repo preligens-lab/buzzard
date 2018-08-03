@@ -1,3 +1,7 @@
+"""
+TODO: Test insert_data under several modes
+"""
+
 # pylint: disable=redefined-outer-name, unused-argument
 
 from __future__ import division, print_function

@@ -35,10 +35,29 @@ class BackDataSourceActivationPoolMixin(object):
                 raise ValueError('Attempting to deactivate a proxy currently used')
             self._ap_idle.pop_all_occurrences(uid)
 
-    def active_count(self, uid):
+    def used_count(self, uid=None):
         """Count how many driver objects exist for uid"""
         with self._ap_lock:
-            return self._ap_idle.count(uid) + self._ap_used[uid]
+            if uid is None:
+                return sum(self._ap_used.values())
+            else:
+                return self._ap_used[uid]
+
+    def idle_count(self, uid=None):
+        """Count how many driver objects exist for uid"""
+        with self._ap_lock:
+            if uid is None:
+                return len(self._ap_idle)
+            else:
+                return self._ap_idle.count(uid)
+
+    def active_count(self, uid=None):
+        """Count how many driver objects exist for uid"""
+        with self._ap_lock:
+            if uid is None:
+                return len(self._ap_idle) + sum(self._ap_used.values())
+            else:
+                return self._ap_idle.count(uid) + self._ap_used[uid]
 
     def acquire_driver_object(self, uid, allocator):
         """Return a context manager to acquire a driver object
@@ -69,15 +88,11 @@ class BackDataSourceActivationPoolMixin(object):
 
             try:
                 yield obj
-            except:
+            finally:
                 with self._ap_lock:
                     self._ap_used[uid] -= 1
-                raise
-
-            with self._ap_lock:
-                self._ap_used[uid] -= 1
-                assert self._ap_used[uid] >= 0
-                self._ap_idle.push_front(uid, obj)
+                    assert self._ap_used[uid] >= 0
+                    self._ap_idle.push_front(uid, obj)
 
         return _acquire()
 
@@ -87,7 +102,7 @@ class BackDataSourceActivationPoolMixin(object):
         if total == self.max_active:
             if len(self._ap_idle) == 0:
                 raise RuntimeError(_ERR_FMT.format(
-                    self._max_active,
+                    self.max_active,
                     len(self._ap_idle),
                     sum(self._ap_used.values()),
                 ))

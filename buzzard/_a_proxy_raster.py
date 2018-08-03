@@ -87,7 +87,7 @@ class AProxyRaster(AProxy):
             new_name_is_provided=dst_nodata != None,
             user_kwargs=kwargs,
         )
-        if kwargs:
+        if kwargs: # pragma: no cover
             raise TypeError("get_data() got an unexpected keyword argument '{}'".format(
                 list(kwargs.keys())[0]
             ))

@@ -117,12 +117,12 @@ def test_raster(fps, random_path_tif):
     _asserts(False, False)
 
     # Raster test 5 - MEM
-    with ds.acreate_raster('', fps.A, float, 1, driver='MEM').close as test:
-        _asserts(False, True, True)
+    with ds.create_raster('test', '', fps.A, float, 1, driver='MEM').close as test:
+        _asserts(False, True)
 
     # Raster test 6 - numpy
-    with ds.awrap_numpy_raster(fps.A, np.zeros(fps.A.shape)).close as test:
-        _asserts(False, True, True)
+    with ds.wrap_numpy_raster('test', fps.A, np.zeros(fps.A.shape)).close as test:
+        _asserts(False, True)
 
     # Raster test 7 - gc
     del ds
@@ -215,8 +215,8 @@ def test_vector(fps, random_path_shp):
     _asserts(False, False)
 
     # Vector test 5 - MEM
-    with ds.acreate_vector('', 'polygon', driver='Memory').close as test:
-        _asserts(False, True, True)
+    with ds.create_vector('test', '', 'polygon', driver='Memory').close as test:
+        _asserts(False, True)
 
     # Vector test 6 - gc
     del ds

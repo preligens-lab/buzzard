@@ -4,17 +4,22 @@ class APooledEmissary(AEmissary):
     """Emissary that has a notion of activation/deactivation (file descriptor)"""
 
     def activate(self):
+        """Make sure that at least one driver object is active for this Raster/Vector"""
         self._back.activate()
 
     def deactivate(self):
+        """Collect all active driver object for this Raster/Vector. If a driver object is currently
+        being used, will raise an exception."""
         self._back.deactivate()
 
     @property
     def active_count(self):
+        """Count how many driver objects are currently active for this Raster/Vector"""
         return self._back.active_count
 
     @property
     def active(self):
+        """Is there any driver object currently active for this Raster/Vector"""
         return self._back.active
 
 class ABackPooledEmissary(ABackEmissary):

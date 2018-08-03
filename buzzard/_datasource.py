@@ -777,31 +777,28 @@ class DataSource(DataSourceRegisterMixin):
         return self._back.wkt_work
 
     # Activation mechanisms ********************************************************************* **
+    @property
+    def active_count(self):
+        """Count how many driver objects are currently active"""
+        return self._back.active_count()
+
     def activate_all(self):
-        """Activate all sources.
+        """Activate all deactivable proxies.
         May raise an exception if the number of sources is greater than `max_activated`
         """
-        if self._max_activated < len(self._keys_of_proxy):
+        if self._back.max_active < len(self._keys_of_proxy):
             raise RuntimeError("Can't activate all sources at the same time: {} sources and max_activated is {}".format(
-                len(self._keys_of_proxy), self._max_activated,
+                len(self._keys_of_proxy), self._back.max_active,
             ))
         for prox in self._keys_of_proxy.keys():
-            if not prox.activated:
+            if not prox.active:
                 prox.activate()
-                assert prox.activated
 
     def deactivate_all(self):
-        """Deactivate all sources. Useful to flush all files to disk
-        The sources that can't be deactivated (i.e. a raster with the `MEM` driver) are ignored.
-        """
-        if self._locked_count != 0:
-            raise RuntimeError("Can't deactivate all sources: some are forced to stay activated (are you iterating on geometries?)")
+        """Deactivate all deactivable proxies. Useful to flush all files to disk"""
         for prox in self._keys_of_proxy.keys():
-            if not prox.deactivable:
-                continue
-            if prox.activated:
+            if prox.active:
                 prox.deactivate()
-                assert not prox.activated
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **

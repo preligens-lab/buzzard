@@ -66,13 +66,13 @@ class AStoredVector(AStored, AProxyVector):
                     i = self._back.index_of_field_name[k]
                     lst[i] = self._back.type_of_field_index[i](v)
             for defn, val in zip(self._back.fields, lst):
-                if val is None and defn['nullable'] is False:
+                if val is None and defn['nullable'] is False: # pragma: no cover
                     raise ValueError('{} not nullable'.format(defn))
             return lst
         elif isinstance(fields, collections.Iterable):
             if len(fields) == 0 and self._back.all_nullable:
                 return [None] * len(self._back.fields)
-            elif len(fields) != len(self._back.fields):
+            elif len(fields) != len(self._back.fields): # pragma: no cover
                 raise ValueError('{} fields provided instead of {}'.format(
                     len(fields), len(self._back.fields),
                 ))
@@ -81,7 +81,7 @@ class AStoredVector(AStored, AProxyVector):
                     norm(val) if val is not None else None
                     for (norm, val) in zip(self._back.type_of_field_index, fields)
                 ]
-        else:
+        else: # pragma: no cover
             raise TypeError('Bad fields type')
 
 class ABackStoredVector(ABackStored, ABackProxyVector):
