@@ -754,6 +754,11 @@ class DataSource(DataSourceRegisterMixin):
             return item in self._keys_of_proxy
         return item in self._proxy_of_key
 
+    def __len__(self):
+        """Retrieve proxy count registered in this DataSource"""
+        print('__len__', self._keys_of_proxy)
+        return len(self._keys_of_proxy)
+
     # Spatial reference getters ********************************************* **
     @property
     def proj4(self):
