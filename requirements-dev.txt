@@ -4,4 +4,3 @@ pytest>=3.0.7
 attrdict>=2.0.0
 pytest-cov>=2.5.1
 pylint>=1.7.1
-distributed>=1.20.2

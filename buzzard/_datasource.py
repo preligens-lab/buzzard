@@ -250,7 +250,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileRaster(self, allocator, options, mode)
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([key], prox)
@@ -276,7 +276,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileRaster(self, allocator, options, mode)
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([], prox)
@@ -376,7 +376,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([key], prox)
@@ -415,7 +415,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([], prox)
@@ -562,7 +562,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileVector(self, allocator, options, mode)
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([key], prox)
@@ -593,7 +593,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileVector(self, allocator, options, mode)
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([], prox)
@@ -699,7 +699,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileVector(self, allocator, options, 'w')
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([key], prox)
@@ -737,7 +737,7 @@ class DataSource(DataSourceRegisterMixin):
             )
             prox = GDALFileVector(self, allocator, options, 'w')
         else:
-            prox = ...
+            pass
 
         # DataSource Registering ***********************************************
         self._register([], prox)
@@ -756,7 +756,6 @@ class DataSource(DataSourceRegisterMixin):
 
     def __len__(self):
         """Retrieve proxy count registered in this DataSource"""
-        print('__len__', self._keys_of_proxy)
         return len(self._keys_of_proxy)
 
     # Spatial reference getters ********************************************* **
