@@ -11,16 +11,16 @@ from buzzard._tools import conv
 class GDALFileVector(APooledEmissaryVector):
     """Proxy for file vector GDAL datasets"""
 
-    def __init__(self, ds, allocator, open_options, mode, layer):
+    def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileVector(
-            ds._back, allocator, open_options, mode, layer,
+            ds._back, allocator, open_options, mode,
         )
         super(GDALFileVector, self).__init__(ds=ds, back=back)
 
 class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     """Implementation of GDALFileVector"""
 
-    def __init__(self, back_ds, allocator, open_options, mode, layer):
+    def __init__(self, back_ds, allocator, open_options, mode):
         uid = uuid.uuid4()
 
         with back_ds.acquire_driver_object(uid, allocator) as gdal_objs:
@@ -37,6 +37,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
                 wkt_stored = sr.ExportToWkt()
             fields = BackGDALFileVector._fields_of_lyr(lyr)
             type = conv.str_of_wkbgeom(lyr.GetGeomType())
+            layer = lyr.GetName()
 
         super(BackGDALFileVector, self).__init__(
             back_ds=back_ds,
@@ -81,9 +82,11 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
         else:
             lyr = gdal_ds.GetLayerByName(layer)
         if lyr is None: # pragma: no cover
-            raise Exception('Could not open layer `{}` ({} layers available) (gdal error: %s)'.format(
+            count = gdal_ds.GetLayerCount()
+            raise Exception('Could not open layer `{}` ({} layers available: {}) (gdal error: `{}`)'.format(
                 layer,
-                gdal_ds.GetLayerCount(),
+                count,
+                {i: gdal_ds.GetLayerByIndex(i).GetName() for i in range(count)},
                 str(gdal.GetLastErrorMsg()).strip('\n'),
             ))
         return gdal_ds, lyr

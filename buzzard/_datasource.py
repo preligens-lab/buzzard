@@ -560,7 +560,7 @@ class DataSource(DataSourceRegisterMixin):
             allocator = lambda: BackGDALFileVector.open_file(
                 path, layer, driver, options, mode
             )
-            prox = GDALFileVector(self, allocator, options, mode, layer)
+            prox = GDALFileVector(self, allocator, options, mode)
         else:
             prox = ...
 
@@ -591,7 +591,7 @@ class DataSource(DataSourceRegisterMixin):
             allocator = lambda: BackGDALFileVector.open_file(
                 path, layer, driver, options, mode
             )
-            prox = GDALFileVector(self, allocator, options, mode, layer)
+            prox = GDALFileVector(self, allocator, options, mode)
         else:
             prox = ...
 
@@ -689,14 +689,15 @@ class DataSource(DataSourceRegisterMixin):
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
             # TODO: Check not concurrent
-            prox = GDALMemoryVector(
-                self, geometry, fields, options, 'w', layer, sr
+            allocator = lambda: BackGDALFileVector.create_file(
+                '', geometry, fields, layer, 'Memory', options, sr
             )
+            prox = GDALMemoryVector(self, allocator, options)
         elif True:
             allocator = lambda: BackGDALFileVector.create_file(
                 path, geometry, fields, layer, driver, options, sr
             )
-            prox = GDALFileVector(self, allocator, options, 'w', layer)
+            prox = GDALFileVector(self, allocator, options, 'w')
         else:
             prox = ...
 
@@ -726,14 +727,15 @@ class DataSource(DataSourceRegisterMixin):
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
             # TODO: Check not concurrent
-            prox = GDALMemoryVector(
-                self, geometry, fields, options, 'w', layer, sr
+            allocator = lambda: BackGDALFileVector.create_file(
+                '', geometry, fields, layer, 'Memory', options, sr
             )
+            prox = GDALMemoryVector(self, allocator, options)
         elif True:
             allocator = lambda: BackGDALFileVector.create_file(
                 path, geometry, fields, layer, driver, options, sr
             )
-            prox = GDALFileVector(self, allocator, options, 'w', layer)
+            prox = GDALFileVector(self, allocator, options, 'w')
         else:
             prox = ...
 

@@ -7,18 +7,19 @@ from buzzard._tools import conv
 class GDALMemoryVector(AEmissaryVector):
     """Proxy for 'Memory' driver vector GDAL datasets"""
 
-    def __init__(self, ds, geometry, fields, open_options, mode, layer, sr):
+    def __init__(self, ds, allocator, open_options):
         back = BackGDALMemoryVector(
-            ds._back, geometry, fields, open_options, mode, layer, sr,
+            ds._back, allocator, open_options,
         )
         super(GDALMemoryVector, self).__init__(ds=ds, back=back)
 
 class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
     """Implementation of GDALMemoryVector"""
 
-    def __init__(self, back_ds, geometry, fields, open_options, mode, layer, sr):
-        gdal_ds, lyr = self.create_file('', geometry, fields, layer, 'Memory', open_options, sr)
+    def __init__(self, back_ds, allocator, open_options):
+        # gdal_ds, lyr = self.create_file('', geometry, fields, layer, 'Memory', open_options, sr)
 
+        gdal_ds, lyr = allocator()
         self._gdal_ds = gdal_ds
         self._lyr = lyr
 
@@ -35,11 +36,12 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
             wkt_stored = sr.ExportToWkt()
         fields = BackGDALMemoryVector._fields_of_lyr(lyr)
         type = conv.str_of_wkbgeom(lyr.GetGeomType())
+        layer = lyr.GetName()
 
         super(BackGDALMemoryVector, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
-            mode=mode,
+            mode='w',
             driver=driver,
             open_options=open_options,
             path=path,

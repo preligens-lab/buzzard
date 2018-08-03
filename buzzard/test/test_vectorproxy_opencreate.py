@@ -373,7 +373,7 @@ def test_file(path, driver_file, gtype, geoms, ftypes, fields):
         datas = list(v.iter_data())
         assert len(datas) == len(geoms)
         assert len(v) == len(geoms)
-        assert v.layer in {0, ''}
+        # assert v.layer in {0, ''}
 
         if not sg.GeometryCollection(geoms).is_empty:
             assert eq(
@@ -424,7 +424,7 @@ def test_mem(driver_mem, gtype, geoms, ftypes, fields):
         datas = list(v.iter_data())
         assert len(datas) == len(geoms)
         assert len(v) == len(geoms)
-        assert v.layer in {0, ''}
+        # assert v.layer in {0, ''}
 
         if not sg.GeometryCollection(geoms).is_empty:
             assert eq(

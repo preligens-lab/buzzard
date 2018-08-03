@@ -202,8 +202,15 @@ class AProxyVector(AProxy):
                 type(slicing),
             ))
 
-        for data in self._back.iter_data('geojson', range(len(self.fields)), slicing,
-                                         mask_poly, mask_rect, clip):
+        gen = self._back.iter_data(
+            'geojson',
+            list(range(len(self.fields))),
+            slicing,
+            mask_poly,
+            mask_rect,
+            clip,
+        )
+        for data in gen:
             yield {
                 'type': 'Feature',
                 'properties': collections.OrderedDict(

@@ -84,6 +84,7 @@ class ABackGDALVector(ABackStoredVector):
                         geom = sg.mapping(geom)['coordinates']
                     elif geom_type == 'geojson':
                         geom = sg.mapping(geom)
+
                 yield (geom,) + tuple([
                     self._type_of_field_index[index](ftr.GetField(index))
                     if ftr.GetField(index) is not None
