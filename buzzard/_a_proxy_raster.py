@@ -39,7 +39,7 @@ class AProxyRaster(AProxy):
     def shared_band_id(self):
         return self._back.shared_band_id
 
-    def get_data(self, fp=None, band=1, dst_nodata=None, interpolation='cv_area'):
+    def get_data(self, fp=None, band=1, dst_nodata=None, interpolation='cv_area', **kwargs):
         """Read a rectangle of data on several channels from the raster source.
         If `fp` is not fully within the source raster, the external pixels are set to nodata. If
         nodata is missing, 0 is used.
@@ -81,6 +81,17 @@ class AProxyRaster(AProxy):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
+        dst_nodata, kwargs = _tools.deprecation_pool.streamline_with_kwargs(
+            new_name='dst_nodata', old_names={'nodata': '0.5.0'}, context='AProxyRaster.get_data',
+            new_name_value=dst_nodata,
+            new_name_is_provided=dst_nodata != None,
+            user_kwargs=kwargs,
+        )
+        if kwargs:
+            raise TypeError("get_data() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
         # Normalize and check fp parameter
         if fp is None:
             fp = self.fp

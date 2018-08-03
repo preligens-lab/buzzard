@@ -175,7 +175,7 @@ class DataSource(DataSourceRegisterMixin):
             user_kwargs=kwargs,
         )
         if kwargs: # pragma: no cover
-            raise NameError('Unknown parameters like `{}`'.format(
+            raise TypeError("__init__() got an unexpected keyword argument '{}'".format(
                 list(kwargs.keys())[0]
             ))
 

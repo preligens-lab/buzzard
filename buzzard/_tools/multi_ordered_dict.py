@@ -1,5 +1,4 @@
 import collections
-import uuid
 import itertools
 
 class MultiOrderedDict(object):
@@ -9,6 +8,7 @@ class MultiOrderedDict(object):
         self._od = collections.OrderedDict()
         self._key_of_ukey = {}
         self._ukeys_of_key = collections.defaultdict(list)
+        self._i = 0
 
     def __str__(self): # pragma: no cover
         l = []
@@ -47,7 +47,8 @@ class MultiOrderedDict(object):
         return key, value
 
     def push_front(self, key, value):
-        ukey = uuid.uuid4()
+        ukey = self._i
+        self._i += 1
         self._ukeys_of_key[key].insert(0, ukey)
         self._key_of_ukey[ukey] = key
         self._od[ukey] = value

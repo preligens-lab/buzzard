@@ -153,6 +153,6 @@ class BackNumpyRaster(ABackStoredRaster):
             start, stop = l[0], l[-1] - 1
             if stop < 0:
                 stop = None
-            l = slice(start, stop)
+            l = slice(start, stop, -1)
 
         return l
