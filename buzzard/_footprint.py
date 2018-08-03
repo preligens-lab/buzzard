@@ -503,6 +503,9 @@ class Footprint(TileMixin, IntersectionMixin):
         -------
         >>> minx, maxx, miny, maxy = fp.extent
         >>> plt.imshow(arr, extent=fp.extent)
+
+        fp.extent from fp.bounds using numpy fancy indexing
+        >>> minx, maxx, miny, maxy = fp.bounds[[0, 2, 1, 3]]
         """
         points = np.r_["1,0,2", self.coords]
         return np.asarray([
@@ -517,6 +520,9 @@ class Footprint(TileMixin, IntersectionMixin):
         Example
         -------
         >>> minx, miny, maxx, maxy = fp.bounds
+
+        fp.bounds from fp.extent using numpy fancy indexing
+        >>> minx, miny, maxx, maxy = fp.extent[[0, 2, 1, 3]]
         """
         points = np.r_["1,0,2", self.coords]
         return np.asarray([
