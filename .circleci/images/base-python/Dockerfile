@@ -5,9 +5,9 @@
 #                                            #
 ##############################################
 
-ARG PYTHON_VERSION=3.6.3
+ARG PYTHON_VERSION=3.7.0
 
-FROM python:${PYTHON_VERSION}
+FROM circleci/python:$PYTHON_VERSION-stretch
 
 
 ##############################################
@@ -18,19 +18,21 @@ FROM python:${PYTHON_VERSION}
 #                                            #
 ##############################################
 
-ARG BUILD_VERSION=0.0.2
-ARG GEOS_VERSION=3.6.2
-ARG GDAL_VERSION=2.2.2
+ARG NUMPY_VERSION=1.14.5
+ARG GDAL_VERSION=2.3.1
 ARG PROJ4_VERSION=4.9.3
+ARG GRID_VERSION=1.6
+ARG GEOS_VERSION=3.6.2
+ARG LIBSPATIALINDEX_VERSION=1.8.5
 
 
-##############################################
-#                                            #
-#                 Image labels               #
-#                                            #
-##############################################
+########################################
+#                                      #
+#             Image labels             #
+#                                      #
+########################################
 
-LABEL author="hnivon@airware.com"
+LABEL maintainer="Airware Corporation <devs@airware.com>"
 
 ##############################################
 #                                            #
@@ -38,12 +40,15 @@ LABEL author="hnivon@airware.com"
 #                                            #
 ##############################################
 
+USER root
+
 # Make sure we're up-to-date and install runtime requirements
 RUN apt-get update -y \
  && apt-get install -y --no-install-recommends \
-    binutils \
+    build-essential \
     bzip2 \
     ca-certificates \
+    curl \
     file \
     git \
     gzip \
@@ -56,7 +61,7 @@ RUN apt-get update -y \
 
 ##############################################
 #                                            #
-#   GEOS X.X.X & GDAL X.X.X & PROJ.4 X.X.X   #
+#          PROJ.4, GEOS, GDAL, GRID          #
 #                                            #
 ##############################################
 
@@ -69,63 +74,71 @@ RUN apt-get install -y --no-install-recommends \
     libpng-dev \
     zlib1g-dev
 
-# Install numpy and potential additional requirements before GDAL's compilation
+# Fetch PROJ.4
 WORKDIR /tmp
-COPY requirements.txt  /tmp/
-RUN pip install --requirement requirements.txt
+RUN curl -L http://download.osgeo.org/proj/proj-${PROJ4_VERSION}.tar.gz | tar zxf -
 
-# Compilation work for geos
-RUN mkdir "/tmp/geos-${GEOS_VERSION}-build"
-WORKDIR "/tmp/geos-${GEOS_VERSION}-build"
-RUN curl -o "geos-${GEOS_VERSION}.tar.bz2" \
-    "http://download.osgeo.org/geos/geos-${GEOS_VERSION}.tar.bz2" \
-    && bunzip2 "geos-${GEOS_VERSION}.tar.bz2" \
-    && tar xvf "geos-${GEOS_VERSION}.tar"
-WORKDIR "/tmp/geos-${GEOS_VERSION}-build/geos-${GEOS_VERSION}"
-RUN ./configure --prefix=/usr/local/geos
+# Get the nadgrids
+WORKDIR /tmp/proj-${PROJ4_VERSION}/nad
+RUN \
+  curl -L http://download.osgeo.org/proj/proj-datumgrid-${GRID_VERSION}.zip -o proj-datumgrid-${GRID_VERSION}.zip && \
+  unzip -o -q proj-datumgrid-${GRID_VERSION}.zip
 
-# Make in parallel with 2x the number of processors.
+# Build and install PROJ.4
+WORKDIR "/tmp/proj-${PROJ4_VERSION}"
+RUN ./configure --prefix=/usr/local
 RUN make -j $(( 2 * $(cat /proc/cpuinfo | egrep ^processor | wc -l) )) \
- && make install \
- && ldconfig
+ && make install
 
 
-# Compilation work for Proj.4
-RUN mkdir "/tmp/proj-${PROJ4_VERSION}-build"
-WORKDIR "/tmp/proj-${PROJ4_VERSION}-build"
-RUN curl -o "proj-${PROJ4_VERSION}.tar.gz" \
-    "http://download.osgeo.org/proj/proj-${PROJ4_VERSION}.tar.gz" \
-    && tar xfz "proj-${PROJ4_VERSION}.tar.gz"
-WORKDIR "/tmp/proj-${PROJ4_VERSION}-build/proj-${PROJ4_VERSION}"
-RUN ./configure --prefix=/usr/local/proj4
+# Fetch GEOS
+WORKDIR /tmp
+RUN curl -L http://download.osgeo.org/geos/geos-${GEOS_VERSION}.tar.bz2 | tar jxf -
 
-# Make in parallel with 2x the number of processors.
+# Build and install GEOS
+WORKDIR "/tmp/geos-${GEOS_VERSION}"
+RUN ./configure --prefix=/usr/local
 RUN make -j $(( 2 * $(cat /proc/cpuinfo | egrep ^processor | wc -l) )) \
- && make install \
- && ldconfig
+ && make install
 
 
-# Compilation work for GDAL
-RUN mkdir "/tmp/gdal-${GDAL_VERSION}-build"
-WORKDIR "/tmp/gdal-${GDAL_VERSION}-build"
-RUN curl -o "gdal-${GDAL_VERSION}.tar.gz" \
-    "http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz" \
-    && tar xfz "gdal-${GDAL_VERSION}.tar.gz"
-WORKDIR "/tmp/gdal-${GDAL_VERSION}-build/gdal-${GDAL_VERSION}"
-RUN ./configure --prefix=/usr/local/gdal \
-                --with-curl=yes \
-                --with-static-proj4=/usr/local/proj4 \
-                --with-python=yes
+# Fecth GDAL
+WORKDIR /tmp
+RUN curl -L http://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz | tar zxf -
 
-# Make in parallel with 2x the number of processors.
+# Build and install GDAL
+WORKDIR "/tmp/gdal-${GDAL_VERSION}"
+RUN ./configure \
+    --prefix=/usr/local/gdal \
+    --with-curl=yes \
+    --with-geos=/usr/local/bin/geos-config \
+    --with-proj=/usr/local/proj4 \
+    --with-python
 RUN make -j $(( 2 * $(cat /proc/cpuinfo | egrep ^processor | wc -l) )) \
- && make install \
- && ldconfig
+ && make install
 
 # Configuring environment
 ENV PATH="/usr/local/gdal/bin:$PATH"
-ENV LD_LIBRARY_PATH="/usr/local/proj4/lib:/usr/local/gdal/lib:$LD_LIBRARY_PATH"
+ENV LD_LIBRARY_PATH="/usr/local/proj4/lib:/usr/local/gdal/lib:/usr/local/lib:$LD_LIBRARY_PATH"
 ENV GDAL_DATA="/usr/local/gdal/share/gdal"
+
+
+########################################
+#                                      #
+#           libspatialindex            #
+#                                      #
+########################################
+# optionnal / required for the python make_geom_valid like in PostGIS
+
+# Fetch libspatialindex
+WORKDIR /tmp
+RUN curl -L http://download.osgeo.org/libspatialindex/spatialindex-src-${LIBSPATIALINDEX_VERSION}.tar.gz | tar zxf -
+WORKDIR /tmp/spatialindex-src-${LIBSPATIALINDEX_VERSION}
+
+# Build and install
+RUN ./configure
+RUN make -j $(( 2 * $(cat /proc/cpuinfo | egrep ^processor | wc -l) )) \
+ && make install
 
 
 ##############################################
@@ -135,11 +148,24 @@ ENV GDAL_DATA="/usr/local/gdal/share/gdal"
 ##############################################
 
 WORKDIR /tmp
-
 RUN apt-get install -y --no-install-recommends \
     libsm6 \
     libxrender1 \
-    libXext6
+    libxext6
+
+
+########################################
+#                                      #
+#     Python packages installation     #
+#                                      #
+########################################
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Install numpy before GDAL
+RUN pip install numpy==${NUMPY_VERSION} \
+ && pip install GDAL==${GDAL_VERSION}
 
 
 ##############################################
@@ -150,7 +176,7 @@ RUN apt-get install -y --no-install-recommends \
 
 RUN apt-get autoremove -y \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/partial/* /tmp/* /var/tmp/*
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 
 ##############################################
@@ -159,4 +185,6 @@ RUN apt-get autoremove -y \
 #                                            #
 ##############################################
 
+ENV PATH="/home/circleci/.local/bin:$PATH"
+USER circleci
 CMD ["python"]

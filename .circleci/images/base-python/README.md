@@ -99,17 +99,15 @@ For more examples and ideas, visit:
 ### Run the image and execute `bash`
 
 In order to test your image you can launch the `bash` and execute commands:
-`$> docker run -it --entrypoint=/bin/bash 173654048158.dkr.ecr.us-east-1.amazonaws.com/buzzard:20171024-0.0.1 -i`
+`$> docker run -it --entrypoint=/bin/bash 173654048158.dkr.ecr.us-east-1.amazonaws.com/buzzard:3.7.0-20180806`
 
 ## Docker image publication
-
-### Authenticate
-
-`$> eval $(aws --region us-east-1 ecr get-login --profile dev --no-include-email)`
 
 ### Publish
 
 `$> make publish`
+
+Authentication is automatically executed in the `Makefile` based on your AWS' credentials.
 
 ## Additional `Makefile` details
 
@@ -124,4 +122,3 @@ __REMINDER__: you can find the profiles you have configured in your AWS configur
 ### get the `ECR` repository
 
 `$> aws ecr describe-repositories --region us-east-1 --profile dev | jq -r ".repositories[] | select ( .repositoryName == \"buzzard\") | .repositoryUri"`
-
