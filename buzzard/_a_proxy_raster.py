@@ -54,6 +54,8 @@ class AProxyRaster(AProxy):
         piece of code:
         >>> arr = np.where(arr[..., -1] == 255, arr, 0)
 
+        This method is thread-safe (Unless you are using the GDAL::MEM driver).
+
         Parameters
         ----------
         fp: Footprint of shape (Y, X) or None

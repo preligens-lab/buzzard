@@ -25,6 +25,8 @@ class AStoredRaster(AStored, AProxyRaster):
         The alpha bands are currently resampled like any other band, this behavior may change in
         the future.
 
+        This method is not thread-safe.
+
         Parameters
         ----------
         array: numpy.ndarray of shape (Y, X) or (Y, X, B)
@@ -102,6 +104,8 @@ class AStoredRaster(AStored, AProxyRaster):
 
     def fill(self, value, band=1):
         """Fill bands with value.
+
+        This method is not thread-safe.
 
         Parameters
         ----------

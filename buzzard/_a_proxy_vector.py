@@ -26,6 +26,8 @@ class AProxyVector(AProxy):
     def extent(self):
         """Get the vector's extent in work spatial reference. (`x` then `y`)
 
+        This property is thread-safe (Unless you are using the GDAL::Memory driver).
+
         Example
         -------
         >>> minx, maxx, miny, maxy = ds.roofs.extent
@@ -34,12 +36,17 @@ class AProxyVector(AProxy):
 
     @property
     def extent_stored(self):
-        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)"""
+        """Get the vector's extent in stored spatial reference. (minx, miny, maxx, maxy)
+
+        This property is thread-safe (Unless you are using the GDAL::Memory driver).
+        """
         return self._back.extent_stored
 
     @property
     def bounds(self):
         """Get the vector's bounds in work spatial reference. (`min` then `max`)
+
+        This property is thread-safe (Unless you are using the GDAL::Memory driver).
 
         Example
         -------
@@ -49,16 +56,27 @@ class AProxyVector(AProxy):
 
     @property
     def bounds_stored(self):
-        """Get the vector's bounds in stored spatial reference. (`min` then `max`)"""
+        """Get the vector's bounds in stored spatial reference. (`min` then `max`)
+
+        This property is thread-safe (Unless you are using the GDAL::Memory driver).
+
+        """
         return self._back.bounds_stored
 
     def __len__(self):
-        """Return the number of features in vector"""
+        """Return the number of features in vector
+
+        This property is thread-safe (Unless you are using the GDAL::Memory driver).
+
+        """
         return len(self._back)
 
     def iter_data(self, fields=-1, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over vector's features
+
+        This method is thread-safe (Unless you are using the GDAL::Memory driver). Iteration is
+        thread-safe too.
 
         Parameters
         ----------
@@ -141,7 +159,11 @@ class AProxyVector(AProxy):
                 yield data
 
     def get_data(self, index, fields=-1, geom_type='shapely', mask=None, clip=False):
-        """Fetch a single feature in vector. See AProxyVector.iter_data"""
+        """Fetch a single feature in vector. See AProxyVector.iter_data
+
+        This method is thread-safe (Unless you are using the GDAL::Memory driver).
+
+        """
         index = int(index)
         for val in self.iter_data(fields, geom_type, mask, clip, slice(index, index + 1, 1)):
             return val
@@ -150,6 +172,9 @@ class AProxyVector(AProxy):
 
     def iter_geojson(self, mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over vector's features
+
+        This method is thread-safe (Unless you are using the GDAL::Memory driver). Iteration is
+        thread-safe too.
 
         Parameters
         ----------
@@ -221,7 +246,11 @@ class AProxyVector(AProxy):
             }
 
     def get_geojson(self, index, mask=None, clip=False):
-        """Fetch a single feature in vector. See AProxyVector.iter_geojson"""
+        """Fetch a single feature in vector. See AProxyVector.iter_geojson
+
+        This method is thread-safe (Unless you are using the GDAL::Memory driver).
+
+        """
         index = int(index)
         for val in self.iter_geojson(mask, clip, slice(index, index + 1, 1)):
             return val

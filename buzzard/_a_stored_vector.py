@@ -14,6 +14,8 @@ class AStoredVector(AStored, AProxyVector):
     def insert_data(self, geom, fields=(), index=-1):
         """Insert a feature in vector.
 
+        This method is not thread-safe.
+
         Parameters
         ----------
         geom: shapely.base.BaseGeometry or nested sequence of coordinates
