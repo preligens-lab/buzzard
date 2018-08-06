@@ -291,6 +291,9 @@ workflows:
       - py27_test:
           requires:
             - init
+          filters:
+            tags:
+              only: /^v0\.4\.*/
       - py34_test:
           requires:
             - init
