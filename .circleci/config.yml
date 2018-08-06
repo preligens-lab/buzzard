@@ -107,37 +107,21 @@ references:
         - *py37_requirements_cache_key
         - *py37_requirements_backup_cache_key
 
-  attach_workspace: &attach_workspace
-    attach_workspace:
-      # Must be absolute path or relative path from working_directory
-      at: *workspace_directory
-
-  persist_to_workspace: &persist_to_workspace
-    persist_to_workspace:
-      root: *workspace_directory
-      paths:
-        - .
-
 jobs:
   init:
-    <<: *py37_container_config
+    <<: *base_container_config
     steps:
       - *restore_repo
-      - *py27_restore_dependencies
-      - *py34_restore_dependencies
-      - *py36_restore_dependencies
-      - *py37_restore_dependencies
       - checkout
       - save_cache:
           key: *repo_cache_key
           paths:
             - .
-      - *persist_to_workspace
 
   lint:
     <<: *base_container_config
     steps:
-      - *attach_workspace
+      - *restore_repo
       - run:
           name: install python37 dependencies
           command: |
@@ -160,7 +144,8 @@ jobs:
     <<: *py27_container_config
     parallelism: 4
     steps:
-      - *attach_workspace
+      - *restore_repo
+      - *py27_restore_dependencies
       - run:
           name: install python27 dependencies
           # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
@@ -192,7 +177,8 @@ jobs:
     <<: *py34_container_config
     parallelism: 4
     steps:
-      - *attach_workspace
+      - *restore_repo
+      - *py34_restore_dependencies
       - run:
           name: install python34 dependencies
           command: |
@@ -220,7 +206,8 @@ jobs:
     <<: *py36_container_config
     parallelism: 4
     steps:
-      - *attach_workspace
+      - *restore_repo
+      - *py36_restore_dependencies
       - run:
           name: install python36 dependencies
           command: |
@@ -248,7 +235,8 @@ jobs:
     <<: *py37_container_config
     parallelism: 4
     steps:
-      - *attach_workspace
+      - *restore_repo
+      - *py37_restore_dependencies
       - run:
           name: install python37 dependencies
           command: |
