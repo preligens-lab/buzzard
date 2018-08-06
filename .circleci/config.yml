@@ -123,7 +123,7 @@ jobs:
     steps:
       - *restore_repo
       - run:
-          name: install python37 dependencies
+          name: install lint dependencies
           command: |
             mkdir -p venvs/lint
             python -m venv ./venvs/lint
@@ -245,6 +245,7 @@ jobs:
             . venvs/37/bin/activate
             # Workaround from https://github.com/PyWavelets/pywt/issues/375
             pip install Cython
+            pip install numpy>=1.13
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .
