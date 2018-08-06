@@ -164,10 +164,12 @@ jobs:
           command: |
             . venvs/27/bin/activate
             pip install .
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x
+            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
+      - store_test_results:
+          path: test-reports
       - save_cache:
           key: *py27_requirements_cache_key
           paths:
@@ -193,10 +195,12 @@ jobs:
           name: run tests
           command: |
             . venvs/34/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x
+            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
+      - store_test_results:
+          path: test-reports
       - save_cache:
           key: *py34_requirements_cache_key
           paths:
@@ -222,10 +226,12 @@ jobs:
           name: run tests
           command: |
             . venvs/36/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x
+            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
+      - store_test_results:
+          path: test-reports
       - save_cache:
           key: *py36_requirements_cache_key
           paths:
@@ -254,11 +260,13 @@ jobs:
           name: run tests
           command: |
             . venvs/37/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml
+            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml --junitxml=test-reports/pytest-report.xml
             codecov
       - store_artifacts:
           path: test-reports
           destination: test-reports
+      - store_test_results:
+          path: test-reports
       - save_cache:
           key: *py37_requirements_cache_key
           paths:
