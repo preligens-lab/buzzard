@@ -303,5 +303,5 @@ workflows:
       - end:
           requires:
             - lint
-            - py_34_test
-            - py_37_test
+            - py34_test
+            - py37_test
