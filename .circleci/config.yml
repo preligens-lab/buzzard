@@ -292,8 +292,8 @@ workflows:
           requires:
             - init
           filters:
-            tags:
-              only: /^v0\.4\.*/
+            branches:
+              only: /^v0\.4\..*/
       - py34_test:
           requires:
             - init
