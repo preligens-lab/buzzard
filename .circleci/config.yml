@@ -8,7 +8,7 @@ version: 2
 variables:
   base_docker_image: &base_docker_image circleci/python:3.7
   working_directory: &working_directory /tmp/circleci/buzzard
-  workspace_directory: &workspace_directory /tmp/workspace/
+  workspace_directory: &workspace_directory /tmp/circleci/
 
 references:
   base_container_config: &base_container_config
