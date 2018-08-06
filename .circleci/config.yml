@@ -149,7 +149,7 @@ jobs:
           name: run linter
           command: |
             mkdir -p test-reports
-            . venvs/37/bin/activate
+            . venvs/lint/bin/activate
             python --version
             pylint buzzard --output-format=json > test-reports/pylint.json || true
       - store_artifacts:
