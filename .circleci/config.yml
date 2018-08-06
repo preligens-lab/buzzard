@@ -243,6 +243,8 @@ jobs:
             mkdir -p venvs/37
             python -m venv ./venvs/37
             . venvs/37/bin/activate
+            # Workaround from https://github.com/PyWavelets/pywt/issues/375
+            pip install Cython
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .
