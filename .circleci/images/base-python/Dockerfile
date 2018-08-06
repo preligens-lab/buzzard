@@ -186,5 +186,5 @@ RUN apt-get autoremove -y \
 ##############################################
 
 ENV PATH="/home/circleci/.local/bin:$PATH"
-USER circleci
+# USER circleci
 CMD ["python"]

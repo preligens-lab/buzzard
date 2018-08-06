@@ -12,6 +12,7 @@ variables:
 
 references:
   base_container_config: &base_container_config
+    working_directory: *working_directory
     docker:
       - image: *base_docker_image
 
@@ -143,7 +144,7 @@ jobs:
             mkdir -p venvs/lint
             python -m venv ./venvs/lint
             . venvs/lint/bin/activate
-            pip install -r requirements-dev.txt --user
+            pip install -r requirements-dev.txt
       - run:
           name: run linter
           command: |
@@ -167,8 +168,8 @@ jobs:
             mkdir -p venvs/27
             virtualenv venvs/27
             . venvs/27/bin/activate
-            pip install -r requirements.txt --user
-            pip install -r requirements-dev.txt --user
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
             if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
       # run tests!
       - run:
@@ -198,8 +199,8 @@ jobs:
             mkdir -p venvs/34
             python -m venv ./venvs/34
             . venvs/34/bin/activate
-            pip install -r requirements.txt --user
-            pip install -r requirements-dev.txt --user
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
             pip install .
       # run tests!
       - run:
@@ -226,8 +227,8 @@ jobs:
             mkdir -p venvs/36
             python -m venv ./venvs/36
             . venvs/36/bin/activate
-            pip install -r requirements.txt --user
-            pip install -r requirements-dev.txt --user
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
             pip install .
       # run tests!
       - run:
@@ -254,8 +255,8 @@ jobs:
             mkdir -p venvs/37
             python -m venv ./venvs/37
             . venvs/37/bin/activate
-            pip install -r requirements.txt --user
-            pip install -r requirements-dev.txt --user
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
             pip install .
       # run tests!
       - run:
