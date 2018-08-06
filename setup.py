@@ -44,7 +44,7 @@ classifiers = [
 
 setup(
     name='buzzard',
-    version='0.5.0.dev1',
+    version='0.5.0b0',
     author='ngoguey',
     author_email='ngoguey@airware.com',
     license='Apache License 2.0',
@@ -55,7 +55,7 @@ setup(
     long_description_content_type='text/markdown',
     classifiers=classifiers,
     url='https://github.com/airware/buzzard',
-    download_url='https://github.com/airware/buzzard/archive/0.4.4.tar.gz',
+    download_url='https://github.com/airware/buzzard/archive/0.5.0b0.tar.gz',
     keywords=['gdal gis raster shp dxf tif vector'],
     packages=find_packages(),
     install_requires=reqs,
