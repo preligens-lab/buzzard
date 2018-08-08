@@ -1,0 +1,203 @@
+States
+
+Query:
+	Collect count avalable: int
+	Can schedule collect: bool
+	Produce sent: int
+	Produce left: int
+	Most urgent active produce index: int
+	Least urgent active produce index: int
+
+Cache tile:
+	Can be read: bool
+	List of produce waiting for write: list Produce
+
+
+Pool:
+	waiting count: int
+	working count: int
+
+Prio on pool:
+	Filter out non urgent actions then:
+	1. Action is checksum (to start collection asap)
+	2. Produce urgency
+	3. Produce rarea (small first: to avoid having a large compute blocking small computes that could flow)
+	4. Action position in pipeline (late first: to release memory)
+
+
+
+
+
+** ************************************************************************** **
+Exterior
+	 in: Raster created
+	 in: Raster closed					%%%%%%%%%%%%
+	 in: Query created
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Queue get
+	 in: Array can be put to queue 		OOOOOOOOOOOO in
+	out: New query to produce
+
+
+Production
+	 in: New query to produce
+
+	out: Ensure cache tiles can be read
+	 in: fp can be read 				OOOOOOOOOOOO in
+
+	out: Perform read to destination
+	 in: Read performed
+
+	out: One resample to be done
+	 in: One resample done
+
+	out: Array can be put to queue 		^^^^^^^^^^^^ out
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+Cache
+	 in: Ensure fp can be read
+
+	out: One checksum required
+	 in: One checksum done				OOOOOOOOOOOO in
+
+	out: Query collects to be started
+	 in: One write done 				OOOOOOOOOOOO in
+
+	 in: fp can be read 				^^^^^^^^^^^^ out
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+** ************************************************************************** **
+Checksummer Pool
+	 in: One checksum required
+	out: One checksum done				^^^^^^^^^^^^ out
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+** ************************************************************************** **
+Collection
+	 in: Query collects to be started
+	out: One compute to be done
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+Compute Pool
+	 in: One compute to be done
+	out: One compute done
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+Compute accumulation
+	 in: One compute done
+	out: One merge to be done
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+Merge Pool
+	 in: One merge to be done
+	out: One merge done
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+Write Pool
+	 in: One merge done
+	out: One write done					^^^^^^^^^^^^ out
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+** ************************************************************************** **
+Read Pool
+	 in: One read to be done
+	out: One read done					^^^^^^^^^^^^ out
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+Resample Pool
+	 in: One resample to be done
+	out: One resample done				^^^^^^^^^^^^ out
+
+	 in: Query dropped					%%%%%%%%%%%%
+	 in: Raster closed					%%%%%%%%%%%%
+
+** ************************************************************************** **
+
+
+
+
+
+self._graph.add_node(
+    id(new_query),
+    linked_queries=set([new_query]),
+)
+
+self._graph.add_node(
+    to_produce_uid,
+    footprint=to_produce,
+    futures=[],
+    in_data=None,
+    type="to_produce",
+    linked_to_produce=set([to_produce_uid]),
+    linked_queries=set([new_query]),
+    is_flat=new_query.is_flat,
+    bands=new_query.bands
+)
+self._graph.add_edge(id(new_query), to_produce_uid)
+self._graph.add_node(
+    to_read_uid,
+    footprint=to_read,
+    future=None,
+    type="to_read",
+    pool=self._io_pool,
+    linked_to_produce=set([to_produce_uid]),
+    linked_queries=set([new_query]),
+    bands=new_query.bands
+)
+self._graph.add_edge(to_produce_uid, to_read_uid)
+self._graph.add_node(
+    to_write_uid,
+    footprint=to_write,
+    future=None,
+    type="to_write",
+    pool=self._io_pool,
+    in_data=None,
+    linked_to_produce=set([to_produce_uid]),
+    linked_queries=set([new_query]),
+    bands=new_query.bands
+)
+self._graph.add_edge(to_read_uid, to_write_uid)
+self._graph.add_node(
+    to_merge_uid,
+    footprint=to_merge,
+    future=None,
+    futures=[],
+    type="to_merge",
+    pool=self._merge_pool,
+    in_data=[],
+    in_fp=[],
+    linked_to_produce=set([to_produce_uid]),
+    linked_queries=set([new_query]),
+    bands=new_query.bands
+)
+self._graph.add_edge(to_write_uid, to_merge_uid)
+self._graph.add_node(
+    to_compute_uid,
+    footprint=to_compute,
+    future=None,
+    type="to_compute",
+    pool=self._computation_pool,
+    in_data=None,
+    linked_to_produce=set([to_produce_uid]),
+    linked_queries=set([new_query]),
+    bands=new_query.bands
+)
+self._graph.add_edge(to_merge_uid, to_compute_uid)

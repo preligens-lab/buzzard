@@ -1,7 +1,7 @@
 class ActorMixinComputation(object):
-    def receive_schedule_one_compute(self, raster, fp):
+    def receive_schedule_one_compute(self, raster, fp, primitive_fps, primitive_arrays_getter):
         def _start():
-            primitive_arrays = raster.get_primitives(fp)
+            primitive_arrays = primitive_arrays_getter()
             future = self._pool.apply_async(
                 raster.compute_array.
                 (primitive_arrays, ...),
