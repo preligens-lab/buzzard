@@ -3,7 +3,7 @@ import os
 import collections
 
 class ActorCaching(object):
-    """Actor that takes care of raster caching"""
+    """Actor that takes care of computations caching"""
 
     def __init__(self, raster):
         self._raster = raster
