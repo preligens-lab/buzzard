@@ -811,12 +811,12 @@ deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_ave
 
 def open_raster(*args, **kwargs):
     """Shortcut for `DataSource().aopen_raster`"""
-    return DataSource().open_araster(*args, **kwargs)
+    return DataSource().aopen_raster(*args, **kwargs)
 
 def open_vector(*args, **kwargs):
     """Shortcut for `DataSource().aopen_vector`"""
-    return DataSource().open_avector(*args, **kwargs)
+    return DataSource().aopen_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
     """Shortcut for `DataSource().awrap_numpy_raster`"""
-    return DataSource().wrap_numpy_raster(*args, **kwargs)
+    return DataSource().awrap_numpy_raster(*args, **kwargs)

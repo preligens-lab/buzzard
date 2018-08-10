@@ -50,7 +50,7 @@ class AProxyVector(AProxy):
 
         Example
         -------
-        >>> minx, miny, maxx, maxy = df.roofs.extent
+        >>> minx, miny, maxx, maxy = ds.roofs.extent
         """
         return self._back.bounds
 
