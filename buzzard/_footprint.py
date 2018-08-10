@@ -431,11 +431,11 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Parameters
         ----------
-        tl: Footprint
+        tl: (nbr, nbr)
             New top left coordinates
-        tr: Footprint
+        tr: (nbr, nbr)
             New top right coordinates
-        br: Footprint
+        br: (nbr, nbr)
             New bottom right coordinates
 
         Returns
