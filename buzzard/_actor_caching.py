@@ -159,10 +159,10 @@ class ActorCaching(object):
                     query.query_key, list(compute_fps.keys()))]
 
 class _CacheTileStatus(enum.Enum):
-    unknown = 1
-    checking = 2
-    absent = 3
-    ready = 4
+    unknown = 0
+    checking = 1
+    absent = 2
+    ready = 3
 
 class _Query(object):
     def __init__(self, query_key, cache_fps):
