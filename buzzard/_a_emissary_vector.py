@@ -2,8 +2,7 @@ from buzzard._a_stored_vector import *
 from buzzard._a_emissary import *
 
 class AEmissaryVector(AEmissary, AStoredVector):
-    """>>> help(AEmissary)
-    >>> help(AStoredVector)
+    """Proxy that has both Emissary and Vector specifications
     """
 
     @property

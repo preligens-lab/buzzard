@@ -5,7 +5,7 @@ import contextlib
 from osgeo import gdal
 
 from buzzard._a_emissary_raster import *
-from buzzard._a_gdal_raster import *
+from buzzard._a_gdal_raster import ABackGDALRaster
 from buzzard._tools import conv
 from buzzard import _tools
 

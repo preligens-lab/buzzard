@@ -7,8 +7,7 @@ from buzzard._a_stored import *
 from buzzard._a_proxy_vector import *
 
 class AStoredVector(AStored, AProxyVector):
-    """>>> help(AStored)
-    >>> help(AProxyRaster)
+    """Proxy that has both Stored and Vector specifications
     """
 
     def insert_data(self, geom, fields=(), index=-1):

@@ -5,17 +5,18 @@ import numbers
 import collections
 import contextlib
 
-from osgeo import gdal, ogr
+from osgeo import gdal, ogr, osr
 import shapely
 import shapely.geometry as sg
 
-from buzzard._a_pooled_emissary_vector import *
+from buzzard._a_stored_vector import ABackStoredVector
 from buzzard._tools import conv
-from buzzard import _tools
 from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
-    """Abstract class defining the common implementation of all GDAL vectors"""
+    """Abstract class defining the common implementation of all vector file formats 
+    defined by the OGR
+    """
 
     # extent/len implementation ***************************************************************** **
     @property
@@ -85,12 +86,12 @@ class ABackGDALVector(ABackStoredVector):
                     elif geom_type == 'geojson':
                         geom = sg.mapping(geom)
 
-                yield (geom,) + tuple([
+                yield (geom,) + tuple(
                     self._type_of_field_index[index](ftr.GetField(index))
                     if ftr.GetField(index) is not None
                     else None
                     for index in field_indices
-                ])
+                )
 
         # Necessary to prevent the old swig bug
         # https://trac.osgeo.org/gdal/ticket/6749

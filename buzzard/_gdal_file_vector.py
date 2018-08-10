@@ -9,7 +9,7 @@ from buzzard._a_gdal_vector import *
 from buzzard._tools import conv
 
 class GDALFileVector(APooledEmissaryVector):
-    """Proxy for file vector GDAL datasets"""
+    """Proxy for vector files using GDAL except Memory"""
 
     def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileVector(
