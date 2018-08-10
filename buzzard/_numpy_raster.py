@@ -1,7 +1,6 @@
 import numpy as np
 
-from buzzard._a_stored_raster import *
-from buzzard import _tools
+from buzzard._a_stored_raster import AStoredRaster, ABackStoredRaster
 
 class NumpyRaster(AStoredRaster):
     """Proxy to handle numpy array as a raster dataset in buzzard"""
@@ -53,6 +52,11 @@ class BackNumpyRaster(ABackStoredRaster):
             mode=mode,
         )
 
+        self._should_tranform = (
+            any(v != 0 for v in band_schema['offset']) or
+            any(v != 1 for v in band_schema['scale'])
+        )
+
     def get_data(self, fp, band_ids, dst_nodata, interpolation):
         samplefp = self.build_sampling_footprint(fp, interpolation)
         if samplefp is None:
@@ -63,7 +67,7 @@ class BackNumpyRaster(ABackStoredRaster):
             )
         key = list(samplefp.slice_in(self.fp)) + [self._best_indexers_of_band_ids(band_ids)]
         array = self._arr[key]
-        if any(v != 0 for v in self.band_schema['offset']) or any(v != 1 for v in self.band_schema['scale']):
+        if self._should_tranform:
             array = array * self.band_schema['scale'] + self.band_schema['offset']
         array = self.remap(
             samplefp,

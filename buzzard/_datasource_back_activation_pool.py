@@ -2,8 +2,6 @@ import collections
 import threading
 import contextlib
 
-import numpy as np
-
 from buzzard._tools import MultiOrderedDict
 
 _ERR_FMT = 'DataSource is configured for a maximum of {} simultaneous active driver objects \

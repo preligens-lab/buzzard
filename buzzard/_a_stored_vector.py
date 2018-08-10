@@ -1,10 +1,9 @@
-import numpy as np
+import collections
+
 import shapely.geometry as sg
 
-from buzzard import _tools
-from buzzard._tools import conv
-from buzzard._a_stored import *
-from buzzard._a_proxy_vector import *
+from buzzard._a_stored import AStored, ABackStored
+from buzzard._a_proxy_vector import AProxyVector, ABackProxyVector
 
 class AStoredVector(AStored, AProxyVector):
     """Proxy that has both Stored and Vector specifications

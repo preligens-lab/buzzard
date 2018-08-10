@@ -1,5 +1,5 @@
-from buzzard._a_proxy import *
-from buzzard._a_proxy_raster_remap import *
+from buzzard._a_proxy import AProxy, ABackProxy
+from buzzard._a_proxy_raster_remap import ABackProxyRasterRemapMixin
 from buzzard._footprint import Footprint
 from buzzard import _tools
 

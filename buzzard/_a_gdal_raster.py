@@ -1,8 +1,8 @@
-import numpy as np
-import uuid
 import os
 
-from osgeo import gdal, osr
+import numpy as np
+
+from osgeo import gdal
 
 from buzzard._a_stored_raster import ABackStoredRaster
 from buzzard._tools import conv

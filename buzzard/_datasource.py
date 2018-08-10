@@ -1,21 +1,23 @@
 """>>> help(buzz.DataSource)"""
 
 # pylint: disable=too-many-lines
+import ntpath
+import numbers
 
 from osgeo import osr
 import numpy as np
-import ntpath
 
 from buzzard._tools import conv, deprecation_pool
+from buzzard._footprint import Footprint
 from buzzard import _tools
-from buzzard._datasource_back import *
+from buzzard._datasource_back import BackDataSource
 from buzzard._a_proxy import AProxy
-from buzzard._gdal_file_raster import *
-from buzzard._gdal_file_vector import *
-from buzzard._gdal_mem_raster import *
-from buzzard._gdal_memory_vector import *
-from buzzard._datasource_register import *
-from buzzard._numpy_raster import *
+from buzzard._gdal_file_raster import GDALFileRaster, BackGDALFileRaster
+from buzzard._gdal_file_vector import GDALFileVector, BackGDALFileVector
+from buzzard._gdal_mem_raster import GDALMemRaster
+from buzzard._gdal_memory_vector import GDALMemoryVector
+from buzzard._datasource_register import DataSourceRegisterMixin
+from buzzard._numpy_raster import NumpyRaster
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations

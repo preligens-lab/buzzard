@@ -1,10 +1,6 @@
-import numpy as np
-import uuid
-import os
-import numbers
-import collections
 import contextlib
 
+import numpy as np
 from osgeo import gdal, ogr, osr
 import shapely
 import shapely.geometry as sg
@@ -14,7 +10,7 @@ from buzzard._tools import conv
 from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
-    """Abstract class defining the common implementation of all vector file formats 
+    """Abstract class defining the common implementation of all vector file formats
     defined by the OGR
     """
 
@@ -67,7 +63,7 @@ class ABackGDALVector(ABackStoredVector):
             for ftr in self.iter_features_driver(slicing, mask_poly, mask_rect, lyr):
                 geom = ftr.geometry()
                 if geom is None or geom.IsEmpty():
-                    # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever?
+                    # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever
                     geom = None
                     if not self.back_ds.allow_none_geometry: # pragma: no cover
                         raise Exception(
@@ -100,7 +96,8 @@ class ABackGDALVector(ABackStoredVector):
         del clip_poly
         del mask_rect, mask_poly
 
-    def iter_features_driver(self, slicing, mask_poly, mask_rect, lyr):
+    @staticmethod
+    def iter_features_driver(slicing, mask_poly, mask_rect, lyr):
         with contextlib.ExitStack() as stack:
             stack.push(lambda *args, **kwargs: lyr.ResetReading())
             if mask_poly is not None:

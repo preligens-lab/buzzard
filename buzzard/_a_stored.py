@@ -1,4 +1,4 @@
-from buzzard._a_proxy import *
+from buzzard._a_proxy import AProxy, ABackProxy
 
 class AStored(AProxy):
     """Proxy that has some kind of storage (RAM or disk), and opening mode"""

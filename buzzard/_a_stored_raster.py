@@ -1,8 +1,9 @@
 import numpy as np
 
 from buzzard import _tools
-from buzzard._a_stored import *
-from buzzard._a_proxy_raster import *
+from buzzard._footprint import Footprint
+from buzzard._a_stored import AStored, ABackStored
+from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
 
 class AStoredRaster(AStored, AProxyRaster):
     """Proxy that has both Stored and Raster specifications

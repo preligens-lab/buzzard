@@ -4,7 +4,7 @@ import numbers
 import shapely.geometry as sg
 import numpy as np
 
-from buzzard._a_proxy import *
+from buzzard._a_proxy import AProxy, ABackProxy
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._tools import conv
