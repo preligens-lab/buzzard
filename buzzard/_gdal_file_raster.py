@@ -1,17 +1,15 @@
-import numpy as np
 import uuid
-import os
 import contextlib
 
 from osgeo import gdal
 
-from buzzard._a_pooled_emissary_raster import *
-from buzzard._a_gdal_raster import *
+from buzzard._a_pooled_emissary_raster import APooledEmissaryRaster, ABackPooledEmissaryRaster
+from buzzard._a_gdal_raster import ABackGDALRaster
 from buzzard._tools import conv
-from buzzard import _tools
+from buzzard._footprint import Footprint
 
 class GDALFileRaster(APooledEmissaryRaster):
-    """Proxy for file raster GDAL datasets"""
+    """Proxy for raster files using GDAL driver except MEM"""
 
     def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileRaster(
@@ -56,8 +54,8 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
     @contextlib.contextmanager
     def acquire_driver_object(self):
         with self.back_ds.acquire_driver_object(
-                self.uid,
-                self.allocator
+            self.uid,
+            self.allocator
         ) as gdal_ds:
             yield gdal_ds
 

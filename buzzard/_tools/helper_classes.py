@@ -1,7 +1,6 @@
 """>>> help(CallOrContext)
 >>> help(Singleton)
 """
-import weakref
 
 class CallOrContext(object):
     """Private helper class to provide a common behaviour both on call and on exit"""

@@ -4,12 +4,12 @@ import contextlib
 
 from osgeo import gdal
 
-from buzzard._a_pooled_emissary_vector import *
-from buzzard._a_gdal_vector import *
+from buzzard._a_pooled_emissary_vector import APooledEmissaryVector, ABackPooledEmissaryVector
+from buzzard._a_gdal_vector import ABackGDALVector
 from buzzard._tools import conv
 
 class GDALFileVector(APooledEmissaryVector):
-    """Proxy for file vector GDAL datasets"""
+    """Proxy for vector files using GDAL except Memory"""
 
     def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileVector(
@@ -94,8 +94,8 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     @contextlib.contextmanager
     def acquire_driver_object(self):
         with self.back_ds.acquire_driver_object(
-                self.uid,
-                self.allocator,
+            self.uid,
+            self.allocator,
         ) as gdal_objs:
             yield gdal_objs
 

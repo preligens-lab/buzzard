@@ -1,10 +1,10 @@
-import numpy as np
-import uuid
 import os
+
+import numpy as np
 
 from osgeo import gdal
 
-from buzzard._a_pooled_emissary_raster import *
+from buzzard._a_stored_raster import ABackStoredRaster
 from buzzard._tools import conv
 from buzzard import _tools
 

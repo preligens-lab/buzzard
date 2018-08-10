@@ -1,9 +1,8 @@
-from buzzard._a_emissary_vector import *
-from buzzard._a_pooled_emissary import *
+from buzzard._a_emissary_vector import AEmissaryVector, ABackEmissaryVector
+from buzzard._a_pooled_emissary import APooledEmissary, ABackPooledEmissary
 
 class APooledEmissaryVector(APooledEmissary, AEmissaryVector):
-    """>>> help(APooledEmissary)
-    >>> help(AEmissaryVector)
+    """Proxy that has both PooledEmissary and Vector specifications
     """
     pass
 

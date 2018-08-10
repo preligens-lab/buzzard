@@ -1,7 +1,7 @@
-import numpy as np
-import uuid
-from buzzard._a_pooled_emissary_vector import *
-from buzzard._a_gdal_vector import *
+import contextlib
+
+from buzzard._a_emissary_vector import AEmissaryVector, ABackEmissaryVector
+from buzzard._a_gdal_vector import ABackGDALVector
 from buzzard._tools import conv
 
 class GDALMemoryVector(AEmissaryVector):

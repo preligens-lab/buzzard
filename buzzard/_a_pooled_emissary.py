@@ -1,4 +1,4 @@
-from buzzard._a_emissary import *
+from buzzard._a_emissary import AEmissary, ABackEmissary
 
 class APooledEmissary(AEmissary):
     """Emissary that has a notion of activation/deactivation (file descriptor)"""
