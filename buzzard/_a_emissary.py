@@ -23,6 +23,7 @@ class AEmissary(AStored):
     def delete(self):
         """Delete a proxy with a call or a context management. May raise an exception if not
         applicable or if `mode` = 'r'
+        The `delete` attribute returns an object that can be both called and used in a with statement
 
         Example
         -------

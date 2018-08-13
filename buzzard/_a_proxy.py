@@ -46,6 +46,7 @@ class AProxy(object):
     @property
     def close(self):
         """Close a proxy with a call or a context management.
+        The `close` attribute returns an object that can be both called and used in a with statement
 
         Examples
         --------
