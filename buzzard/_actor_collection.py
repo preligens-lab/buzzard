@@ -1,14 +1,13 @@
 import collections
 
 class ActorCollection(object):
-    """Actor that takes care of the primitive collection phase before computation.
-
-    The actual primitive collection via queue.Queue.get method call should be delayed as much as
-    possible to avoid creating inter-raster backpressure in the computation pool waiting room, this
-    means that the Queue.get call has to be performed just before launching the work in the
-    computation pool, and not when the job joins the computation waiting room. To achieve this
-    behevior the ActorCollection sends a closure to the ActorComputation to perform late
-    collection. It clearly violates the classic rules of actor model.
+    """Actor that:
+    1. Takes care of launching the primitive collection phase before computation
+    2. Takes care of the computation waiting room
+    3. Pulls data from primitive queues
+    4. Launches computations
+    It has to do that much work because the `step 3.` has to be performed just before the `step 4.`
+    and not just after the `step 2.`.
 
     """
     def __init__(self, raster, pool_actor):
