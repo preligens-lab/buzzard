@@ -21,7 +21,7 @@ class ActorComputer(object):
         self._queries = {}
         self._pool_actor = pool_actor
 
-    def _schedule_one_compute(self, query, compute_fp, primitive_fps,
+    def _perform_one_compute(self, query, compute_fp, primitive_fps,
                               computation_index):
         """This closure takes care of the lifetime of a computation and it's primitives collection.
         """
@@ -109,7 +109,7 @@ class ActorComputer(object):
             # There are no primitives, skip straight to computation phase
             query = _Query(query_key, compute_fps)
             for i, compute_fp in enumerate(compute_fps):
-                msgs += self._schedule_one_compute(query, compute_fp, {}, i)
+                msgs += self._perform_one_compute(query, compute_fp, {}, i)
 
         else:
             # Create the connection with each primitive
@@ -150,7 +150,7 @@ class ActorComputer(object):
                     k: fps[compute_index]
                     for k, fps in query.primitives_fps
                 }
-                msgs += self._schedule_one_compute(query, compute_fp, primitive_fps, compute_index)
+                msgs += self._perform_one_compute(query, compute_fp, primitive_fps, compute_index)
                 query.queues_min_qsize += 1
 
         return msgs

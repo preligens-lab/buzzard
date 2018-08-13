@@ -11,7 +11,7 @@ class ActorMerge(object):
         self._raster = raster
         self._pool_actor = pool_actor
 
-    def _schedule_one_merge(self, cache_fp, array_of_compute_fp):
+    def _perform_one_merge(self, cache_fp, array_of_compute_fp):
         """This closure takes care of the lifetime of a computation tiles merging"""
         def _join_waiting_room():
             self._pool_actor._waiting += [
@@ -37,4 +37,4 @@ class ActorMerge(object):
         return _join_waiting_room()
 
     def receive_schedule_one_merge(self, cache_fp, array_of_compute_fp):
-        return self._schedule_one_merge(cache_fp, array_of_compute_fp)
+        return self._perform_one_merge(cache_fp, array_of_compute_fp)

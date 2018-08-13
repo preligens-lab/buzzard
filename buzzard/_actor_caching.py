@@ -9,8 +9,8 @@ class ActorCaching(object):
     --------
     - Sends -schedule_one_cache_file_check- @ CacheFileChecker
       - will answer at -done_one_cache_file_check-
-    - Sends -cache_tiles_can_be_read- @ Production
-      - is answer from -ensure_cache_tiles_can_be_read-
+    - Sends -cache_tile_subset_can_be_read- @ Production (one or more per query)
+      - is answer from -ensure_cache_tiles_can_be_read- (one per query)
     - Sends -schedule_collection- @ Computer
       - will answer at -done_one_write-
     - Receives -query_dropped- from QueryManager
@@ -68,8 +68,8 @@ class ActorCaching(object):
         if len(query.cache_fps_ensured) != 0:
             # Notify the `Production` that those cache tiles are already ready
             msgs += [
-                Msg('Raster::Query:{}::Production'.format(query_key),
-                    'cache_tiles_can_be_read', list(query.cache_fps_ensured))
+                Msg('Raster::Producer', 'cache_tile_subset_can_be_read',
+                    query_key, list(query.cache_fps_ensured))
             ]
         if len(query.cache_fps_checking) == 0 and len(query.cache_fps_to_compute) > 0:
             # Some tiles need to be computed and none need to be checked, launching collection right
@@ -100,8 +100,8 @@ class ActorCaching(object):
                     query.cache_fps_checking.remove(cache_fp)
                     query.cache_fps_ensured.add(cache_fp)
                     msgs += [
-                        Msg('Raster::Query:{}::Production'.format(query_key),
-                            'cache_tiles_can_be_read', list(query.cache_fps_ensured))
+                        Msg('Raster::Producer', 'cache_tile_subset_can_be_read',
+                            query_key, [cache_fp])
                     ]
                     if len(query.cache_fps_checking) == 0 and len(query.cache_fps_to_compute) > 0:
                         msgs += self._query_collection_ready(query)
@@ -136,8 +136,8 @@ class ActorCaching(object):
                 query.cache_fps_to_compute.remove(cache_fp)
                 query.cache_fps_ensured.add(cache_fp)
                 msgs += [
-                    Msg('Raster::Query:{}::Production'.format(query_key),
-                        'cache_tiles_can_be_read', list(query.cache_fps_ensured))
+                    Msg('Raster::Producer', 'cache_tile_subset_can_be_read',
+                        query_key, [cache_fp])
                 ]
 
         for query_key in [k for k, v in self._queries.items() if v.is_done]:
