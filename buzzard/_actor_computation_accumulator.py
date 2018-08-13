@@ -8,6 +8,11 @@ class ActorComputeAccumulator(object):
     the slices to collect the rest of it.
     )
 
+    Messages
+    --------
+    - Sends -one_merge- @ Merge
+    - Receives -done_one_compute- from Computer
+
     """
     def __init__(self, raster):
         self._raster = raster
@@ -27,7 +32,7 @@ class ActorComputeAccumulator(object):
             store['ready'][compute_fp] = array[slices]
             if len(store['missing']) == 0:
                 msgs += [
-                    Msg('Merge', 'schedule_one_merge', raster, cache_fp, store['ready'])
+                    Msg('Merge', 'schedule_one_merge', cache_fp, store['ready'])
                 ]
                 del self._cache_tiles_accumulations[cache_fp]
         return msgs

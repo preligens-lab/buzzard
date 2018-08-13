@@ -1,20 +1,40 @@
-class ActorMixinMerge(object):
-    def receive_schedule_one_merge(self, raster, fp, computations):
-        def _start():
-            future = self._pool.apply_async(
-                raster.merge_array,
-                (fp, computations),
+class ActorMerge(object):
+    """Actor that merges the computation tiles to cache tiles
+
+    Messages
+    --------
+    - Sends -schedule_one_write- @ Write
+    - Receives -one_merge- from ComputeAccumulator
+
+    """
+    def __init__(self, raster, pool_actor):
+        self._raster = raster
+        self._pool_actor = pool_actor
+
+    def _schedule_one_merge(self, cache_fp, array_of_compute_fp):
+        """This closure takes care of the lifetime of a computation tiles merging"""
+        def _join_waiting_room():
+            self._pool_actor._waiting += [
+                (de_quoi_id_la_prio, _leave_waiting_room),
+            ]
+            return []
+
+        def _leave_waiting_room():
+            future = self._pool_actor.apply_async(
+                self._raster.merge_arrays,
+                cache_fp, array_of_compute_fp,
             )
-            self._working += [
-                (future, _stop),
+            self._pool_actor._working += [
+                (future, _work_done),
             ]
+            return []
 
-        def _stop(array):
+        def _work_done(array):
             return [
-                Msg('Write', 'schedule_one_write', raster, fp, array),
+                Msg('Raster::Write', 'schedule_one_write', cache_fp, array),
             ]
 
-        self._waiting += [
-            (de_quoi_id_la_prio, _start),
-        ]
-        return []
+        return _join_waiting_room()
+
+    def receive_schedule_one_merge(self, cache_fp, array_of_compute_fp):
+        return self._schedule_one_merge(cache_fp, array_of_compute_fp)

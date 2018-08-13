@@ -1,6 +1,6 @@
 import collections
 
-class ActorCollection(object):
+class ActorComputer(object):
     """Actor that:
     1. Takes care of launching the primitive collection phase before computation
     2. Takes care of the computation waiting room
@@ -8,6 +8,12 @@ class ActorCollection(object):
     4. Launches computations
     It has to do that much work because the `step 3.` has to be performed just before the `step 4.`
     and not just after the `step 2.`.
+
+    Messages
+    --------
+    - Sends -done_one_compute- @ ComputeAccumulator
+    - Receives -schedule_collection- from Cache
+    - Receives -query_dropped- from QueryManager
 
     """
     def __init__(self, raster, pool_actor):
@@ -77,11 +83,11 @@ class ActorCollection(object):
                 params
             )
             self._pool_actor.working += [
-                (future, _computation_done),
+                (future, _work_done),
             ]
             return []
 
-        def _computation_done(array):
+        def _work_done(array):
             status = self._compute_fps_status[compute_fp]
             assert status == _ComputeTileStatus.working
             self._compute_fps_status[compute_fp] = _ComputeTileStatus.computed

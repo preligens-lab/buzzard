@@ -3,8 +3,19 @@ import os
 import collections
 
 class ActorCaching(object):
-    """Actor that takes care of computations caching"""
+    """Actor that takes care of computations caching
 
+    Messages
+    --------
+    - Sends -schedule_one_cache_file_check- @ CacheFileChecker
+      - will answer at -done_one_cache_file_check-
+    - Sends -cache_tiles_can_be_read- @ Production
+      - is answer from -ensure_cache_tiles_can_be_read-
+    - Sends -schedule_collection- @ Computer
+      - will answer at -done_one_write-
+    - Receives -query_dropped- from QueryManager
+
+    """
     def __init__(self, raster):
         self._raster = raster
         self._cache_fps_status = {
@@ -155,7 +166,7 @@ class ActorCaching(object):
             for compute_fp in self.raster.compute_fps_of_cache_fp(cache_fp):
                 if compute_fp not in compute_fps:
                     compute_fps[compute_fp] = 42
-        return [Msg('Raster::Collection', 'schedule_collection',
+        return [Msg('Raster::Computer', 'schedule_collection',
                     query.query_key, list(compute_fps.keys()))]
 
 class _CacheTileStatus(enum.Enum):
