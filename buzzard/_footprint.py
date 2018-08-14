@@ -1606,8 +1606,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return arr.astype(dtype)
 
     def find_polygons(self, mask):
-        """Experimental function!
-        Create a list of polygons from a mask.
+        """Creates a list of polygons from a mask.
 
         Parameters
         ----------
@@ -1670,8 +1669,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return list(_polygon_iterator())
 
     def burn_polygons(self, obj, all_touched=False, labelize=False):
-        """Experimental function!
-        Create a 2d image from polygons
+        """Creates a 2d image from polygons
 
         Parameters
         ----------
