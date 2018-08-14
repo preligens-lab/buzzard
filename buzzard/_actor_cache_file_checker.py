@@ -12,6 +12,11 @@ class ActorCacheFileChecker(object):
         self._raster = raster
         self._pool_actor = pool_actor
 
+    # ******************************************************************************************* **
+    def receive_schedule_one_cache_file_check(self, cache_fp, path):
+        return _perform_one_check(cache_fp, path)
+
+    # ******************************************************************************************* **
     def _perform_one_check(self, cache_fp, path):
         """This closure takes care of the lifetime of a cache tile checking"""
         def _join_waiting_room():
@@ -37,8 +42,7 @@ class ActorCacheFileChecker(object):
 
         return _join_waiting_room()
 
-    def receive_schedule_one_cache_file_check(self, cache_fp, path):
-        return _perform_one_check(cache_fp, path)
+    # ******************************************************************************************* **
 
 def _cache_file_check(cache_fp, path):
     return (True or False) == 'That is the TODO question'

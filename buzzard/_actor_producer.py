@@ -6,13 +6,17 @@ class ActorProducer(object):
     Messages
     --------
     - Sends -ensure_cache_tiles_can_be_read- @ Caching (one per query)
-      - will answer at -cache_tile_subset_can_be_read- from Caching (one or more per query)
+      - will answer at -cache_tile_subset_can_be_read- (one or more per query)
+    - Sends -schedule_one_read- @ Sampler (one per produce per cache tile)
+      - will answer ar -done-one-sampling- (one per produce)
+    - Sends -schedule_one_resampling- @ Resampler (one per produce)
     """
 
     def __init__(self, raster):
         self._raster = raster
         self._queries = {}
 
+    # ******************************************************************************************* **
     def receive_produce_query(self, query_key, produce_fps, band_ids, dst_nodata, interpolation):
         msgs = []
 
@@ -55,9 +59,13 @@ class ActorProducer(object):
         )
         self._queries[query_key] = q
 
-        msgs += [
-            Msg('Raster::Caching', 'ensure_cache_tiles_can_be_read', query_key, cache_fps)
-        ]
+        if len(cache_fps) == 0:
+            # If no cache tiles are required (e.g. a query outside of raster)
+            pass
+        else:
+            msgs += [
+                Msg('Raster::Caching', 'ensure_cache_tiles_can_be_read', query_key, cache_fps)
+            ]
         return msgs
 
     def receive_cache_tile_subset_can_be_read(self, query_key, cache_fps):
@@ -87,7 +95,7 @@ class ActorProducer(object):
                 self._raster.nodata, q.dst_nodata, 'erode', q.interpolation,
             )
             msgs += [
-                Msg('Exterior::produce_array', query_key, produce_id, array)
+                Msg('Communicator::produce_array', query_key, produce_id, array)
             ]
         else:
             msgs += [
@@ -98,8 +106,12 @@ class ActorProducer(object):
         return msgs
 
     def receive_done_one_resampling(self, query_key, produce_id, array):
-        return [Msg('Exterior::produce_array', query_key, produce_id, array)]
+        return [Msg('Communicator::produce_array', query_key, produce_id, array)]
 
+    def receive_query_dropped(self, query_key):
+        del self._queries[query_key]
+
+    # ******************************************************************************************* **
 
 class _Query(object):
     def __init__(self, query_key,

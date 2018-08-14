@@ -18,6 +18,7 @@ class ActorComputeAccumulator(object):
         self._raster = raster
         self._cache_tiles_accumulations = {}
 
+    # ******************************************************************************************* **
     def receive_done_one_compute(self, compute_fp, array):
         msgs = []
         for cache_fp in self._raster.cache_fps_of_compute_fp(compute_fp):
@@ -36,3 +37,5 @@ class ActorComputeAccumulator(object):
                 ]
                 del self._cache_tiles_accumulations[cache_fp]
         return msgs
+
+    # ******************************************************************************************* **

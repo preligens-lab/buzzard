@@ -24,6 +24,7 @@ class ActorCaching(object):
         }
         self._queries = {}
 
+    # ******************************************************************************************* **
     def receive_ensure_cache_tiles_can_be_read(self, query_key, cache_fps):
         """Receive message: Ensure that those cache tiles can be read, if necessary create the
         missing ones, but launch at most one collection process. If several are missing, compute
@@ -168,6 +169,9 @@ class ActorCaching(object):
                     compute_fps[compute_fp] = 42
         return [Msg('Raster::Computer', 'schedule_collection',
                     query.query_key, list(compute_fps.keys()))]
+
+
+    # ******************************************************************************************* **
 
 class _CacheTileStatus(enum.Enum):
     unknown = 0

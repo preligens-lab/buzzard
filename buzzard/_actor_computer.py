@@ -20,84 +20,12 @@ class ActorComputer(object):
         self._raster = raster
         self._queries = {}
         self._pool_actor = pool_actor
+        self._compute_fps_status = {
+            compute_fp: _ComputationTileStatus.stand_by
+            for compute_fp in raster.compute_fps
+        }
 
-    def _perform_one_compute(self, query, compute_fp, primitive_fps,
-                              computation_index):
-        """This closure takes care of the lifetime of a computation and it's primitives collection.
-        """
-        def _join_waiting_room():
-            status = self._compute_fps_status[compute_fp]
-
-            if status == _ComputeTileStatus.unseen:
-                self._compute_fps_status[compute_fp] = _ComputeTileStatus.waiting
-            elif status == _ComputeTileStatus.waiting:
-                # Some other query already scheduled this computation
-                # The first compute to `leave waiting room` will pull the primitives and be
-                # launched in pool.
-                # The next ones to `leave waiting room` will pull and discard the primitives
-                pass
-            elif status == _ComputeTileStatus.working:
-                # Some other query already scheduled this computation
-                # When `leave waiting room` is called we will pull and discard the primitives
-                pass
-            elif status == _ComputeTileStatus.computed:
-                # Some other query already scheduled this computation
-                # When `leave waiting room` is called we will pull and discard the primitives
-                pass
-            else:
-                assert False
-
-            self._pool_actor.waiting += [
-                (de_quoi_id_la_prio, _leave_waiting_room),
-            ]
-            return []
-
-        def _leave_waiting_room():
-            if len(primitive_fps) > 0:
-                primitive_arrays = query.get_primitive_arrays(computation_index)
-            else:
-                primitive_arrays = {}
-
-            status = self._compute_fps_status[compute_fp]
-            assert status != _ComputeTileStatus.unseen
-
-            if status != _ComputeTileStatus.waiting:
-                # The computation was already launched, do nothing else
-                return
-            self._compute_fps_status[compute_fp] = _ComputeTileStatus.working
-
-            bands = tuple(range(1, self._raster.band_count + 1))
-            if self.pool_actor.same_address_space:
-                params = (
-                    compute_fp, bands, primitive_fps, primitive_arrays,
-                    self._raster.facade_proxy,
-                )
-            else:
-                params = (
-                    compute_fp, bands, primitive_fps, primitive_arrays,
-                    None,
-                )
-
-            future = self._pool_actor.pool.apply_async(
-                raster.compute_array,
-                params
-            )
-            self._pool_actor.working += [
-                (future, _work_done),
-            ]
-            return []
-
-        def _work_done(array):
-            status = self._compute_fps_status[compute_fp]
-            assert status == _ComputeTileStatus.working
-            self._compute_fps_status[compute_fp] = _ComputeTileStatus.computed
-
-            return [
-                Msg('Raster::ComputeAccumulator', 'done_one_compute', compute_fp, array),
-            ]
-
-        return _join_waiting_room()
-
+    # ******************************************************************************************* **
     def receive_schedule_collection(self, query_key, compute_fps):
         """Receive message: Schedule a primitive collection for those computation tiles"""
         assert len(compute_fps) == len(set(compute_fps))
@@ -160,6 +88,84 @@ class ActorComputer(object):
         if query_key in self._queries:
             del self._queries[query_key]
 
+    # ******************************************************************************************* **
+    def _perform_one_compute(self, query, compute_fp, primitive_fps,
+                              computation_index):
+        """This closure takes care of the lifetime of a computation and it's primitives collection.
+        """
+        def _join_waiting_room():
+            status = self._compute_fps_status[compute_fp]
+
+            if status == _ComputationTileStatus.stand_by:
+                # This computation was never launched in the Pool.
+                # But it might already be scheduled by another query
+                # The first compute to `leave waiting room` will pull the primitives and be
+                # launched in pool.
+                # The next ones to `leave waiting room` will pull and discard the primitives
+                pass
+            elif status == _ComputationTileStatus.working:
+                # Some other query already launched this computation
+                # When `leave waiting room` is called we will pull and discard the primitives
+                pass
+            elif status == _ComputationTileStatus.computed:
+                # Some other query already launched this computation
+                # When `leave waiting room` is called we will pull and discard the primitives
+                pass
+            else:
+                assert False
+
+            self._pool_actor.waiting += [
+                (de_quoi_id_la_prio, _leave_waiting_room),
+            ]
+            return []
+
+        def _leave_waiting_room():
+            if len(primitive_fps) > 0:
+                primitive_arrays = query.get_primitive_arrays(computation_index)
+            else:
+                primitive_arrays = {}
+
+            status = self._compute_fps_status[compute_fp]
+
+            if status != _ComputationTileStatus.stand_by:
+                # The computation was already launched, do nothing else
+                return
+            self._compute_fps_status[compute_fp] = _ComputationTileStatus.working
+
+            bands = tuple(range(1, self._raster.band_count + 1))
+            if self.pool_actor.same_address_space:
+                params = (
+                    compute_fp, bands, primitive_fps, primitive_arrays,
+                    self._raster.facade_proxy,
+                )
+            else:
+                params = (
+                    compute_fp, bands, primitive_fps, primitive_arrays,
+                    None,
+                )
+
+            future = self._pool_actor.pool.apply_async(
+                raster.compute_array,
+                params
+            )
+            self._pool_actor.working += [
+                (future, _work_done),
+            ]
+            return []
+
+        def _work_done(array):
+            status = self._compute_fps_status[compute_fp]
+            assert status == _ComputationTileStatus.working
+            self._compute_fps_status[compute_fp] = _ComputationTileStatus.computed
+
+            return [
+                Msg('Raster::ComputeAccumulator', 'done_one_compute', compute_fp, array),
+            ]
+
+        return _join_waiting_room()
+
+    # ******************************************************************************************* **
+
 class _Query(object):
     def __init__(self, query_key, compute_fps):
         self.query_key = query_key
@@ -188,7 +194,6 @@ class _ParameterizedQuery(_Query):
         }
 
 class _ComputationTileStatus(enum.Enum):
-    unseen = 0
-    waiting = 1
-    working = 2
-    computed = 3
+    stand_by = 0
+    working = 1
+    computed = 2

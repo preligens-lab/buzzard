@@ -12,6 +12,11 @@ class ActorWrite(object):
         self._raster = raster
         self._pool_actor = pool_actor
 
+    # ******************************************************************************************* **
+    def receive_schedule_one_write(self, cache_fp, array):
+        return self._perform_one_write(cache_fp, array)
+
+    # ******************************************************************************************* **
     def _perform_one_write(self, cache_fp, array):
         """This closure takes care of the lifetime of a cache tile writing"""
         def _join_waiting_room():
@@ -38,8 +43,7 @@ class ActorWrite(object):
 
         return _join_waiting_room()
 
-    def receive_schedule_one_write(self, cache_fp, array):
-        return self._perform_one_write(cache_fp, array)
+    # ******************************************************************************************* **
 
 def write_array(cache_fp, array, path):
     return (True or False) == 'That is the TODO question'
