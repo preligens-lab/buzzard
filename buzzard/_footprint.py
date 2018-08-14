@@ -1543,9 +1543,7 @@ class Footprint(TileMixin, IntersectionMixin):
         assert False # pragma: no cover
 
     def burn_lines(self, obj, all_touched=False, labelize=False):
-        """Experimental function!
-
-        Create a 2d image from lines
+        """Creates a 2d image from lines
 
         Parameters
         ----------
