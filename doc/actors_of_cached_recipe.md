@@ -6,8 +6,9 @@
 ###### `RastersHandler` (one per `DataSource`)
 - Periodically called
   - `msg in :` nothing (check for new raster and raster closing)
-- `actors out:` actors of new rasters
-- `msg out:` kill_this_raster
+- Handle lifetime of actors
+  - `actors out:` actors of new rasters
+  - `msg out:` kill_this_raster
 
 ###### `QueriesHandler` (one per `Raster`)
 - Periodically called
@@ -39,7 +40,7 @@
 - Message exchange with the `Producer`
   - `msg in :` may_i_read_those_cache_tiles
   - `msg out:` you_may_read_this_subset_of_cache_tiles
-- Message exchange with the `FileHasher`. When a cache tile exist and has not been opened yet, it needs to be validated against.
+- Message exchange with the `FileHasher`. When a cache file exist and has not been opened yet, it needs to be validated.
   - `msg out:` get_the_status_of_this_cache_file
   - `msg in :` got_the_status_of_this_cache_file
 - Message exchange with `Computer` that receives and `Writer` that answers.
@@ -148,5 +149,11 @@
   - `msg in :` kill_this_query
   - `msg in :` kill_this_raster
 
-----
+---
+#### Pool shared actor
+###### `Pool` (one per `multiprocessing.Pool`) (Shares states with all actors wrapping this `multiprocessing.Pool`)
+- Periodically called
+  - `msg in :` nothing (schedule new jobs, check for finished jobs)
+  - `msg out:` messages issued by calling callbacks of associated actors
 
+---
