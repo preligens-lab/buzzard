@@ -151,9 +151,10 @@
 
 ---
 #### Pool shared actor
-###### `Pool` (one per `multiprocessing.Pool`) (Shares states with all actors wrapping this `multiprocessing.Pool`)
+###### `Pool` (one per `multiprocessing.Pool`) (Shares states with all actors wrapping this `multiprocessing.Pool` (associated actors))
 - Periodically called
   - `msg in :` nothing (schedule new jobs, check for finished jobs)
-  - `msg out:` messages issued by calling callbacks of associated actors
+- Interactions with associated actors
+- `msg out:` messages issued by calling callbacks of associated actors
 
 ---
