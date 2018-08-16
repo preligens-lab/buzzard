@@ -180,7 +180,7 @@ See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
 - [examples](./doc/examples.ipynb)
-- [public-classes](https://github.com/airware/buzzard/wiki/Public-classes)
+- [classes](https://github.com/airware/buzzard/wiki/Classes)
 - [wiki](https://github.com/airware/buzzard/wiki)
 - [todo](https://github.com/airware/buzzard/wiki/TODO)
 
