@@ -5,6 +5,9 @@ import numpy as np
 from buzzard._footprint import Footprint
 
 class ActorBuilder(object):
+    """Actor that schedule cache tiles reading and resamplings.
+    Readings are scheduled as soon as cache tiles are ready
+    """
 
     def __init__(self, raster):
         self._raster = raster
@@ -16,7 +19,7 @@ class ActorBuilder(object):
 
     # ******************************************************************************************* **
     def receive_build_this_array(self, query_key: int, query_infos, produce_id: int):
-        """Receive message: Strat building that array"""
+        """Receive message: Start building that array"""
         if query_key not in self._queries:
             self._queries[query_key] = _Query(
                 query_infos,
