@@ -1,6 +1,6 @@
 
 class ActorRastersHandler(object):
-
+    """Actor that takes care of the lifetime of rasters' actors"""
     def __init__(self):
         self.rasters = set()
         self.actor_addresses_of_raster = {}

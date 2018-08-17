@@ -70,7 +70,7 @@ class ActorCaching(object):
             # Notify the `Production` that those cache tiles are already ready
             msgs += [
                 Msg('Raster::Producer', 'cache_tile_subset_can_be_read',
-                    query_key, list(query.cache_fps_ensured))
+                    query_key, set(query.cache_fps_ensured))
             ]
         if len(query.cache_fps_checking) == 0 and len(query.cache_fps_to_compute) > 0:
             # Some tiles need to be computed and none need to be checked, launching collection right
@@ -102,7 +102,7 @@ class ActorCaching(object):
                     query.cache_fps_ensured.add(cache_fp)
                     msgs += [
                         Msg('Raster::Producer', 'cache_tile_subset_can_be_read',
-                            query_key, [cache_fp])
+                            query_key, {cache_fp})
                     ]
                     if len(query.cache_fps_checking) == 0 and len(query.cache_fps_to_compute) > 0:
                         msgs += self._query_collection_ready(query)
@@ -138,7 +138,7 @@ class ActorCaching(object):
                 query.cache_fps_ensured.add(cache_fp)
                 msgs += [
                     Msg('Raster::Producer', 'cache_tile_subset_can_be_read',
-                        query_key, [cache_fp])
+                        query_key, {cache_fp})
                 ]
 
         for query_key in [k for k, v in self._queries.items() if v.is_done]:

@@ -1,5 +1,6 @@
 
 class ActorQueriesHandler(object):
+    """Actor that takes care of the lifetime of rasters' queries"""
 
     def __init__(self, raster):
         self._raster = raster
