@@ -21,6 +21,7 @@ class ActorProducer(object):
                                   dst_nodata: Union[float, int],
                                   interpolation: Union[None, str],
                                   max_queue_size: int):
+        """Receive message: Take care of that new query"""
         msgs = []
 
         # Save the query details ***********************************************

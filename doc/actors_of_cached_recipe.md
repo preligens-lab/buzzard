@@ -28,14 +28,16 @@ Receive new queries, take care of putting results in output queue and detect que
   - `msg in :` die
 
 ###### `Producer` (one per `Raster`)
+Order the computation of cache tiles and then order the building of production arrays
 - Message exchange with the `QueriesHandler`.
   - `msg in :` make_those_arrays
   - `msg out:` made_this_array
 - Message exchange with the `CacheHandler`. A Cache tile has to be written and valid before being read.
   - `msg out:` may_i_read_those_cache_tiles
   - `msg in :` you_may_read_this_subset_of_cache_tiles
-- Message exchange with `BuilderBedroom` that receives and `Builder` that answers.
-  - `msg out:` build_this_array_when_needed_soon
+- Message exchange with `BuilderBedroom`/`Builder` that receives and `Builder` that answers.
+  - `msg out:` build_those_arrays_when_needed_soon
+  - `msg out:` those_cache_tiles_are_ready
   - `msg in :` built_this_array
 - Early stopping
   - `msg in :` kill_this_query
@@ -128,7 +130,7 @@ Receive new queries, take care of putting results in output queue and detect que
 ### Cache reading
 ###### `BuilderBedroom`
 - Message delaying from `Producer` to `Builder` (with updates from `QueriesHandler`). Start building an array when it fits in output queue. 
-  - `msg in :` build_this_array_when_needed_soon
+  - `msg in :` build_those_arrays_when_needed_soon
   - `msg in :` output_queue_update
   - `msg out:` build_this_array
 - Early stopping
@@ -138,6 +140,7 @@ Receive new queries, take care of putting results in output queue and detect que
 ###### `Builder` (one per `Raster`)
 - Carry out request from `Producer->BuilderBedroom` to `Producer` about production array building
   - `msg in :` build_this_array
+  - `msg in :` those_cache_tiles_are_ready
   - `msg out:` built_this_array
 - Message exchange with the `Sampler`. A production array depends on 0 or more cache tiles that need to be read.
   - `msg out:` sample_this_array
