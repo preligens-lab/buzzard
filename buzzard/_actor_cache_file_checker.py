@@ -45,4 +45,5 @@ class ActorCacheFileChecker(object):
     # ******************************************************************************************* **
 
 def _cache_file_check(cache_fp, path):
+    # TODO: Check file md5/opening/shape/dtype
     return (True or False) == 'That is the TODO question'

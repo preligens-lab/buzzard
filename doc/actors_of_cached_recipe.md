@@ -4,23 +4,28 @@
 ---
 #### Principal routines
 ###### `RastersHandler` (one per `DataSource`)
-- Periodically called
-  - `msg in :` nothing (check for new raster and raster closing)
+Open and close actors when new rasters are created
+- Messages emitted by other threads
+  - `msg in :` new_raster
+  - `msg in :` kill_raster
 - Handle lifetime of actors
   - `actors out:` actors of new rasters
-  - `msg out:` kill_this_raster
+  - `msg out:` die
 
 ###### `QueriesHandler` (one per `Raster`)
+Receive new queries, take care of putting results in output queue and detect queries garbage collection.
+- Messages emitted by other threads
+  - `msg in :` new_query
 - Periodically called
-  - `msg in :` nothing (check for new queries and space in the output queues)
+  - `msg in :` nothing (check for dropped queries and space in the output queues)
 - Message exchange with the `Producer`. A Query requires several arrays to be built and sent as soon as they are ready.
   - `msg out:` make_those_arrays
-  - `msg in :` made_this_array
+  - `msg in :` made_this_array (received unordered but put in output queue in the right order)
 - Message sent to several actors that may be waiting for the output queue to empty
   - `msg out:` output_queue_update
 - Early stopping
   - `msg out:` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `Producer` (one per `Raster`)
 - Message exchange with the `QueriesHandler`.
@@ -34,7 +39,7 @@
   - `msg in :` built_this_array
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `CacheHandler` (one per `Raster`)
 - Message exchange with the `Producer`
@@ -48,7 +53,7 @@
   - `msg in :` wrote_this_cache_tile
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ---
 ### Cache checking
@@ -58,7 +63,18 @@
   - `msg out:` got_the_status_of_this_cache_file
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
+
+---
+### Shared passive states
+###### `QueryWatcher` (one per `Raster`)
+- `msg in :` new query
+
+###### `PriorityWatcher` (one per `Raster`)
+- `msg in :` output_queue_update
+- `msg in :` 
+- `method :` get_prio_of_produce_array_creation
+- `method :` get_prio_of_cache_tile_creation
 
 ---
 ### Cache building
@@ -73,7 +89,7 @@
   - `msg in :` schedule_computation
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `ComputationBedroom` (one per `Raster`)
 - Message delaying from `Computer` to `Computer` (with updates from `QueriesHandler`)
@@ -82,7 +98,7 @@
   - `msg out:` schedule_computation
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `ComputeAccumulator` (one per `Raster`)
 - Carry out request from `CacheHandler->Computer` to `Merger->Writer->CacheHandler` about cache tile creation
@@ -90,7 +106,7 @@
   - `msg out:` merge_those_tiles
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `Merger` (one per `Raster`)
 - Carry out request from `CacheHandler->Computer->ComputeAccumulator` to `Writer->CacheHandler` about cache tile creation
@@ -98,7 +114,7 @@
   - `msg out:` write_this_cache_tile
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `Writer` (one per `Raster`)
 - Carry out request from `CacheHandler->Computer->ComputeAccumulator->Merger` to `CacheHandler` about cache tile creation
@@ -106,7 +122,7 @@
   - `msg out:` wrote_this_cache_tile
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ---
 ### Cache reading
@@ -117,7 +133,7 @@
   - `msg out:` build_this_array
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `Builder` (one per `Raster`)
 - Carry out request from `Producer->BuilderBedroom` to `Producer` about production array building
@@ -131,7 +147,7 @@
   - `msg in :` resampled_this_array
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `Sampler` (one per `Raster`) (Shares states with an `ActorPool`)
 - Message exchange with the `Builder`
@@ -139,7 +155,7 @@
   - `msg out:` sampled_this_array (issued by `ActorPool.receive_nothing()`)
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ###### `Resampler` (one per `Raster`) (Shares states with an `ActorPool`)
 - Message exchange with the `Builder`
@@ -147,7 +163,7 @@
   - `msg out:` resampled_this_array (issued by `ActorPool.receive_nothing()`)
 - Early stopping
   - `msg in :` kill_this_query
-  - `msg in :` kill_this_raster
+  - `msg in :` die
 
 ---
 #### Pool shared actor

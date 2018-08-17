@@ -1,3 +1,4 @@
+
 class ActorComputeAccumulator(object):
     """Actor that accumulates the results of the computation phase before merge phase
 
