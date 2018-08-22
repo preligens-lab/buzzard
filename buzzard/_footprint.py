@@ -672,7 +672,9 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @property
     def try_(self):
-        """Spatial coordinate: raster top right (y)"""
+        """Spatial coordinate: raster top right (y)
+        Don't forget the trailing underscore
+        """
         return float(self._tr[1])
 
     @property
