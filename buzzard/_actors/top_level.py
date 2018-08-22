@@ -1,17 +1,29 @@
 import collections
+import itertools
 
 from buzzard._actors.pool_waiting_room import ActorPoolWaitingRoom
 from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
 
-class ActorRastersHandler(object):
-    """Actor that takes care of the lifetime of rasters' and pools' actors"""
+class ActorTopLevel(object):
+    """Actor that takes care of the lifetime of rasters' and pools' actors.
+
+    That is the only actor that is instanciated by the scheduler. All other actors are
+    instanciated here.
+    """
     def __init__(self):
         self._rasters = set()
-        self._actor_addresses_of_raster = {}
         self._rasters_of_pool = collections.defaultdict(list)
+
+        self._actor_addresses_of_raster = {}
         self._actor_addresses_of_pool = {}
 
-    address = '/RastersHandler'
+        self._alive = True
+
+    address = '/TopLevel'
+
+    @property
+    def alive(self):
+        return self._alive
 
     # ******************************************************************************************* **
     def ext_receive_new_raster(self, raster):
@@ -37,6 +49,7 @@ class ActorRastersHandler(object):
                 'computation_pool', 'merge_pool', 'write_pool',
                 'file_checker_pool', 'read_pool', 'resample_pool',
             ]
+            if hasattr(raster, attr)
             for pool in [getattr(raster, attr)]
         }
         for pool_id, pool in pools.items():
@@ -63,9 +76,9 @@ class ActorRastersHandler(object):
         # Deleting raster's actors *********************************************
         msgs += [
             Msg(address, 'die')
-            for address in self._actor_addresses_of_raster[actor]
+            for address in self._actor_addresses_of_raster[raster]
         ]
-        del self._actor_addresses_of_raster[actor]
+        del self._actor_addresses_of_raster[raster]
 
         # Deleting pools' actors ***********************************************
         pools = {
@@ -74,6 +87,7 @@ class ActorRastersHandler(object):
                 'computation_pool', 'merge_pool', 'write_pool',
                 'file_checker_pool', 'read_pool', 'resample_pool',
             ]
+            if hasattr(raster, attr)
             for pool in [getattr(raster, attr)]
         }
         for pool_id, pool in pools.items():
@@ -81,12 +95,35 @@ class ActorRastersHandler(object):
             if len(self._rasters_of_pool) == 0:
                 del self._rasters_of_pool[pool_id]
                 msgs += [
-                    actor.address
+                    Msg(actor.address, 'die')
                     for actor in self._actor_addresses_of_pool[pool_id]
                 ]
                 del self._actor_addresses_of_pool[pool_id]
 
         return msgs
+
+    def ext_receive_die(self):
+        """Receive message sent by something else than an actor, still treated synchronously: The
+        DataSource is closing
+        """
+        assert self._alive
+        self._alive = False
+
+        msgs = [
+            Msg(address, 'die')
+            for address in itertools.chain(
+                itertools.chain.from_iterable(self._actor_addresses_of_raster.values()),
+                itertools.chain.from_iterable(self._actor_addresses_of_pool.values()),
+            )
+        ]
+
+        # Clear attributes *****************************************************
+        self._rasters.clear()
+        self._rasters_of_pool.clear()
+        self._actor_addresses_of_raster.clear()
+        self._actor_addresses_of_pool.clear()
+
+        return []
 
     # ******************************************************************************************* **
     def _create_pool_actors(self, pool):
