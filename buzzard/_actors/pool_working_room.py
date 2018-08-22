@@ -1,21 +1,11 @@
-import multiprocessing as mp
-import multiprocessing.pool
 
 class ActorPoolWorkingRoom(object):
     """Actor that takes care of starting/collecting jobs off a thread/process pool"""
 
     def __init__(self, pool):
-        pool_id = id(pool)
         self._pool = pool
         self._jobs = {}
         self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(self._pool))
-
-        if isinstance(pool, mp.pool.ThreadPool):
-            self._same_address_space = True
-        elif isinstance(pool, mp.Pool):
-            self._same_address_space = False
-        else:
-            assert False, 'Unknown pool type'
 
     @property
     def address(self):
@@ -28,7 +18,7 @@ class ActorPoolWorkingRoom(object):
 
         # apply_async(func, args=(), kwds={}, callback=None, error_callback=None)
         future = self._pool.apply_async(
-            job.fn,
+            job.func,
             job.args,
             job.kwds,
         )

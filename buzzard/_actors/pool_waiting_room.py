@@ -2,6 +2,8 @@ import itertools
 import operator
 import functools
 
+from buzzard._actors.priorities import dummy_priorities
+
 class ActorPoolWaitingRoom(object):
     """Actor that takes care of prioritizing jobs waiting for space in a thread/process pool"""
 
@@ -18,6 +20,7 @@ class ActorPoolWaitingRoom(object):
         }
         self._all_tokens = set(self._tokens)
         self._jobs = {}
+        self._prios = dummy_priorities
 
     @property
     def address(self):
@@ -34,8 +37,9 @@ class ActorPoolWaitingRoom(object):
         del self._jobs[jobs]
         return []
 
-    def receive_global_priorities_update(self):
+    def receive_global_priorities_update(self, prios):
         """Receive message: Update your heursitic data used to prioritize jobs"""
+        self._prios = prios
         return []
 
     def receive_salvage_token(self, token):
@@ -50,7 +54,15 @@ class ActorPoolWaitingRoom(object):
         if not self._tokens or not self._jobs:
             return []
         msgs = []
+        prios = self._prios
+        send_count = min(len(self._tokens), len(self._jobs))
 
+        for _ in range(send_count):
+            most_urgent_job = ...
+            del self._jobs[most_urgent_job]
+            msgs += [Msg(
+                job.sender_address, 'token_to_working_room', most_urgent_job, self._tokens.pop()
+            )]
         return msgs
 
     # ******************************************************************************************* **

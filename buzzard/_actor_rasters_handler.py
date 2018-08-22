@@ -1,7 +1,7 @@
 import collections
 
-from buzzard._actors._pool_waiting_room import import ActorPoolWaitingRoom
-from buzzard._actors._pool_working_room import import ActorPoolWorkingRoom
+from buzzard._actors.pool_waiting_room import ActorPoolWaitingRoom
+from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
 
 class ActorRastersHandler(object):
     """Actor that takes care of the lifetime of rasters' and pools' actors"""
