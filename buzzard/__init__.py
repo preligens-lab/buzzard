@@ -12,6 +12,8 @@ from buzzard._datasource import (
     DataSource,
     open_raster,
     open_vector,
+    create_raster,
+    create_vector,
     wrap_numpy_raster
 )
 

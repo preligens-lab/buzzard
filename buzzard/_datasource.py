@@ -248,8 +248,7 @@ class DataSource(DataSourceRegisterMixin):
 
         Returns
         -------
-        one of {GDALFileRaster, GDALMemRaster}
-            depending on the `driver` parameter
+        GDALFileRaster
 
         Example
         -------
@@ -585,7 +584,7 @@ class DataSource(DataSourceRegisterMixin):
 
         Returns
         -------
-        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
+        GDALFileVector
 
         Example
         -------
@@ -887,6 +886,14 @@ def open_raster(*args, **kwargs):
 def open_vector(*args, **kwargs):
     """Shortcut for `DataSource().aopen_vector`"""
     return DataSource().aopen_vector(*args, **kwargs)
+
+def create_raster(*args, **kwargs):
+    """Shortcut for `DataSource().acreate_raster`"""
+    return DataSource().acreate_raster(*args, **kwargs)
+
+def create_vector(*args, **kwargs):
+    """Shortcut for `DataSource().acreate_vector`"""
+    return DataSource().acreate_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
     """Shortcut for `DataSource().awrap_numpy_raster`"""
