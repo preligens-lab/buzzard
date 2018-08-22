@@ -3,6 +3,7 @@ import itertools
 
 from buzzard._actors.pool_waiting_room import ActorPoolWaitingRoom
 from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
+from buzzard._actors.cached.global_priorities_watcher import ActorGlobalPrioritiesWatcher
 
 class ActorTopLevel(object):
     """Actor that takes care of the lifetime of rasters' and pools' actors.
@@ -17,6 +18,7 @@ class ActorTopLevel(object):
         self._actor_addresses_of_raster = {}
         self._actor_addresses_of_pool = {}
 
+        self._primed = False
         self._alive = True
 
     address = '/TopLevel'
@@ -26,6 +28,16 @@ class ActorTopLevel(object):
         return self._alive
 
     # ******************************************************************************************* **
+    def ext_receive_prime(self):
+        """Receive message sent by something else than an actor, still treated synchronously: Prime
+        yourself, we are about to start the show!
+        """
+        assert not self._primed
+        self._primed = True
+        return [
+            ActorGlobalPrioritiesWatcher()
+        ]
+
     def ext_receive_new_raster(self, raster):
         """Receive message sent by something else than an actor, still treated synchronously: There
         is a new raster
@@ -115,7 +127,7 @@ class ActorTopLevel(object):
                 itertools.chain.from_iterable(self._actor_addresses_of_raster.values()),
                 itertools.chain.from_iterable(self._actor_addresses_of_pool.values()),
             )
-        ]
+        ] + [Msg('/GlobalPrioritiesWatcher', 'die')]
 
         # Clear attributes *****************************************************
         self._rasters.clear()
