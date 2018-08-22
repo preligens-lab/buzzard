@@ -1,5 +1,6 @@
 import logging
 
+from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)

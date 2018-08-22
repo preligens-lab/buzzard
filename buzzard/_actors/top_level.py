@@ -1,6 +1,7 @@
 import collections
 import itertools
 
+from buzzard._actors.message import Msg
 from buzzard._actors.pool_waiting_room import ActorPoolWaitingRoom
 from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
 from buzzard._actors.cached.global_priorities_watcher import ActorGlobalPrioritiesWatcher

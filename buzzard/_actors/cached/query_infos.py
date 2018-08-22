@@ -37,7 +37,7 @@ class CacheProduceInfos(NamedTuple(
         ('resample_sample_dep_fp', Mapping[ResampleFootprint, Union[None, SampleFootprint]]),
     ],
 )):
-    """Object that stored many informations about an array to produce"""
+    """Object that stores many informations about an array to produce"""
 
 class CachedQueryInfos(object):
     """Object that stores many informations about a query. Most attributes are immutable.

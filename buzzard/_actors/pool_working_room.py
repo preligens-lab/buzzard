@@ -1,5 +1,7 @@
 import logging
 
+from buzzard._actors.message import Msg
+
 LOGGER = logging.getLogger(__name__)
 
 class ActorPoolWorkingRoom(object):

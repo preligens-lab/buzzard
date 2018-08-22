@@ -3,6 +3,7 @@ import operator
 import functools
 import logging
 
+from buzzard._actors.message import Msg
 from buzzard._actors.priorities import dummy_priorities
 
 LOGGER = logging.getLogger(__name__)
