@@ -10,7 +10,6 @@ class ActorPoolWorkingRoom(object):
     def __init__(self, pool):
         self._pool = pool
         self._jobs = {}
-        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(self._pool))
         self._alive = True
 
     @property
@@ -39,13 +38,13 @@ class ActorPoolWorkingRoom(object):
         """Receive message: Your WaitingRoom allowed a job, but the job does not need to be perfomed
         any more.
         """
-        return [Msg(self._waiting_room_address, 'salvage_token', token)]
+        return [Msg('WaitingRoom', 'salvage_token', token)]
 
     def receive_cancel_job(self, job):
         """Receive message: A Job you launched can be discarded. Loose the reference to the future
         """
         _, token = self._jobs.pop(job)
-        return [Msg(self._waiting_room_address, 'salvage_token', token)]
+        return [Msg('WaitingRoom', 'salvage_token', token)]
 
     def ext_receive_nothing(self):
         """Receive message sent by something else than an actor, still treated synchronously: What's
@@ -64,7 +63,7 @@ class ActorPoolWorkingRoom(object):
             res = future.get()
             msgs += [
                 Msg(job.sender_address, 'job_done', job, res),
-                Msg(self._waiting_room_address, 'salvage_token', token),
+                Msg('WaitingRoom', 'salvage_token', token),
             ]
 
         return msgs
