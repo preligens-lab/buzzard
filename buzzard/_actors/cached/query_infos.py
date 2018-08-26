@@ -1,4 +1,6 @@
-from typing import Set, Dict, List, Sequence, Union, cast, NamedTuple, FrozenSet, Tuple, Mapping, AbstractSet
+from typing import (
+    Set, Dict, List, Sequence, Union, cast, NamedTuple, FrozenSet, Tuple, Mapping, AbstractSet
+)
 import collections
 import queue # Should be imported for `mypy`
 from types import MappingProxyType
@@ -6,28 +8,47 @@ from types import MappingProxyType
 import numpy as np
 from buzzard._footprint import Footprint
 
-class ProdFootprint(Footprint):
-    """A Footprint that is requested by user"""
+class ComputationFootprint(Footprint):
+    """The Footprint that is passed to the user's computation function along with the
+    dict of `collected arrays` and the dict of `CollectionFootprint` to compute the
+    `computed array`.
+    """
 
 class CacheFootprint(Footprint):
-    """The Footprint of a cache file"""
+    """The Footprint of a cache file. The matrix of `CacheFootprints` is always provided by the
+    user when creating a recipe.
+
+    A `cache array` is created by merging one or more `computation array` together. The merging
+    function is provided by user, it might just be a 2d-concatenation.
+    """
 
 class SampleFootprint(Footprint):
     """A Footprint that has to be sampled from cache files. This Footprint is on the same grid and
-    contained in the raster.
+    contained in the raster. It spans on 1 or more cache files.
+
+    A `sample array` is allocated uninitiallized and cache files are read to this array.
     """
 
 class ResampleFootprint(Footprint):
-    """A Footprint that is part of a tiling of a `ProdFootprint`. Most of the time this is a 1x1
-    tiling, so a `ResampleFootprint` is usually the same as the `ProdFootprint`.
-    If the `ResampleFootprint` shares area with the raster and is not on the same grid as the
-    raster, a costly resampling will be performed on a pool using the algorithm given by
-    an `interpolation` parameter.
+    """A Footprint that is part of a tiling of a `ProductionFootprint`. Most of the time this is a 1x1
+    tiling, so a `ResampleFootprint` is usually the same as the `ProductionFootprint`.
+
+    A `resample array` is created by transforming 0 or 1 2d-slice of a `sample array`. Usually this
+    transformation is trivial (identity/np.full/copy/nodata-conversion), but if the
+    `ResampleFootprint` shares area with the raster and is not on the same grid as the raster,
+    a costly resampling will be performed on a pool using the `interpolation` algorithm chosen by
+    the user.
+    """
+
+class ProductionFootprint(Footprint):
+    """A Footprint that is requested by user
+
+    A `production array` is created by 2d-concatenation of `resample arrays`
     """
 
 class CacheProduceInfos(NamedTuple(
     'CacheProduceInfos', [
-        ('fp', ProdFootprint),
+        ('fp', ProductionFootprint),
         ('same_grid', bool),
         ('share_area', bool),
         ('sample_fp', SampleFootprint),
@@ -51,11 +72,8 @@ class CachedQueryInfos(object):
                  band_ids, dst_nodata, interpolation,
                  max_queue_size):
         # Mutable attributes ******************************************************************** **
-        # Since a Query might require missing cache files, some other queries might need to be
-        # opened to primitive arrays
-        # (e.g. to compute all the missing `slopes` cache files required by a query, a
-        # single query to `dsm` will be opened)
-        self.primitive_queues = None # type: Union[None, Dict[str, queue.Queue]]
+        # Attributes that relates a query to a single optional computation phase
+        self.cache_computation = None # type: Union[None, CacheComputationInfos]
 
         # Immutable attributes ****************************************************************** **
         # The parameters given by user in invocation
@@ -73,7 +91,7 @@ class CachedQueryInfos(object):
         to_zip = []
 
         # The list of Footprints requested
-        list_of_prod_fp = list_of_prod_fp # type: List[ProdFootprint]
+        list_of_prod_fp = list_of_prod_fp # type: List[ProductionFootprint]
         to_zip.append(list_of_prod_fp)
 
         # Boolean attribute of each `prod_fp`
@@ -198,3 +216,48 @@ class CachedQueryInfos(object):
 
     def __eq__(self, other):
         return self is other
+
+class CacheComputationInfos(object):
+    """Object that store informations about a computation phase of a query.
+    Instanciating this object also starts the primitives collection from the list of the cache
+    footprints missing. Primitive collection consist of creating new queries to primitive rasters.
+    (e.g. to compute all the missing `slopes` cache files required by a query, a
+    single query to `dsm` will be opened)
+
+    This object is instanciated for each query that requires missing cache file
+    """
+
+    def __init__(self, raster, list_of_cache_fp):
+        """
+        Parameters
+        ----------
+        raster: _a_recipe_raster.ABackRecipeRaster
+        list_of_cache_fp: sequence of Footprint
+            The subset of raster's cache footprints that are missing for a particular query
+        """
+        self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint]
+
+        # Step 1- List compute Footprints
+        l = []
+        seen = set()
+        for cache_fp in self.list_of_cache_fp:
+            for compute_fp in raster.compute_fp_of_cache_fp(cache_fp): # TODO: raster attribue
+                if compute_fp not in seen:
+                    seen.add(compute_fp)
+                    l.append(compute_fp)
+        self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint]
+        self.collected_count = 0 # type: int
+        self.to_collect_count = len(self.list_of_compute_fp) # type: int
+        del l, seen
+
+        # Step 2 - List primtive Footprints
+        primitive_fps_per_primitive = {
+            name: func(self.list_of_compute_fp)
+            for name, func in self._raster.convert_footprint_per_primitive.items() # TODO: raster attribue
+        }
+
+        # Step 3 - Start collection phase
+        self.primitive_queue_per_primitive = {
+            name: func(primitive_fps_per_primitive[name])
+            for name, func in self._raster.queue_data_per_primitive.items() # TODO: raster attribue
+        }
