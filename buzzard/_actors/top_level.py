@@ -42,6 +42,10 @@ class ActorTopLevel(object):
     def ext_receive_new_raster(self, raster):
         """Receive message sent by something else than an actor, still treated synchronously: There
         is a new raster
+
+        Parameter
+        ---------
+        raster: _a_recipe_raster.ABackRecipeRaster
         """
         msgs = []
         self._rasters.add(raster)
@@ -67,7 +71,10 @@ class ActorTopLevel(object):
         }
         for pool_id, pool in pools.items():
             if pool_id not in self._rasters_of_pool:
-                actors = self._create_pool_actors(pool)
+                actors = [
+                    ActorPoolWaitingRoom(pool),
+                    ActorPoolWorkingRoom(pool),
+                ]
                 msgs += actors
 
                 self._actor_addresses_of_pool[pool_id] = [
@@ -82,6 +89,10 @@ class ActorTopLevel(object):
     def ext_receive_kill_raster(self, raster):
         """Receive message sent by something else than an actor, still treated synchronously: An
         actor is closing
+
+        Parameter
+        ---------
+        raster: _a_recipe_raster.ABackRecipeRaster
         """
         msgs = []
         self._rasters.remove(raster)
@@ -137,12 +148,5 @@ class ActorTopLevel(object):
         self._actor_addresses_of_pool.clear()
 
         return []
-
-    # ******************************************************************************************* **
-    def _create_pool_actors(self, pool):
-        return [
-            ActorPoolWaitingRoom(pool),
-            ActorPoolWorkingRoom(pool),
-        ]
 
     # ******************************************************************************************* **

@@ -12,6 +12,11 @@ class ActorPoolWaitingRoom(object):
     """Actor that takes care of prioritizing jobs waiting for space in a thread/process pool"""
 
     def __init__(self, pool):
+        """
+        Parameter
+        ---------
+        pool: multiprocessing.Pool (or multiprocessing.pool.ThreadPool superclass)
+        """
         pool_id = id(pool)
         self._pool_id = pool_id
         self._token_count = pool._processes
@@ -37,22 +42,42 @@ class ActorPoolWaitingRoom(object):
 
     # ******************************************************************************************* **
     def receive_schedule_job(self, job):
-        """Receive message: Schedule this job someday"""
+        """Receive message: Schedule this job someday
+
+        Parameters
+        ----------
+        job: _caching.pool_job.PoolJobWaiting
+        """
         self._jobs[job] = 42
         return self._schedule_jobs()
 
     def receive_unschedule_job(self, job):
-        """Receive message: Forget about this waiting job"""
+        """Receive message: Forget about this waiting job
+
+        Parameters
+        ----------
+        job: _caching.pool_job.PoolJobWaiting
+        """
         del self._jobs[job]
         return []
 
     def receive_global_priorities_update(self, prios):
-        """Receive message: Update your heursitic data used to prioritize jobs"""
+        """Receive message: Update your heursitic data used to prioritize jobs
+
+        Parameters
+        ----------
+        job: _caching.priorities.Priorities
+        """
         self._prios = prios
         return []
 
     def receive_salvage_token(self, token):
-        """Receive message: A Job is done/cancelled, allow some other job"""
+        """Receive message: A Job is done/cancelled, allow some other job
+
+        Parameters
+        ----------
+        token: _PoolToken
+        """
         assert token in self._all_tokens, 'Received a token that is not owned by this waiting room'
         assert token not in self._tokens, 'Received a token that is already here'
         self._tokens.add(token)

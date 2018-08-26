@@ -9,6 +9,11 @@ class ActorQueriesHandler(object):
     """Actor that takes care of the lifetime of a raster's queries"""
 
     def __init__(self, raster):
+        """
+        Parameter
+        ---------
+        raster: _a_recipe_raster.ABackRecipeRaster
+        """
         self._raster = raster
         self._queries = {}
         self._alive = True
@@ -27,8 +32,21 @@ class ActorQueriesHandler(object):
         """Receive message sent by something else than an actor, still treated synchronously: There
         is a new query.
 
-        The last 4 parameters are the arguments provided by the user before starting this query.
-        The first 2 parameters describe the queue that was given to the user as a return value.
+        Parameters
+        ----------
+        queue_wref: weakref.ref of queue.Queue
+           Queue returned by the underlying `queue_data` (or behind a `(get|iter)_data`).
+        max_queue_size: int
+           Max queue size of the queue returned by the underlying `queue_data`
+           (or behind a `(get|iter)_data`).
+        produce_fps: sequence of Footprint
+           Parameter of the underlying `(get|iter|queue)_data`
+        band_ids: sequence of int
+           Parameter of the underlying `(get|iter|queue)_data`
+        dst_nodata: nbr
+           Parameter of the underlying `(get|iter|queue)_data`
+        interpolation: str
+           Parameter of the underlying `(get|iter|queue)_data`
         """
         msgs = []
 
@@ -82,6 +100,12 @@ class ActorQueriesHandler(object):
     def receive_made_this_array(self, qi, prod_id, array):
         """Receive message: This array is ready to be sent to the output queue. Just do it in the
         righ order.
+
+        Parameters
+        ----------
+        qi: _actors.cached.query_infos.QueryInfos
+        prod_id: int
+        array: np.ndarray
         """
         msgs = []
         q = self._queries[qi]
@@ -126,9 +150,14 @@ class ActorQueriesHandler(object):
 
     def receive_die(self):
         """Receive message: The raster was killed"""
+        assert self._alive
+        self._alive = False
+
         msgs = []
         for qi in list(self._queries.keys()):
             msgs += self._cancel_query(qi)
+
+        self._queries.clear()
         return msgs
 
     # ******************************************************************************************* **

@@ -5,9 +5,14 @@ from buzzard._actors.message import Msg
 LOGGER = logging.getLogger(__name__)
 
 class ActorPoolWorkingRoom(object):
-    """Actor that takes care of starting/collecting jobs off a thread/process pool"""
+    """Actor that takes care of starting/collecting jobs on/off a thread/process pool"""
 
     def __init__(self, pool):
+        """
+        Parameter
+        ---------
+        pool: multiprocessing.Pool (or multiprocessing.pool.ThreadPool superclass)
+        """
         self._pool = pool
         self._jobs = {}
         self._alive = True
@@ -22,10 +27,16 @@ class ActorPoolWorkingRoom(object):
 
     # ******************************************************************************************* **
     def receive_launch_job_with_token(self, job, token):
-        """Receive message: Launch this job that has a token from your WaitingRoom"""
+        """Receive message: Launch this job that has a token from your WaitingRoom
+
+        Parameters
+        ----------
+        job: _caching.pool_job.PoolJobWorking
+        token: _caching.pool_waiting_room._PoolToken (superclass of int)
+        """
         assert job not in self._jobs
 
-        # apply_async(func, args=(), kwds={}, callback=None, error_callback=None)
+        # Pool.apply_async(func, args=(), kwds={}, callback=None, error_callback=None)
         future = self._pool.apply_async(
             job.func,
             job.args,
@@ -37,11 +48,19 @@ class ActorPoolWorkingRoom(object):
     def receive_salvage_token(self, token):
         """Receive message: Your WaitingRoom allowed a job, but the job does not need to be perfomed
         any more.
+
+        Parameters
+        ----------
+        token: _caching.pool_waiting_room._PoolToken (superclass of int)
         """
         return [Msg('WaitingRoom', 'salvage_token', token)]
 
     def receive_cancel_job(self, job):
         """Receive message: A Job you launched can be discarded. Loose the reference to the future
+
+        Parameters
+        ----------
+        job: _caching.pool_job.PoolJobWorking
         """
         _, token = self._jobs.pop(job)
         return [Msg('WaitingRoom', 'salvage_token', token)]
