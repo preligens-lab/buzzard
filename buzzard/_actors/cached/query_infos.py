@@ -232,16 +232,16 @@ class CacheComputationInfos(object):
         Parameters
         ----------
         raster: _a_recipe_raster.ABackRecipeRaster
-        list_of_cache_fp: sequence of Footprint
+        list_of_cache_fp: sequence of CacheFootprint
             The subset of raster's cache footprints that are missing for a particular query
         """
         self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint]
 
-        # Step 1- List compute Footprints
+        # Step 1 - List compute Footprints
         l = []
         seen = set()
         for cache_fp in self.list_of_cache_fp:
-            for compute_fp in raster.compute_fp_of_cache_fp(cache_fp): # TODO: raster attribue
+            for compute_fp in raster.compute_fp_of_cache_fp(cache_fp):
                 if compute_fp not in seen:
                     seen.add(compute_fp)
                     l.append(compute_fp)
@@ -253,11 +253,11 @@ class CacheComputationInfos(object):
         # Step 2 - List primtive Footprints
         primitive_fps_per_primitive = {
             name: func(self.list_of_compute_fp)
-            for name, func in self._raster.convert_footprint_per_primitive.items() # TODO: raster attribue
+            for name, func in self._raster.convert_footprint_per_primitive.items()
         }
 
         # Step 3 - Start collection phase
         self.primitive_queue_per_primitive = {
             name: func(primitive_fps_per_primitive[name])
-            for name, func in self._raster.queue_data_per_primitive.items() # TODO: raster attribue
+            for name, func in self._raster.queue_data_per_primitive.items()
         }

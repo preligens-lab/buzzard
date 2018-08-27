@@ -130,6 +130,9 @@ def grouper(iterable, n, fillvalue=None):
     return itertools.zip_longest(*args, fillvalue=fillvalue)
 
 def short_id_of_id(id, max_digit_count=3):
+    """Shorten an integer
+    Group of digits are xor'd together
+    """
     id = int(id)
     it = reversed(str(id))
     it = grouper(it, max_digit_count, '0')
@@ -137,5 +140,5 @@ def short_id_of_id(id, max_digit_count=3):
         int(''.join(reversed(char_list)))
         for char_list in it
     )
-    short_id = functools.reduce(operator.xor, it)
+    short_id = functools.reduce(operator.xor, it) % 10 ** max_digit_count
     return short_id
