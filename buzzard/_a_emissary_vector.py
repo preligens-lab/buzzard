@@ -2,8 +2,7 @@ from buzzard._a_stored_vector import AStoredVector, ABackStoredVector
 from buzzard._a_emissary import AEmissary, ABackEmissary
 
 class AEmissaryVector(AEmissary, AStoredVector):
-    """Proxy that has both Emissary and Vector specifications
-    """
+    """Proxy that has both Emissary and Vector specifications"""
 
     @property
     def layer(self):

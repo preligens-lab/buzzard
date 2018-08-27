@@ -6,8 +6,7 @@ from buzzard._a_stored import AStored, ABackStored
 from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
 
 class AStoredRaster(AStored, AProxyRaster):
-    """Proxy that has both Stored and Raster specifications
-    """
+    """Proxy that has both Stored and Raster specifications"""
 
     def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None):
         """Write a rectangle of data on several channels to the destination raster. An optional

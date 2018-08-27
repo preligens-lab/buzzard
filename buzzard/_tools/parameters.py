@@ -200,6 +200,11 @@ def sanitize_band_schema(band_schema, band_count):
                 raise ValueError('per_dataset mask must be shared with same flags')
         ret['mask'] = [conv.str_of_gmf(v) for v in ret['mask']]
 
+
+    ret = {
+        k: tuple(v)
+        for k, v in ret.items()
+    }
     return ret
 
 
