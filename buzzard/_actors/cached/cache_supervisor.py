@@ -3,8 +3,9 @@ import os
 import collections
 
 from buzzard._actors.message import Msg
+from buzzard._actors.cached.query_infos import CacheComputationInfos
 
-class ActorCaching(object):
+class ActorCacheSupervisor(object):
     """Actor that takes care of tracking, checking and schedule computation of cache files"""
 
     def __init__(self, raster):
@@ -23,7 +24,7 @@ class ActorCaching(object):
 
     # ******************************************************************************************* **
     def receive_make_those_cache_files_available(self, qi):
-        """Receive message: Ensure that the cache tiles for this query can be read, if necessary
+        """Receive message: Ensure that the cache files for this query can be read, if necessary
         create the missing ones, but launch at most one collection process. If several are missing,
         compute those in the same order as the query needs it.
 
@@ -81,7 +82,7 @@ class ActorCaching(object):
             if len(query.cache_fps_to_compute) > 0:
                 # Some tiles need to be computed and none need to be checked, launching collection right
                 # now
-                msgs += self._query_collection_ready(qi, query)
+                msgs += self._query_start_collection(qi, query)
 
         return msgs
 
@@ -130,7 +131,7 @@ class ActorCaching(object):
                     if len(query.cache_fps_to_compute) > 0:
                         # Some tiles need to be computed and none need to be checked, launching collection right
                         # now
-                        msgs += self._query_collection_ready(qi, query)
+                        msgs += self._query_start_collection(qi, query)
 
         for qi in queries_treated:
             del self._queries[qi]
@@ -173,7 +174,7 @@ class ActorCaching(object):
         self._queries.clear()
 
     # ******************************************************************************************* **
-    def _query_collection_ready(self, qi, query):
+    def _query_start_collection(self, qi, query):
         assert len(query.cache_fps_checking) == 0
         assert len(query.cache_fps_to_compute) > 0
         cache_fps = [
@@ -181,7 +182,9 @@ class ActorCaching(object):
             for fp in qi.list_of_cache_fp
             if fp in query.cache_fps_to_compute
         ]
-        return [Msg('ComputationGate', 'compute_those_cache_files', qi, cache_fps)]
+        assert qi.cache_computation is None
+        qi.cache_computation = CacheComputationInfos(self._raster, cache_fps)
+        return [Msg('ComputationGate', 'compute_those_cache_files', qi)]
 
     # ******************************************************************************************* **
 
