@@ -53,7 +53,7 @@ class CacheProduceInfos(NamedTuple(
         ('share_area', bool),
         ('sample_fp', SampleFootprint),
         ('cache_fps', FrozenSet[CacheFootprint]),
-        ('resample_fps', Tuple[ResampleFootprint]),
+        ('resample_fps', Tuple[ResampleFootprint, ...]),
         ('resample_cache_deps_fps', Mapping[ResampleFootprint, FrozenSet[CacheFootprint]]),
         ('resample_sample_dep_fp', Mapping[ResampleFootprint, Union[None, SampleFootprint]]),
     ],
@@ -122,7 +122,7 @@ class CachedQueryInfos(object):
 
         # The list of resamplings to perform for each `prod_fp`
         # Always at least 1 resampling per `prod_fp`
-        list_of_prod_resample_fps = [] # type: List[Tuple[ResampleFootprint]]
+        list_of_prod_resample_fps = [] # type: List[Tuple[ResampleFootprint, ...]]
         to_zip.append(list_of_prod_resample_fps)
 
         # The set of `cache_fp` necessary per `resample_fp` for each `prod_fp`
@@ -187,7 +187,7 @@ class CachedQueryInfos(object):
         self.prod = tuple([
             CacheProduceInfos(*args)
             for args in zip(*to_zip)
-        ]) # type: Tuple[CacheProduceInfos]
+        ]) # type: Tuple[CacheProduceInfos, ...]
 
         # Misc *****************************************************************
         # The list of all cache Footprints needed, ordered by priority
@@ -235,7 +235,7 @@ class CacheComputationInfos(object):
         list_of_cache_fp: sequence of CacheFootprint
             The subset of raster's cache footprints that are missing for a particular query
         """
-        self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint]
+        self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint, ...]
 
         # Step 1 - List compute Footprints
         l = []
@@ -245,7 +245,7 @@ class CacheComputationInfos(object):
                 if compute_fp not in seen:
                     seen.add(compute_fp)
                     l.append(compute_fp)
-        self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint]
+        self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint, ...]
         self.collected_count = 0 # type: int
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
         del l, seen

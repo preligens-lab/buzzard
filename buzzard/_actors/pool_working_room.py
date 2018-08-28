@@ -31,17 +31,12 @@ class ActorPoolWorkingRoom(object):
 
         Parameters
         ----------
-        job: _caching.pool_job.PoolJobWorking
-        token: _caching.pool_waiting_room._PoolToken (superclass of int)
+        job: _actors.pool_job.PoolJobWorking
+        token: _actors.pool_waiting_room._PoolToken (superclass of int)
         """
         assert job not in self._jobs
 
-        # Pool.apply_async(func, args=(), kwds={}, callback=None, error_callback=None)
-        future = self._pool.apply_async(
-            job.func,
-            job.args,
-            job.kwds,
-        )
+        future = self._pool.apply_async(job.func)
         self._jobs[job] = (future, token)
         return []
 
@@ -51,7 +46,7 @@ class ActorPoolWorkingRoom(object):
 
         Parameters
         ----------
-        token: _caching.pool_waiting_room._PoolToken (superclass of int)
+        token: _actors.pool_waiting_room._PoolToken (superclass of int)
         """
         return [Msg('WaitingRoom', 'salvage_token', token)]
 
@@ -60,7 +55,7 @@ class ActorPoolWorkingRoom(object):
 
         Parameters
         ----------
-        job: _caching.pool_job.PoolJobWorking
+        job: _actors.pool_job.PoolJobWorking
         """
         _, token = self._jobs.pop(job)
         return [Msg('WaitingRoom', 'salvage_token', token)]

@@ -21,6 +21,15 @@ class ActorCacheSupervisor(object):
         }
         self._path_of_cache_fp = {}
         self._queries = {}
+        self._alive = True
+
+    @property
+    def address(self):
+        return '/Raster{}/CacheSupervisor'.format(self._raster.uid)
+
+    @property
+    def alive(self):
+        return self._alive
 
     # ******************************************************************************************* **
     def receive_make_those_cache_files_available(self, qi):
@@ -156,7 +165,7 @@ class ActorCacheSupervisor(object):
         ]
         return msgs
 
-    def receive_query_dropped(self, qi):
+    def receive_cancel_this_query(self, qi):
         """Receive message: One query was dropped
 
         Parameters
