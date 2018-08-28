@@ -3,6 +3,7 @@
 # pylint: disable=too-many-lines
 import ntpath
 import numbers
+import sys
 
 from osgeo import osr
 import numpy as np
@@ -873,33 +874,31 @@ class DataSource(DataSourceRegisterMixin):
 
 
     # Deprecation ******************************************************************************* **
-    open_araster = deprecation_pool.add_deprecated_method(
-        'DataSource',
-        'aopen_raster',
-        'open_araster',
+    open_araster = deprecation_pool.wrap_method(
+        aopen_raster,
         '0.4.4'
     )
-    create_araster = deprecation_pool.add_deprecated_method(
-        'DataSource',
-        'acreate_raster',
-        'create_araster',
+    create_araster = deprecation_pool.wrap_method(
+        acreate_raster,
         '0.4.4'
     )
-    open_avector = deprecation_pool.add_deprecated_method(
-        'DataSource',
-        'aopen_vector',
-        'open_avector',
+    open_avector = deprecation_pool.wrap_method(
+        aopen_vector,
         '0.4.4'
     )
-    create_avector = deprecation_pool.add_deprecated_method(
-        'DataSource',
-        'acreate_vector',
-        'create_avector',
+    create_avector = deprecation_pool.wrap_method(
+        acreate_vector,
         '0.4.4'
     )
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
+
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in DataSource.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(DataSource, k)
 
 def open_raster(*args, **kwargs):
     """Shortcut for `DataSource().aopen_raster`"""

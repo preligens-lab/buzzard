@@ -1,3 +1,5 @@
+import sys
+
 from osgeo import osr
 
 from buzzard import _tools
@@ -71,17 +73,12 @@ class AProxy(object):
             self.close()
 
     # Deprecation
-    wkt_origin = _tools.deprecation_pool.add_deprecated_property(
-        'AProxy',
+    wkt_origin = _tools.deprecation_pool.wrap_property(
         'wkt_virtual',
-        'wkt_origin',
         '0.4.4'
     )
-
-    proj4_origin = _tools.deprecation_pool.add_deprecated_property(
-        'AProxy',
+    proj4_origin = _tools.deprecation_pool.wrap_property(
         'proj4_virtual',
-        'proj4_origin',
         '0.4.4'
     )
 
@@ -128,3 +125,9 @@ class ABackProxy(object):
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': AProxy.close.__doc__,
 })
+
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in AProxy.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(AProxy, k)

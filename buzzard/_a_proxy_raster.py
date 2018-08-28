@@ -1,3 +1,5 @@
+import sys
+
 from buzzard._a_proxy import AProxy, ABackProxy
 from buzzard._a_proxy_raster_remap import ABackProxyRasterRemapMixin
 from buzzard._footprint import Footprint
@@ -134,10 +136,8 @@ class AProxyRaster(AProxy):
         ).reshape(outshape)
 
     # Deprecation
-    fp_origin = _tools.deprecation_pool.add_deprecated_property(
-        'AProxyRaster',
+    fp_origin = _tools.deprecation_pool.wrap_property(
         'fp_stored',
-        'fp_origin',
         '0.4.4'
     )
 
@@ -178,3 +178,9 @@ class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
 
     def get_data(self, fp, band_ids, dst_nodata, interpolation): # pragma: no cover
         raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')
+
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in AProxyRaster.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(AProxyRaster, k)

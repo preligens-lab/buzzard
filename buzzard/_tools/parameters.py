@@ -214,32 +214,56 @@ class _DeprecationPool(Singleton):
     def __init__(self):
         self._seen = set()
 
-    def add_deprecated_method(self, class_name, new_name, old_name, deprecation_version):
-        key = (class_name, new_name, old_name)
+    class _MethodWrapper(object):
+        """Descriptor object to manage deprecation"""
+        def __init__(self, method, deprecation_version, seen):
+            self._method = method
+            self._deprecation_version = deprecation_version
+            self._seen = seen
+            self._old_name = None
+            self._key = None
 
-        def _f(this, *args, **kwargs):
-            if key not in self._seen:
-                self._seen.add(key)
+        def __get__(self, instance, owner):
+            assert self._key is not None
+            if self._key not in self._seen:
+                self._seen.add(self._key)
                 logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
-                    old_name, deprecation_version, new_name,
+                    self._old_name, self._deprecation_version, self._method.__name__,
                 ))
-            return getattr(this, new_name)(*args, **kwargs)
+            return self._method.__get__(instance, owner)
 
-        return _f
+        def __set_name__(self, owner, name):
+            self._old_name = name
+            self._key = (self._method, name)
 
-    def add_deprecated_property(self, class_name, new_name, old_name, deprecation_version):
+    class _PropertyWrapper(object):
+        """Descriptor object to manage deprecation"""
+        def __init__(self, new_property_name, deprecation_version, seen):
+            self._new_property_name = new_property_name
+            self._deprecation_version = deprecation_version
+            self._seen = seen
+            self._old_name = None
+            self._key = None
 
-        key = (class_name, new_name, old_name)
-
-        def _f(this):
-            if key not in self._seen:
-                self._seen.add(key)
+        def __get__(self, instance, owner):
+            assert self._key is not None
+            if self._key not in self._seen:
+                self._seen.add(self._key)
                 logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
-                    old_name, deprecation_version, new_name,
+                    self._old_name, self._deprecation_version, self._new_property_name,
                 ))
-            return getattr(this, new_name)
+            return getattr(instance, self._new_property_name)
 
-        return property(_f)
+        def __set_name__(self, owner, name):
+            self._old_name = name
+            self._key = (owner, self._new_property_name, name)
+
+
+    def wrap_method(self, method, deprecation_version):
+        return self._MethodWrapper(method, deprecation_version, self._seen)
+
+    def wrap_property(self, new_property, deprecation_version):
+        return self._PropertyWrapper(new_property, deprecation_version, self._seen)
 
     def streamline_with_kwargs(self, new_name, old_names, context,
                                new_name_value, new_name_is_provided, user_kwargs):
