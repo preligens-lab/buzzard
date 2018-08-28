@@ -63,8 +63,7 @@ class ActorTopLevel(object):
         pools = {
             id(pool): pool
             for attr in [
-                'computation_pool', 'merge_pool', 'write_pool',
-                'file_checker_pool', 'read_pool', 'resample_pool',
+                'computation_pool', 'merge_pool', 'io_pool', 'resample_pool',
             ]
             if hasattr(raster, attr)
             for pool in [getattr(raster, attr)]

@@ -235,6 +235,11 @@ class CacheComputationInfos(object):
         list_of_cache_fp: sequence of CacheFootprint
             The subset of raster's cache footprints that are missing for a particular query
         """
+
+        # Mutable **************************************************************
+        self.collected_count = 0 # type: int
+
+        # Immutable ************************************************************
         self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint, ...]
 
         # Step 1 - List compute Footprints
@@ -246,7 +251,6 @@ class CacheComputationInfos(object):
                     seen.add(compute_fp)
                     l.append(compute_fp)
         self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint, ...]
-        self.collected_count = 0 # type: int
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
         del l, seen
 
@@ -261,3 +265,6 @@ class CacheComputationInfos(object):
             name: func(primitive_fps_per_primitive[name])
             for name, func in self._raster.queue_data_per_primitive.items()
         }
+
+    def pull_primitives(self, prim_idx):
+        assert prim_idx == self.collected_count

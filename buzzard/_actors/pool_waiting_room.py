@@ -3,13 +3,16 @@ import itertools
 import operator
 import functools
 import logging
+import uuid # For mypy
 
 import sortedcontainers # TODO: add to requirements.txt
 import numpy as np
 
+from buzzard._footprint import Footprint # For mypy
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import PoolJobWaiting, MaxPrioJobWaiting, ProductionJobWaiting, CacheJobWaiting
 from buzzard._actors.priorities import dummy_priorities
+from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,11 +42,12 @@ class ActorPoolWaitingRoom(object):
         """
         Parameters
         ----------
-        pool: multiprocessing.Pool (or multiprocessing.pool.ThreadPool superclass)
+        pool: multiprocessing.pool.Pool (or the multiprocessing.pool.ThreadPool subclass)
         """
 
         # `global_priorities` contains all the methods necessary to establish the priority of a
-        # `prod_job` or a `cache_job`. This object is updated as soon as there is un update.
+        # `prod_job` or a `cache_job`. This object is updated by
+        # `receive_global_priorities_update` as soon as there is an update.
         self._global_priorities = dummy_priorities
 
         self._alive = True
@@ -69,16 +73,16 @@ class ActorPoolWaitingRoom(object):
         self._jobs_prod = set() # type: Set[ProductionJobWaiting]
         self._jobs_cache = set() # type: Set[CacheJobWaiting]
 
-        self._dict_of_prio_per_r1job = dict() # type: Dict[PoolJobWaiting, Tuple[int, ...]]
+        self._dict_of_prio_per_r1job = {} # type: Dict[PoolJobWaiting, Tuple[int, ...]]
         self._sset_of_prios = sortedcontainers.SortedSet()
-        self._dict_of_r1jobs_per_prio = dict() # type: Dict[Tuple[int], Set[PoolJobWaiting]]
+        self._dict_of_r1jobs_per_prio = {} # type: Dict[Tuple[int], Set[PoolJobWaiting]]
 
-        self._prod_jobs_of_query # type: Dict[CachedQueryInfos, Set[ProductionJobWaiting]]
-        self._cache_jobs_of_cache_fp # type: Dict[Tuple[uuid.UUID, Footprint], Set[CacheJobWaiting]]
+        self._prod_jobs_of_query = {} # type: Dict[CachedQueryInfos, Set[ProductionJobWaiting]]
+        self._cache_jobs_of_cache_fp = {} # type: Dict[Tuple[uuid.UUID, Footprint], Set[CacheJobWaiting]]
 
         # Shortcuts **************************************************
         # For fast iteration / cleanup
-        self._job_sets = [self._job_maxprio, self._jobs_prod, self._jobs_cache]
+        self._job_sets = [self._jobs_maxprio, self._jobs_prod, self._jobs_cache]
         self._data_structures = self._job_sets + [
             self._dict_of_prio_per_r1job,
             self._sset_of_prios,
@@ -128,26 +132,24 @@ class ActorPoolWaitingRoom(object):
         Parameters
         ----------
         global_priorities:
-        query_updates: sequence of CachedQueryInfos
-        cache_fp_updates: sequence of (raster_uid, Footprint)
+        query_updates: set of CachedQueryInfos
+        cache_fp_updates: set of (raster_uid, Footprint)
         """
         # Update the version of `global_priorities`
         self._global_priorities = global_priorities
 
         # Update the production jobs
-        for qi in query_updates:
-            if qi not in self._prod_jobs_of_query:
-                continue
+        for qi in query_updates & self._prod_jobs_of_query.keys():
             for job in list(self._prod_jobs_of_query[qi]):
+                # Update priority
                 self._unstore_job(job)
                 self._store_job(job)
 
         # Update the cache jobs
-        for raster_uid, cache_fp in cache_fp_updates:
+        for raster_uid, cache_fp in cache_fp_updates & self._cache_jobs_of_cache_fp.keys():
             key = (raster_uid, cache_fp)
-            if key not in self._cache_jobs_of_cache_fp:
-                continue
             for job in list(self._cache_jobs_of_cache_fp[key]):
+                # Update priority
                 self._unstore_job(job)
                 self._store_job(job)
 
@@ -303,7 +305,7 @@ class ActorPoolWaitingRoom(object):
 
         # Unstore a rank 0 job
         if len(self._jobs_maxprio) > 0:
-            job = self._job_maxprio.pop() # Pop an arbitrary one
+            job = self._jobs_maxprio.pop() # Pop an arbitrary one
             return job
 
         # Unstore a rank 1 job

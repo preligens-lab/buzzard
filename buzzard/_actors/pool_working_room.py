@@ -11,7 +11,7 @@ class ActorPoolWorkingRoom(object):
         """
         Parameter
         ---------
-        pool: multiprocessing.Pool (or multiprocessing.pool.ThreadPool superclass)
+        pool: multiprocessing.pool.Pool (or the multiprocessing.pool.ThreadPool subclass)
         """
         self._pool = pool
         self._jobs = {}
