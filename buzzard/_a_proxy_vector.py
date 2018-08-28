@@ -298,6 +298,14 @@ class AProxyVector(AProxy):
         else: # pragma: no cover
             raise TypeError('`mask` should be a Footprint, an extent or a shapely object')
 
+    # Deprecation
+    extent_origin = _tools.deprecation_pool.add_deprecated_property(
+        'AProxyVector',
+        'extent_stored',
+        'extent_origin',
+        '0.4.4'
+    )
+
 class ABackProxyVector(ABackProxy):
     """Implementation of AProxyVector's specifications"""
 
@@ -338,5 +346,3 @@ class ABackProxyVector(ABackProxy):
 
     def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip): # pragma: no cover
         raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')
-
-_tools.deprecation_pool.add_deprecated_property(AProxyVector, 'extent_stored', 'extent_origin', '0.4.4')

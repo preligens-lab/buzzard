@@ -871,13 +871,35 @@ class DataSource(DataSourceRegisterMixin):
             if prox.active:
                 prox.deactivate()
 
+
+    # Deprecation ******************************************************************************* **
+    open_araster = deprecation_pool.add_deprecated_method(
+        'DataSource',
+        'aopen_raster',
+        'open_araster',
+        '0.4.4'
+    )
+    create_araster = deprecation_pool.add_deprecated_method(
+        'DataSource',
+        'acreate_raster',
+        'create_araster',
+        '0.4.4'
+    )
+    open_avector = deprecation_pool.add_deprecated_method(
+        'DataSource',
+        'aopen_vector',
+        'open_avector',
+        '0.4.4'
+    )
+    create_avector = deprecation_pool.add_deprecated_method(
+        'DataSource',
+        'acreate_vector',
+        'create_avector',
+        '0.4.4'
+    )
+
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
-
-deprecation_pool.add_deprecated_method(DataSource, 'aopen_raster', 'open_araster', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_araster', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
 
 def open_raster(*args, **kwargs):
     """Shortcut for `DataSource().aopen_raster`"""

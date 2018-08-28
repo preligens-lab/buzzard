@@ -214,10 +214,9 @@ class _DeprecationPool(Singleton):
     def __init__(self):
         self._seen = set()
 
-    def add_deprecated_method(self, class_obj, new_name, old_name, deprecation_version):
-        key = (class_obj.__name__, new_name, old_name)
+    def add_deprecated_method(self, class_name, new_name, old_name, deprecation_version):
+        key = (class_name, new_name, old_name)
 
-        @functools.wraps(getattr(class_obj, new_name))
         def _f(this, *args, **kwargs):
             if key not in self._seen:
                 self._seen.add(key)
@@ -226,13 +225,12 @@ class _DeprecationPool(Singleton):
                 ))
             return getattr(this, new_name)(*args, **kwargs)
 
-        setattr(class_obj, old_name, _f)
+        return _f
 
-    def add_deprecated_property(self, class_obj, new_name, old_name, deprecation_version):
+    def add_deprecated_property(self, class_name, new_name, old_name, deprecation_version):
 
-        key = (class_obj.__name__, new_name, old_name)
+        key = (class_name, new_name, old_name)
 
-        @functools.wraps(getattr(class_obj, new_name).fget)
         def _f(this):
             if key not in self._seen:
                 self._seen.add(key)
@@ -241,7 +239,7 @@ class _DeprecationPool(Singleton):
                 ))
             return getattr(this, new_name)
 
-        setattr(class_obj, old_name, property(_f))
+        return property(_f)
 
     def streamline_with_kwargs(self, new_name, old_names, context,
                                new_name_value, new_name_is_provided, user_kwargs):

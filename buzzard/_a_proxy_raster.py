@@ -133,6 +133,14 @@ class AProxyRaster(AProxy):
             interpolation=interpolation,
         ).reshape(outshape)
 
+    # Deprecation
+    fp_origin = _tools.deprecation_pool.add_deprecated_property(
+        'AProxyRaster',
+        'fp_stored',
+        'fp_origin',
+        '0.4.4'
+    )
+
 class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
     """Implementation of AProxyRaster's specifications"""
 
@@ -170,5 +178,3 @@ class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
 
     def get_data(self, fp, band_ids, dst_nodata, interpolation): # pragma: no cover
         raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')
-
-_tools.deprecation_pool.add_deprecated_property(AProxyRaster, 'fp_stored', 'fp_origin', '0.4.4')

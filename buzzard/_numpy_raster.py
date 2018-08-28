@@ -15,6 +15,7 @@ class NumpyRaster(AStoredRaster):
 
     @property
     def array(self):
+        """Returns the Raster's full input data as a Numpy array"""
         assert (
             self._arr_address == self._back._arr.__array_interface__['data'][0]
         )

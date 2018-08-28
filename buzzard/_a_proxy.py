@@ -70,6 +70,21 @@ class AProxy(object):
         if hasattr(self, '_ds'):
             self.close()
 
+    # Deprecation
+    wkt_origin = _tools.deprecation_pool.add_deprecated_property(
+        'AProxy',
+        'wkt_virtual',
+        'wkt_origin',
+        '0.4.4'
+    )
+
+    proj4_origin = _tools.deprecation_pool.add_deprecated_property(
+        'AProxy',
+        'proj4_virtual',
+        'proj4_origin',
+        '0.4.4'
+    )
+
 class ABackProxy(object):
     """Implementation of AProxy's specifications"""
 
@@ -109,9 +124,6 @@ class ABackProxy(object):
         if self.wkt_stored is None:
             return None # pragma: no cover
         return osr.SpatialReference(self.wkt_stored).ExportToProj4()
-
-_tools.deprecation_pool.add_deprecated_property(AProxy, 'wkt_virtual', 'wkt_origin', '0.4.4')
-_tools.deprecation_pool.add_deprecated_property(AProxy, 'proj4_virtual', 'proj4_origin', '0.4.4')
 
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': AProxy.close.__doc__,
