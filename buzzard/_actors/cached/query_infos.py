@@ -202,13 +202,21 @@ class CachedQueryInfos(object):
         del seen
 
         # The dict of cache Footprint to set of production idxs
-        self.dict_of_cache_prod_idxs = collections.defaultdict(set) # type: Mapping[CacheFootprint, AbstractSet[int]]
+        # For each `cache_fp`, the set of prod_idx that need this cache tile
+        self.dict_of_prod_idxs_per_cache_fp = collections.defaultdict(set) # type: Mapping[CacheFootprint, AbstractSet[int]]
         for i, (prod_fp, cache_fps) in enumerate(zip(self.list_of_prod_fp, self.list_of_prod_cache_fps)):
             for cache_fp in cache_fps:
-                self.dict_of_cache_prod_idxs[cache_fp].add(i)
-        for k, v in self.dict_of_cache_prod_idxs.items():
-            self.dict_of_cache_prod_idxs[k] = frozenset(v)
-        self.dict_of_cache_prod_idxs = MappingProxyType(self.dict_of_cache_prod_idxs)
+                self.dict_of_prod_idxs_per_cache_fp[cache_fp].add(i)
+        for k, v in self.dict_of_prod_idxs_per_cache_fp.items():
+            self.dict_of_prod_idxs_per_cache_fp[k] = frozenset(v)
+        self.dict_of_prod_idxs_per_cache_fp = MappingProxyType(self.dict_of_prod_idxs_per_cache_fp)
+
+        # The dict of cache Footprint to production_idx
+        # For each `cache_fp`, the minimum prod_idx that need this cache tile
+        self.dict_of_min_prod_idx_per_cache_fp = {} # type: Mapping[CacheFootprint, AbstractSet[int]]
+        for k, v in self.dict_of_prod_idxs_per_cache_fp.items():
+            self.dict_of_prod_idxs_per_cache_fp[k] = min(v)
+        self.dict_of_min_prod_idx_per_cache_fp = MappingProxyType(self.dict_of_min_prod_idx_per_cache_fp)
 
         # *************************************************************************************** **
     def __hash__(self):

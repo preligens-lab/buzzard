@@ -22,6 +22,8 @@ class CacheJobWaiting(PoolJobWaiting):
 
 # Working *************************************************************************************** **
 class PoolJobWorking(object):
+    __slots__ = ['sender_address', 'func']
+
     def __init__(self, sender_address, func):
         self.sender_address = sender_address
         self.func = func

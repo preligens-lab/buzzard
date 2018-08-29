@@ -126,14 +126,14 @@ class ActorPoolWaitingRoom(object):
         self._unstore_job(job)
         return []
 
-    def receive_global_priorities_update(self, global_priorities, query_updates, cache_fp_updates):
+    def receive_global_priorities_update(self, global_priorities, query_updates, cache_tile_updates):
         """Receive message: Update your jobs priorities
 
         Parameters
         ----------
         global_priorities:
         query_updates: set of CachedQueryInfos
-        cache_fp_updates: set of (raster_uid, Footprint)
+        cache_tile_updates: set of (raster_uid, Footprint)
         """
         # Update the version of `global_priorities`
         self._global_priorities = global_priorities
@@ -146,7 +146,7 @@ class ActorPoolWaitingRoom(object):
                 self._store_job(job)
 
         # Update the cache jobs
-        for raster_uid, cache_fp in cache_fp_updates & self._cache_jobs_of_cache_fp.keys():
+        for raster_uid, cache_fp in cache_tile_updates & self._cache_jobs_of_cache_fp.keys():
             key = (raster_uid, cache_fp)
             for job in list(self._cache_jobs_of_cache_fp[key]):
                 # Update priority
@@ -202,44 +202,44 @@ class ActorPoolWaitingRoom(object):
         return sum(map(len, [self._jobs_maxprio, self._jobs_prod, self._jobs_cache]))
 
     # Priority computation *****************************************************
-    def _prio_of_prod_job(self, job):
-        return self._prio_of_rank1_job(job.qi, job.prod_idx, job.action_priority)
+    # def _prio_of_prod_job(self, job):
+    #     return self._prio_of_rank1_job(job.qi, job.prod_idx, job.action_priority)
 
-    def _prio_of_cache_job(self, job):
-        if not self._global_priorities.is_cache_fp_needed(job.raster_uid, job.cache_fp):
-            # A job only exist if it was requested by a query. But if a query is cancelled,
-            # the cache jobs will survive. They still need to be performed, but with the lowest
-            # priority.
-            return (np.inf,)
-        else:
-            # Bind the priority of a cache job to the priority of the most urgent query array
-            # that needs it.
-            qi, prod_idx = self._global_priorities.most_urgent_produce_of_cache_fp(
-                job.raster_uid, job.cache_fp
-            )
-            return self._prio_of_rank1_job(qi, prod_idx, job.action_priority)
+    # def _prio_of_cache_job(self, job):
+    #     if not self._global_priorities.is_cache_fp_needed(job.raster_uid, job.cache_fp):
+    #         # A job only exist if it was requested by a query. But if a query is cancelled,
+    #         # the cache jobs will survive. They still need to be performed, but with the lowest
+    #         # priority.
+    #         return (np.inf,)
+    #     else:
+    #         # Bind the priority of a cache job to the priority of the most urgent query array
+    #         # that needs it.
+    #         qi, prod_idx = self._global_priorities.most_urgent_produce_of_cache_fp(
+    #             job.raster_uid, job.cache_fp
+    #         )
+    #         return self._prio_of_rank1_job(qi, prod_idx, job.action_priority)
 
-    def _prio_of_rank1_job(self, qi, prod_idx, action_priority):
-        query_pulled_count = self._global_priorities.pulled_count_of_query(qi)
-        prod_fp = qi.prod[prod_idx].fp
-        cx, cy = np.around(prod_fp.c).astype(int)
-        return (
-            # Priority on `produced arrays` needed soon
-            prod_idx - query_pulled_count,
+    # def _prio_of_rank1_job(self, qi, prod_idx, action_priority):
+    #     query_pulled_count = self._global_priorities.pulled_count_of_query(qi)
+    #     prod_fp = qi.prod[prod_idx].fp
+    #     cx, cy = np.around(prod_fp.c).astype(int)
+    #     return (
+    #         # Priority on `produced arrays` needed soon
+    #         prod_idx - query_pulled_count,
 
-            # Priority on top-most and smallest `produced arrays`
-            -cy,
+    #         # Priority on top-most and smallest `produced arrays`
+    #         -cy,
 
-            # Priority on left-most and smallest `produced arrays`
-            cx,
+    #         # Priority on left-most and smallest `produced arrays`
+    #         cx,
 
-            # Priority on actions late in the pipeline
-            action_priority,
-        )
+    #         # Priority on actions late in the pipeline
+    #         action_priority,
+    #     )
 
     # Job storage operations ***************************************************
     def _store_job(self, job):
-        """Register a job in the right objects"""
+        """Compute the priority of a job and register it in the right objects"""
         assert all(
             job not in set_
             for set_ in self._job_sets
@@ -252,7 +252,8 @@ class ActorPoolWaitingRoom(object):
                 if job.qi not in self._prod_jobs_of_query:
                     self._prod_jobs_of_query[job.qi] = set()
                 self._prod_jobs_of_query[job.qi].add(job)
-                prio = self._prio_of_prod_job(job)
+                prio = self._global_priorities.prio_of_prod_idx(job.qi, job.prod_idx)
+                prio += (job.action_priority,)
 
             elif isinstance(job, CacheJobWaiting):
                 self._jobs_cache.add(job)
@@ -260,7 +261,9 @@ class ActorPoolWaitingRoom(object):
                 if key not in self._cache_jobs_of_cache_fp:
                     self._cache_jobs_of_cache_fp[key] = set()
                 self._cache_jobs_of_cache_fp[key].add(job)
-                prio = self._prio_of_cache_job(job)
+                prio = self._global_priorities.prio_of_cache_fp(job.raster_uid, job.cache_fp)
+                prio += (job.action_priority,)
+
             else:
                 assert False
 
