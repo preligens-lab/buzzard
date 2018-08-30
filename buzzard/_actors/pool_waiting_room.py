@@ -11,7 +11,7 @@ import numpy as np
 from buzzard._footprint import Footprint # For mypy
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import PoolJobWaiting, MaxPrioJobWaiting, ProductionJobWaiting, CacheJobWaiting
-from buzzard._actors.priorities import dummy_priorities
+from buzzard._actors.priorities import dummy_priorities, Priorities
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class ActorPoolWaitingRoom(object):
 
     It accepts 3 types of `PoolJobWaiting`
     - `MaxPrioJobWaiting`
-      - Rank 0 job, has priority over other jobs.
+      - Rank 0 job, has priority over the other jobs.
       - Stored in a set
       - Used by `cached.FileChecker`
     - `ProductionJobWaiting`
@@ -32,9 +32,9 @@ class ActorPoolWaitingRoom(object):
       - Stored in many data structures
       - Used by `Reader`, `Resampler`, `cached.Computer`
     - `CacheJobWaiting`
-      - Used by `cached.Merger`, `cached.Writer`
       - Rank 1 job
       - Stored in many data structures
+      - Used by `cached.Merger`, `cached.Writer`
 
     """
 
@@ -44,13 +44,12 @@ class ActorPoolWaitingRoom(object):
         ----------
         pool: multiprocessing.pool.Pool (or the multiprocessing.pool.ThreadPool subclass)
         """
+        self._alive = True
 
         # `global_priorities` contains all the methods necessary to establish the priority of a
         # `prod_job` or a `cache_job`. This object is updated by
         # `receive_global_priorities_update` as soon as there is an update.
-        self._global_priorities = dummy_priorities
-
-        self._alive = True
+        self._global_priorities = dummy_priorities # type: Priorities
 
         # Tokens *****************************************************
         pool_id = id(pool)
@@ -87,6 +86,8 @@ class ActorPoolWaitingRoom(object):
             self._dict_of_prio_per_r1job,
             self._sset_of_prios,
             self._dict_of_r1jobs_per_prio,
+            self._prod_jobs_of_query,
+            self._cache_jobs_of_cache_fp,
         ]
 
     @property
@@ -131,7 +132,7 @@ class ActorPoolWaitingRoom(object):
 
         Parameters
         ----------
-        global_priorities:
+        global_priorities: Priorities
         query_updates: set of CachedQueryInfos
         cache_tile_updates: set of (raster_uid, Footprint)
         """
@@ -167,14 +168,15 @@ class ActorPoolWaitingRoom(object):
         self._tokens.add(token)
 
         job_count = self._job_count
-        token_count = len(self._tokens)
-        if job_count == 0 or token_count == 0:
+        if job_count == 0:
             return []
+        else:
+            token_count = len(self._tokens)
+            assert token_count == 1, """The way this class is designed, this point in code is only
+            reached if token_count == 1"""
 
-        assert token_count == 1, """The way this class is designed, this point in code is only
-        accessed if token_count is 1"""
+            job = self._unstore_most_urgent_job()
 
-        job = self._unstore_most_urgent_job()
         return [Msg(
             job.sender_address, 'token_to_working_room', job, self._tokens.pop()
         )]
@@ -199,43 +201,7 @@ class ActorPoolWaitingRoom(object):
     # Misc *********************************************************************
     @property
     def _job_count(self):
-        return sum(map(len, [self._jobs_maxprio, self._jobs_prod, self._jobs_cache]))
-
-    # Priority computation *****************************************************
-    # def _prio_of_prod_job(self, job):
-    #     return self._prio_of_rank1_job(job.qi, job.prod_idx, job.action_priority)
-
-    # def _prio_of_cache_job(self, job):
-    #     if not self._global_priorities.is_cache_fp_needed(job.raster_uid, job.cache_fp):
-    #         # A job only exist if it was requested by a query. But if a query is cancelled,
-    #         # the cache jobs will survive. They still need to be performed, but with the lowest
-    #         # priority.
-    #         return (np.inf,)
-    #     else:
-    #         # Bind the priority of a cache job to the priority of the most urgent query array
-    #         # that needs it.
-    #         qi, prod_idx = self._global_priorities.most_urgent_produce_of_cache_fp(
-    #             job.raster_uid, job.cache_fp
-    #         )
-    #         return self._prio_of_rank1_job(qi, prod_idx, job.action_priority)
-
-    # def _prio_of_rank1_job(self, qi, prod_idx, action_priority):
-    #     query_pulled_count = self._global_priorities.pulled_count_of_query(qi)
-    #     prod_fp = qi.prod[prod_idx].fp
-    #     cx, cy = np.around(prod_fp.c).astype(int)
-    #     return (
-    #         # Priority on `produced arrays` needed soon
-    #         prod_idx - query_pulled_count,
-
-    #         # Priority on top-most and smallest `produced arrays`
-    #         -cy,
-
-    #         # Priority on left-most and smallest `produced arrays`
-    #         cx,
-
-    #         # Priority on actions late in the pipeline
-    #         action_priority,
-    #     )
+        return sum(map(len, self._job_sets))
 
     # Job storage operations ***************************************************
     def _store_job(self, job):
@@ -252,7 +218,7 @@ class ActorPoolWaitingRoom(object):
                 if job.qi not in self._prod_jobs_of_query:
                     self._prod_jobs_of_query[job.qi] = set()
                 self._prod_jobs_of_query[job.qi].add(job)
-                prio = self._global_priorities.prio_of_prod_idx(job.qi, job.prod_idx)
+                prio = self._global_priorities.prio_of_prod_tile(job.qi, job.prod_idx)
                 prio += (job.action_priority,)
 
             elif isinstance(job, CacheJobWaiting):
@@ -261,7 +227,7 @@ class ActorPoolWaitingRoom(object):
                 if key not in self._cache_jobs_of_cache_fp:
                     self._cache_jobs_of_cache_fp[key] = set()
                 self._cache_jobs_of_cache_fp[key].add(job)
-                prio = self._global_priorities.prio_of_cache_fp(job.raster_uid, job.cache_fp)
+                prio = self._global_priorities.prio_of_cache_tile(job.raster_uid, job.cache_fp)
                 prio += (job.action_priority,)
 
             else:
@@ -273,8 +239,6 @@ class ActorPoolWaitingRoom(object):
             else:
                 self._dict_of_r1jobs_per_prio[prio] = {job}
                 self._sset_of_prios.add(prio)
-
-        return []
 
     def _unstore_job(self, job):
         """Unregister a job from the right objects"""
@@ -301,15 +265,13 @@ class ActorPoolWaitingRoom(object):
             if len(self._dict_of_r1jobs_per_prio[prio]) == 0:
                 del self._dict_of_r1jobs_per_prio[prio]
                 self._sset_of_prios.remove(prio)
-        return []
 
     def _unstore_most_urgent_job(self):
         assert self._job_count > 0
 
         # Unstore a rank 0 job
         if len(self._jobs_maxprio) > 0:
-            job = self._jobs_maxprio.pop() # Pop an arbitrary one
-            return job
+            return self._jobs_maxprio.pop() # Pop an arbitrary one
 
         # Unstore a rank 1 job
         prio = self._sset_of_prios[0]

@@ -215,7 +215,7 @@ class CachedQueryInfos(object):
         # For each `cache_fp`, the minimum prod_idx that need this cache tile
         self.dict_of_min_prod_idx_per_cache_fp = {} # type: Mapping[CacheFootprint, AbstractSet[int]]
         for k, v in self.dict_of_prod_idxs_per_cache_fp.items():
-            self.dict_of_prod_idxs_per_cache_fp[k] = min(v)
+            self.dict_of_min_prod_idx_per_cache_fp[k] = min(v)
         self.dict_of_min_prod_idx_per_cache_fp = MappingProxyType(self.dict_of_min_prod_idx_per_cache_fp)
 
         # *************************************************************************************** **
