@@ -86,7 +86,7 @@ class ActorQueriesHandler(object):
                     q.queue_size = new_queue_size
                     args = qi, q.produced_count, q.queue_size
                     msgs += [
-                        Msg('/GlobalPrioritiesWatcher', 'output_queue_update', *args),
+                        Msg('/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
                         Msg('ProductionGate', 'output_queue_update', *args),
                         Msg('ComputationGate', 'output_queue_update', *args),
                     ]

@@ -174,6 +174,7 @@ class ActorCacheSupervisor(object):
         """
         if qi in self._queries:
             del self._queries[qi]
+        return []
 
     def receive_die(self):
         """Receive message: The raster was killed"""
@@ -181,6 +182,7 @@ class ActorCacheSupervisor(object):
         self._alive = False
 
         self._queries.clear()
+        return []
 
     # ******************************************************************************************* **
     def _query_start_collection(self, qi, query):
