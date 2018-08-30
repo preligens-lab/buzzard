@@ -183,18 +183,9 @@ class ActorGlobalPrioritiesWatcher(object):
         else:
             query_pulled_count = ds1[qi]
 
-        prod_fp = qi.prod[prod_idx].fp
-        cx, cy = np.around(prod_fp.c).astype(int)
-
         return (
             # Priority on `produced arrays` needed soon
             prod_idx - query_pulled_count,
-
-            # Priority on top-most and smallest `produced arrays`
-            -cy,
-
-            # Priority on left-most and smallest `produced arrays`
-            cx,
         )
 
     def prio_of_cache_tile(self, raster_uid, cache_fp):

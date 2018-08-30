@@ -219,7 +219,8 @@ class ActorPoolWaitingRoom(object):
                     self._prod_jobs_of_query[job.qi] = set()
                 self._prod_jobs_of_query[job.qi].add(job)
                 prio = self._global_priorities.prio_of_prod_tile(job.qi, job.prod_idx)
-                prio += (job.action_priority,)
+                cx, cy = job.fp.c
+                prio += (-cy, +cx, job.action_priority,)
 
             elif isinstance(job, CacheJobWaiting):
                 self._jobs_cache.add(job)
@@ -228,7 +229,8 @@ class ActorPoolWaitingRoom(object):
                     self._cache_jobs_of_cache_fp[key] = set()
                 self._cache_jobs_of_cache_fp[key].add(job)
                 prio = self._global_priorities.prio_of_cache_tile(job.raster_uid, job.cache_fp)
-                prio += (job.action_priority,)
+                cx, cy = job.fp.c
+                prio += (-cy, +cx, job.action_priority,)
 
             else:
                 assert False
