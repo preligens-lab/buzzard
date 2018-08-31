@@ -9,8 +9,8 @@ class ActorFileChecker(object):
     def __init__(self, raster):
         self._raster = raster
         self._alive = True
-        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(raster.file_checker_pool))
-        self._working_room_address = '/Pool{}/WorkingRoom'.format(id(raster.file_checker_pool))
+        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(raster.io_pool))
+        self._working_room_address = '/Pool{}/WorkingRoom'.format(id(raster.io_pool))
         self._waiting_jobs = set()
         self._working_jobs = set()
 
@@ -26,6 +26,9 @@ class ActorFileChecker(object):
     def receive_infer_cache_file_status(self, cache_fp, path):
         wait = Wait(self, cache_fp, path)
         self._waiting_jobs.add(wait)
+        return [
+            Msg(self._waiting_room_address, 'schedule_job', wait)
+        ]
 
     def receive_token_to_working_room(self, job, token):
         self._waiting_jobs.remove(job)
@@ -71,4 +74,4 @@ class Work(PoolJobWorking):
 
 def _cache_file_check(cache_fp, path, band_count, dtype):
     # TODO: Check file opening/footprint/band_count/dtype/md5
-    return (True or False) == 'That is the TODO question'
+    assert (True or False) == 'That is the TODO question'
