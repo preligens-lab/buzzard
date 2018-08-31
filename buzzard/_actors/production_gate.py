@@ -33,9 +33,9 @@ class ActorProductionGate(object):
         q = self._queries[qi]
 
         if produced_count == qi.produce_count:
-            assert qi.allowed_count == produce_count
+            assert qi.allowed_count == produced_count
         else:
-            pulled_count = produce_count - queue_size
+            pulled_count = produced_count - queue_size
             msgs += self._allow(qi, q, pulled_count)
 
         return msgs

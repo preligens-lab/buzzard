@@ -1,5 +1,7 @@
 from buzzard._actors.message import Msg
 
+import collections
+
 class ActorProducer(object):
     """Actor that takes care of waiting for cache tiles reads and launching resamplings"""
 
@@ -100,7 +102,7 @@ class ActorProducer(object):
 
     # ******************************************************************************************* **
 
-class _ProdArray(self):
+class _ProdArray(object):
 
     def __init__(self, pi):
         self.pi = pi
