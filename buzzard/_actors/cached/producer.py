@@ -24,23 +24,29 @@ class ActorProducer(object):
         """Receive message: Start making this array"""
         msgs = []
 
-        pi = qi.prod[prod_idx]
+        pi = qi.prod[prod_idx] # type: CacheProduceInfos
         pr = _ProdArray(pi)
 
         if len(qi.prod[prod_idx].cache_fps) != 0:
+            # If this prod_idx requires some cache file reads (this is the cast most of the time)
             msgs += [
                 'CacheExtractor', 'sample_those_cache_files_to_an_array', qi, prod_idx,
             ]
 
-        for resample_fp, cache_fps in self.resample_needs.items():
-            if len(cache_fps) == 0:
-                sample_fp = pi.resample_sample_dep_fp[resample_fp]
-                assert sample_fp is None
-                sample_array = None
-                msgs += [Msg(
-                    'Resampler', 'resample_and_accumulate',
-                    qi, prod_idx, resample_fp, sample_array,
-                )]
+        resample_ready = [
+            resample_fp
+            for resample_fp, cache_fps in pr.resample_needs.items():
+            if len(cache_fps) == 0
+        ]
+        for resample_fp in resample_ready:
+            del pr.resample_needs[resample_fp]
+            sample_fp = pi.resample_sample_dep_fp[resample_fp]
+            assert sample_fp is None, 'We are producing an array that does not require sampling'
+            sample_array = None
+            msgs += [Msg(
+                'Resampler', 'resample_and_accumulate',
+                qi, prod_idx, resample_fp, sample_array,
+            )]
 
         self._produce_per_query[qi][prod_idx] = pr
         return msgs
@@ -49,27 +55,31 @@ class ActorProducer(object):
         """Receive message: A cache file was read for that output array"""
         msgs = []
         pr = self._produce_per_query[qi][prod_idx]
-        pi = pr.pi
+        pi = pr.pi # type: CacheProduceInfos
         if pr.sample_array is None:
+            # Callback from first read
             pr.sample_array = array
         else:
+            # Callback from subsequent reads
             assert array is pr.sample_array
 
-        for resample_fp, cache_fps in self.resample_needs.items():
+        for resample_fp, cache_fps in pr.resample_needs.items():
             if cache_fp in cache_fps:
                 cache_fps.remove(cache_fp)
-            if len(cache_fps) == 0:
-                sample_fp = pi.resample_sample_dep_fp[resample_fp]
-                if sample_fp is None:
-                    sample_array = None
-                else:
-                    sl = sample_fp.slice_in(pi.sample_fp)
-                    sample_array = pr.sample_array[sl]
-                    assert sample_array is not None
-                msgs += [Msg(
-                    'Resampler', 'resample_and_accumulate',
-                    qi, prod_idx, resample_fp, sample_array,
-                )]
+
+        resample_ready = [
+            resample_fp
+            for resample_fp, cache_fps in pr.resample_needs.items():
+            if len(cache_fps) == 0
+        ]
+        for resample_fp in resample_ready:
+            sample_fp = pi.resample_sample_dep_fp[resample_fp]
+            assert sample_fp is not None
+            sample_array = pr.sample_array[sample_fp.slice_in(pi.sample_fp)]
+            msgs += [Msg(
+                'Resampler', 'resample_and_accumulate',
+                qi, prod_idx, resample_fp, sample_array,
+            )]
 
         return msgs
 
