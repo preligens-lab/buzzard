@@ -1,21 +1,18 @@
-import numpy as np
-import uuid
-import os
-import numbers
-import collections
 import contextlib
 
-from osgeo import gdal, ogr
+import numpy as np
+from osgeo import gdal, ogr, osr
 import shapely
 import shapely.geometry as sg
 
-from buzzard._a_pooled_emissary_vector import *
+from buzzard._a_stored_vector import ABackStoredVector
 from buzzard._tools import conv
-from buzzard import _tools
 from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
-    """Abstract class defining the common implementation of all GDAL vectors"""
+    """Abstract class defining the common implementation of all vector file formats
+    defined by the OGR
+    """
 
     # extent/len implementation ***************************************************************** **
     @property
@@ -66,7 +63,7 @@ class ABackGDALVector(ABackStoredVector):
             for ftr in self.iter_features_driver(slicing, mask_poly, mask_rect, lyr):
                 geom = ftr.geometry()
                 if geom is None or geom.IsEmpty():
-                    # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever?
+                    # `geom is None` and `geom.IsEmpty()` is not exactly the same case, but whatever
                     geom = None
                     if not self.back_ds.allow_none_geometry: # pragma: no cover
                         raise Exception(
@@ -85,12 +82,12 @@ class ABackGDALVector(ABackStoredVector):
                     elif geom_type == 'geojson':
                         geom = sg.mapping(geom)
 
-                yield (geom,) + tuple([
+                yield (geom,) + tuple(
                     self._type_of_field_index[index](ftr.GetField(index))
                     if ftr.GetField(index) is not None
                     else None
                     for index in field_indices
-                ])
+                )
 
         # Necessary to prevent the old swig bug
         # https://trac.osgeo.org/gdal/ticket/6749
@@ -99,7 +96,8 @@ class ABackGDALVector(ABackStoredVector):
         del clip_poly
         del mask_rect, mask_poly
 
-    def iter_features_driver(self, slicing, mask_poly, mask_rect, lyr):
+    @staticmethod
+    def iter_features_driver(slicing, mask_poly, mask_rect, lyr):
         with contextlib.ExitStack() as stack:
             stack.push(lambda *args, **kwargs: lyr.ResetReading())
             if mask_poly is not None:

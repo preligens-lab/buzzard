@@ -1,7 +1,5 @@
-from osgeo import osr
-
-from buzzard._datasource_back_conversions import *
-from buzzard._datasource_back_activation_pool import *
+from buzzard._datasource_back_conversions import BackDataSourceConversionsMixin
+from buzzard._datasource_back_activation_pool import BackDataSourceActivationPoolMixin
 
 class BackDataSource(BackDataSourceConversionsMixin, BackDataSourceActivationPoolMixin):
     """Backend of the DataSource, referenced by backend proxies

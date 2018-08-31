@@ -1,10 +1,11 @@
 import collections
 import numbers
+import sys
 
 import shapely.geometry as sg
 import numpy as np
 
-from buzzard._a_proxy import *
+from buzzard._a_proxy import AProxy, ABackProxy
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._tools import conv
@@ -50,7 +51,7 @@ class AProxyVector(AProxy):
 
         Example
         -------
-        >>> minx, miny, maxx, maxy = df.roofs.extent
+        >>> minx, miny, maxx, maxy = ds.roofs.extent
         """
         return self._back.bounds
 
@@ -298,6 +299,12 @@ class AProxyVector(AProxy):
         else: # pragma: no cover
             raise TypeError('`mask` should be a Footprint, an extent or a shapely object')
 
+    # Deprecation
+    extent_origin = _tools.deprecation_pool.wrap_property(
+        'extent_stored',
+        '0.4.4'
+    )
+
 class ABackProxyVector(ABackProxy):
     """Implementation of AProxyVector's specifications"""
 
@@ -339,4 +346,8 @@ class ABackProxyVector(ABackProxy):
     def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip): # pragma: no cover
         raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')
 
-_tools.deprecation_pool.add_deprecated_property(AProxyVector, 'extent_stored', 'extent_origin', '0.4.4')
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in AProxyVector.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(AProxyVector, k)

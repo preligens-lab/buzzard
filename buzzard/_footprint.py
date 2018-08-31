@@ -431,11 +431,11 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Parameters
         ----------
-        tl: Footprint
+        tl: (nbr, nbr)
             New top left coordinates
-        tr: Footprint
+        tr: (nbr, nbr)
             New top right coordinates
-        br: Footprint
+        br: (nbr, nbr)
             New bottom right coordinates
 
         Returns
@@ -1545,9 +1545,7 @@ class Footprint(TileMixin, IntersectionMixin):
         assert False # pragma: no cover
 
     def burn_lines(self, obj, all_touched=False, labelize=False):
-        """Experimental function!
-
-        Create a 2d image from lines
+        """Creates a 2d image from lines
 
         Parameters
         ----------
@@ -1608,8 +1606,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return arr.astype(dtype)
 
     def find_polygons(self, mask):
-        """Experimental function!
-        Create a list of polygons from a mask.
+        """Creates a list of polygons from a mask.
 
         Parameters
         ----------
@@ -1672,8 +1669,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return list(_polygon_iterator())
 
     def burn_polygons(self, obj, all_touched=False, labelize=False):
-        """Experimental function!
-        Create a 2d image from polygons
+        """Creates a 2d image from polygons
 
         Parameters
         ----------

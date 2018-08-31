@@ -1,10 +1,10 @@
-import numpy as np
-import uuid
 import os
+
+import numpy as np
 
 from osgeo import gdal
 
-from buzzard._a_pooled_emissary_raster import *
+from buzzard._a_stored_raster import ABackStoredRaster
 from buzzard._tools import conv
 from buzzard import _tools
 
@@ -64,8 +64,6 @@ class ABackGDALRaster(ABackStoredRaster):
             mask = np.ones(fp.shape, bool)
 
         dstfp = self.fp.intersection(fp)
-        # if array.dtype == np.int8:
-        #     array = array.astype('uint8')
 
         # Remap ****************************************************************
         ret = self.remap(
@@ -103,7 +101,6 @@ class ABackGDALRaster(ABackStoredRaster):
                     assert x + a.shape[1] <= self.fp.rsizex
                     assert y + a.shape[0] <= self.fp.rsizey
                     gdalband.WriteArray(a, x, y)
-            # gdal_ds.FlushCache()
 
     # fill implementation *********************************************************************** **
     def fill(self, value, band_ids):

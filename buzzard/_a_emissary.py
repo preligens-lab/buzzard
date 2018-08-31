@@ -1,4 +1,4 @@
-from buzzard._a_stored import *
+from buzzard._a_stored import AStored, ABackStored
 from buzzard import _tools
 
 class AEmissary(AStored):
@@ -23,6 +23,7 @@ class AEmissary(AStored):
     def delete(self):
         """Delete a proxy with a call or a context management. May raise an exception if not
         applicable or if `mode` = 'r'
+        The `delete` attribute returns an object that can be both called and used in a with statement
 
         Example
         -------

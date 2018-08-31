@@ -1,21 +1,24 @@
 """>>> help(buzz.DataSource)"""
 
 # pylint: disable=too-many-lines
+import ntpath
+import numbers
+import sys
 
 from osgeo import osr
 import numpy as np
-import ntpath
 
 from buzzard._tools import conv, deprecation_pool
+from buzzard._footprint import Footprint
 from buzzard import _tools
-from buzzard._datasource_back import *
+from buzzard._datasource_back import BackDataSource
 from buzzard._a_proxy import AProxy
-from buzzard._gdal_file_raster import *
-from buzzard._gdal_file_vector import *
-from buzzard._gdal_mem_raster import *
-from buzzard._gdal_memory_vector import *
-from buzzard._datasource_register import *
-from buzzard._numpy_raster import *
+from buzzard._gdal_file_raster import GDALFileRaster, BackGDALFileRaster
+from buzzard._gdal_file_vector import GDALFileVector, BackGDALFileVector
+from buzzard._gdal_mem_raster import GDALMemRaster
+from buzzard._gdal_memory_vector import GDALMemoryVector
+from buzzard._datasource_register import DataSourceRegisterMixin
+from buzzard._numpy_raster import NumpyRaster
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
@@ -44,26 +47,35 @@ class DataSource(DataSourceRegisterMixin):
     -------
     >>> import buzzard as buzz
 
-    Opening
+    Creating DataSource
     >>> ds = buzz.DataSource()
+
+    Opening
     >>> ds.open_vector('roofs', 'path/to/roofs.shp')
+    >>> feature_count = len(ds.roofs)
+
     >>> ds.open_raster('dem', 'path/to/dem.tif')
+    >>> data_type = ds.dem.dtype
 
     Opening with context management
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
-    ...     print(ds.rgb.fp)
+    ...     data_type = ds.rgb.fp
     ...     arr = ds.rgb.get_data()
+
     >>> with ds.aopen_raster('path/to/rgb.tif').close as rgb:
-    ...     print(rgb.fp)
+    ...     data_type = rgb.dtype
     ...     arr = rgb.get_data()
 
     Creation
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
-    >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
-    ...      cache.set_data(dem.get_data())
+    >>> geometry_type = ds.targets.type
 
-    Coordinates conversions
-    -----------------------
+    >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
+    ...     file_footprint = cache.fp
+    ...     cache.set_data(dem.get_data())
+
+    On the fly re-projections in buzzard
+    ------------------------------------
     A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
     read operations and write operations, all are performed by OSR.
@@ -90,8 +102,10 @@ class DataSource(DataSourceRegisterMixin):
         often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
         `sr_virtual` to `sr_work`. When setting vector data, a conversion is performed from
         `sr_work` to `sr_virtual`.
-    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`
-    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing
+    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for exemple
+        useful when the `sr` stored in the input files are corrupted.
+    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
+        for exemple useful when an input file can't store a `sr (e.g. DFX).
 
     DataSource parameters and modes:
     | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a raster/vector determined                               |
@@ -116,18 +130,24 @@ class DataSource(DataSourceRegisterMixin):
 
     Example
     -------
-    mode 1
+    mode 1 - No conversions at all
     >>> ds = buzz.DataSource()
 
-    mode 2
+    mode 2 - Working with WGS84 coordinates
     >>> ds = buzz.DataSource(
-            sr_work=buzz.srs.wkt_of_file('path/to.tif', center=True),
+            sr_work='WGS84',
         )
 
-    mode 4
+    mode 3 - Working in UTM with DXF files in WGS84 coordinates
     >>> ds = buzz.DataSource(
-            sr_work=buzz.srs.wkt_of_file('path/to.tif', unit='meter'),
-            sr_forced='path/to.tif',
+            sr_work='EPSG:32632',
+            sr_fallback='WGS84',
+        )
+
+    mode 4 - Working in UTM with unreliable LCC input files
+    >>> ds = buzz.DataSource(
+            sr_work='EPSG:32632',
+            sr_forced='EPSG:27561',
         )
 
     Sources activation / deactivation
@@ -227,11 +247,17 @@ class DataSource(DataSourceRegisterMixin):
             options for gdal
         mode: one of {'r', 'w'}
 
+        Returns
+        -------
+        GDALFileRaster
+
         Example
         -------
         >>> ds.open_raster('ortho', '/path/to/ortho.tif')
-        >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
+        >>> file_proj4 = ds.ortho.proj4_stored
+
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
+        >>> nodata_value = ds.dem.nodata
 
         """
         # Parameter checking ***************************************************
@@ -260,6 +286,12 @@ class DataSource(DataSourceRegisterMixin):
         """Open a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_raster
+
+        Example
+        ------
+        >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
+        >>> file_wkt = ds.ortho.wkt_stored
+
         """
         # Parameter checking ***************************************************
         path = str(path)
@@ -314,6 +346,11 @@ class DataSource(DataSourceRegisterMixin):
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
+        Returns
+        -------
+        one of {GDALFileRaster, GDALMemRaster}
+            depending on the `driver` parameter
+
         Band fields
         -----------
         Fields:
@@ -336,12 +373,7 @@ class DataSource(DataSourceRegisterMixin):
         Example
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
-        >>> band_schema = {
-        ...     'nodata': -32767,
-        ...     'interpretation': ['blackband', 'cyanband'],
-        ... }
-        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, band_schema)
+        >>> file_footprint = ds.out.fp
 
         Caveat
         ------
@@ -387,6 +419,19 @@ class DataSource(DataSourceRegisterMixin):
         """Create a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.create_raster
+
+        Example
+        -------
+        >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
+        >>> open_options = mask.open_options
+
+        >>> band_schema = {
+        ...     'nodata': -32767,
+        ...     'interpretation': ['blackband', 'cyanband'],
+        ... }
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, band_schema)
+        >>> band_interpretation = out.band_schema['interpretation']
+
         """
         # Parameter checking ***************************************************
         path = str(path)
@@ -443,6 +488,10 @@ class DataSource(DataSourceRegisterMixin):
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
         mode: one of {'r', 'w'}
 
+        Returns
+        -------
+        NumpyRaster
+
         Band fields
         -----------
         Fields:
@@ -461,6 +510,7 @@ class DataSource(DataSourceRegisterMixin):
         A field can be passed as:
             a value: All bands are set to this value
             a sequence of length `band_count` of value: All bands will be set to respective state
+
         """
         # Parameter checking ***************************************************
         self._validate_key(key)
@@ -533,11 +583,17 @@ class DataSource(DataSourceRegisterMixin):
             options for ogr
         mode: one of {'r', 'w'}
 
+        Returns
+        -------
+        GDALFileVector
+
         Example
         -------
         >>> ds.open_vector('trees', '/path/to.shp')
-        >>> trees = ds.aopen_vector('/path/to.shp')
+        >>> feature_count = len(ds.trees)
+
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
+        >>> fields_list = ds.roofs.fields
 
         """
         # Parameter checking ***************************************************
@@ -572,6 +628,12 @@ class DataSource(DataSourceRegisterMixin):
         """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_vector
+
+        Example
+        -------
+        >>> trees = ds.aopen_vector('/path/to.shp')
+        >>> features_bounds = trees.bounds
+
         """
         path = str(path)
         if layer is None:
@@ -630,6 +692,10 @@ class DataSource(DataSourceRegisterMixin):
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
+        Returns
+        -------
+        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
+
         Field attributes
         ----------------
         Attributes:
@@ -661,7 +727,7 @@ class DataSource(DataSourceRegisterMixin):
         Example
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
-        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
+        >>> geometry_type = ds.lines.type
 
         >>> fields = [
             {'name': 'name', 'type': str},
@@ -670,6 +736,7 @@ class DataSource(DataSourceRegisterMixin):
             {'name': 'when', 'type': np.datetime64},
         ]
         >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
+        >>> field0_type = ds.zones.fields[0]['type']
 
         """
         # Parameter checking ***************************************************
@@ -710,6 +777,12 @@ class DataSource(DataSourceRegisterMixin):
         """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.create_vector
+
+        Example
+        -------
+        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
+        >>> file_proj4 = lines.proj4_stored
+
         """
         # Parameter checking ***************************************************
         path = str(path)
@@ -799,22 +872,50 @@ class DataSource(DataSourceRegisterMixin):
             if prox.active:
                 prox.deactivate()
 
+
+    # Deprecation ******************************************************************************* **
+    open_araster = deprecation_pool.wrap_method(
+        aopen_raster,
+        '0.4.4'
+    )
+    create_araster = deprecation_pool.wrap_method(
+        acreate_raster,
+        '0.4.4'
+    )
+    open_avector = deprecation_pool.wrap_method(
+        aopen_vector,
+        '0.4.4'
+    )
+    create_avector = deprecation_pool.wrap_method(
+        acreate_vector,
+        '0.4.4'
+    )
+
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
 
-deprecation_pool.add_deprecated_method(DataSource, 'aopen_raster', 'open_araster', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_araster', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in DataSource.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(DataSource, k)
 
 def open_raster(*args, **kwargs):
     """Shortcut for `DataSource().aopen_raster`"""
-    return DataSource().open_araster(*args, **kwargs)
+    return DataSource().aopen_raster(*args, **kwargs)
 
 def open_vector(*args, **kwargs):
     """Shortcut for `DataSource().aopen_vector`"""
-    return DataSource().open_avector(*args, **kwargs)
+    return DataSource().aopen_vector(*args, **kwargs)
+
+def create_raster(*args, **kwargs):
+    """Shortcut for `DataSource().acreate_raster`"""
+    return DataSource().acreate_raster(*args, **kwargs)
+
+def create_vector(*args, **kwargs):
+    """Shortcut for `DataSource().acreate_vector`"""
+    return DataSource().acreate_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
     """Shortcut for `DataSource().awrap_numpy_raster`"""
-    return DataSource().wrap_numpy_raster(*args, **kwargs)
+    return DataSource().awrap_numpy_raster(*args, **kwargs)

@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-from buzzard._tools import ANY, conv
+from buzzard._tools import ANY
 
 _EXN_FORMAT = """Illegal remap attempt between two Footprints that do not lie on the same grid.
 full raster    -> {src!s}
@@ -10,7 +10,8 @@ scales         -> full raster:{src.scale}, argument:{dst.scale}
 grids distance -> {tldiff}
 `allow_interpolation` was set to `False` in `DataSource` constructor. It means that either
 1. there is a mistake in your code and you did not meant to perform this operation with an unaligned Footprint,
-2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`."""
+2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`.
+"""
 
 class ABackProxyRasterRemapMixin(object):
     """Raster Mixin containing remap subroutine"""
@@ -177,7 +178,7 @@ class ABackProxyRasterRemapMixin(object):
         mapx, mapy = dst_fp.meshgrid_raster_in(src_fp, dtype='float32')
         mapx, mapy = cv2.convertMaps(
             mapx, mapy, cv2.CV_16SC2,
-            nninterpolation=interpolation=='cv_nearest',
+            nninterpolation=interpolation == 'cv_nearest',
         ) # At this point mapx/mapy are not really mapx/mapy any more, but who cares?
         interpolation = cls.REMAP_INTERPOLATIONS[interpolation]
 

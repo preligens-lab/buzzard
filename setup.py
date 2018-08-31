@@ -34,7 +34,6 @@ classifiers = [
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
-    # 'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
@@ -60,4 +59,5 @@ setup(
     keywords=['gdal gis raster shp dxf tif vector'],
     packages=find_packages(),
     install_requires=reqs,
+    python_requires='>=3.4',
 )

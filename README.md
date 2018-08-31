@@ -146,7 +146,7 @@ pip install buzzard
 ```
 
 ## Supported Python versions
-To enjoy the latest buzzard features, update you python!
+To enjoy the latest buzzard features, update your python!
 
 ### Fully python support
 - Latest supported version: `3.7` (June 2018)
@@ -180,7 +180,7 @@ See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
 - [examples](./doc/examples.ipynb)
-- [public-classes](https://github.com/airware/buzzard/wiki/Public-classes)
+- [classes](https://github.com/airware/buzzard/wiki/Classes)
 - [wiki](https://github.com/airware/buzzard/wiki)
 - [todo](https://github.com/airware/buzzard/wiki/TODO)
 

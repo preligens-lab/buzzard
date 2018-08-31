@@ -1,13 +1,9 @@
-import os
-import numpy as np
 import contextlib
 
-from osgeo import gdal
-
-from buzzard._a_emissary_raster import *
-from buzzard._a_gdal_raster import *
+from buzzard._a_emissary_raster import AEmissaryRaster, ABackEmissaryRaster
+from buzzard._a_gdal_raster import ABackGDALRaster
 from buzzard._tools import conv
-from buzzard import _tools
+from buzzard._footprint import Footprint
 
 class GDALMemRaster(AEmissaryRaster):
     """Proxy for 'MEM' driver raster GDAL datasets"""

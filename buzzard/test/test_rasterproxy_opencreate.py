@@ -377,7 +377,7 @@ def test_numpy(meta_numpy):
         assert r.wkt_stored == meta['sr']
         assert r.wkt_virtual == meta['sr']
         for k, v in meta['band_schema'].items():
-            assert r.band_schema[k] == v
+            assert r.band_schema[k] == tuple(v)
         assert r.dtype == meta['array'].dtype
         assert r.fp_stored == fp
         if 'nodata' in meta['band_schema']:

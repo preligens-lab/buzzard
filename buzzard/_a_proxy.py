@@ -1,3 +1,5 @@
+import sys
+
 from osgeo import osr
 
 from buzzard import _tools
@@ -46,6 +48,7 @@ class AProxy(object):
     @property
     def close(self):
         """Close a proxy with a call or a context management.
+        The `close` attribute returns an object that can be both called and used in a with statement
 
         Examples
         --------
@@ -68,6 +71,16 @@ class AProxy(object):
     def __del__(self):
         if hasattr(self, '_ds'):
             self.close()
+
+    # Deprecation
+    wkt_origin = _tools.deprecation_pool.wrap_property(
+        'wkt_virtual',
+        '0.4.4'
+    )
+    proj4_origin = _tools.deprecation_pool.wrap_property(
+        'proj4_virtual',
+        '0.4.4'
+    )
 
 class ABackProxy(object):
     """Implementation of AProxy's specifications"""
@@ -109,9 +122,12 @@ class ABackProxy(object):
             return None # pragma: no cover
         return osr.SpatialReference(self.wkt_stored).ExportToProj4()
 
-_tools.deprecation_pool.add_deprecated_property(AProxy, 'wkt_virtual', 'wkt_origin', '0.4.4')
-_tools.deprecation_pool.add_deprecated_property(AProxy, 'proj4_virtual', 'proj4_origin', '0.4.4')
-
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': AProxy.close.__doc__,
 })
+
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in AProxy.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(AProxy, k)
