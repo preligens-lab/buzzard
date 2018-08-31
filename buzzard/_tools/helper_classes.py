@@ -30,3 +30,10 @@ class _Singleton(type):
 
 class Singleton(_Singleton('SingletonMeta', (object,), {})):
     pass
+
+class _Any(object):
+    """Helper for pattern matching"""
+    def __eq__(self, _):
+        return True
+
+ANY = _Any()

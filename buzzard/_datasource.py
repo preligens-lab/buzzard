@@ -1,21 +1,26 @@
 """>>> help(buzz.DataSource)"""
 
 # pylint: disable=too-many-lines
-
-import collections
+import ntpath
+import numbers
+import sys
 
 from osgeo import osr
 import numpy as np
 
-from buzzard import _datasource_tools
-from buzzard._proxy import Proxy
-from buzzard._raster_stored import RasterStored
-from buzzard._raster_recipe import RasterRecipe
-from buzzard._vector import Vector
 from buzzard._tools import conv, deprecation_pool
-from buzzard._datasource_conversions import DataSourceConversionsMixin
+from buzzard._footprint import Footprint
+from buzzard import _tools
+from buzzard._datasource_back import BackDataSource
+from buzzard._a_proxy import AProxy
+from buzzard._gdal_file_raster import GDALFileRaster, BackGDALFileRaster
+from buzzard._gdal_file_vector import GDALFileVector, BackGDALFileVector
+from buzzard._gdal_mem_raster import GDALMemRaster
+from buzzard._gdal_memory_vector import GDALMemoryVector
+from buzzard._datasource_register import DataSourceRegisterMixin
+from buzzard._numpy_raster import NumpyRaster
 
-class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMixin):
+class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
     by assigning a key to each registered file.
 
@@ -32,8 +37,8 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Mutex operations when reading or writing vector files
     allow_none_geometry: bool
     allow_interpolation: bool
-    max_activated: nbr >= 1
-        Maximum number of sources activated at the same time.
+    max_active: nbr >= 1
+        Maximum number of sources active at the same time.
     assert_no_change_on_activation: bool
         When activating a deactivated file, check that the definition did not change
         (see `Sources activation / deactivation` below)
@@ -42,26 +47,35 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
     -------
     >>> import buzzard as buzz
 
-    Opening
+    Creating DataSource
     >>> ds = buzz.DataSource()
+
+    Opening
     >>> ds.open_vector('roofs', 'path/to/roofs.shp')
+    >>> feature_count = len(ds.roofs)
+
     >>> ds.open_raster('dem', 'path/to/dem.tif')
+    >>> data_type = ds.dem.dtype
 
     Opening with context management
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
-    ...     print(ds.rgb.fp)
+    ...     data_type = ds.rgb.fp
     ...     arr = ds.rgb.get_data()
+
     >>> with ds.aopen_raster('path/to/rgb.tif').close as rgb:
-    ...     print(rgb.fp)
+    ...     data_type = rgb.dtype
     ...     arr = rgb.get_data()
 
     Creation
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
-    >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
-    ...      cache.set_data(dem.get_data())
+    >>> geometry_type = ds.targets.type
 
-    Coordinates conversions
-    -----------------------
+    >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
+    ...     file_footprint = cache.fp
+    ...     cache.set_data(dem.get_data())
+
+    On the fly re-projections in buzzard
+    ------------------------------------
     A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
     read operations and write operations, all are performed by OSR.
@@ -88,8 +102,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
         `sr_virtual` to `sr_work`. When setting vector data, a conversion is performed from
         `sr_work` to `sr_virtual`.
-    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`
-    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing
+    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for exemple
+        useful when the `sr` stored in the input files are corrupted.
+    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
+        for exemple useful when an input file can't store a `sr (e.g. DFX).
 
     DataSource parameters and modes:
     | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a raster/vector determined                               |
@@ -114,18 +130,24 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     Example
     -------
-    mode 1
+    mode 1 - No conversions at all
     >>> ds = buzz.DataSource()
 
-    mode 2
+    mode 2 - Working with WGS84 coordinates
     >>> ds = buzz.DataSource(
-            sr_work=buzz.srs.wkt_of_file('path/to.tif', center=True),
+            sr_work='WGS84',
         )
 
-    mode 4
+    mode 3 - Working in UTM with DXF files in WGS84 coordinates
     >>> ds = buzz.DataSource(
-            sr_work=buzz.srs.wkt_of_file('path/to.tif', unit='meter'),
-            sr_forced='path/to.tif',
+            sr_work='EPSG:32632',
+            sr_fallback='WGS84',
+        )
+
+    mode 4 - Working in UTM with unreliable LCC input files
+    >>> ds = buzz.DataSource(
+            sr_work='EPSG:32632',
+            sr_forced='EPSG:27561',
         )
 
     Sources activation / deactivation
@@ -150,11 +172,9 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
                  analyse_transformation=True,
-                 ogr_layer_lock='raise',
                  allow_none_geometry=False,
                  allow_interpolation=False,
-                 max_activated=np.inf,
-                 assert_no_change_on_activation=True,
+                 max_active=np.inf,
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
@@ -168,8 +188,14 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             new_name_is_provided=sr_forced is not None,
             user_kwargs=kwargs,
         )
-        if kwargs:
-            raise NameError('Unknown parameters like `{}`'.format(
+        max_active, kwargs = deprecation_pool.streamline_with_kwargs(
+            new_name='max_active', old_names={'max_activated': '0.5.0'}, context='DataSource.__init__',
+            new_name_value=max_active,
+            new_name_is_provided=max_active != np.inf,
+            user_kwargs=kwargs,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("__init__() got an unexpected keyword argument '{}'".format(
                 list(kwargs.keys())[0]
             ))
 
@@ -177,55 +203,33 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         if mode == (False, False, False):
             pass
         elif mode == (True, False, False):
-            pass
+            sr_work = osr.GetUserInputAsWKT(sr_work)
         elif mode == (True, True, False):
-            pass
+            sr_work = osr.GetUserInputAsWKT(sr_work)
+            sr_fallback = osr.GetUserInputAsWKT(sr_fallback)
         elif mode == (True, False, True):
-            pass
+            sr_work = osr.GetUserInputAsWKT(sr_work)
+            sr_forced = osr.GetUserInputAsWKT(sr_forced)
         else:
             raise ValueError('Bad combination of `sr_*` parameters') # pragma: no cover
 
-        if ogr_layer_lock not in frozenset({'none', 'wait', 'raise'}):
-            raise ValueError('Unknown `ogr_layer_lock` value') # pragma: no cover
-
-        if max_activated < 1:
-            raise ValueError('`max_activated` should be greater than 1')
+        if max_active < 1: # pragma: no cover
+            raise ValueError('`max_active` should be greater than 1')
 
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
-        assert_no_change_on_activation = bool(assert_no_change_on_activation)
+        analyse_transformation = bool(analyse_transformation)
 
-        if mode[0]:
-            wkt_work = osr.GetUserInputAsWKT(sr_work)
-            sr_work = osr.SpatialReference(wkt_work)
-        else:
-            wkt_work = None
-            sr_work = None
-        if mode[1]:
-            wkt_fallback = osr.GetUserInputAsWKT(sr_fallback)
-            sr_fallback = osr.SpatialReference(wkt_fallback)
-        else:
-            wkt_fallback = None
-            sr_fallback = None
-        if mode[2]:
-            wkt_forced = osr.GetUserInputAsWKT(sr_forced)
-            sr_forced = osr.SpatialReference(wkt_forced)
-        else:
-            wkt_forced = None
-            sr_forced = None
-
-        DataSourceConversionsMixin.__init__(
-            self, sr_work, sr_fallback, sr_forced, analyse_transformation
+        self._back = BackDataSource(
+            wkt_work=sr_work,
+            wkt_fallback=sr_fallback,
+            wkt_forced=sr_forced,
+            analyse_transformation=analyse_transformation,
+            allow_none_geometry=allow_none_geometry,
+            allow_interpolation=allow_interpolation,
+            max_active=max_active,
         )
-        _datasource_tools.DataSourceToolsMixin.__init__(self, max_activated)
-
-        self._wkt_work = wkt_work
-        self._wkt_fallback = wkt_fallback
-        self._wkt_forced = wkt_forced
-        self._ogr_layer_lock = ogr_layer_lock
-        self._allow_interpolation = allow_interpolation
-        self._allow_none_geometry = allow_none_geometry
-        self._assert_no_change_on_activation = assert_no_change_on_activation
+        super(DataSource, self).__init__()
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
@@ -241,41 +245,73 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             http://www.gdal.org/formats_list.html
         options: sequence of str
             options for gdal
-        mode: one of ('r', 'w')
+        mode: one of {'r', 'w'}
+
+        Returns
+        -------
+        GDALFileRaster
 
         Example
         -------
         >>> ds.open_raster('ortho', '/path/to/ortho.tif')
-        >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
+        >>> file_proj4 = ds.ortho.proj4_stored
+
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
+        >>> nodata_value = ds.dem.nodata
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        gdal_ds = RasterStored._open_file(path, driver, options, mode)
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=options, mode=mode
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem': # pragma: no cover
+            raise ValueError("Can't open a MEM raster, user create_raster")
+        elif True:
+            allocator = lambda: BackGDALFileRaster.open_file(
+                path, driver, options, mode
+            )
+            prox = GDALFileRaster(self, allocator, options, mode)
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
         """Open a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_raster
+
+        Example
+        ------
+        >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
+        >>> file_wkt = ds.ortho.wkt_stored
+
         """
-        gdal_ds = RasterStored._open_file(path, driver, options, mode)
+        # Parameter checking ***************************************************
+        path = str(path)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=list(options), mode=mode
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem': # pragma: no cover
+            raise ValueError("Can't open a MEM raster, user acreate_raster")
+        elif True:
+            allocator = lambda: BackGDALFileRaster.open_file(
+                path, driver, options, mode
+            )
+            prox = GDALFileRaster(self, allocator, options, mode)
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
@@ -310,6 +346,11 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
+        Returns
+        -------
+        one of {GDALFileRaster, GDALMemRaster}
+            depending on the `driver` parameter
+
         Band fields
         -----------
         Fields:
@@ -332,31 +373,45 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
-        >>> fields = {
-        ...     'nodata': -32767,
-        ...     'interpretation': ['blackband', 'cyanband'],
-        ... }
-        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, fields)
+        >>> file_footprint = ds.out.fp
 
         Caveat
         ------
         When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        if sr is not None:
-            fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterStored._create_file(
-            path, fp, dtype, band_count, band_schema, driver, options, sr
-        )
+        path = str(path)
+        if not isinstance(fp, Footprint): # pragma: no cover
+            raise TypeError('`fp` should be a Footprint')
+        dtype = np.dtype(dtype)
+        band_count = int(band_count)
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=options, mode='w'
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem':
+            # TODO: Check not concurrent
+            prox = GDALMemRaster(
+                self, fp, dtype, band_count, band_schema, options, sr
+            )
+        elif True:
+            allocator = lambda: BackGDALFileRaster.create_file(
+                path, fp, dtype, band_count, band_schema, driver, options, sr
+            )
+            prox = GDALFileRaster(self, allocator, options, 'w')
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
@@ -364,43 +419,65 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """Create a raster file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.create_raster
+
+        Example
+        -------
+        >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
+        >>> open_options = mask.open_options
+
+        >>> band_schema = {
+        ...     'nodata': -32767,
+        ...     'interpretation': ['blackband', 'cyanband'],
+        ... }
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, band_schema)
+        >>> band_interpretation = out.band_schema['interpretation']
+
         """
-        if sr is not None:
-            fp = self._convert_footprint(fp, sr)
-        gdal_ds = RasterStored._create_file(
-            path, fp, dtype, band_count, band_schema, driver, options, sr
-        )
+        # Parameter checking ***************************************************
+        path = str(path)
+        if not isinstance(fp, Footprint): # pragma: no cover
+            raise TypeError('`fp` should be a Footprint')
+        dtype = np.dtype(dtype)
+        band_count = int(band_count)
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = RasterStored._Constants(
-            self, gdal_ds=gdal_ds, open_options=options, mode='w'
-        )
-        prox = RasterStored(self, consts, gdal_ds)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'mem':
+            # TODO: Check not concurrent
+            prox = GDALMemRaster(
+                self, fp, dtype, band_count, band_schema, options, sr
+            )
+        elif True:
+            allocator = lambda: BackGDALFileRaster.create_file(
+                path, fp, dtype, band_count, band_schema, driver, options, sr
+            )
+            prox = GDALFileRaster(self, allocator, options, 'w')
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
-    def create_recipe_raster(self, key, fn, fp, dtype, band_schema=None, sr=None):
-        """Experimental feature!
-
-        Create a raster recipe and register it under `key` in this DataSource.
-
-        A recipe is a read-only raster that behaves like any other raster, pixel values are computed
-        on-the-fly with calls to the provided `pixel functions`. A pixel function maps a Footprint to
-        a numpy array of the same shape, it may be called several time to compute a result.
+    def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
+        """Register a numpy array as a raster under `key` in this DataSource.
 
         Parameters
         ----------
         key: hashable (like a string)
             File identifier within DataSource
-        fn: callable or sequence of callable
-            pixel functions, one per band
-            A pixel function take a Footprint and return a np.ndarray with the same shape.
-        path: string
-        fp: Footprint
-            Location and size of the raster to create.
-        dtype: numpy type (or any alias)
+        fp: Footprint of shape (Y, X)
+            Description of the location and size of the raster to create.
+        array: ndarray of shape (Y, X) or (Y, X, B)
         band_schema: dict or None
-            Band(s) metadata. (see `DataSource.create_raster` below)
+            Band(s) metadata. (see `Band fields` below)
         sr: string or None
             Spatial reference of the new file
 
@@ -409,128 +486,84 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+        mode: one of {'r', 'w'}
 
-        Exemple
+        Returns
         -------
-        Computing the Mandelbrot fractal using buzzard
+        NumpyRaster
 
-        >>> import buzzard as buzz
-        ... import numpy as np
-        ... from numba import jit
-        ... import matplotlib.pyplot as plt
-        ... import shapely.geometry as sg
-        ...
-        ... @jit(nopython=True, nogil=True, cache=True)
-        ... def mandelbrot_jit(array, tl, scale, maxit):
-        ...     for j in range(array.shape[0]):
-        ...         y0 = tl[1] + j * scale[1]
-        ...         for i in range(array.shape[1]):
-        ...             x0 = tl[0] + i * scale[0]
-        ...             x = 0.0
-        ...             y = 0.0
-        ...             x2 = 0.0
-        ...             y2 = 0.0
-        ...             iteration = 0
-        ...             while x2 + y2 < 4 and iteration < maxit:
-        ...                 y = 2 * x * y + y0
-        ...                 x = x2 - y2 + x0
-        ...                 x2 = x * x
-        ...                 y2 = y * y
-        ...                 iteration += 1
-        ...             array[j][i] = iteration * 255 / maxit
-        ...
-        ... with buzz.Env(allow_complex_footprint=True, warnings=False):
-        ...     ds = buzz.DataSource()
-        ...
-        ...     def pixel_function(fp):
-        ...         print('  Computing {}'.format(fp))
-        ...         array = np.empty(fp.shape, 'uint8')
-        ...         mandelbrot_jit(array, fp.tl, fp.scale, maxit)
-        ...         return array
-        ...
-        ...     size = 5000
-        ...     fp = buzz.Footprint(
-        ...         gt=(-2, 4 / size, 0, -2, 0, 4 / size),
-        ...         rsize=(size, size),
-        ...     )
-        ...     print('Recipe:{}'.format(fp))
-        ...     r = ds.acreate_recipe_raster(pixel_function, fp, 'uint8', {'nodata': 0})
-        ...
-        ...     focus = sg.Point(-1.1172, -0.221103)
-        ...     for factor in [1, 4, 16, 64]:
-        ...         buffer = 2 / factor
-        ...         maxit = 25 * factor
-        ...         fp = fp.dilate(buffer // fp.pxsizex) & focus.buffer(buffer)
-        ...         print('Zoom:{}, radius:{}, max-iteration:{}, fp:{}'.format(factor, buffer, maxit, fp))
-        ...         a = r.get_data(fp=fp)
-        ...         plt.imshow(a, origin='upper', extent=(fp.lx, fp.rx, fp.by, fp.ty))
-        ...         plt.show()
-        ...
-        Recipe:     Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5000, 5000))
-        Zoom:1, radius:2.0, max-iteration:25,
-                 fp:Footprint(tl=(-3.117600, -2.221600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(5001, 5001))
-          Computing Footprint(tl=(-2.000000, -2.000000), scale=(0.000800, 0.000800), angle=0.000000, rsize=(3609, 4729))
-        Zoom:4, radius:0.5, max-iteration:100,
-                 fp:Footprint(tl=(-1.617600, -0.721600), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1251, 1251))
-          Computing Footprint(tl=(-1.620800, -0.724800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(1259, 1259))
-        Zoom:16, radius:0.125, max-iteration:400,
-                 fp:Footprint(tl=(-1.242400, -0.346400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(313, 313))
-          Computing Footprint(tl=(-1.246400, -0.350400), scale=(0.000800, 0.000800), angle=0.000000, rsize=(323, 323))
-        Zoom:64, radius:0.03125, max-iteration:1600,
-                 fp:Footprint(tl=(-1.148800, -0.252800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(79, 79))
-          Computing Footprint(tl=(-1.152800, -0.256800), scale=(0.000800, 0.000800), angle=0.000000, rsize=(89, 89))
+        Band fields
+        -----------
+        Fields:
+            'nodata': None or number
+            'interpretation': None or str
+            'offset': None or number
+            'scale': None or number
+            'mask': None or one of ('')
+        Interpretation values:
+            undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
+            saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
+        Mask values:
+            all_valid, per_dataset, alpha, nodata
+
+        A field missing or None is kept to default value.
+        A field can be passed as:
+            a value: All bands are set to this value
+            a sequence of length `band_count` of value: All bands will be set to respective state
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
+        if not isinstance(fp, Footprint): # pragma: no cover
+            raise TypeError('`fp` should be a Footprint')
+        array = np.asarray(array)
+        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
+            raise ValueError('Incompatible shape between `array` and `fp`')
+        if array.ndim not in [2, 3]: # pragma: no cover
+            raise ValueError('Array should have 2 or 3 dimensions')
+        band_count = 1 if array.ndim == 2 else array.shape[-1]
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
-            fp = self._convert_footprint(fp, sr)
+            sr = osr.GetUserInputAsWKT(sr)
+        _ = conv.of_of_mode(mode)
 
-        if hasattr(fn, '__call__'):
-            fn_lst = (fn,)
-        elif not isinstance(fn, collections.Container):
-            fn_lst = tuple(fn)
-            for fn_elt in fn_lst:
-                if not hasattr(fn_elt, '__call__'):
-                    raise TypeError('fn should be a callable or a sequence of callables')
-        else:
-            raise TypeError('fn should be a callable or a sequence of callables')
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
 
-        gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        consts = RasterRecipe._Constants(
-            self, gdal_ds=gdal_ds, fn_list=fn_lst,
-        )
-        prox = RasterRecipe(self, consts, gdal_ds)
+        # Construction *********************************************************
+        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
-    def acreate_recipe_raster(self, fn, fp, dtype, band_schema=None, sr=None):
-        """Experimental feature!
+    def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
+        """Register a numpy array as a raster anonymously in this DataSource.
 
-        Create a raster recipe anonymously in this DataSource.
-
-        See DataSource.create_recipe_raster
+        See DataSource.wrap_numpy_raster
         """
+        # Parameter checking ***************************************************
+        if not isinstance(fp, Footprint): # pragma: no cover
+            raise TypeError('`fp` should be a Footprint')
+        array = np.asarray(array)
+        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
+            raise ValueError('Incompatible shape between `array` and `fp`')
+        if array.ndim not in [2, 3]: # pragma: no cover
+            raise ValueError('Array should have 2 or 3 dimensions')
+        band_count = 1 if array.ndim == 2 else array.shape[-1]
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
-            fp = self._convert_footprint(fp, sr)
+            sr = osr.GetUserInputAsWKT(sr)
+        _ = conv.of_of_mode(mode)
 
-        if hasattr(fn, '__call__'):
-            fn_lst = (fn,)
-        elif not isinstance(fn, collections.Container):
-            fn_lst = tuple(fn)
-            for fn_elt in fn_lst:
-                if not hasattr(fn_elt, '__call__'):
-                    raise TypeError('fn should be a callable or a sequence of callables')
-        else:
-            raise TypeError('fn should be a callable or a sequence of callables')
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
 
-        gdal_ds = RasterRecipe._create_vrt(fp, dtype, len(fn_lst), band_schema, sr)
-        consts = RasterRecipe._Constants(
-            self, gdal_ds=gdal_ds, fn_list=fn_lst,
-        )
-        prox = RasterRecipe(self, consts, gdal_ds)
+        # Construction *********************************************************
+        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     # Vector entry points *********************************************************************** **
@@ -548,41 +581,84 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             http://www.gdal.org/ogr_formats.html
         options: sequence of str
             options for ogr
-        mode: one of ('r', 'w')
+        mode: one of {'r', 'w'}
+
+        Returns
+        -------
+        GDALFileVector
 
         Example
         -------
         >>> ds.open_vector('trees', '/path/to.shp')
-        >>> trees = ds.aopen_vector('/path/to.shp')
+        >>> feature_count = len(ds.trees)
+
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
+        >>> fields_list = ds.roofs.fields
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        path = str(path)
+        if layer is None:
+            layer = 0
+        elif isinstance(layer, numbers.Integral):
+            layer = int(layer)
+        else:
+            layer = str(layer)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory': # pragma: no cover
+            raise ValueError("Can't open a MEMORY vector, user create_vector")
+        elif True:
+            allocator = lambda: BackGDALFileVector.open_file(
+                path, layer, driver, options, mode
+            )
+            prox = GDALFileVector(self, allocator, options, mode)
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
         """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.open_vector
+
+        Example
+        -------
+        >>> trees = ds.aopen_vector('/path/to.shp')
+        >>> features_bounds = trees.bounds
+
         """
-        gdal_ds, lyr = Vector._open_file(path, layer, driver, options, mode)
+        path = str(path)
+        if layer is None:
+            layer = 0
+        elif isinstance(layer, numbers.Integral):
+            layer = int(layer)
+        else:
+            layer = str(layer)
+        driver = str(driver)
         options = [str(arg) for arg in options]
         _ = conv.of_of_mode(mode)
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode=mode, layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory': # pragma: no cover
+            raise ValueError("Can't open a MEMORY vector, user create_vector")
+        elif True:
+            allocator = lambda: BackGDALFileVector.open_file(
+                path, layer, driver, options, mode
+            )
+            prox = GDALFileVector(self, allocator, options, mode)
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     def create_vector(self, key, path, geometry, fields=(), layer=None,
@@ -616,6 +692,10 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
+        Returns
+        -------
+        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
+
         Field attributes
         ----------------
         Attributes:
@@ -647,7 +727,7 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         Example
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
-        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
+        >>> geometry_type = ds.lines.type
 
         >>> fields = [
             {'name': 'name', 'type': str},
@@ -656,19 +736,40 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
             {'name': 'when', 'type': np.datetime64},
         ]
         >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
+        >>> field0_type = ds.zones.fields[0]['type']
 
         """
+        # Parameter checking ***************************************************
         self._validate_key(key)
-        gdal_ds, lyr = Vector._create_file(
-            path, geometry, fields, layer, driver, options, sr
-        )
+        path = str(path)
+        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
+        fields = _tools.normalize_fields_defn(fields)
+        if layer is None:
+            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
+        else:
+            layer = str(layer)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            # TODO: Check not concurrent
+            allocator = lambda: BackGDALFileVector.create_file(
+                '', geometry, fields, layer, 'Memory', options, sr
+            )
+            prox = GDALMemoryVector(self, allocator, options)
+        elif True:
+            allocator = lambda: BackGDALFileVector.create_file(
+                path, geometry, fields, layer, driver, options, sr
+            )
+            prox = GDALFileVector(self, allocator, options, 'w')
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([key], prox)
-        self._register_new_activated(prox)
         return prox
 
     def acreate_vector(self, path, geometry, fields=(), layer=None,
@@ -676,17 +777,43 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
 
         See DataSource.create_vector
+
+        Example
+        -------
+        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
+        >>> file_proj4 = lines.proj4_stored
+
         """
-        gdal_ds, lyr = Vector._create_file(
-            path, geometry, fields, layer, driver, options, sr
-        )
+        # Parameter checking ***************************************************
+        path = str(path)
+        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
+        fields = _tools.normalize_fields_defn(fields)
+        if layer is None:
+            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
+        else:
+            layer = str(layer)
+        driver = str(driver)
         options = [str(arg) for arg in options]
-        consts = Vector._Constants(
-            self, gdal_ds=gdal_ds, lyr=lyr, open_options=options, mode='w', layer=layer,
-        )
-        prox = Vector(self, consts, gdal_ds, lyr)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            # TODO: Check not concurrent
+            allocator = lambda: BackGDALFileVector.create_file(
+                '', geometry, fields, layer, 'Memory', options, sr
+            )
+            prox = GDALMemoryVector(self, allocator, options)
+        elif True:
+            allocator = lambda: BackGDALFileVector.create_file(
+                path, geometry, fields, layer, driver, options, sr
+            )
+            prox = GDALFileVector(self, allocator, options, 'w')
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
         self._register([], prox)
-        self._register_new_activated(prox)
         return prox
 
     # Proxy getters ********************************************************* **
@@ -696,9 +823,13 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
 
     def __contains__(self, item):
         """Is key or proxy registered in DataSource"""
-        if isinstance(item, Proxy):
+        if isinstance(item, AProxy):
             return item in self._keys_of_proxy
         return item in self._proxy_of_key
+
+    def __len__(self):
+        """Retrieve proxy count registered in this DataSource"""
+        return len(self._keys_of_proxy)
 
     # Spatial reference getters ********************************************* **
     @property
@@ -706,88 +837,85 @@ class DataSource(_datasource_tools.DataSourceToolsMixin, DataSourceConversionsMi
         """DataSource's work spatial reference in WKT proj4.
         Returns None if none set.
         """
-        if self._sr_work is None:
+        if self._back.wkt_work is None:
             return None
-        return self._sr_work.ExportToProj4()
+        return osr.SpatialReference(self._back.wkt_work).ExportToProj4()
 
     @property
     def wkt(self):
         """DataSource's work spatial reference in WKT format.
         Returns None if none set.
         """
-        if self._sr_work is None:
-            return None
-        return self._wkt_work
+        return self._back.wkt_work
 
     # Activation mechanisms ********************************************************************* **
+    @property
+    def active_count(self):
+        """Count how many driver objects are currently active"""
+        return self._back.active_count()
+
     def activate_all(self):
-        """Activate all sources.
+        """Activate all deactivable proxies.
         May raise an exception if the number of sources is greater than `max_activated`
         """
-        if self._max_activated < len(self._keys_of_proxy):
+        if self._back.max_active < len(self._keys_of_proxy):
             raise RuntimeError("Can't activate all sources at the same time: {} sources and max_activated is {}".format(
-                len(self._keys_of_proxy), self._max_activated,
+                len(self._keys_of_proxy), self._back.max_active,
             ))
         for prox in self._keys_of_proxy.keys():
-            if not prox.activated:
+            if not prox.active:
                 prox.activate()
-                assert prox.activated
 
     def deactivate_all(self):
-        """Deactivate all sources. Useful to flush all files to disk
-        The sources that can't be deactivated (i.e. a raster with the `MEM` driver) are ignored.
-        """
-        if self._locked_count != 0:
-            raise RuntimeError("Can't deactivate all sources: some are forced to stay activated (are you iterating on geometries?)")
+        """Deactivate all deactivable proxies. Useful to flush all files to disk"""
         for prox in self._keys_of_proxy.keys():
-            if not prox.deactivable:
-                continue
-            if prox.activated:
+            if prox.active:
                 prox.deactivate()
-                assert not prox.activated
 
-    # Copy ************************************************************************************** **
-    def copy(self):
-        f, args = self.__reduce__()
-        return f(*args)
 
-    def __reduce__(self):
-        params = {}
-        params['sr_work'] = self._sr_work
-        params['sr_fallback'] = self._sr_fallback
-        params['sr_forced'] = self._sr_forced
-        params['analyse_transformation'] = self._analyse_transformations
-        params['ogr_layer_lock'] = self._ogr_layer_lock
-        params['allow_none_geometry'] = self._allow_none_geometry
-        params['allow_interpolation'] = self._allow_interpolation
-        params['max_activated'] = self._max_activated
-        params['assert_no_change_on_activation'] = self._assert_no_change_on_activation
-
-        proxies = []
-        for prox, keys in self._keys_of_proxy.items():
-
-            if prox.picklable:
-                consts = dict(prox._c.__dict__) # Need to recreate dict for cloudpickling
-                proxies.append((
-                    keys, consts, prox.__class__
-                ))
-
-        return (_restore, (params, proxies))
+    # Deprecation ******************************************************************************* **
+    open_araster = deprecation_pool.wrap_method(
+        aopen_raster,
+        '0.4.4'
+    )
+    create_araster = deprecation_pool.wrap_method(
+        acreate_raster,
+        '0.4.4'
+    )
+    open_avector = deprecation_pool.wrap_method(
+        aopen_vector,
+        '0.4.4'
+    )
+    create_avector = deprecation_pool.wrap_method(
+        acreate_vector,
+        '0.4.4'
+    )
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
 
-deprecation_pool.add_deprecated_method(DataSource, 'aopen_raster', 'open_araster', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_raster', 'create_araster', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'aopen_vector', 'open_avector', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_vector', 'create_avector', '0.4.4')
-deprecation_pool.add_deprecated_method(DataSource, 'acreate_recipe_raster', 'create_recipe_araster', '0.4.4')
+if sys.version_info < (3, 6):
+    # https://www.python.org/dev/peps/pep-0487/
+    for k, v in DataSource.__dict__.items():
+        if hasattr(v, '__set_name__'):
+            v.__set_name__(DataSource, k)
 
-def _restore(params, proxies):
-    ds = DataSource(**params)
+def open_raster(*args, **kwargs):
+    """Shortcut for `DataSource().aopen_raster`"""
+    return DataSource().aopen_raster(*args, **kwargs)
 
-    for keys, consts, classobj in proxies:
-        consts = classobj._Constants(ds, **consts)
-        prox = classobj(ds, consts)
-        ds._register(keys, prox)
-    return ds
+def open_vector(*args, **kwargs):
+    """Shortcut for `DataSource().aopen_vector`"""
+    return DataSource().aopen_vector(*args, **kwargs)
+
+def create_raster(*args, **kwargs):
+    """Shortcut for `DataSource().acreate_raster`"""
+    return DataSource().acreate_raster(*args, **kwargs)
+
+def create_vector(*args, **kwargs):
+    """Shortcut for `DataSource().acreate_vector`"""
+    return DataSource().acreate_vector(*args, **kwargs)
+
+def wrap_numpy_raster(*args, **kwargs):
+    """Shortcut for `DataSource().awrap_numpy_raster`"""
+    return DataSource().awrap_numpy_raster(*args, **kwargs)

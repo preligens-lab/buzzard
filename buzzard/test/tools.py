@@ -5,7 +5,7 @@ import itertools
 import logging
 
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, osr
 
 import buzzard as buzz
 
@@ -28,6 +28,7 @@ SRS = [
     )
     for name, epsg, cx, cy, minx, miny, maxx, maxy, wkt in _SRS
 ]
+
 
 def get_srs_by_name(name):
     return next(
@@ -65,6 +66,32 @@ def fpeq(*items, **kwargs):
             return False
     return True
 
+def sreq(*items, verbose_on=None):
+    """SR items are all equal"""
+    for a, b in itertools.combinations(items, 2):
+        a = osr.SpatialReference(osr.GetUserInputAsWKT(a))
+        a.StripCTParms()
+        a = a.ExportToProj4()
+        a = osr.SpatialReference(osr.GetUserInputAsWKT(a))
+        a.StripCTParms()
+
+        b = osr.SpatialReference(osr.GetUserInputAsWKT(b))
+        b.StripCTParms()
+        b = b.ExportToProj4()
+        b = osr.SpatialReference(osr.GetUserInputAsWKT(b))
+        b.StripCTParms()
+
+        res = bool(a.IsSame(b))
+        if res is verbose_on:
+            print('')
+            print(a.ExportToPrettyWkt())
+            print('---------- vs ----------')
+            print(b.ExportToPrettyWkt())
+            print('')
+
+        if not res:
+            return False
+    return True
 
 def poly_relation(a, b):
     """Describe 2 polygons relation"""

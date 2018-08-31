@@ -40,9 +40,10 @@ def pytest_generate_tests(metafunc):
             argvalues=[
                 ('ESRI Shapefile', '.shp', True, True), # 145% time
                 ('GeoJson', '.json', True, True), # 100% time
+                ('Memory', '', True, True),
                 # ('BNA', '.bna', False, True), # 350% time
                 # ('DGN', '.dgn', False, False), # 190% time
-                # ('DXF', '.dxf', False, False), # 490% time
+                ('DXF', '.dxf', False, False), # 490% time
             ],
         )
     else:
@@ -67,6 +68,7 @@ def path(suffix, driver):
 
 
 def test_run(path, driver, fps, test_fields, test_coords_insertion):
+    # Step 1 - Build file according to fixture parameters **********************
     ds = buzz.DataSource()
 
     if test_fields:
@@ -77,27 +79,38 @@ def test_run(path, driver, fps, test_fields, test_coords_insertion):
     geom_type = 'polygon'
     v = ds.create_avector(path, geom_type, fields, driver=driver, sr=SRS[0]['wkt'])
 
-    def _build_data():
+    def _build_test_data():
+        """Create test data of random format"""
         rng = np.random.RandomState(42)
         for fpname, fp in fps.items():
             geom = _geom_of_fp(rng, fp, test_coords_insertion)
-            fields = _fields_of_fp(rng, fp, fpname) # Keep invocation before `if`
+
+            # Keep `_fields_of_fp` invocation before `if` for rng side effect
+            fields = _fields_of_fp(rng, fp, fpname)
+
             if test_fields:
                 yield geom, fields
             else:
                 yield geom,
 
-    data = list(_build_data())
+    data = list(_build_test_data())
     for dat in data:
         v.insert_data(*dat)
-    v.close()
-    del ds
+    if driver in {'GeoJson', 'DXF'}:
+        # Flushing to disk for geojson
+        v.deactivate()
+        v.activate()
 
-    _test_geom_read(path, driver, fps, data)
+    # Step 2 - Test geometries read routines ***********************************
+    _test_geom_read(v, fps, data, test_fields)
+
+    # Step 3 - Test field read routines ****************************************
     if test_fields:
-        _test_fields_read(path, driver, data)
+        _test_fields_read(v, data)
 
-# Test write slaves ***************************************************************************** **
+    v.close()
+
+# Depth 1 - Write subroutines ******************************************************************* **
 FIELDS = [
     {'name': 'rarea', 'type': int},
     {'name': 'fpname', 'type': str},
@@ -125,7 +138,7 @@ def _fields_of_fp(rng, fp, fpname):
     ]
 
     if rng.randint(2):
-        # Dict
+        # Fields in a `dict`
         i = rng.randint(4)
         if i == 0:
             # Dict - All present
@@ -150,7 +163,7 @@ def _fields_of_fp(rng, fp, fpname):
                     assert i == 2
             return d
     else:
-        # List
+        # Fields in a `list`
         i = rng.randint(4)
         if i == 0:
             # List - All present
@@ -172,8 +185,8 @@ def _fields_of_fp(rng, fp, fpname):
                     l.append(None)
             return l
 
-# Test read slaves 1 **************************************************************************** **
-def _test_fields_read(path, driver, data):
+# Depth 1 - Read subroutines ******************************************************************** **
+def _test_fields_read(v, data):
     """Test fields reading with iter_data
 
     Not testing geojson, no testing get_* functions
@@ -196,8 +209,8 @@ def _test_fields_read(path, driver, data):
         [[0, 1, 2], -1, ['rarea', 'fpname', 'sqrtarea'], [0, 'fpname', 'sqrtarea'], ['rarea', 1, 2]],
     ]
 
-    ds = buzz.DataSource()
-    v = ds.open_vector('v', path, driver=driver)
+    # ds = buzz.DataSource()
+    # v = ds.open_vector('v', path, driver=driver)
 
     for query_ways in query_waysssss:
         # All queries in `query_ways` request the same thing in a different way
@@ -224,11 +237,12 @@ def _test_fields_read(path, driver, data):
         assert len(queries_results) == len(query_ways)
         _assert_all_list_of_fields_same(queries_results)
 
-def _test_geom_read(path, driver, fps, data):
-    ds = buzz.DataSource()
-    v = ds.open_vector('v', path, driver=driver)
+def _test_geom_read(v, fps, data, test_fields):
+    """Test many combinations of parameters for iter/get_data/geojson. Only check geometry"""
+    # ds = buzz.DataSource()
+    # v = ds.open_vector('v', path, driver=driver)
 
-    queries = _build_geom_read_queries(v, fps)
+    queries = _build_geom_read_queries(v, fps, test_fields)
     for gen, slicing, _, mask, clip in queries:
         # Normalize input mask
         if mask is None:
@@ -266,8 +280,8 @@ def _test_geom_read(path, driver, fps, data):
         for geom, geom_ref in zip(geoms, geoms_ref):
             assert (geom ^ geom_ref).is_empty
 
-# Test read slaves 2 **************************************************************************** **
-def _build_geom_read_queries(v, fps):
+# Depth 2 - Read subroutines ******************************************************************** **
+def _build_geom_read_queries(v, fps, test_fields):
     slicings = [
         slice(None),
         slice(1, None, 1),
@@ -301,27 +315,30 @@ def _build_geom_read_queries(v, fps):
             pass
 
     prod = itertools.product
-    queries = itertools.chain(
+    queries = [
         ((v.iter_data(None, geom_type, mask, clip, slicing), slicing, geom_type, mask, clip)
          for geom_type, slicing, mask, clip in prod(geom_types, slicings, masks, clips)
          if not (clip is True and mask is None)
         ),
-
-        ((v.iter_geojson(mask, clip, slicing), slicing, 'geojson', mask, clip)
-         for slicing, mask, clip in prod(slicings, masks, clips)
-         if not (clip is True and mask is None)
-        ),
-
         ((_iter_by_get_data(geom_type, slicing, mask, clip), slicing, geom_type, mask, clip)
          for geom_type, slicing, mask, clip in prod(geom_types, slicings, masks, clips)
          if not (clip is True and mask is None)
         ),
+    ]
+    if test_fields:
+        queries += [
+            ((v.iter_geojson(mask, clip, slicing), slicing, 'geojson', mask, clip)
+             for slicing, mask, clip in prod(slicings, masks, clips)
+             if not (clip is True and mask is None)
+            ),
 
-        ((_iter_by_get_geojson(slicing, mask, clip), slicing, 'geojson', mask, clip)
-         for slicing, mask, clip in prod(slicings, masks, clips)
-         if not (clip is True and mask is None)
-        ),
-    )
+            ((_iter_by_get_geojson(slicing, mask, clip), slicing, 'geojson', mask, clip)
+             for slicing, mask, clip in prod(slicings, masks, clips)
+             if not (clip is True and mask is None)
+            ),
+        ]
+
+    queries = itertools.chain(*queries)
     return queries
 
 def _any_geom_to_shapely(geom):

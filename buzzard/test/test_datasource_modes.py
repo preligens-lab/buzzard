@@ -1,3 +1,7 @@
+"""
+TODO: Test insert_data under several modes
+"""
+
 # pylint: disable=redefined-outer-name, unused-argument
 
 from __future__ import division, print_function
@@ -12,7 +16,7 @@ import pytest
 import shapely.ops
 
 import buzzard as buzz
-from buzzard.test.tools import fpeq
+from buzzard.test.tools import fpeq, sreq, eq
 from buzzard.test import make_tile_set
 from .tools import  get_srs_by_name
 
@@ -43,6 +47,7 @@ def shp1_path(fps):
     ds.create_vector('poly', path, 'polygon', sr=SR1['wkt'])
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
+    ds.poly.close()
     del ds
     yield path
     gdal.GetDriverByName('ESRI Shapefile').Delete(path)
@@ -58,6 +63,7 @@ def tif1_path(fps):
         fp = fps[letter]
         arr = np.full(fp.shape, ord(letter), dtype=int)
         ds.rast.set_data(arr, fp=fp)
+    ds.rast.close()
     del ds
     yield path
     gdal.GetDriverByName('GTiff').Delete(path)
@@ -71,6 +77,7 @@ def shp2_path(fps):
     ds.create_vector('poly', path, 'polygon', sr=SR2['wkt'])
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
+    ds.poly.close()
     del ds
     yield path
     gdal.GetDriverByName('ESRI Shapefile').Delete(path)
@@ -82,6 +89,35 @@ def tif2_path(fps):
 
     ds = buzz.DataSource()
     with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=SR2['wkt']).close as r:
+        for letter in string.ascii_uppercase[:9]:
+            fp = fps[letter]
+            arr = np.full(fp.shape, ord(letter), dtype=int)
+            r.set_data(arr, fp=fp)
+    yield path
+    gdal.GetDriverByName('GTiff').Delete(path)
+
+
+@pytest.fixture(scope='module')
+def shp3_path(fps):
+    """Create a shapefile without SR containing all single letter polygons from `fps` fixture"""
+    path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
+
+    ds = buzz.DataSource()
+    ds.create_vector('poly', path, 'polygon', sr=None)
+    for letter in string.ascii_uppercase[:9]:
+        ds.poly.insert_data(fps[letter].poly)
+    ds.poly.close()
+    del ds
+    yield path
+    gdal.GetDriverByName('ESRI Shapefile').Delete(path)
+
+@pytest.fixture(scope='module')
+def tif3_path(fps):
+    """Create a tif witwhout SR with all single letter footprints from `fps` fixture burnt in it"""
+    path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+
+    ds = buzz.DataSource()
+    with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=None).close as r:
         for letter in string.ascii_uppercase[:9]:
             fp = fps[letter]
             arr = np.full(fp.shape, ord(letter), dtype=int)
@@ -112,65 +148,168 @@ def random_path_tif():
             os.remove(path)
 
 # TESTS ***************************************************************************************** **
-def test_mode1(fps, shp1_path, tif1_path, shp2_path, tif2_path):
+def test_mode1(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path):
     ds = buzz.DataSource()
-    ds.open_raster('rast1', tif1_path)
-    ds.open_vector('poly1', shp1_path)
-    ds.open_raster('rast2', tif2_path)
-    ds.open_vector('poly2', shp2_path)
+    ds.open_raster('tif1', tif1_path)
+    ds.open_vector('shp1', shp1_path)
+    ds.open_raster('tif2', tif2_path)
+    ds.open_vector('shp2', shp2_path)
+    ds.open_raster('tif3', tif3_path)
+    ds.open_vector('shp3', shp3_path)
+
+    # Test SR equality
+    assert sreq(
+        ds.tif1.wkt_virtual,
+        ds.tif1.wkt_stored,
+        ds.tif1.proj4_virtual,
+        ds.tif1.proj4_stored,
+        ds.shp1.wkt_virtual,
+        ds.shp1.wkt_stored,
+        ds.shp1.proj4_virtual,
+        ds.shp1.proj4_stored,
+    )
+    assert sreq(
+        ds.tif2.wkt_virtual,
+        ds.tif2.wkt_stored,
+        ds.tif2.proj4_virtual,
+        ds.tif2.proj4_stored,
+        ds.shp2.wkt_virtual,
+        ds.shp2.wkt_stored,
+        ds.shp2.proj4_virtual,
+        ds.shp2.proj4_stored,
+    )
+    assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
+    assert eq(
+        None ==
+        ds.wkt ==
+        ds.proj4 ==
+        ds.tif3.wkt_virtual ==
+        ds.tif3.wkt_stored ==
+        ds.tif3.proj4_virtual ==
+        ds.tif3.proj4_stored ==
+        ds.shp3.wkt_virtual ==
+        ds.shp3.wkt_stored ==
+        ds.shp3.proj4_virtual ==
+        ds.shp3.proj4_stored
+    )
 
     # Test footprints equality
     assert fpeq(
         fps.AI,
-        ds.rast1.fp,
-        ds.rast1.fp_origin,
-        buzz.Footprint.of_extent(ds.poly1.extent, fps.AI.scale),
-        ds.rast2.fp,
-        ds.rast2.fp_origin,
-        buzz.Footprint.of_extent(ds.poly2.extent, fps.AI.scale),
+        # tif/shp 1
+        ds.tif1.fp,
+        ds.tif1.fp_origin,
+        buzz.Footprint.of_extent(ds.shp1.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds[[0, 2, 1, 3]], fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+        # tif/shp 2
+        ds.tif2.fp,
+        ds.tif2.fp_origin,
+        buzz.Footprint.of_extent(ds.shp2.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds[[0, 2, 1, 3]], fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+        # tif/shp 3
+        ds.tif3.fp,
+        ds.tif3.fp_origin,
+        buzz.Footprint.of_extent(ds.shp3.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.bounds[[0, 2, 1, 3]], fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
     )
 
-    # Test what's written in all 4 files
-    rast1 = ds.rast1.get_data()
-    rast2 = ds.rast2.get_data()
+    # Test what's written in all 6 files
+    tif1 = ds.tif1.get_data()
+    tif2 = ds.tif2.get_data()
+    tif3 = ds.tif3.get_data()
+    assert np.all(tif1 == tif2)
+    assert np.all(tif1 == tif3)
     for i, letter in enumerate(string.ascii_uppercase[:9]):
-        poly1 = ds.poly1.get_data(i, None)
-        raster1_polys = ds.rast1.fp.find_polygons(rast1 == ord(letter))
+        # tif/shp 1
+        shp1 = ds.shp1.get_data(i, None)
+        raster1_polys = ds.tif1.fp.find_polygons(tif1 == ord(letter))
         assert len(raster1_polys) == 1
-        assert (poly1 ^ raster1_polys[0]).is_empty
+        assert (shp1 ^ raster1_polys[0]).is_empty
 
-        poly2 = ds.poly2.get_data(i, None)
-        raster2_polys = ds.rast2.fp.find_polygons(rast2 == ord(letter))
+        # tif/shp 2
+        shp2 = ds.shp2.get_data(i, None)
+        raster2_polys = ds.tif2.fp.find_polygons(tif2 == ord(letter))
         assert len(raster2_polys) == 1
-        assert (poly2 ^ raster2_polys[0]).is_empty
+        assert (shp2 ^ raster2_polys[0]).is_empty
 
-def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, random_path_shp, random_path_tif, env):
+        # tif/shp 3
+        shp3 = ds.shp3.get_data(i, None)
+        raster3_polys = ds.tif3.fp.find_polygons(tif3 == ord(letter))
+        assert len(raster3_polys) == 1
+        assert (shp3 ^ raster3_polys[0]).is_empty
+
+def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path,
+               random_path_shp, random_path_tif, env):
     ds = buzz.DataSource(sr_work=SR1['wkt'])
-    ds.open_raster('rast1', tif1_path)
-    ds.open_vector('poly1', shp1_path)
-    ds.open_raster('rast2', tif2_path)
-    ds.open_vector('poly2', shp2_path)
+    ds.open_raster('tif1', tif1_path)
+    ds.open_vector('shp1', shp1_path)
+    ds.open_raster('tif2', tif2_path)
+    ds.open_vector('shp2', shp2_path)
 
-    # Test file creation without spatial reference
+    # Test file creation/opening without spatial reference
     with buzz.Env(allow_complex_footprint=True):
         with pytest.raises(ValueError, match='spatial refe'):
             ds.acreate_vector(random_path_shp, 'polygon', [], sr=None)
         with pytest.raises(ValueError, match='spatial refe'):
             ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None)
+        with pytest.raises(ValueError, match='spatial refe'):
+            ds.aopen_raster(tif3_path)
+        with pytest.raises(ValueError, match='spatial refe'):
+            ds.aopen_vector(shp3_path)
+
+    # Test SR equality
+    assert sreq(
+        ds.wkt,
+        ds.proj4,
+        ds.tif1.wkt_virtual,
+        ds.tif1.wkt_stored,
+        ds.tif1.proj4_virtual,
+        ds.tif1.proj4_stored,
+        ds.shp1.wkt_virtual,
+        ds.shp1.wkt_stored,
+        ds.shp1.proj4_virtual,
+        ds.shp1.proj4_stored,
+    )
+    assert sreq(
+        ds.tif2.wkt_virtual,
+        ds.tif2.proj4_virtual,
+        ds.shp2.wkt_virtual,
+        ds.shp2.proj4_virtual,
+        ds.tif2.wkt_stored,
+        ds.tif2.proj4_stored,
+        ds.shp2.wkt_stored,
+        ds.shp2.proj4_stored,
+    )
+    assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
 
     # Test foorprints equality
     assert fpeq(
         fps.AI,
-        ds.rast1.fp,
-        ds.rast1.fp_origin,
-        buzz.Footprint.of_extent(ds.poly1.extent, fps.AI.scale),
-        ds.rast2.fp_origin,
+        # tif/shp 1
+        ds.tif1.fp,
+        ds.tif1.fp_origin,
+        buzz.Footprint.of_extent(ds.shp1.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds[[0, 2, 1, 3]], fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 2
+        ds.tif2.fp_origin,
+        buzz.Footprint.of_extent(ds.shp2.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
     )
     assert fpeq(
-        ds.rast2.fp,
-        buzz.Footprint.of_extent(ds.poly2.extent, fps.AI.scale),
+        ds.tif2.fp,
+        buzz.Footprint.of_extent(ds.shp2.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds[[0, 2, 1, 3]], fps.AI.scale),
     )
-    assert ds.rast2.fp != ds.rast1.fp
+    assert ds.tif2.fp != ds.tif1.fp
 
     # Test file creation with/without conversion of footprint
     with buzz.Env(allow_complex_footprint=True):
@@ -187,240 +326,303 @@ def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, random_path_shp,
             )
             assert fps.AI != r.fp_origin
 
-    # Test what's written in rast1/poly1 files
-    rast1 = ds.rast1.get_data()
+    # Test what's written in all 4 files
+    tif1 = ds.tif1.get_data()
+    tif2 = ds.tif2.get_data()
+    assert np.all(tif1 == tif2)
 
     def f(x, y, z=None):
         return np.around(x, 6), np.around(y, 6)
 
     for i, letter in enumerate(string.ascii_uppercase[:9]):
-        poly1 = ds.poly1.get_data(i, None)
-        raster1_polys = ds.rast1.fp.find_polygons(rast1 == ord(letter))
+        # tif/shp 1
+        shp1 = ds.shp1.get_data(i, None)
+        shp1 = shapely.ops.transform(f, shp1)
+
+        raster1_polys = ds.tif1.fp.find_polygons(tif1 == ord(letter))
         assert len(raster1_polys) == 1
         raster1_poly = raster1_polys[0]
-        del raster1_polys
-        poly1 = shapely.ops.transform(f, poly1)
-        raster1_poly = shapely.ops.transform(f, poly1)
-        assert (poly1 ^ raster1_poly).is_empty
+        raster1_poly = shapely.ops.transform(f, shp1)
 
+        assert (shp1 ^ raster1_poly).is_empty
 
-def test_mode3(fps, shp1_path, tif1_path, random_path_shp, random_path_tif, env):
-    wkt_origin = buzz.srs.wkt_of_file(tif1_path)
-    wkt_work = buzz.srs.wkt_of_file(tif1_path, center=True)
+        # tif/shp 2
+        shp2 = ds.shp2.get_data(i, None)
+        shp2 = shapely.ops.transform(f, shp2)
 
-    ds = buzz.DataSource(wkt_work, sr_fallback=wkt_origin)
-    ds.open_raster('rast', tif1_path)
-    ds.open_vector('poly', shp1_path)
+        raster2_polys = ds.tif2.fp.find_polygons(tif2 == ord(letter))
+        assert len(raster2_polys) == 1
+        raster2_poly = raster2_polys[0]
+        raster2_poly = shapely.ops.transform(f, shp2)
 
+        assert (shp2 ^ raster2_poly).is_empty
+
+def test_mode3(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path,
+               random_path_shp, random_path_tif, env):
+    ds = buzz.DataSource(sr_work=SR1['wkt'], sr_fallback=SR2['wkt'])
+    ds.open_raster('tif1', tif1_path)
+    ds.open_vector('shp1', shp1_path)
+    ds.open_raster('tif2', tif2_path)
+    ds.open_vector('shp2', shp2_path)
+    ds.open_raster('tif3', tif3_path)
+    ds.open_vector('shp3', shp3_path)
+
+    # Test file creation without spatial reference
     with buzz.Env(allow_complex_footprint=True):
-        ds.acreate_vector(random_path_shp, 'polygon', [], sr=None).close()
-        ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close()
+        with ds.acreate_vector(random_path_shp, 'polygon', [], sr=None).close as r:
+            assert r.wkt_stored == None
+            assert sreq(r.wkt_virtual, SR2['wkt'])
+        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close as v:
+            assert v.wkt_stored == None
+            assert sreq(v.wkt_virtual, SR2['wkt'])
 
-    fp_poly = buzz.Footprint.of_extent(ds.poly.extent, ds.rast.fp.scale)
-    fp_poly_origin = buzz.Footprint.of_extent(ds.poly.extent_origin, ds.rast.fp_origin.scale)
-    assert fpeq(
-        ds.rast.fp,
-        fp_poly,
+    # Test SR equality
+    assert sreq(
+        ds.wkt,
+        ds.proj4,
+        ds.tif1.wkt_virtual,
+        ds.tif1.wkt_stored,
+        ds.tif1.proj4_virtual,
+        ds.tif1.proj4_stored,
+        ds.shp1.wkt_virtual,
+        ds.shp1.wkt_stored,
+        ds.shp1.proj4_virtual,
+        ds.shp1.proj4_stored,
+
     )
+    assert sreq(
+        ds.tif2.wkt_virtual,
+        ds.tif2.proj4_virtual,
+        ds.shp2.wkt_virtual,
+        ds.shp2.proj4_virtual,
+        ds.tif2.wkt_stored,
+        ds.tif2.proj4_stored,
+        ds.shp2.wkt_stored,
+        ds.shp2.proj4_stored,
+
+        ds.tif3.wkt_virtual,
+        ds.tif3.proj4_virtual,
+        ds.shp3.wkt_virtual,
+        ds.shp3.proj4_virtual,
+    )
+    assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
+    assert eq(
+        None ==
+        ds.tif3.wkt_stored ==
+        ds.tif3.proj4_stored ==
+        ds.shp3.wkt_stored ==
+        ds.shp3.proj4_stored
+    )
+
+    # Test foorprints equality
     assert fpeq(
-        ds.rast.fp_origin,
         fps.AI,
-        fp_poly_origin,
+        # tif/shp 1
+        ds.tif1.fp,
+        ds.tif1.fp_origin,
+        buzz.Footprint.of_extent(ds.shp1.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds[[0, 2, 1, 3]], fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 2
+        ds.tif2.fp_origin,
+        buzz.Footprint.of_extent(ds.shp2.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 3
+        ds.tif3.fp_origin,
+        buzz.Footprint.of_extent(ds.shp3.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
     )
-    rast = ds.rast.get_data()
+    assert fpeq(
+        ds.tif2.fp,
+        buzz.Footprint.of_extent(ds.shp2.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds[[0, 2, 1, 3]], fps.AI.scale),
+
+        ds.tif3.fp,
+        buzz.Footprint.of_extent(ds.shp3.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.bounds[[0, 2, 1, 3]], fps.AI.scale),
+    )
+    assert ds.tif2.fp != ds.tif1.fp
+
+    # Test what's written in all 6 files
+    tif1 = ds.tif1.get_data()
+    tif2 = ds.tif2.get_data()
+    tif3 = ds.tif3.get_data()
+    assert np.all(tif1 == tif2)
+    assert np.all(tif1 == tif3)
 
     def f(x, y, z=None):
         return np.around(x, 6), np.around(y, 6)
 
     for i, letter in enumerate(string.ascii_uppercase[:9]):
-        poly = ds.poly.get_data(i, None)
-        raster_polys = ds.rast.fp.find_polygons(rast == ord(letter))
-        assert len(raster_polys) == 1
-        raster_poly = raster_polys[0]
-        del raster_polys
-        poly = shapely.ops.transform(f, poly)
-        raster_poly = shapely.ops.transform(f, poly)
-        assert (poly ^ raster_poly).is_empty
+        # tif/shp 1
+        shp1 = ds.shp1.get_data(i, None)
+        shp1 = shapely.ops.transform(f, shp1)
 
-def test_mode4(fps, shp1_path, tif1_path, random_path_shp, random_path_tif, env):
-    wkt_origin = buzz.srs.wkt_of_file(tif1_path)
-    wkt_work = buzz.srs.wkt_of_file(tif1_path, center=True)
+        raster1_polys = ds.tif1.fp.find_polygons(tif1 == ord(letter))
+        assert len(raster1_polys) == 1
+        raster1_poly = raster1_polys[0]
+        raster1_poly = shapely.ops.transform(f, shp1)
 
-    ds = buzz.DataSource(wkt_work, sr_forced=wkt_origin)
-    ds.open_raster('rast', tif1_path)
-    ds.open_vector('poly', shp1_path)
+        assert (shp1 ^ raster1_poly).is_empty
 
+        # tif/shp 2
+        shp2 = ds.shp2.get_data(i, None)
+        shp2 = shapely.ops.transform(f, shp2)
+
+        raster2_polys = ds.tif2.fp.find_polygons(tif2 == ord(letter))
+        assert len(raster2_polys) == 1
+        raster2_poly = raster2_polys[0]
+        raster2_poly = shapely.ops.transform(f, shp2)
+
+        assert (shp2 ^ raster2_poly).is_empty
+
+        # tif/shp 3
+        shp3 = ds.shp3.get_data(i, None)
+        shp3 = shapely.ops.transform(f, shp3)
+
+        raster3_polys = ds.tif3.fp.find_polygons(tif3 == ord(letter))
+        assert len(raster3_polys) == 1
+        raster3_poly = raster3_polys[0]
+        raster3_poly = shapely.ops.transform(f, shp3)
+
+        assert (shp3 ^ raster3_poly).is_empty
+
+def test_mode4(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path,
+               random_path_shp, random_path_tif, env):
+    ds = buzz.DataSource(sr_work=SR1['wkt'], sr_forced=SR2['wkt'])
+    ds.open_raster('tif1', tif1_path)
+    ds.open_vector('shp1', shp1_path)
+    ds.open_raster('tif2', tif2_path)
+    ds.open_vector('shp2', shp2_path)
+    ds.open_raster('tif3', tif3_path)
+    ds.open_vector('shp3', shp3_path)
+
+    # Test file creation without spatial reference
     with buzz.Env(allow_complex_footprint=True):
-        ds.acreate_vector(random_path_shp, 'polygon', [], sr=None).close()
-        ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close()
+        with ds.acreate_vector(random_path_shp, 'polygon', [], sr=None).close as r:
+            assert r.wkt_stored == None
+            assert sreq(r.wkt_virtual, SR2['wkt'])
+        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, {}, sr=None).close as v:
+            assert v.wkt_stored == None
+            assert sreq(v.wkt_virtual, SR2['wkt'])
 
-    fp_poly = buzz.Footprint.of_extent(ds.poly.extent, ds.rast.fp.scale)
-    fp_poly_origin = buzz.Footprint.of_extent(ds.poly.extent_origin, ds.rast.fp_origin.scale)
-    assert fpeq(
-        ds.rast.fp,
-        fp_poly,
+    # Test SR equality
+    assert sreq(
+        ds.wkt,
+        ds.proj4,
+        ds.tif1.wkt_stored,
+        ds.tif1.proj4_stored,
+        ds.shp1.wkt_stored,
+        ds.shp1.proj4_stored,
     )
+    assert sreq(
+        ds.tif1.wkt_virtual,
+        ds.tif1.proj4_virtual,
+        ds.shp1.wkt_virtual,
+        ds.shp1.proj4_virtual,
+
+        ds.tif2.wkt_virtual,
+        ds.tif2.proj4_virtual,
+        ds.shp2.wkt_virtual,
+        ds.shp2.proj4_virtual,
+        ds.tif2.wkt_stored,
+        ds.tif2.proj4_stored,
+        ds.shp2.wkt_stored,
+        ds.shp2.proj4_stored,
+
+        ds.tif3.wkt_virtual,
+        ds.tif3.proj4_virtual,
+        ds.shp3.wkt_virtual,
+        ds.shp3.proj4_virtual,
+    )
+    assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
+    assert eq(
+        None ==
+        ds.tif3.wkt_stored ==
+        ds.tif3.proj4_stored ==
+        ds.shp3.wkt_stored ==
+        ds.shp3.proj4_stored
+    )
+
+    # Test foorprints equality
     assert fpeq(
-        ds.rast.fp_origin,
         fps.AI,
-        fp_poly_origin,
+        # tif/shp 1
+        ds.tif1.fp_origin,
+        buzz.Footprint.of_extent(ds.shp1.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 2
+        ds.tif2.fp_origin,
+        buzz.Footprint.of_extent(ds.shp2.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 3
+        ds.tif3.fp_origin,
+        buzz.Footprint.of_extent(ds.shp3.extent_stored, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.bounds_stored[[0, 2, 1, 3]], fps.AI.scale),
     )
-    rast = ds.rast.get_data()
+    assert fpeq(
+        # tif/shp 1
+        ds.tif1.fp,
+        buzz.Footprint.of_extent(ds.shp1.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp1.bounds[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 2
+        ds.tif2.fp,
+        buzz.Footprint.of_extent(ds.shp2.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp2.bounds[[0, 2, 1, 3]], fps.AI.scale),
+
+        # tif/shp 3
+        ds.tif3.fp,
+        buzz.Footprint.of_extent(ds.shp3.extent, fps.AI.scale),
+        buzz.Footprint.of_extent(ds.shp3.bounds[[0, 2, 1, 3]], fps.AI.scale),
+    )
+    assert ds.tif1.fp != ds.tif1.fp_stored
+
+    # Test what's written in all 6 files
+    tif1 = ds.tif1.get_data()
+    tif2 = ds.tif2.get_data()
+    tif3 = ds.tif3.get_data()
+    assert np.all(tif1 == tif2)
+    assert np.all(tif1 == tif3)
 
     def f(x, y, z=None):
         return np.around(x, 6), np.around(y, 6)
 
     for i, letter in enumerate(string.ascii_uppercase[:9]):
-        poly = ds.poly.get_data(i, None)
-        raster_polys = ds.rast.fp.find_polygons(rast == ord(letter))
-        assert len(raster_polys) == 1
-        raster_poly = raster_polys[0]
-        del raster_polys
-        poly = shapely.ops.transform(f, poly)
-        raster_poly = shapely.ops.transform(f, poly)
-        assert (poly ^ raster_poly).is_empty
+        # tif/shp 1
+        shp1 = ds.shp1.get_data(i, None)
+        shp1 = shapely.ops.transform(f, shp1)
 
-def test_raster(fps, random_path_tif):
+        raster1_polys = ds.tif1.fp.find_polygons(tif1 == ord(letter))
+        assert len(raster1_polys) == 1
+        raster1_poly = raster1_polys[0]
+        raster1_poly = shapely.ops.transform(f, shp1)
 
-    def _asserts(should_exist, should_be_open, is_anonymous=False):
+        assert (shp1 ^ raster1_poly).is_empty
 
-        exist = os.path.isfile(random_path_tif)
-        assert should_exist == exist
+        # tif/shp 2
+        shp2 = ds.shp2.get_data(i, None)
+        shp2 = shapely.ops.transform(f, shp2)
 
-        if not is_anonymous:
-            is_open_key = 'test' in ds
-            is_open_prox = test in ds
-            assert is_open_key == is_open_prox
-            assert is_open_key == should_be_open
-            if is_open_key:
-                assert test is ds.test is ds['test']
-        else:
-            is_open = test in ds
-            assert is_open == should_be_open
+        raster2_polys = ds.tif2.fp.find_polygons(tif2 == ord(letter))
+        assert len(raster2_polys) == 1
+        raster2_poly = raster2_polys[0]
+        raster2_poly = shapely.ops.transform(f, shp2)
 
-        if should_be_open:
-            assert fps.A == test.fp == test.fp_origin
-            assert len(test) == 1
-            assert test.dtype == np.float64
-            assert test.nodata == -32727 == test.get_nodata()
-            assert buzz.srs.wkt_same(SR1['wkt'], test.wkt_origin)
-            assert test.path == random_path_tif
-            assert test.band_schema == {
-                'nodata': [-32727.0],
-                'interpretation': ['grayindex'],
-                'offset': [0.0],
-                'scale': [1.0],
-                'mask': ['nodata']
-            }
+        assert (shp2 ^ raster2_poly).is_empty
 
-    schema = {
-        'nodata': -32727
-    }
-    ds = buzz.DataSource()
-    assert ds.proj4 is None
-    assert ds.wkt is None
+        # tif/shp 3
+        shp3 = ds.shp3.get_data(i, None)
+        shp3 = shapely.ops.transform(f, shp3)
 
-    # Raster test 1
-    test = None
-    _asserts(False, False)
-    test = ds.create_raster('test', random_path_tif, fps.A, float, 1, schema, sr=SR1['wkt'])
-    _asserts(True, True)
-    ds.test.close()
-    _asserts(True, False)
+        raster3_polys = ds.tif3.fp.find_polygons(tif3 == ord(letter))
+        assert len(raster3_polys) == 1
+        raster3_poly = raster3_polys[0]
+        raster3_poly = shapely.ops.transform(f, shp3)
 
-    test = ds.aopen_raster(random_path_tif)
-    _asserts(True, True, True)
-    test.close()
-    _asserts(True, False)
-
-    test = ds.open_raster('test', random_path_tif, mode='w')
-    _asserts(True, True)
-    test.delete()
-    _asserts(False, False)
-
-    # Raster test 2
-    with ds.create_raster('test', random_path_tif, fps.A, float, 1, schema, sr=SR1['wkt']).close as test:
-        _asserts(True, True)
-    _asserts(True, False)
-    with ds.open_raster('test', random_path_tif, mode='w').delete as test:
-        _asserts(True, True)
-    _asserts(False, False)
-
-    # Raster test 3
-    with ds.acreate_raster(random_path_tif, fps.A, float, 1, schema, sr=SR1['wkt']).delete as test:
-        _asserts(True, True, True)
-    _asserts(False, False)
-
-    # Raster test 4
-    with ds.create_raster('test', random_path_tif, fps.A, float, 1, schema, sr=SR1['wkt']).delete as test:
-        _asserts(True, True)
-    _asserts(False, False)
-
-def test_vector(random_path_shp):
-
-    def _asserts(should_exist, should_be_open, is_anonymous=False):
-
-        exist_shp = os.path.isfile(random_path_shp)
-        exist_dbf = os.path.isfile(random_path_shp[:-3] + 'dbf')
-        assert exist_shp == exist_dbf
-        assert should_exist == exist_shp
-
-        if not is_anonymous:
-            is_open_key = 'test' in ds
-            is_open_prox = test in ds
-            assert is_open_key == is_open_prox
-            assert is_open_key == should_be_open
-            if is_open_key:
-                assert test is ds.test is ds['test']
-        else:
-            is_open = test in ds
-            assert is_open == should_be_open
-
-        if should_be_open:
-            assert test.type == 'Point'
-            assert len(test.fields) == 1
-            assert (test.fields[0]['name'], test.fields[0]['type']) == ('area', 'real')
-            assert buzz.srs.wkt_same(SR1['wkt'], test.wkt_origin)
-            assert len(test) == 0
-            assert test.path == random_path_shp
-
-    fields = [{'name': 'area', 'type': np.float64}]
-    ds = buzz.DataSource()
-    assert ds.proj4 is None
-    assert ds.wkt is None
-
-    # Vector test 1
-    test = None
-    _asserts(False, False)
-    test = ds.create_vector('test', random_path_shp, 'point', fields, sr=SR1['wkt'])
-    _asserts(True, True)
-    ds.test.close()
-    _asserts(True, False)
-
-    test = ds.aopen_vector(random_path_shp)
-    _asserts(True, True, True)
-    test.close()
-    _asserts(True, False)
-
-    test = ds.open_vector('test', random_path_shp, mode='w')
-    _asserts(True, True)
-    test.delete()
-    _asserts(False, False)
-
-    # Vector test 2
-    with ds.create_vector('test', random_path_shp, 'point', fields, sr=SR1['wkt']).close as test:
-        _asserts(True, True)
-    _asserts(True, False)
-    with ds.open_vector('test', random_path_shp, mode='w').delete as test:
-        _asserts(True, True)
-    _asserts(False, False)
-
-    # Vector test 3
-    with ds.acreate_vector(random_path_shp, 'point', fields, sr=SR1['wkt']).delete as test:
-        _asserts(True, True, True)
-    _asserts(False, False)
-
-    # Vector test 4
-    with ds.create_vector('test', random_path_shp, 'point', fields, sr=SR1['wkt']).delete as test:
-        _asserts(True, True)
-    _asserts(False, False)
+        assert (shp3 ^ raster3_poly).is_empty

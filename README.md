@@ -22,6 +22,7 @@ Table of Contents
 + [How to install](#how-to-install)
   + [Manually](#manually)
   + [Anaconda](#anaconda)
++ [Supported Python versions](#supported-python-versions)
 + [How to test](#how-to-test)
 + [Contributions and feedback](#contributions-and-feedback)
 + [License and Notice](#license-and-notice)
@@ -33,7 +34,7 @@ Table of Contents
 - designed to hide all cumbersome operations while working with GIS files
 - designed for data science workflows
 - under active development (see [`TODO`](https://github.com/airware/buzzard/wiki/TODO))
-- tested with `pytest` in python 2.7 and python 3.6
+- tested with `pytest` with python 3.4 and python 3.7
 
 ## `buzzard` contains
 - a class to open/read/write/create GIS files: [`DataSource`](./buzzard/_datasource.py)
@@ -144,6 +145,17 @@ conda create -n buzz python=3.6 gdal opencv scipy shapely -c 'conda-forge'
 pip install buzzard
 ```
 
+## Supported Python versions
+To enjoy the latest buzzard features, update your python!
+
+### Fully python support
+- Latest supported version: `3.7` (June 2018)
+- Oldest supported version: `3.4` (March 2014)
+
+### Partial python support
+- `2.7`: use buzzard version `0.4.4`
+
+
 ## How to test
 ```sh
 git clone https://github.com/airware/buzzard
@@ -168,7 +180,7 @@ See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
 - [examples](./doc/examples.ipynb)
-- [public-classes](https://github.com/airware/buzzard/wiki/Public-classes)
+- [classes](https://github.com/airware/buzzard/wiki/Classes)
 - [wiki](https://github.com/airware/buzzard/wiki)
 - [todo](https://github.com/airware/buzzard/wiki/TODO)
 

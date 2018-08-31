@@ -4,11 +4,17 @@ import numbers
 import collections
 import logging
 import functools
-import six
+import numbers
 
+import six
 import numpy as np
 
 from .helper_classes import Singleton
+from . import conv
+
+BAND_SCHEMA_PARAMS = frozenset({
+    'nodata', 'interpretation', 'offset', 'scale', 'mask',
+})
 
 def _coro_parameter_0or1dim(val, clean_fn, name):
     """Normalize a parameter that can be an sequence or not.
@@ -106,40 +112,158 @@ def normalize_band_parameter(band, band_count, shared_mask_index):
         is_flat = False
     return indices, is_flat
 
+def sanitize_band_schema(band_schema, band_count):
+    """Used on file/recipe creation"""
+    ret = {}
+
+    def _test_length(val, name):
+        count = len(val)
+        if count > band_count: # pragma: no cover
+            raise ValueError('Too many values provided for %s (%d instead of %d)' % (
+                name, count, band_count
+            ))
+        elif count < band_count: # pragma: no cover
+            raise ValueError('Not enough values provided for %s (%d instead of %d)' % (
+                name, count, band_count
+            ))
+
+    if band_schema is None:
+        return {}
+    diff = set(band_schema.keys()) - BAND_SCHEMA_PARAMS
+    if diff: # pragma: no cover
+        raise ValueError('Unknown band_schema keys `%s`' % diff)
+
+    def _normalize_multi_layer(name, val, type_, cleaner, default):
+        if val is None:
+            for _ in range(band_count):
+                yield default
+        elif isinstance(val, type_):
+            val = cleaner(val)
+            for _ in range(band_count):
+                yield val
+        else:
+            _test_length(val, name)
+            for elt in val:
+                if elt is None:
+                    yield default
+                elif isinstance(elt, type_):
+                    yield cleaner(elt)
+                else: # pragma: no cover
+                    raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
+
+    if 'nodata' in band_schema:
+        ret['nodata'] = list(_normalize_multi_layer(
+            'nodata',
+            band_schema['nodata'],
+            numbers.Number,
+            lambda val: float(val),
+            None,
+        ))
+
+    if 'interpretation' in band_schema:
+        val = band_schema['interpretation']
+        if isinstance(val, str):
+            ret['interpretation'] = [conv.gci_of_str(val)] * band_count
+        else:
+            _test_length(val, 'nodata')
+            ret['interpretation'] = [conv.gci_of_str(elt) for elt in val]
+        ret['interpretation'] = [conv.str_of_gci(v) for v in ret['interpretation']]
+
+    if 'offset' in band_schema:
+        ret['offset'] = list(_normalize_multi_layer(
+            'offset',
+            band_schema['offset'],
+            numbers.Number,
+            lambda val: float(val),
+            0.,
+        ))
+
+    if 'scale' in band_schema:
+        ret['scale'] = list(_normalize_multi_layer(
+            'scale',
+            band_schema['scale'],
+            numbers.Number,
+            lambda val: float(val),
+            1.,
+        ))
+
+    if 'mask' in band_schema:
+        val = band_schema['mask']
+        if isinstance(val, str):
+            ret['mask'] = [conv.gmf_of_str(val)] * band_count
+        else:
+            _test_length(val, 'mask')
+            ret['mask'] = [conv.gmf_of_str(elt) for elt in val]
+            shared_bit = conv.gmf_of_str('per_dataset')
+            shared = [elt for elt in ret['mask'] if elt & shared_bit]
+            if len(set(shared)) > 1: # pragma: no cover
+                raise ValueError('per_dataset mask must be shared with same flags')
+        ret['mask'] = [conv.str_of_gmf(v) for v in ret['mask']]
+
+
+    ret = {
+        k: tuple(v)
+        for k, v in ret.items()
+    }
+    return ret
+
+
 class _DeprecationPool(Singleton):
     """Singleton class designed to handle function parameter renaming"""
 
     def __init__(self):
         self._seen = set()
 
-    def add_deprecated_method(self, class_obj, new_name, old_name, deprecation_version):
-        key = (class_obj.__name__, new_name, old_name)
+    class _MethodWrapper(object):
+        """Descriptor object to manage deprecation"""
+        def __init__(self, method, deprecation_version, seen):
+            self._method = method
+            self._deprecation_version = deprecation_version
+            self._seen = seen
+            self._old_name = None
+            self._key = None
 
-        @functools.wraps(getattr(class_obj, new_name))
-        def _f(this, *args, **kwargs):
-            if key not in self._seen:
-                self._seen.add(key)
+        def __get__(self, instance, owner):
+            assert self._key is not None
+            if self._key not in self._seen:
+                self._seen.add(self._key)
                 logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
-                    old_name, deprecation_version, new_name,
+                    self._old_name, self._deprecation_version, self._method.__name__,
                 ))
-            return getattr(this, new_name)(*args, **kwargs)
+            return self._method.__get__(instance, owner)
 
-        setattr(class_obj, old_name, _f)
+        def __set_name__(self, owner, name):
+            self._old_name = name
+            self._key = (self._method, name)
 
-    def add_deprecated_property(self, class_obj, new_name, old_name, deprecation_version):
+    class _PropertyWrapper(object):
+        """Descriptor object to manage deprecation"""
+        def __init__(self, new_property_name, deprecation_version, seen):
+            self._new_property_name = new_property_name
+            self._deprecation_version = deprecation_version
+            self._seen = seen
+            self._old_name = None
+            self._key = None
 
-        key = (class_obj.__name__, new_name, old_name)
-
-        @functools.wraps(getattr(class_obj, new_name).fget)
-        def _f(this):
-            if key not in self._seen:
-                self._seen.add(key)
+        def __get__(self, instance, owner):
+            assert self._key is not None
+            if self._key not in self._seen:
+                self._seen.add(self._key)
                 logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
-                    old_name, deprecation_version, new_name,
+                    self._old_name, self._deprecation_version, self._new_property_name,
                 ))
-            return getattr(this, new_name)
+            return getattr(instance, self._new_property_name)
 
-        setattr(class_obj, old_name, property(_f))
+        def __set_name__(self, owner, name):
+            self._old_name = name
+            self._key = (owner, self._new_property_name, name)
+
+
+    def wrap_method(self, method, deprecation_version):
+        return self._MethodWrapper(method, deprecation_version, self._seen)
+
+    def wrap_property(self, new_property, deprecation_version):
+        return self._PropertyWrapper(new_property, deprecation_version, self._seen)
 
     def streamline_with_kwargs(self, new_name, old_names, context,
                                new_name_value, new_name_is_provided, user_kwargs):
@@ -201,5 +325,33 @@ class _DeprecationPool(Singleton):
         v = user_kwargs[n]
         del user_kwargs[n]
         return v, user_kwargs
+
+def normalize_fields_defn(fields):
+    """Used on file creation"""
+    if not isinstance(fields, collections.Iterable): # pragma: no cover
+        raise TypeError('Bad fields definition type')
+
+    def _sanitize_dict(dic):
+        dic = dict(dic)
+        name = dic.pop('name')
+        type_ = dic.pop('type')
+        precision = dic.pop('precision', None)
+        width = dic.pop('width', None)
+        nullable = dic.pop('nullable', None)
+        default = dic.pop('default', None)
+        oft = conv.oft_of_any(type_)
+        if default is not None:
+            default = str(conv.type_of_oftstr(conv.str_of_oft(oft))(default))
+        if len(dic) != 0: # pragma: no cover
+            raise ValueError('unexpected keys in {} dict: {}'.format(name, dic))
+        return dict(
+            name=name,
+            type=oft,
+            precision=precision,
+            width=width,
+            nullable=nullable,
+            default=default,
+        )
+    return [_sanitize_dict(dic) for dic in fields]
 
 deprecation_pool = _DeprecationPool()
