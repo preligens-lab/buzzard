@@ -4,7 +4,7 @@ import itertools
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_waiting_room import ActorPoolWaitingRoom
 from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
-from buzzard._actors.cached.global_priorities_watcher import ActorGlobalPrioritiesWatcher
+from buzzard._actors.global_priorities_watcher import ActorGlobalPrioritiesWatcher
 
 class ActorTopLevel(object):
     """Actor that takes care of the lifetime of rasters' and pools' actors.

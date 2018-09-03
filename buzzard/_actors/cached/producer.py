@@ -35,7 +35,7 @@ class ActorProducer(object):
 
         resample_ready = [
             resample_fp
-            for resample_fp, cache_fps in pr.resample_needs.items():
+            for resample_fp, cache_fps in pr.resample_needs.items()
             if len(cache_fps) == 0
         ]
         for resample_fp in resample_ready:
@@ -69,7 +69,7 @@ class ActorProducer(object):
 
         resample_ready = [
             resample_fp
-            for resample_fp, cache_fps in pr.resample_needs.items():
+            for resample_fp, cache_fps in pr.resample_needs.items()
             if len(cache_fps) == 0
         ]
         for resample_fp in resample_ready:

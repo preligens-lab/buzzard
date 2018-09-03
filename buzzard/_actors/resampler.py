@@ -1,7 +1,7 @@
 from buzzard._actors.message import Msg
 
 class ActorResampler(object):
-    """Actor that takes care of """
+    """Actor that takes care of resamplig sample tiles to produce tiles"""
 
     def __init__(self, raster):
         self._raster = raster

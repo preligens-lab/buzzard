@@ -1,6 +1,9 @@
+import functools
+import collections
+
 import multiprocessing as mp
 import multiprocessing.pool
-import functools
+import numpy as np
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
@@ -16,9 +19,9 @@ class ActorReader(object):
         self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
         self._waiting_jobs = set()
         self._working_jobs = set()
-        if isinstance(pool, mp.ThreadPool):
+        if isinstance(io_pool, mp.ThreadPool):
             self._same_address_space = True
-        elif isinstance(pool, mp.Pool):
+        elif isinstance(io_pool, mp.Pool):
             self._same_address_space = False
         else:
             assert False, 'Type should be checked in facade'
@@ -50,7 +53,10 @@ class ActorReader(object):
         self._waiting_jobs.remove(job)
 
         full_sample_fp = job.qi.prod[job.prod_idx].sample_fp
-        if prod_idx not in actor._sample_array_per_prod_tile[qi]:
+        prod_idx = job.prod_idx
+        qi = job.qi
+
+        if prod_idx not in self._sample_array_per_prod_tile[qi]:
             # Allocate sample array
             # If no interpolation or nodata conversion is necessary, this is the array that will be
             # returned in the output queue
@@ -75,7 +81,7 @@ class ActorReader(object):
 
         self._working_jobs.remove(job)
         dst_array = self._sample_array_per_prod_tile[job.qi][job.prod_idx]
-        self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx].remove(cache_fp)
+        self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx].remove(job.cache_fp)
         if len(self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]) == 0:
             # Done reading for that `(qi, prod_idx)`
             del self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]
@@ -93,6 +99,7 @@ class ActorReader(object):
         ]
 
     def receive_cancel_this_query(self, qi):
+        msgs = []
         # Cancel waiting jobs
         jobs_to_kill = [
             job
@@ -152,6 +159,7 @@ class Work(PoolJobWorking):
         self.prod_idx = prod_idx
         self.cache_fp = cache_fp
         raster = actor._raster
+        full_sample_fp = qi.prod[prod_idx].sample_fp
 
         # dst_array = actor._sample_array_per_prod_tile[qi][prod_idx]
         dst_array_slice = dst_array[sample_fp.slice_in(full_sample_fp)]
@@ -187,7 +195,7 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
     """
     assert (True or False) == 'That is the TODO question'
 
-    if dst is not None:
+    if dst_opt is not None:
         return None
     else:
         return arr
