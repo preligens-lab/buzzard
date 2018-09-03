@@ -78,7 +78,7 @@ class ActorProducer(object):
             sample_array = pr.sample_array[sample_fp.slice_in(pi.sample_fp)]
             msgs += [Msg(
                 'Resampler', 'resample_and_accumulate',
-                qi, prod_idx, resample_fp, sample_array,
+                qi, prod_idx, sample_fp, resample_fp, sample_array,
             )]
 
         return msgs

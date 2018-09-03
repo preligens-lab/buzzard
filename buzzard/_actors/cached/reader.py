@@ -129,6 +129,10 @@ class ActorReader(object):
 
 
     def receive_die(self):
+        """Receive message: The raster was killed"""
+        assert self._alive
+        self._alive = False
+
         msgs = []
         for job in self._waiting_jobs:
             msgs += [Msg(self._waiting_room_address, 'unschedule_job', job)]
