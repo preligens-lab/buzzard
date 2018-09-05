@@ -1,10 +1,6 @@
 import functools
 import collections
 
-import multiprocessing as mp
-import multiprocessing.pool
-import numpy as np
-
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 
