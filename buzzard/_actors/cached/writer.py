@@ -1,5 +1,4 @@
 import functools
-import collections
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
@@ -51,9 +50,8 @@ class ActorWriter(object):
 
     def receive_cancel_this_query(self, qi):
         msgs = []
-        # Cancel waiting jobs
         # TODO: find a way to link waiting writes to a set of qi's
-        #       if there is so qi left in the set, set priority to np.inf
+        #       if there is no qi left in the set, set priority to np.inf
         #       else, set priority according to qi's left in the set after 
         #       the removal of `qi` (the parameter)
         return []
@@ -61,6 +59,8 @@ class ActorWriter(object):
 
     def receive_die(self):
         """Receive message: The raster was killed"""
+        assert self._alive
+        self._alive = False
         # TODO: set the priority of waiting jobs to np.inf
         return []
 
