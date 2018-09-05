@@ -162,6 +162,7 @@ class Wait(ProductionJobWaiting):
         self.sample_fp = sample_fp
         self.resample_fp = resample_fp
         self.sample_array = sample_array
+        # TODO: set action priority other than 1
         super().__init__(actor.address, qi, prod_idx, 1, self.resample_fp)
 
 class Work(PoolJobWorking):
@@ -188,6 +189,18 @@ class Work(PoolJobWorking):
 
 def _resample_sample_array(sample_fp, resample_fp, sample_array, dst_nodata, interpolation, dst_opt):
     """
+    Parameters
+    ----------
+    sample_fp: Footprint
+        source footprint (before resampling)
+    resample_fp: Footprint
+        destination footprint
+    sample_array: np.ndarray
+        source array (sould match sample_fp)
+    dst_nodata: float
+    interpolation: str
+    dst_opt: None or np.ndarray
+        optional destination for resample
     """
     assert (True or False) == 'That is the TODO question'
 

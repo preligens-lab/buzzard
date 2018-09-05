@@ -9,7 +9,7 @@ from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 
 class ActorReader(object):
-    """Actor that takes care of """
+    """Actor that takes care of reading cache tiles"""
 
     def __init__(self, raster):
         self._raster = raster
@@ -155,6 +155,7 @@ class Wait(ProductionJobWaiting):
         self.cache_fp = cache_fp
         self.sample_fp = cache_fp & qi.prod[prod_idx].sample_fp
         self.path = path
+        # TODO: set action priority other than 1?
         super().__init__(actor.address, qi, prod_idx, 1, self.sample_fp)
 
 class Work(PoolJobWorking):
