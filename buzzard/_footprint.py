@@ -1165,8 +1165,8 @@ class Footprint(TileMixin, IntersectionMixin):
         """
         x, y = self.meshgrid_raster
         return (
-            (x * self._aff.a + y * self._aff.b + self._aff.c).astype(np.float64),
-            (x * self._aff.d + y * self._aff.e + self._aff.f).astype(np.float64),
+            (x * self._aff.a + y * self._aff.b + self._aff.c).astype(np.float64, copy=False),
+            (x * self._aff.d + y * self._aff.e + self._aff.f).astype(np.float64, copy=False),
         )
 
     def meshgrid_raster_in(self, other, dtype=None, op=np.floor):
@@ -1305,7 +1305,7 @@ class Footprint(TileMixin, IntersectionMixin):
         xy2 = np.around(xy2 * abstract_grid_density, 0) / abstract_grid_density # Should move this line in if?
         if op is not None:
             xy2 = op(xy2)
-        return xy2.astype(dtype).reshape(xy.shape)
+        return xy2.astype(dtype, copy=False).reshape(xy.shape)
 
     def raster_to_spatial(self, xy):
         """Convert xy raster coordinates to spatial coordinates
@@ -1440,9 +1440,9 @@ class Footprint(TileMixin, IntersectionMixin):
                 ) # pragma: no cover
 
         # Step 2: Array normalization *********************************************************** **
-        arr = arr.astype(bool)
+        arr = arr.astype(bool, copy=False)
         arr = skm.thin(arr)
-        arr = arr.astype('uint8')
+        arr = arr.astype('uint8', copy=False)
 
         # Step 3: Prepare to collapse 2x2 squares to single points ****************************** **
         squares2x2_topleft_mask = ndi.convolve(
@@ -1475,8 +1475,8 @@ class Footprint(TileMixin, IntersectionMixin):
         has_left = convolve(arr, [[0, 0, 0], [0, 0, 1], [0, 0, 0]]) * arr
         has_topright = convolve(arr, [[0, 0, 0], [0, 0, 0], [1, 0, 0]]) * arr
         has_topleft = convolve(arr, [[0, 0, 0], [0, 0, 0], [0, 0, 1]]) * arr
-        has_topright = (has_topright.astype('i1') - has_right - has_top).clip(0, 1).astype('u1')
-        has_topleft = (has_topleft.astype('i1') - has_left - has_top).clip(0, 1).astype('u1')
+        has_topright = (has_topright.astype('i1', copy=False) - has_right - has_top).clip(0, 1).astype('u1', copy=False)
+        has_topleft = (has_topleft.astype('i1', copy=False) - has_left - has_top).clip(0, 1).astype('u1', copy=False)
 
         def _build_neighbors_in_direction(mask, yx_vector):
             has_indices = mask[yx_lst[:, 0], yx_lst[:, 1]].nonzero()[0]
@@ -1603,7 +1603,7 @@ class Footprint(TileMixin, IntersectionMixin):
                 'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=False)
 
     def find_polygons(self, mask):
         """Creates a list of polygons from a mask.
@@ -1632,7 +1632,7 @@ class Footprint(TileMixin, IntersectionMixin):
             raise ValueError('Mask shape%s incompatible with self shape%s' % (
                 mask.shape, tuple(self.shape)
             )) # pragma: no cover
-        mask = mask.astype('uint8').clip(0, 1)
+        mask = mask.astype('uint8', copy=False).clip(0, 1)
         sr_wkt = 'LOCAL_CS["arbitrary"]'
         sr = osr.SpatialReference(sr_wkt)
 
@@ -1736,7 +1736,7 @@ class Footprint(TileMixin, IntersectionMixin):
                 'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=False)
 
     # Tiling ************************************************************************************ **
     def tile(self, size, overlapx=0, overlapy=0,
@@ -2065,7 +2065,7 @@ class Footprint(TileMixin, IntersectionMixin):
             ))
 
         occurrence = np.asarray([pixel_occurrencex, pixel_occurrencey], dtype=int)
-        stride = (size / occurrence).astype(int)
+        stride = (size / occurrence).astype(int, copy=False)
         overlap = size - stride
         big_tl = self.tl - self.pxvec * overlap
         big_rsize = self.rsize + np.asarray(overlap) * 2

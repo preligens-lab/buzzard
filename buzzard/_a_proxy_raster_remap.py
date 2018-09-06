@@ -208,7 +208,7 @@ class ABackProxyRasterRemapMixin(object):
             else:
                 dstnodatamask = np.ones(np.r_[dst_fp.shape, array.shape[-1]], 'float32')
                 cv2.remap(
-                    (array == src_nodata).astype('float32'), mapx, mapy,
+                    (array == src_nodata).astype('float32', copy=False), mapx, mapy,
                     interpolation=interpolation,
                     dst=dstnodatamask,
                     borderMode=cv2.BORDER_TRANSPARENT,
@@ -228,14 +228,14 @@ class ABackProxyRasterRemapMixin(object):
         if mask is not None:
             if mask_mode == 'erode':
                 dstmask = cv2.remap(
-                    mask.astype('float32'), mapx, mapy,
+                    mask.astype('float32', copy=False), mapx, mapy,
                     interpolation=interpolation,
                     borderMode=cv2.BORDER_CONSTANT,
                     borderValue=0.,
                 ) == 1.
             elif mask_mode == 'dilate':
                 dstmask = cv2.remap(
-                    mask.astype('float32'), mapx, mapy,
+                    mask.astype('float32', copy=False), mapx, mapy,
                     interpolation=interpolation,
                     borderMode=cv2.BORDER_CONSTANT,
                     borderValue=0.,
