@@ -13,7 +13,6 @@ from buzzard._actors.message import Msg
 class ActorGlobalPrioritiesWatcher(object):
     """Actor that takes care of memorizing priority informations between all sub-tasks in all
     ongoing queries. Everytime a priority changes all `ActorPoolWaitingRoom` are notified.
-
     """
 
     def __init__(self):

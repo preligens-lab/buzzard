@@ -7,7 +7,7 @@ from buzzard._footprint import Footprint
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 class ActorCacheExtractor(object):
-    """Actor that takes care of """
+    """Actor that takes care of delaying reading operations according to cache state"""
 
     def __init__(self, raster):
         self._raster = raster

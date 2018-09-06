@@ -32,7 +32,7 @@ class ActorComputationAccumulator(object):
             store['ready'][compute_fp] = array[slices]
             if len(store['missing']) == 0:
                 msgs += [
-                    Msg('Merge', 'schedule_one_merge', cache_fp, store['ready'])
+                    Msg('Merger', 'schedule_one_merge', cache_fp, store['ready'])
                 ]
                 del self._cache_tiles_accumulations[cache_fp]
         return msgs

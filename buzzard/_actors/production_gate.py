@@ -1,7 +1,7 @@
 from buzzard._actors.message import Msg
 
 class ActorProductionGate(object):
-    """Actor that takes care of """
+    """Actor that takes care of delaying the production of arrays until needed"""
 
     def __init__(self, raster):
         self._raster = raster
