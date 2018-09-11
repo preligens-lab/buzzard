@@ -31,10 +31,14 @@ class ComputationGate(object):
     def receive_output_queue_update(self, qi, produced_count, queue_size):
 
         msgs = []
-
         assert qi in self._queries
         q = self._queries[qi]
-        # TODO
+        if produced_count == qi.produce_count:
+            assert qi.allowed_count == produced_count
+        else:
+            pulled_count = produced_count - queue_size
+            msgs += self._allow(qi, q, pulled_count)
+
         return msgs
 
     def receive_cancel_this_query(self, qi):

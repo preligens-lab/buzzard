@@ -204,3 +204,13 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
         return None
     else:
         return arr
+
+# class _ProdTileInfo(object):
+
+#     def __init__(self):
+#         self._sample_array_per_prod_tile = (
+#             collections.defaultdict(dict)
+#         ) # type: Mapping[CachedQueryInfos, Mapping[int, np.ndarray]]
+#         self._missing_cache_fps_per_prod_tile = (
+#             collections.defaultdict(dict)
+#         ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]

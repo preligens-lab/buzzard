@@ -11,7 +11,8 @@ from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 class ActorMerger(object):
     """Actor that takes care of merging several array into one fp
     TODO: in this state it is used only for cached
-          aren't they merge operations even in not cached rasters?
+          aren't they merge operations even in not cached rasters
+          yes there are, but it will be developped later, these classes are still only for cached rasters
     """
 
     def __init__(self, raster):
