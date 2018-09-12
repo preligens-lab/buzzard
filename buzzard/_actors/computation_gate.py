@@ -65,8 +65,9 @@ class ComputationGate(object):
     def _allow(qi, q, pulled_count):
         msgs = []
 
-        # TODO
-        while False:
+        # TODO?
+        assert qi.cache_computation is not None
+        while q.allowed_count < qi.cache_computation.to_collect_count and q.allowed_count - qi.max_queue_size < pulled_count:
             msgs += [Msg(
                 'Computer', 'compute_this_array', q.allowed_count
             )]
