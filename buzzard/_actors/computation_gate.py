@@ -25,7 +25,9 @@ class ComputationGate(object):
 
         msgs = []
         assert qi not in self._queries
-        # TODO
+        q = _Query()
+        self._queries[qi] = q
+        msgs += self._allow(qi, q, 0)
         return msgs
 
     def receive_output_queue_update(self, qi, produced_count, queue_size):
@@ -67,11 +69,13 @@ class ComputationGate(object):
 
         # TODO?
         assert qi.cache_computation is not None
-        while q.allowed_count < qi.cache_computation.to_collect_count and q.allowed_count - qi.max_queue_size < pulled_count:
-            msgs += [Msg(
-                'Computer', 'compute_this_array', q.allowed_count
-            )]
-            q.allowed_count += 1
+
+        for cache_fp, prod_idx in qi.dict_of_min_prod_idx_per_cache_fp:
+            if q.allowed_count < prod_idx and q.allowed_count - qi.max_queue_size < pulled_count:
+                msgs += [Msg(
+                    'Computer', 'compute_this_array', cache_fp
+                )]
+        q.allowed_count += 1
 
         return msgs
 

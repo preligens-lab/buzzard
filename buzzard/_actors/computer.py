@@ -21,7 +21,7 @@ class ActorComputer(object):
         return self._alive
 
     # ******************************************************************************************* **
-    def receive_compute_this_array(self, qi, prod_idx):
+    def receive_compute_this_array(self, qi, cache_fp):
         """Receive message: Start making this array"""
         msgs = []
         # TODO
