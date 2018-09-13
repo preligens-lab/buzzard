@@ -1,7 +1,7 @@
 from buzzard._actors.message import Msg
 
 class ComputationGate(object):
-    """Actor that takes care of 
+    """Actor that takes care of
     - Start the computation of those missing cache files.
     - Launch primitives collection.
     - Delay the computation until needed by the query.
@@ -22,7 +22,6 @@ class ComputationGate(object):
 
     # ******************************************************************************************* **
     def receive_compute_those_cache_files(self, qi):
-
         msgs = []
         assert qi not in self._queries
         q = _Query()
@@ -50,15 +49,14 @@ class ComputationGate(object):
         ----------
         qi: _actors.cached.query_infos.QueryInfos
         """
-        del self._queries[qi]
-        # TODO?
+        if qi in self._queries:
+            del self._queries[qi]
         return []
 
     def receive_die(self):
         """Receive message: The raster was killed"""
         assert self._alive
         self._alive = False
-        # TODO?
         self._queries.clear()
         return []
 
@@ -67,18 +65,22 @@ class ComputationGate(object):
     def _allow(qi, q, pulled_count):
         msgs = []
 
-        # TODO?
-        assert qi.cache_computation is not None
-
-        for cache_fp, prod_idx in qi.dict_of_min_prod_idx_per_cache_fp:
-            if q.allowed_count < prod_idx and q.allowed_count - qi.max_queue_size < pulled_count:
-                msgs += [Msg(
-                    'Computer', 'compute_this_array', cache_fp
-                )]
-        q.allowed_count += 1
+        max_prod_idx_allowed = pulled_count + qi.max_queue_size
+        i = allowed_count
+        while True:
+            if i == len(qi.cache_fps):
+                break
+            cache_fp = qi.cache_fps[i]
+            prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
+            if prod_idx > max_prod_idx_allowed:
+                break
+            i += 1
+            msgs += [Msg(
+                'Computer', 'compute_this_array', cache_fp
+            )]
+            q.allowed_count = i
 
         return msgs
-
 
     # ******************************************************************************************* **
 
