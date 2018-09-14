@@ -816,6 +816,122 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
+    def create_raster_recipe(self, key, fp, dtype, band_count, compute_array, merge_array,
+                             computation_pool, merge_pool, io_pool, resample_pool, band_schema=None,
+                             sr=None, queue_data_per_primitive={}, max_computation_size=None,
+                             max_resampling_size=None):
+        """Create a raster recipe and register it under `key` in this DataSource. Only metadata are
+        kept in memory.
+
+        Parameters
+        ----------
+        key: hashable (like a string)
+            File identifier within DataSource
+        fp: Footprint
+            Description of the location and size of the raster to create.
+        dtype: numpy type (or any alias)
+        band_count: integer
+            number of bands
+        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray #TODO
+            from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
+        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray #TODO
+            from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
+        computation_pool: mp.ThreadPool or mp.Pool
+        merge_pool: mp.ThreadPool or mp.Pool
+        io_pool: mp.ThreadPool or mp.Pool
+        resample_pool: mp.ThreadPool or mp.Pool
+        band_schema: dict or None
+            Band(s) metadata. (see `Band fields` below)
+        sr: string or None
+            Spatial reference of the new file
+
+            if None: don't set a spatial reference
+            if string:
+                if path: Use same projection as file at `path`
+                if textual spatial reference:
+                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+        queue_data_per_primitive: dict or None
+            if dict:
+                key is hashable (primitive identifier) and value is a function similar to queue_data
+        max_computation_size: int or tuple(int) (size 2) or None
+        max_resampling_size: int or tuple(int) (size 2) or None
+
+        Returns
+        -------
+        RasterRecipe with get_data, queue_data and iter_data entry points
+
+        Band fields
+        -----------
+        Fields:
+            'nodata': None or number
+            'interpretation': None or str
+            'offset': None or number
+            'scale': None or number
+            'mask': None or one of ('')
+        Interpretation values:
+            undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
+            saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
+        Mask values:
+            all_valid, per_dataset, alpha, nodata
+
+        A field missing or None is kept to default value.
+        A field can be passed as:
+            a value: All bands are set to this value
+            a sequence of length `band_count` of value: All bands will be set to respective state
+
+        """
+        pass
+
+    def create_cached_raster_recipe(self, key, path, fp, dtype, band_count, compute_array,
+                                    merge_array, computation_pool, merge_pool, io_pool,
+                                    resample_pool, cache_dir, band_schema=None, sr=None,
+                                    queue_data_per_primitive={}, max_computation_size=None,
+                                    max_resampling_size=None):
+        """Create a raster cached recipe and register it under `key` in this DataSource. Only metadata are
+        kept in memory.
+
+        Parameters
+        ----------
+        key: hashable (like a string)
+            File identifier within DataSource
+        fp: Footprint
+            Description of the location and size of the raster to create.
+        dtype: numpy type (or any alias)
+        band_count: integer
+            number of bands
+        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray #TODO
+            from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
+        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray #TODO
+            from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
+        computation_pool: mp.ThreadPool or mp.Pool
+        merge_pool: mp.ThreadPool or mp.Pool
+        io_pool: mp.ThreadPool or mp.Pool
+        resample_pool: mp.ThreadPool or mp.Pool
+        cache_dir: str
+        band_schema: dict or None
+            Band(s) metadata. (see `Band fields` below)
+        sr: string or None
+            Spatial reference of the new file
+
+            if None: don't set a spatial reference
+            if string:
+                if path: Use same projection as file at `path`
+                if textual spatial reference:
+                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+        queue_data_per_primitive: dict or None
+            if dict:
+                key is hashable (primitive identifier) and value is a function similar to queue_data
+        max_computation_size: int or tuple(int) (size 2) or None
+        max_resampling_size: int or tuple(int) (size 2) or None
+
+        Returns
+        -------
+        RasterCachedRecipe with get_data, queue_data and iter_data entry points
+        """
+        pass
+
     # Proxy getters ********************************************************* **
     def __getitem__(self, key):
         """Retrieve a proxy from its key"""
