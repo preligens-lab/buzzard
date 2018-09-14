@@ -155,7 +155,6 @@ class Wait(ProductionJobWaiting):
         self.cache_fp = cache_fp
         self.sample_fp = cache_fp & qi.prod[prod_idx].sample_fp
         self.path = path
-        # TODO: set action priority other than 1?
         super().__init__(actor.address, qi, prod_idx, 1, self.sample_fp)
 
 class Work(PoolJobWorking):

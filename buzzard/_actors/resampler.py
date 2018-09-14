@@ -33,7 +33,6 @@ class ActorResampler(object):
             collections.defaultdict(dict)
         ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]
 
-
     @property
     def address(self):
         return '/Raster{}/Resampler'.format(self._raster.uid)
@@ -176,7 +175,7 @@ class Work(PoolJobWorking):
         if actor._same_address_space:
             func = functools.partial(
                 _resample_sample_array,
-                sample_fp, resample_fp, sample_array, qi.dst_nodata, qi.interpolation, dst_array, 
+                sample_fp, resample_fp, sample_array, qi.dst_nodata, qi.interpolation, dst_array,
             )
         else:
             self._dst_array_slice = dst_array_slice
