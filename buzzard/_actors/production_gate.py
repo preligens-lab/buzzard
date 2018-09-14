@@ -18,6 +18,12 @@ class ActorProductionGate(object):
 
     # ******************************************************************************************* **
     def receive_make_those_arrays(self, qi):
+        """Receive message: New query.
+
+        Parameters
+        ----------
+        qi: _actors.cached.query_infos.QueryInfos
+        """
         msgs = []
         assert qi not in self._queries
 
@@ -27,13 +33,24 @@ class ActorProductionGate(object):
         return msgs
 
     def receive_output_queue_update(self, qi, produced_count, queue_size):
+        """Receive message: The output queue of a query changed in size.
+
+        If necessary, allow some production array contruction to start
+
+        Parameters
+        ----------
+        qi: _actors.cached.query_infos.QueryInfos
+        produced_count: int
+            How many arrays were pushed in the output queue
+        queue_size: int
+            How many arrays are currently available in the output queue
+        """
         msgs = []
 
-        assert qi in self._queries
         q = self._queries[qi]
-
         if produced_count == qi.produce_count:
             assert q.allowed_count == produced_count
+            del self._queries[qi]
         else:
             pulled_count = produced_count - queue_size
             msgs += self._allow(qi, q, pulled_count)
@@ -63,8 +80,13 @@ class ActorProductionGate(object):
     def _allow(qi, q, pulled_count):
         msgs = []
 
-        # One of the two mighty condition that prevents backpressure between rasters
-        while q.allowed_count < qi.produce_count and q.allowed_count - qi.max_queue_size < pulled_count:
+        while True:
+            if q.allowed_count == qi.produce_count:
+                # All productions started
+                break
+            if q.allowed_count - qi.max_queue_size == pulled_count:
+                # Enough production started yet
+                break
             msgs += [Msg(
                 'Producer', 'make_this_array', q.allowed_count
             )]
