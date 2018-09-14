@@ -816,12 +816,14 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    def create_raster_recipe(self, key, fp, dtype, band_count, compute_array, merge_array,
-                             computation_pool, merge_pool, io_pool, resample_pool, band_schema=None,
-                             sr=None, queue_data_per_primitive={}, max_computation_size=None,
-                             max_resampling_size=None):
-        """Create a raster recipe and register it under `key` in this DataSource. Only metadata are
-        kept in memory.
+    def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
+                             compute_array=None, merge_array=_concat,
+                             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+                             remap_in_primitives=False,
+                             computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
+                             computation_on_scheduler=False, merge_on_scheduler=False, resample_on_scheduler=False,
+                             max_computation_size=None, max_resampling_size=None):
+        """Create a raster recipe and register it under `key` in this DataSource.
 
         Parameters
         ----------
@@ -836,9 +838,11 @@ class DataSource(DataSourceRegisterMixin):
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
         merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray #TODO
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
+        computation_on_scheduler:
+        merge_on_scheduler:
+        resample_on_scheduler:
         computation_pool: mp.ThreadPool or mp.Pool
         merge_pool: mp.ThreadPool or mp.Pool
-        io_pool: mp.ThreadPool or mp.Pool
         resample_pool: mp.ThreadPool or mp.Pool
         band_schema: dict or None
             Band(s) metadata. (see `Band fields` below)
@@ -854,6 +858,7 @@ class DataSource(DataSourceRegisterMixin):
         queue_data_per_primitive: dict or None
             if dict:
                 key is hashable (primitive identifier) and value is a function similar to queue_data
+        convert_footprint_per_primitive:
         max_computation_size: int or tuple(int) (size 2) or None
         max_resampling_size: int or tuple(int) (size 2) or None
 
@@ -883,13 +888,15 @@ class DataSource(DataSourceRegisterMixin):
         """
         pass
 
-    def create_cached_raster_recipe(self, key, path, fp, dtype, band_count, compute_array,
-                                    merge_array, computation_pool, merge_pool, io_pool,
-                                    resample_pool, cache_dir, band_schema=None, sr=None,
-                                    queue_data_per_primitive={}, max_computation_size=None,
-                                    max_resampling_size=None):
-        """Create a raster cached recipe and register it under `key` in this DataSource. Only metadata are
-        kept in memory.
+    def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
+                             compute_array=None, merge_array=_concat,
+                             cache_dir=None,
+                             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+                             remap_in_primitives=False,
+                             computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+                             computation_on_scheduler=False, merge_on_scheduler=False, resample_on_scheduler=False,
+                             max_computation_size=None, max_resampling_size=None):
+        """Create a raster cached recipe and register it under `key` in this DataSource.
 
         Parameters
         ----------
