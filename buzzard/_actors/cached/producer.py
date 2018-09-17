@@ -33,12 +33,13 @@ class ActorProducer(object):
         pi = qi.prod[prod_idx] # type: CacheProduceInfos
         pr = _ProdArray(pi)
 
-        if len(qi.prod[prod_idx].cache_fps) != 0:
-            # If this prod_idx requires some cache file reads (this is the cast most of the time)
+        if len(pi.cache_fps) != 0:
+            # If this prod_idx requires some cache file reads (this is the case most of the time)
             msgs += [
                 'CacheExtractor', 'sample_those_cache_files_to_an_array', qi, prod_idx,
             ]
 
+        # Start the 'resampling' step of the resample_fp fully outside of raster
         resample_ready = [
             resample_fp
             for resample_fp, cache_fps in pr.resample_needs.items()
@@ -70,8 +71,7 @@ class ActorProducer(object):
         """
         msgs = []
         pr = self._produce_per_query[qi][prod_idx]
-        pi = pr.pi # type: CacheProduceInfos
-        assert pr.produce[prod_idx] is pr.pi
+        pi = pr.produce[prod_idx]
 
         # The constraints on `cache_fp` are now satisfied
         for resample_fp, cache_fps in pr.resample_needs.items():
@@ -85,12 +85,12 @@ class ActorProducer(object):
         ]
         for resample_fp in resample_ready:
             del pr.resample_needs[resample_fp]
-            sample_fp = pi.resample_sample_dep_fp[resample_fp]
-            assert sample_fp is not None
-            sample_array = array[sample_fp.slice_in(pi.sample_fp)]
+            subsample_fp = pi.resample_sample_dep_fp[resample_fp]
+            assert subsample_fp is not None
+            subsample_array = array[subsample_fp.slice_in(pi.sample_fp)]
             msgs += [Msg(
                 'Resampler', 'resample_and_accumulate',
-                qi, prod_idx, sample_fp, resample_fp, sample_array,
+                qi, prod_idx, subsample_fp, resample_fp, subsample_array,
             )]
 
         return msgs
@@ -127,7 +127,6 @@ class ActorProducer(object):
 class _ProdArray(object):
 
     def __init__(self, pi):
-        self.pi = pi
         self.resample_needs = {
             resample_fp: set(cache_fps)
             for resample_fp, cache_fps in pi.resample_cache_deps_fps

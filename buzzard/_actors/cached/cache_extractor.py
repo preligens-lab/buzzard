@@ -13,7 +13,7 @@ class ActorCacheExtractor(object):
         self._raster = raster
         self._alive = True
 
-        self._path_of_cache_files_ready = {}
+        self._path_of_cache_files_ready = {} # type: Mapping[Footprint, str]
         self._reads_waiting_for_cache_fp = (
             collections.defaultdict(lambda: collections.defaultdict(set))
         ) # type: Mapping[Footprint, Mapping[CachedQueryInfos, Set[int]]]
@@ -28,6 +28,8 @@ class ActorCacheExtractor(object):
 
     # ******************************************************************************************* **
     def receive_sample_those_cache_files_to_an_array(self, qi, prod_idx):
+        """Receive message:
+        """
         msgs = []
 
         cache_fps = qi.prod[prod_idx].cache_fps
@@ -44,13 +46,18 @@ class ActorCacheExtractor(object):
         return msgs
 
     def receive_cache_files_ready(self, path_of_cache_files_ready):
+        """Receive message:
+
+        Parameters:
+        path_of_cache_files_ready: dict from Footprint to str
+        """
         msgs = []
 
         new_cache_fps = path_of_cache_files_ready.keys() - self._path_of_cache_files_ready.keys()
         self._path_of_cache_files_ready.update(path_of_cache_files_ready)
 
         for cache_fp in new_cache_fps:
-            # Idea: Send a external message to the facade to expose the set of path to cache files with a mutex
+            # TODO Idea: Send a external message to the facade to expose the set of path to cache files with a mutex
             for qi, prod_idxs in self._reads_waiting_for_cache_fp[cache_fp].items():
                 for prod_idx in prod_idxs:
                     msgs += [Msg(
@@ -74,6 +81,7 @@ class ActorCacheExtractor(object):
         ----------
         qi: _actors.cached.query_infos.QueryInfos
         """
+        # Perform fine grain garbage collection
         for cache_fp in self._reads_waiting_for_cache_fp.keys() & qi.cache_fps:
             if qi in self._reads_waiting_for_cache_fp[cache_fp]:
                 del self._reads_waiting_for_cache_fp[cache_fp][qi]

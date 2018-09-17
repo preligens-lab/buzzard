@@ -84,7 +84,7 @@ class ActorProductionGate(object):
             if q.allowed_count == qi.produce_count:
                 # All productions started
                 break
-            if q.allowed_count - qi.max_queue_size == pulled_count:
+            if q.allowed_count == pulled_count + qi.max_queue_size:
                 # Enough production started yet
                 break
             msgs += [Msg(

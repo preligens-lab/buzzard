@@ -77,11 +77,14 @@ class ActorReader(object):
         if self._same_address_space:
             assert result is None
         else:
+            # TODO: Warn that process_pool for io_pool is not smart lol
             job.dst_array_slice[:] = result
 
         self._working_jobs.remove(job)
         dst_array = self._sample_array_per_prod_tile[job.qi][job.prod_idx]
         self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx].remove(job.cache_fp)
+
+        # Perform fine grain garbage collection
         if len(self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]) == 0:
             # Done reading for that `(qi, prod_idx)`
             del self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]
@@ -126,7 +129,6 @@ class ActorReader(object):
             del self._missing_cache_fps_per_prod_tile[qi]
 
         return []
-
 
     def receive_die(self):
         """Receive message: The raster was killed"""
@@ -174,7 +176,7 @@ class Work(PoolJobWorking):
                 path, cache_fp, qi.dtype, qi.band_ids, sample_fp, dst_array_slice,
             )
         else:
-            self._dst_array_slice = dst_array_slice
+            self.dst_array_slice = dst_array_slice
             func = functools.partial(
                 _cache_file_read,
                 path, cache_fp, qi.dtype, qi.band_ids, sample_fp, None,

@@ -9,7 +9,9 @@ from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 
 class ActorResampler(object):
-    """Actor that takes care of resamplig sample tiles to produce tiles"""
+    """Actor that takes care of resamplig sample tiles, and wait for all
+    resamplings to be performed for a production array.
+    """
 
     def __init__(self, raster):
         self._raster = raster
@@ -43,6 +45,16 @@ class ActorResampler(object):
 
     # ******************************************************************************************* **
     def receive_resample_and_accumulate(self, qi, prod_idx, sample_fp, resample_fp, sample_array):
+        """Receive message: A resampling operation is ready to be performed
+
+        Parameters
+        ----------
+        qi: _actors.cached.query_infos.QueryInfos
+        prod_idx: int
+        sample_fp: None or Footprint of shape (Y, X)
+        resample_fp: Footprint of shape (Y', X')
+        sample_array: None or ndarray of shape (Y, X)
+        """
         msgs = []
         wait = Wait(self, qi, prod_idx, sample_fp, resample_fp, sample_array)
         self._waiting_jobs.add(wait)
@@ -52,6 +64,7 @@ class ActorResampler(object):
         return msgs
 
     def receive_token_to_working_room(self, job, token):
+        """Receive message: Waiting job can proceede to working room"""
         msgs = []
         self._waiting_jobs.remove(job)
 
@@ -61,11 +74,12 @@ class ActorResampler(object):
 
         if prod_idx not in self._prod_array_of_prod_tile[qi]:
             # Allocate prod array
+            missing_set = set(qi.prod[prod_idx].resample_fps)
+            self._missing_resample_fps_per_prod_tile[qi][prod_idx] = missing_set
             self._prod_array_of_prod_tile[qi][prod_idx] = np.empty(
                 np.r_[prod_fp.shape, len(qi.band_ids)],
                 qi.dtype,
             )
-            self._missing_resample_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].resample_fps)
         dst_array = self._prod_array_of_prod_tile[qi][prod_idx]
 
         work = Work(self, job.qi, job.prod_idx, job.sample_fp, job.resample_fp, job.sample_array, dst_array)
@@ -161,8 +175,7 @@ class Wait(ProductionJobWaiting):
         self.sample_fp = sample_fp
         self.resample_fp = resample_fp
         self.sample_array = sample_array
-        # TODO: set action priority other than 1
-        super().__init__(actor.address, qi, prod_idx, 1, self.resample_fp)
+        super().__init__(actor.address, qi, prod_idx, 0, self.resample_fp)
 
 class Work(PoolJobWorking):
     def __init__(self, actor, qi, prod_idx, sample_fp, resample_fp, sample_array, dst_array):
