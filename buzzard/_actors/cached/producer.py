@@ -9,7 +9,7 @@ class ActorProducer(object):
         self._raster = raster
         self._alive = True
 
-        self._produce_per_query = collections.defaultdict(dict)
+        self._produce_per_query = collections.defaultdict(dict) # type: Mapping[CachedQueryInfos, Mapping[int, _ProdArray]]
 
     @property
     def address(self):
@@ -21,7 +21,13 @@ class ActorProducer(object):
 
     # ******************************************************************************************* **
     def receive_make_this_array(self, qi, prod_idx):
-        """Receive message: Start making this array"""
+        """Receive message: Start making this array
+
+        Parameters
+        ----------
+        qi: _actors.cached.query_infos.QueryInfos
+        prod_idx: int
+        """
         msgs = []
 
         pi = qi.prod[prod_idx] # type: CacheProduceInfos
@@ -42,27 +48,32 @@ class ActorProducer(object):
             del pr.resample_needs[resample_fp]
             sample_fp = pi.resample_sample_dep_fp[resample_fp]
             assert sample_fp is None, 'We are producing an array that does not require sampling'
-            sample_array = None
             msgs += [Msg(
                 'Resampler', 'resample_and_accumulate',
-                qi, prod_idx, resample_fp, sample_array,
+                qi, prod_idx, None, resample_fp, None,
             )]
 
         self._produce_per_query[qi][prod_idx] = pr
         return msgs
 
     def receive_sampled_a_cache_file_to_the_array(self, qi, prod_idx, cache_fp, array):
-        """Receive message: A cache file was read for that output array"""
+        """Receive message: A cache file was read for that output array
+
+        Parameters
+        ----------
+        qi: _actors.cached.query_infos.QueryInfos
+        prod_idx: int
+        cache_fp: Footprint
+            The cache_fp that was just read by the reader
+        array: ndarray
+            The array onto which the reader fills rectangles one by one
+        """
         msgs = []
         pr = self._produce_per_query[qi][prod_idx]
         pi = pr.pi # type: CacheProduceInfos
-        if pr.sample_array is None:
-            # Callback from first read
-            pr.sample_array = array
-        else:
-            # Callback from subsequent reads
-            assert array is pr.sample_array
+        assert pr.produce[prod_idx] is pr.pi
 
+        # The constraints on `cache_fp` are now satisfied
         for resample_fp, cache_fps in pr.resample_needs.items():
             if cache_fp in cache_fps:
                 cache_fps.remove(cache_fp)
@@ -73,9 +84,10 @@ class ActorProducer(object):
             if len(cache_fps) == 0
         ]
         for resample_fp in resample_ready:
+            del pr.resample_needs[resample_fp]
             sample_fp = pi.resample_sample_dep_fp[resample_fp]
             assert sample_fp is not None
-            sample_array = pr.sample_array[sample_fp.slice_in(pi.sample_fp)]
+            sample_array = array[sample_fp.slice_in(pi.sample_fp)]
             msgs += [Msg(
                 'Resampler', 'resample_and_accumulate',
                 qi, prod_idx, sample_fp, resample_fp, sample_array,
@@ -120,4 +132,3 @@ class _ProdArray(object):
             resample_fp: set(cache_fps)
             for resample_fp, cache_fps in pi.resample_cache_deps_fps
         }
-        self.sample_array = None
