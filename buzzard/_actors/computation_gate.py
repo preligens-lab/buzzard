@@ -1,8 +1,8 @@
 from buzzard._actors.message import Msg
 
 class ComputationGate(object):
-    """Actor that takes care of delaying the computation of a cache tile until needed soon by
-    the query
+    """Actor that takes care of delaying the computation of a cache file until needed soon by
+    the query.
     """
 
     def __init__(self, raster):
@@ -31,11 +31,14 @@ class ComputationGate(object):
 
         qicc = qi.cache_computation
         assert qicc is not None
-        assert qi not in self._queries
 
-        q = _Query()
-        self._queries[qi] = q
-        msgs += self._allow(qi, q, 0)
+        if qi in self._queries:
+            # `receive_output_queue_update` happened before this call
+            q = self._queries[qi]
+        else:
+            q = _Query()
+            self._queries[qi] = q
+        msgs += self._allow(qi, q)
         return msgs
 
     def receive_output_queue_update(self, qi, produced_count, queue_size):
@@ -51,17 +54,28 @@ class ComputationGate(object):
         """
         msgs = []
 
-        if qi in self._queries:
-            qicc = qi.cache_computation
-            assert qicc is not None
+        pulled_count = produced_count - queue_size
+        qicc = qi.cache_computation
 
-            q = self._queries[qi]
-            if produced_count == qi.produce_count:
-                assert q.allowed_count == len(qicc.list_of_cache_fp)
+        if produced_count == qi.produce_count:
+            # Query finished
+            if qi in self._queries:
+                assert (qicc is None) or (q.allowed_count == len(qicc.list_of_cache_fp))
                 del self._queries[qi]
+        else:
+            if qicc is None:
+                # this call happened before `receive_compute_those_cache_files`
+                if qi in self._queries:
+                    # this call already happened
+                    q = self._queries[qi]
+                else:
+                    q = _Query()
+                    self._queries[qi] = q
+                q.pulled_count = pulled_count
             else:
-                pulled_count = produced_count - queue_size
-                msgs += self._allow(qi, q, pulled_count)
+                q = self._queries[qi]
+                q.pulled_count = pulled_count
+                msgs += self._allow(qi, q)
 
         return msgs
 
@@ -85,24 +99,26 @@ class ComputationGate(object):
 
     # ******************************************************************************************* **
     @staticmethod
-    def _allow(qi, q, pulled_count):
+    def _allow(qi, q):
         msgs = []
         qicc = qi.cache_computation
 
-        max_prod_idx_allowed = pulled_count + qi.max_queue_size
+        max_prod_idx_allowed = q.pulled_count + qi.max_queue_size
         i = q.allowed_count
         while True:
             if i == len(qicc.list_of_cache_fp):
                 break
             cache_fp = qicc.list_of_cache_fp[i]
+
             prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
+            # map(qi.dict_of_min_prod_idx_per_cache_fp.get, qicc.list_of_cache_fp) is increasing by design
             if prod_idx > max_prod_idx_allowed:
                 break
             i += 1
             msgs += [Msg(
                 'Computer', 'compute_this_array', cache_fp
             )]
-            q.allowed_count = i
+        q.allowed_count = i
 
         return msgs
 
@@ -111,4 +127,5 @@ class ComputationGate(object):
 class _Query(object):
 
     def __init__(self):
+        self.pulled_count = 0
         self.allowed_count = 0
