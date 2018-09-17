@@ -1127,6 +1127,151 @@ class Footprint(TileMixin, IntersectionMixin):
             return False
         return True
 
+    def sub_grid(self, other):
+        """Highest scale grid is contained in the lowest scale grid
+        (equivalent to same_grid if same scale)
+
+        Parameters
+        ----------
+        other: Footprint
+
+        Returns
+        -------
+        bool
+        """
+        if env.significant <= self._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, self._significant_min,
+            ))
+        if env.significant <= other._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, other._significant_min,
+            ))
+        largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
+        spatial_precision = largest_coord * 10 ** -env.significant
+
+        scale = np.maximum(self.pxsize / other.pxsize, other.pxsize / self.pxsize)
+        errors = scale.astype(int) - scale
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+
+        rdx, rdy = np.around(~self.affine * other.tl)
+        errors = other.tl - (self.pxtbvec * rdy + self.pxlrvec * rdx) - self.tl
+        if (np.abs(errors % (self.pxsize / other.pxsize)) >= spatial_precision).any():
+            return False
+
+        errors = self.tl + other.pxtbvec * self.rheight - self.bl
+        if (np.abs(errors % (other.pxsize / self.pxsize)) >= spatial_precision).any():
+            return False
+        errors = self.tl + other.pxlrvec * self.rwidth - self.tr
+        if (np.abs(errors % (other.pxsize / self.pxsize)) >= spatial_precision).any():
+            return False
+        errors = other.tl + self.pxtbvec * other.rheight - other.bl
+        if (np.abs(errors % (self.pxsize / other.pxsize)) >= spatial_precision).any():
+            return False
+        errors = other.tl + self.pxlrvec * other.rwidth - other.tr
+        if (np.abs(errors % (self.pxsize / other.pxsize)) >= spatial_precision).any():
+            return False
+        return True
+
+    def multiple_grid(self, other):
+        """Periodically share some rows, periodically share some columns
+        (equivalent to sub_grid if one scale divides the other)
+
+        Parameters
+        ----------
+        other: Footprint
+
+        Returns
+        -------
+        bool
+        """
+        if env.significant <= self._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, self._significant_min,
+            ))
+        if env.significant <= other._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, other._significant_min,
+            ))
+        largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
+        spatial_precision = largest_coord * 10 ** -env.significant
+
+        # Extrapolation from a simple equation:
+        # if some lines are shared, then:
+        #    self.tl + n * self.pxsize == other.px + n * other.pxsize
+        # is true at some point (with n integer)
+        integer_if_true = (self.tl - other.tl) / (other.pxsize - self.pxsize)
+        errors = integer_if_true - integer_if_true.astype(int)
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+        return True
+
+    def at_most_shifted_grid(self, other):
+        """All columns parallel, all rows parallel, same pixel size
+        (may not share a point)
+
+        Parameters
+        ----------
+        other: Footprint
+
+        Returns
+        -------
+        bool
+        """
+        if env.significant <= self._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, self._significant_min,
+            ))
+        if env.significant <= other._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, other._significant_min,
+            ))
+        largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
+        spatial_precision = largest_coord * 10 ** -env.significant
+
+        errors = other.pxtbvec[0] * self.pxtbvec[1] - self.pxtbvec[0] * other.pxtbvec[1]
+        if np.abs(errors) >= spatial_precision:
+            return False
+        errors = other.pxlrvec[0] * self.pxlrvec[1] - self.pxlrvec[0] * other.pxlrvec[1]
+        if np.abs(errors) >= spatial_precision:
+            return False
+        errors = other.pxsize - self.pxsize
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+        return True
+
+    def op_3(self, other):
+        """All columns parallel, all rows parallel
+        (may not share a point)
+
+        Parameters
+        ----------
+        other: Footprint
+
+        Returns
+        -------
+        bool
+        """
+        if env.significant <= self._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, self._significant_min,
+            ))
+        if env.significant <= other._significant_min:
+            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
+                env.significant, other._significant_min,
+            ))
+        largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
+        spatial_precision = largest_coord * 10 ** -env.significant
+
+        errors = other.pxtbvec[0] * self.pxtbvec[1] - self.pxtbvec[0] * other.pxtbvec[1]
+        if np.abs(errors) >= spatial_precision:
+            return False
+        errors = other.pxlrvec[0] * self.pxlrvec[1] - self.pxlrvec[0] * other.pxlrvec[1]
+        if np.abs(errors) >= spatial_precision:
+            return False
+        return True
+
     # Numpy ************************************************************************************* **
     @property
     def shape(self):

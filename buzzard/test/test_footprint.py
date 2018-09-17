@@ -355,3 +355,26 @@ def test_coord_conv(fps):
     assert fps.AI.spatial_to_raster(ai).shape == ai.shape
     assert fps.AI.spatial_to_raster(ai, dtype='float16').dtype == np.float16
     assert fps.AI.spatial_to_raster(ai, dtype='float16', op=42).dtype == np.float16
+
+def test_grid_predicates():
+    fp1 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(100, 100))
+    fp2 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(200, 200))
+    fp3 = buzz.Footprint(tl=(0.5, 0.5), size=(10, 10), rsize=(100, 100))
+
+    assert fp1.sub_grid(fp2)
+    assert fp2.sub_grid(fp1)
+    assert fp1.multiple_grid(fp2)
+    assert fp2.multiple_grid(fp1)
+    assert not fp1.at_most_shifted_grid(fp2)
+    assert not fp2.at_most_shifted_grid(fp1)
+    assert fp1.op_3(fp2)
+    assert fp2.op_3(fp1)
+
+    assert fp1.at_most_shifted_grid(fp3)
+    assert fp3.at_most_shifted_grid(fp1)
+    assert not fp1.sub_grid(fp3)
+    assert not fp3.sub_grid(fp1)
+    assert not fp1.multiple_grid(fp3)
+    assert not fp3.multiple_grid(fp1)
+    assert fp1.op_3(fp3)
+    assert fp3.op_3(fp1)
