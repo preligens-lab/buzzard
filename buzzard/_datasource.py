@@ -834,16 +834,22 @@ class DataSource(DataSourceRegisterMixin):
         dtype: numpy type (or any alias)
         band_count: integer
             number of bands
-        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray #TODO
+        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray #TODO
+        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
-        computation_on_scheduler:
-        merge_on_scheduler:
-        resample_on_scheduler:
-        computation_pool: mp.ThreadPool or mp.Pool
-        merge_pool: mp.ThreadPool or mp.Pool
-        resample_pool: mp.ThreadPool or mp.Pool
+        computation_on_scheduler: bool
+            is computation done on scheduler instead of on pools?
+        merge_on_scheduler: bool
+            is merge done on scheduler instead of on pools?
+        resample_on_scheduler: bool
+            is resample done on scheduler instead of on pools?
+        computation_pool: None or str or mp.ThreadPool or mp.Pool
+        merge_pool: None or str or mp.ThreadPool or mp.Pool
+        resample_pool: None or str or mp.ThreadPool or mp.Pool
+        remap_in_primitives: bool
+            if True: does the remap in the primitives
+            if False: does the remap when producing
         band_schema: dict or None
             Band(s) metadata. (see `Band fields` below)
         sr: string or None
@@ -858,7 +864,8 @@ class DataSource(DataSourceRegisterMixin):
         queue_data_per_primitive: dict or None
             if dict:
                 key is hashable (primitive identifier) and value is a function similar to queue_data
-        convert_footprint_per_primitive:
+        convert_footprint_per_primitive: function f(Footprint): dict
+            dict is key (same as above) and value: Footprint
         max_computation_size: int or tuple(int) (size 2) or None
         max_resampling_size: int or tuple(int) (size 2) or None
 
@@ -889,13 +896,13 @@ class DataSource(DataSourceRegisterMixin):
         pass
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
-                             compute_array=None, merge_array=_concat,
-                             cache_dir=None,
-                             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
-                             remap_in_primitives=False,
-                             computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-                             computation_on_scheduler=False, merge_on_scheduler=False, resample_on_scheduler=False,
-                             max_computation_size=None, max_resampling_size=None):
+                                    compute_array=None, merge_array=_concat,
+                                    cache_dir=None,
+                                    queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+                                    remap_in_primitives=False,
+                                    computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+                                    computation_on_scheduler=False, merge_on_scheduler=False, resample_on_scheduler=False,
+                                    max_computation_size=None, max_resampling_size=None):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
         Parameters
@@ -907,15 +914,24 @@ class DataSource(DataSourceRegisterMixin):
         dtype: numpy type (or any alias)
         band_count: integer
             number of bands
-        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray #TODO
+        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray #TODO
+        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
+        computation_on_scheduler: bool
+            is computation done on scheduler instead of on pools?
+        merge_on_scheduler: bool
+            is merge done on scheduler instead of on pools?
+        resample_on_scheduler: bool
+            is resample done on scheduler instead of on pools?
         computation_pool: mp.ThreadPool or mp.Pool
         merge_pool: mp.ThreadPool or mp.Pool
         io_pool: mp.ThreadPool or mp.Pool
         resample_pool: mp.ThreadPool or mp.Pool
         cache_dir: str
+        remap_in_primitives: bool
+            if True: does the remap in the primitives
+            if False: does the remap when producing (reading cache)
         band_schema: dict or None
             Band(s) metadata. (see `Band fields` below)
         sr: string or None
@@ -930,6 +946,8 @@ class DataSource(DataSourceRegisterMixin):
         queue_data_per_primitive: dict or None
             if dict:
                 key is hashable (primitive identifier) and value is a function similar to queue_data
+        convert_footprint_per_primitive: function f(Footprint): dict
+            dict is key (same as above) and value: Footprint
         max_computation_size: int or tuple(int) (size 2) or None
         max_resampling_size: int or tuple(int) (size 2) or None
 
