@@ -1155,23 +1155,9 @@ class Footprint(TileMixin, IntersectionMixin):
         if (np.abs(errors) >= spatial_precision).any():
             return False
 
-        rdx, rdy = np.around(~self.affine * other.tl)
-        errors = other.tl - (self.pxtbvec * rdy + self.pxlrvec * rdx) - self.tl
-        if (np.abs(errors % (self.pxsize / other.pxsize)) >= spatial_precision).any():
+        if not self.multiple_grid(other):
             return False
 
-        errors = self.tl + other.pxtbvec * self.rheight - self.bl
-        if (np.abs(errors % (other.pxsize / self.pxsize)) >= spatial_precision).any():
-            return False
-        errors = self.tl + other.pxlrvec * self.rwidth - self.tr
-        if (np.abs(errors % (other.pxsize / self.pxsize)) >= spatial_precision).any():
-            return False
-        errors = other.tl + self.pxtbvec * other.rheight - other.bl
-        if (np.abs(errors % (self.pxsize / other.pxsize)) >= spatial_precision).any():
-            return False
-        errors = other.tl + self.pxlrvec * other.rwidth - other.tr
-        if (np.abs(errors % (self.pxsize / other.pxsize)) >= spatial_precision).any():
-            return False
         return True
 
     def multiple_grid(self, other):
@@ -1197,12 +1183,21 @@ class Footprint(TileMixin, IntersectionMixin):
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
 
-        # Extrapolation from a simple equation:
-        # if some lines are shared, then:
-        #    self.tl + n * self.pxsize == other.px + n * other.pxsize
-        # is true at some point (with n integer)
-        integer_if_true = (self.tl - other.tl) / (other.pxsize - self.pxsize)
-        errors = integer_if_true - integer_if_true.astype(int)
+        rdx, rdy = np.around(~self.affine * other.tl)
+        errors = other.tl - (self.pxtbvec * rdy + self.pxlrvec * rdx) - self.tl
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+
+        errors = self.tl + other.pxtbvec * self.rheight * (other.rheight / self.rheight) - self.bl
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+        errors = self.tl + other.pxlrvec * self.rwidth * (other.rheight / self.rheight) - self.tr
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+        errors = other.tl + self.pxtbvec * other.rheight * (self.rheight / other.rheight) - other.bl
+        if (np.abs(errors) >= spatial_precision).any():
+            return False
+        errors = other.tl + self.pxlrvec * other.rwidth * (self.rheight / other.rheight) - other.tr
         if (np.abs(errors) >= spatial_precision).any():
             return False
         return True
@@ -1230,12 +1225,9 @@ class Footprint(TileMixin, IntersectionMixin):
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
 
-        errors = other.pxtbvec[0] * self.pxtbvec[1] - self.pxtbvec[0] * other.pxtbvec[1]
-        if np.abs(errors) >= spatial_precision:
+        if not self.op_3(other):
             return False
-        errors = other.pxlrvec[0] * self.pxlrvec[1] - self.pxlrvec[0] * other.pxlrvec[1]
-        if np.abs(errors) >= spatial_precision:
-            return False
+
         errors = other.pxsize - self.pxsize
         if (np.abs(errors) >= spatial_precision).any():
             return False

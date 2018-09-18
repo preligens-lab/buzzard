@@ -357,24 +357,82 @@ def test_coord_conv(fps):
     assert fps.AI.spatial_to_raster(ai, dtype='float16', op=42).dtype == np.float16
 
 def test_grid_predicates():
-    fp1 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(100, 100))
-    fp2 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(200, 200))
-    fp3 = buzz.Footprint(tl=(0.5, 0.5), size=(10, 10), rsize=(100, 100))
+    # Truth values:
+    #
+    # +----------------------+-----------+----------+---------------+----------------------+------+
+    # | if/then >            | same_grid | sub_grid | multiple_grid | at_most_shifted_grid | op_3 |
+    # +----------------------+-----------+----------+---------------+----------------------+------+
+    # | same_grid            |     X     |     X    |       X       |           X          |   X  |
+    # +----------------------+-----------+----------+---------------+----------------------+------+
+    # | sub_grid             |           |     X    |       X       |                      |   X  |
+    # +----------------------+-----------+----------+---------------+----------------------+------+
+    # | multiple_grid        |           |          |       X       |                      |   X  |
+    # +----------------------+-----------+----------+---------------+----------------------+------+
+    # | at_most_shifted_grid |           |          |               |           X          |   X  |
+    # +----------------------+-----------+----------+---------------+----------------------+------+
+    # | op_3                 |           |          |               |                      |   X  |
+    # +----------------------+-----------+----------+---------------+----------------------+------+
 
-    assert fp1.sub_grid(fp2)
-    assert fp2.sub_grid(fp1)
-    assert fp1.multiple_grid(fp2)
-    assert fp2.multiple_grid(fp1)
-    assert not fp1.at_most_shifted_grid(fp2)
-    assert not fp2.at_most_shifted_grid(fp1)
-    assert fp1.op_3(fp2)
-    assert fp2.op_3(fp1)
+    with buzz.Env(warnings=False, allow_complex_footprint=True):
+        # Reference
+        fp1 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(10, 10))
+        # Should be sub_grid (and multiple_grid and op_3)
+        fp2 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(20, 20))
+        # Should be multiple_grid (and op_3)
+        fp3 = buzz.Footprint(tl=(0, 0), size=(10, 10), rsize=(25, 25))
+        # Should be at_most_shifted_grid (and op_3)
+        fp4 = buzz.Footprint(tl=(0.5, 0.5), size=(10, 10), rsize=(10, 10))
+        # Should be op_3 (only)
+        fp5 = buzz.Footprint(tl=(0.5, 0.5), size=(10, 10), rsize=(5, 5))
+        # Should be none
+        fp6 = buzz.Footprint(gt=(0.5, .1, 0, 10, 0.5, -.1), rsize=(10, 10))
 
-    assert fp1.at_most_shifted_grid(fp3)
-    assert fp3.at_most_shifted_grid(fp1)
-    assert not fp1.sub_grid(fp3)
-    assert not fp3.sub_grid(fp1)
-    assert not fp1.multiple_grid(fp3)
-    assert not fp3.multiple_grid(fp1)
-    assert fp1.op_3(fp3)
-    assert fp3.op_3(fp1)
+        # fp1 vs fp2
+        assert fp1.sub_grid(fp2)
+        assert fp2.sub_grid(fp1)
+        assert fp1.multiple_grid(fp2)
+        assert fp2.multiple_grid(fp1)
+        assert not fp1.at_most_shifted_grid(fp2)
+        assert not fp2.at_most_shifted_grid(fp1)
+        assert fp1.op_3(fp2)
+        assert fp2.op_3(fp1)
+
+        # fp1 vs fp3
+        assert not fp1.sub_grid(fp3)
+        assert not fp3.sub_grid(fp1)
+        assert fp1.multiple_grid(fp3)
+        assert fp3.multiple_grid(fp1)
+        assert not fp1.at_most_shifted_grid(fp3)
+        assert not fp3.at_most_shifted_grid(fp1)
+        assert fp1.op_3(fp3)
+        assert fp3.op_3(fp1)
+
+        # fp1 vs fp4
+        assert not fp1.sub_grid(fp4)
+        assert not fp4.sub_grid(fp1)
+        assert not fp1.multiple_grid(fp4)
+        assert not fp4.multiple_grid(fp1)
+        assert fp1.at_most_shifted_grid(fp4)
+        assert fp4.at_most_shifted_grid(fp1)
+        assert fp1.op_3(fp4)
+        assert fp4.op_3(fp1)
+
+        # fp1 vs fp5
+        assert not fp1.sub_grid(fp5)
+        assert not fp5.sub_grid(fp1)
+        assert not fp1.multiple_grid(fp5)
+        assert not fp5.multiple_grid(fp1)
+        assert not fp1.at_most_shifted_grid(fp5)
+        assert not fp5.at_most_shifted_grid(fp1)
+        assert fp1.op_3(fp5)
+        assert fp5.op_3(fp1)
+
+        # fp1 vs fp6
+        assert not fp1.sub_grid(fp6)
+        assert not fp6.sub_grid(fp1)
+        assert not fp1.multiple_grid(fp6)
+        assert not fp6.multiple_grid(fp1)
+        assert not fp1.at_most_shifted_grid(fp6)
+        assert not fp6.at_most_shifted_grid(fp1)
+        assert not fp1.op_3(fp6)
+        assert not fp6.op_3(fp1)
