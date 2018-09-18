@@ -40,12 +40,8 @@ class ActorProducer(object):
             ]
 
         # Start the 'resampling' step of the resample_fp fully outside of raster
-        resample_ready = [
-            resample_fp
-            for resample_fp, cache_fps in pr.resample_needs.items()
-            if len(cache_fps) == 0
-        ]
-        for resample_fp in resample_ready:
+        if pr.share_area is None:
+            resample_fp = next(pr.resample_fps)
             del pr.resample_needs[resample_fp]
             sample_fp = pi.resample_sample_dep_fp[resample_fp]
             assert sample_fp is None, 'We are producing an array that does not require sampling'

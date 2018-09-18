@@ -16,17 +16,18 @@ class ActorResampler(object):
     def __init__(self, raster):
         self._raster = raster
         self._alive = True
-        io_pool = raster.io_pool
-        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
-        self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
-        self._waiting_jobs = set()
-        self._working_jobs = set()
-        if isinstance(io_pool, mp.ThreadPool):
-            self._same_address_space = True
-        elif isinstance(io_pool, mp.Pool):
-            self._same_address_space = False
-        else:
-            assert False, 'Type should be checked in facade'
+        resample_pool = raster.resample_pool
+        if resample_pool is not None:
+            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(resample_pool))
+            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(resample_pool))
+            self._waiting_jobs = set()
+            self._working_jobs = set()
+            if isinstance(resample_pool, mp.ThreadPool):
+                self._same_address_space = True
+            elif isinstance(resample_pool, mp.Pool):
+                self._same_address_space = False
+            else:
+                assert False, 'Type should be checked in facade'
 
         self._prod_array_of_prod_tile = (
             collections.defaultdict(dict)
@@ -56,11 +57,93 @@ class ActorResampler(object):
         sample_array: None or ndarray of shape (Y, X)
         """
         msgs = []
-        wait = Wait(self, qi, prod_idx, sample_fp, resample_fp, sample_array)
-        self._waiting_jobs.add(wait)
-        msgs += [
-            Msg(self._waiting_room_address, 'schedule_job', wait)
-        ]
+
+        pi = qi.prod[prod_idx]
+        interpolation_needed = pi.share_area and not pi.same_grid
+        if self._raster.resample_pool is not None and interpolation_needed:
+            # Need to externalize resampling on a pool
+            wait = Wait(self, qi, prod_idx, sample_fp, resample_fp, sample_array)
+            self._waiting_jobs.add(wait)
+            msgs += [
+                Msg(self._waiting_room_address, 'schedule_job', wait)
+            ]
+        else:
+            # Perform remapping on the scheduler
+            if interpolation_needed:
+                # Perform interpolation on the scheduler
+                if (qi not in self._prod_array_of_prod_tile or
+                    prod_idx not in self._prod_array_of_prod_tile[qi]):
+                    self._prod_array_of_prod_tile[qi][prod_idx] = np.full(
+                        np.r_[pi.fp.shape, len(qi.band_ids)],
+                        qi.dst_nodata, raster.dtype,
+                    )
+                    self._missing_resample_fps_per_prod_tile[qi][prod_idx] = set(pi.resample_fps)
+                arr = self._prod_array_of_prod_tile[qi][prod_idx]
+                Work(...).func()
+                self._missing_resample_fps_per_prod_tile[qi][prod_idx].remove(resample_fp)
+
+                if len(self._missing_resample_fps_per_prod_tile[qi][prod_idx]) == 0:
+                    # Produce array
+                    if qi.band_ids != qi.unique_band_ids:
+                        indices = [
+                            qi.unique_band_ids.find(bi)
+                            for bi in qi.band_ids
+                        ]
+                        arr = arr[..., indices]
+                    msgs += [
+                        Msg('Producer', 'made_this_array', qi, prod_idx, arr)
+                    ]
+
+                    # Garbage collect
+                    del self._missing_resample_fps_per_prod_tile[qi][prod_idx]
+                    del self._prod_array_of_prod_tile[qi][prod_idx]
+                    if len(self._missing_resample_fps_per_prod_tile[qi]) == 0:
+                        del self._missing_resample_fps_per_prod_tile[qi]
+                        del self._prod_array_of_prod_tile[qi]
+
+            else:
+                # There is no need to accumulate
+                if not pi.share_area:
+                    # production footprint is fully outside raster
+                    assert sample_fp is None
+                    assert sample_array is None
+                    arr = np.full(
+                        np.r_[resample_fp.shape, len(qi.band_ids)],
+                        qi.dst_nodata, raster.dtype,
+                    )
+                elif sample_fp == pi.fp:
+                    # production footprint is fully inside raster
+                    assert sample_array.shape[:2] == tuple(resample_fp.shape)
+                    arr = sample_array
+                    if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
+                        arr[arr == self._raster.nodata] = qi.dst_nodata
+                    if qi.band_ids != qi.unique_band_ids:
+                        indices = [
+                            qi.unique_band_ids.find(bi)
+                            for bi in qi.band_ids
+                        ]
+                        arr = arr[..., indices]
+                else:
+                    # production footprint is both inside and outside raster
+                    arr = np.full(
+                        np.r_[resample_fp.shape, len(qi.unique_band_ids)],
+                        qi.dst_nodata, raster.dtype,
+                    )
+                    slices = sample_fp.slice_in(pr.fp)
+                    arr[slices] = sample_array
+                    if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
+                        arr[slices][arr == self._raster.nodata] = qi.dst_nodata
+                    if qi.band_ids != qi.unique_band_ids:
+                        indices = [
+                            qi.unique_band_ids.find(bi)
+                            for bi in qi.band_ids
+                        ]
+                        arr = arr[..., indices]
+
+                msgs += [Msg(
+                    'Producer', 'made_this_array', qi, prod_idx, arr
+                )]
+
         return msgs
 
     def receive_token_to_working_room(self, job, token):

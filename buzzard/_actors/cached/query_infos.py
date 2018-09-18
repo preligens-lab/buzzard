@@ -51,7 +51,7 @@ class CacheProduceInfos(NamedTuple(
         ('fp', ProductionFootprint),
         ('same_grid', bool),
         ('share_area', bool),
-        ('sample_fp', SampleFootprint),
+        ('sample_fp', Union[None, SampleFootprint]),
         ('cache_fps', FrozenSet[CacheFootprint]),
         ('resample_fps', Tuple[ResampleFootprint, ...]),
         ('resample_cache_deps_fps', Mapping[ResampleFootprint, FrozenSet[CacheFootprint]]),
@@ -78,6 +78,11 @@ class CachedQueryInfos(object):
         # Immutable attributes ****************************************************************** **
         # The parameters given by user in invocation
         self.band_ids = band_ids # type: Sequence[int]
+        for bi in band_ids:
+            if bi not in self.unique_band_ids:
+                self.unique_band_ids.append(bi)
+        self.unique_band_ids = tuple(self.unique_band_ids)
+
         self.dst_nodata = dst_nodata # type: Union[int, float]
         self.interpolation = interpolation # type: str
 

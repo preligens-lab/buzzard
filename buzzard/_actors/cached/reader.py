@@ -61,7 +61,7 @@ class ActorReader(object):
             # If no interpolation or nodata conversion is necessary, this is the array that will be
             # returned in the output queue
             self._sample_array_per_prod_tile[qi][prod_idx] = np.empty(
-                np.r_[full_sample_fp.shape, len(qi.band_ids)],
+                np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
                 qi.dtype,
             )
             self._missing_cache_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].cache_fps)
@@ -173,13 +173,13 @@ class Work(PoolJobWorking):
         if actor._same_address_space:
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, qi.dtype, qi.band_ids, sample_fp, dst_array_slice,
+                path, cache_fp, qi.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
             )
         else:
             self.dst_array_slice = dst_array_slice
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, qi.dtype, qi.band_ids, sample_fp, None,
+                path, cache_fp, qi.dtype, qi.unique_band_ids, sample_fp, None,
             )
 
         super().__init__(actor.address, func)
