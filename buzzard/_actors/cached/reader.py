@@ -43,63 +43,30 @@ class ActorReader(object):
 
     # ******************************************************************************************* **
     def receive_sample_cache_file_to_unique_array(self, qi, prod_idx, cache_fp, path):
-        wait = Wait(self, qi, prod_idx, cache_fp, path)
-        self._waiting_jobs.add(wait)
-        return [
-            Msg(self._waiting_room_address, 'schedule_job', wait)
-        ]
+        msgs = []
+
+        if self._raster.io_pool is None:
+            work = self._create_work_job(qi, prod_idx, cache_fp, path)
+            work.func()
+            msgs += self._commit_work_result(work, None)
+        else:
+            wait = Wait(self, qi, prod_idx, cache_fp, path)
+            self._waiting_jobs.add(wait)
+            msgs += [Msg(self._waiting_room_address, 'schedule_job', wait)]
+
+        return msgs
 
     def receive_token_to_working_room(self, job, token):
         self._waiting_jobs.remove(job)
-
-        full_sample_fp = job.qi.prod[job.prod_idx].sample_fp
-        prod_idx = job.prod_idx
-        qi = job.qi
-
-        if prod_idx not in self._sample_array_per_prod_tile[qi]:
-            # Allocate sample array
-            # If no interpolation or nodata conversion is necessary, this is the array that will be
-            # returned in the output queue
-            self._sample_array_per_prod_tile[qi][prod_idx] = np.empty(
-                np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
-                qi.dtype,
-            )
-            self._missing_cache_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].cache_fps)
-        dst_array = self._sample_array_per_prod_tile[qi][prod_idx]
-
-        work = Work(self, job.qi, job.prod_idx, job.cache_fp, job.sample_fp, job.path, dst_array)
+        work = self._create_work_job(job.qi, job.prod_idx, job.cache_fp, job.path)
         self._working_jobs.add(work)
         return [
             Msg(self._working_room_address, 'launch_job_with_token', work, token)
         ]
 
     def receive_job_done(self, job, result):
-        if self._same_address_space:
-            assert result is None
-        else:
-            # TODO: Warn that process_pool for io_pool is not smart lol
-            job.dst_array_slice[:] = result
-
         self._working_jobs.remove(job)
-        dst_array = self._sample_array_per_prod_tile[job.qi][job.prod_idx]
-        self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx].remove(job.cache_fp)
-
-        # Perform fine grain garbage collection
-        if len(self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]) == 0:
-            # Done reading for that `(qi, prod_idx)`
-            del self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]
-            del self._sample_array_per_prod_tile[job.qi][job.prod_idx]
-
-        if len(self._missing_cache_fps_per_prod_tile[job.qi]) == 0:
-            # Not reading for that `qi`
-            del self._missing_cache_fps_per_prod_tile[job.qi]
-            del self._sample_array_per_prod_tile[job.qi]
-
-        return [
-            Msg('CacheExtractor', 'sampled_a_cache_file_to_the_array',
-                job.qi, job.prod_idx, job.cache_fp, dst_array,
-            )
-        ]
+        return self._commit_work_result(job, result)
 
     def receive_cancel_this_query(self, qi):
         msgs = []
@@ -146,6 +113,51 @@ class ActorReader(object):
         self._sample_array_per_prod_tile.clear()
         self._missing_cache_fps_per_prod_tile.clear()
         return msgs
+
+    # ******************************************************************************************* **
+
+    def _create_work_job(self, qi, prod_idx, cache_fp, path):
+
+        if prod_idx not in self._sample_array_per_prod_tile[qi]:
+            # Allocate sample array
+            # If no interpolation or nodata conversion is necessary, this is the array that will be
+            # returned in the output queue
+            full_sample_fp = qi.prod[prod_idx].sample_fp
+            self._sample_array_per_prod_tile[qi][prod_idx] = np.empty(
+                np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
+                qi.dtype,
+            )
+            self._missing_cache_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].cache_fps)
+
+        dst_array = self._sample_array_per_prod_tile[qi][prod_idx]
+        return Work(self, qi, prod_idx, cache_fp, sample_fp, path, dst_array)
+
+    def _commit_work_result(self, job, result):
+        if self._same_address_space:
+            assert result is None
+        else:
+            # TODO: Warn that process_pool for io_pool is not smart lol
+            job.dst_array_slice[:] = result
+
+        dst_array = self._sample_array_per_prod_tile[job.qi][job.prod_idx]
+        self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx].remove(job.cache_fp)
+
+        # Perform fine grain garbage collection
+        if len(self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]) == 0:
+            # Done reading for that `(qi, prod_idx)`
+            del self._missing_cache_fps_per_prod_tile[job.qi][job.prod_idx]
+            del self._sample_array_per_prod_tile[job.qi][job.prod_idx]
+
+        if len(self._missing_cache_fps_per_prod_tile[job.qi]) == 0:
+            # Not reading for that `qi`
+            del self._missing_cache_fps_per_prod_tile[job.qi]
+            del self._sample_array_per_prod_tile[job.qi]
+
+        return [
+            Msg('CacheExtractor', 'sampled_a_cache_file_to_the_array',
+                job.qi, job.prod_idx, job.cache_fp, dst_array,
+            )
+        ]
 
     # ******************************************************************************************* **
 
