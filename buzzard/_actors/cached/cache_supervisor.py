@@ -1,6 +1,8 @@
 import enum
 import os
 import collections
+import itertools
+import glob
 
 from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CacheComputationInfos
@@ -30,6 +32,20 @@ class ActorCacheSupervisor(object):
     @property
     def alive(self):
         return self._alive
+
+
+    def _fname_prefix_of_cache_fp(self, cache_fp):
+        params = list(itertools.chain(
+            self._raster.indices_of_cache_fp(cache_fp),
+            # cache_fp.rsize,
+            # self._raster.fp.rsize,
+            self._raster.fp.spatial_to_raster(cache_fp.tl),
+        ))
+        return "ti_{:03d}-{:03d}_tri_{:05d}-{:05d}".format(*params)
+
+    def _list_cache_path_candidates(self, cache_fp):
+        prefix = self._fname_prefix_of_cache_fp(cache_fp)
+        return glob.glob(os.path.join(self._raster.cache_dir, prefix + '_[a-f0-9]+.tif'))
 
     # ******************************************************************************************* **
     def receive_make_those_cache_files_available(self, qi):
@@ -71,6 +87,7 @@ class ActorCacheSupervisor(object):
                 else:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
                     for path in path_candidates:
+                        # TODO: What if can't delete?
                         os.remove(path)
                     query.cache_fps_to_compute.add(cache_fp)
             else:

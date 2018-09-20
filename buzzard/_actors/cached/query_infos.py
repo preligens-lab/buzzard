@@ -233,7 +233,8 @@ class CachedQueryInfos(object):
 class CacheComputationInfos(object):
     """Object that store informations about a computation phase of a query.
     Instanciating this object also starts the primitives collection from the list of the cache
-    footprints missing. Primitive collection consist of creating new queries to primitive rasters.
+    footprints missing. Primitive collection consists of creating new raster queries to
+    primitive rasters.
     (e.g. to compute all the missing `slopes` cache files required by a query, a
     single query to `dsm` will be opened)
 
@@ -269,7 +270,7 @@ class CacheComputationInfos(object):
 
         # Step 2 - List primtive Footprints
         primitive_fps_per_primitive = {
-            name: func(self.list_of_compute_fp)
+            name: tuple([func(fp) for fp in self.list_of_compute_fp])
             for name, func in self._raster.convert_footprint_per_primitive.items()
         }
 
@@ -279,5 +280,5 @@ class CacheComputationInfos(object):
             for name, func in self._raster.queue_data_per_primitive.items()
         }
 
-    def pull_primitives(self, prim_idx):
-        assert prim_idx == self.collected_count
+    # def pull_primitives(self, prim_idx):
+    #     assert prim_idx == self.collected_count

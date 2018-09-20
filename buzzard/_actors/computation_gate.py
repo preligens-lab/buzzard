@@ -60,7 +60,7 @@ class ComputationGate(object):
         if produced_count == qi.produce_count:
             # Query finished
             if qi in self._queries:
-                assert (qicc is None) or (q.allowed_count == len(qicc.list_of_cache_fp))
+                assert (qicc is None) or (q.allowed_count == len(qicc.list_of_compute_fp))
                 del self._queries[qi]
         else:
             if qicc is None:
@@ -103,16 +103,16 @@ class ComputationGate(object):
         msgs = []
         qicc = qi.cache_computation
 
-        max_prod_idx_allowed = q.pulled_count + qi.max_queue_size
+        max_prod_idx_allowed = q.pulled_count + qi.max_queue_size - 1
         i = q.allowed_count
         while True:
-            if i == len(qicc.list_of_cache_fp):
+            if i == len(qicc.list_of_compute_fp):
                 break
-            cache_fp = qicc.list_of_cache_fp[i]
-
-            prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
-            # map(qi.dict_of_min_prod_idx_per_cache_fp.get, qicc.list_of_cache_fp) is increasing by design
-            if prod_idx > max_prod_idx_allowed:
+            computation_fp = qicc.list_of_compute_fp[i]
+            cache_fp = ... # TODO: Get cache_fp of compute_fp in log time
+            min_prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
+            # list_of_compute_fp being sorted by priority, `min_prod_idx` is increasing between loops
+            if min_prod_idx > max_prod_idx_allowed:
                 break
             i += 1
             msgs += [Msg(

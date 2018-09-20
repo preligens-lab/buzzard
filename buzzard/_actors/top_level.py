@@ -7,7 +7,7 @@ from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
 from buzzard._actors.global_priorities_watcher import ActorGlobalPrioritiesWatcher
 
 class ActorTopLevel(object):
-    """Actor that takes care of the lifetime of rasters' and pools' actors.
+    """Actor that takes care of the lifetime of all other actors.
 
     That is the only actor that is instanciated by the scheduler. All other actors are
     instanciated here.
@@ -67,6 +67,7 @@ class ActorTopLevel(object):
             ]
             if hasattr(raster, attr)
             for pool in [getattr(raster, attr)]
+            if pool is not None
         }
         for pool_id, pool in pools.items():
             if pool_id not in self._rasters_of_pool:

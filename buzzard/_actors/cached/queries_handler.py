@@ -58,7 +58,7 @@ class ActorQueriesHandler(object):
         q = _Query(queue_wref)
         self._queries[qi] = q
         msgs += [
-            Msg('/GlobalPrioritiesWatcher', 'new_query', qi),
+            # Msg('/GlobalPrioritiesWatcher', 'new_query', qi),
             Msg('ProductionGate', 'make_those_arrays', qi),
         ]
         if len(qi.list_of_cache_fp) > 0:
@@ -77,11 +77,11 @@ class ActorQueriesHandler(object):
         killed_queries = []
         for qi, q in self._queries.items():
             queue = q.queue_wref()
-            if q is None:
+            if queue is None:
                 killed_queries.append(qi)
             else:
                 new_queue_size = queue.qsize()
-                assert new_queue_size <= q.queue_size
+                assert new_queue_size <= q.queue_size, "Don't put data in that queue..."
                 if new_queue_size != q.queue_size:
                     q.queue_size = new_queue_size
                     args = qi, q.produced_count, q.queue_size
@@ -97,24 +97,24 @@ class ActorQueriesHandler(object):
 
         return msgs
 
-    def receive_made_this_array(self, qi, prod_id, array):
+    def receive_made_this_array(self, qi, prod_idx, array):
         """Receive message: This array is ready to be sent to the output queue. Just do it in the
         righ order.
 
         Parameters
         ----------
         qi: _actors.cached.query_infos.QueryInfos
-        prod_id: int
+        prod_idx: int
         array: np.ndarray
         """
         msgs = []
         q = self._queries[qi]
-        assert prod_id not in q.produce_arrays_dict, 'This array was already computed'
-        assert prod_id <= q.produced_count, 'This array was already sent'
-        q.produce_arrays_dict[prod_id] = array
+        assert prod_idx not in q.produce_arrays_dict, 'This array was already computed'
+        assert prod_idx <= q.produced_count, 'This array was already sent'
+        q.produce_arrays_dict[prod_idx] = array
 
         # Send arrays ready ****************************************************
-        prod_id = q.produced_count
+        prod_idx = q.produced_count
         queue = q.queue_wref()
         if queue is None:
             # Queue is None (Queue was collected upstream by gc) -> Ignore the problem,
@@ -123,19 +123,19 @@ class ActorQueriesHandler(object):
         else:
             # Put arrays in queue in the right order
             while True:
-                if prod_id not in q.produce_arrays_dict:
+                if prod_idx not in q.produce_arrays_dict:
                     # Next array is not ready yet
                     break
-                array = q.produce_arrays_dict.pop(prod_id)
+                array = q.produce_arrays_dict.pop(prod_idx)
 
-                # The way this is all designed, the system does not start to work on a `prod_id` if
+                # The way this is all designed, the system does not start to work on a `prod_idx` if
                 # it cannot be inserted in the output queue. It means that the `queue.Full`
                 # exception cannot be raised by the following `put_nowait`.
                 queue.put_nowait(array)
 
                 q.queue_size += 1
                 q.produced_count += 1
-                prod_id  = q.produced_count
+                prod_idx  = q.produced_count
                 args = qi, q.produced_count, q.queue_size
                 msgs += [
                     Msg('/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
@@ -164,7 +164,7 @@ class ActorQueriesHandler(object):
     def _cancel_query(self, qi):
         q = self._queries.pop(qi)
         assert q.produced_count != qi.produce_count, "This query finished and can't be cancelled"
-        LOGGER.warn('Dropping a query with {}/{} arrays produced.'.format(
+        LOGGER.warning('Dropping a query with {}/{} arrays produced.'.format(
             q.produced_count,
             qi.produce_count,
         ))
