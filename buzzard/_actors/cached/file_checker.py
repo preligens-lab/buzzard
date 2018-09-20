@@ -24,11 +24,20 @@ class ActorFileChecker(object):
 
     # ******************************************************************************************* **
     def receive_infer_cache_file_status(self, cache_fp, path):
-        wait = Wait(self, cache_fp, path)
-        self._waiting_jobs.add(wait)
-        return [
-            Msg(self._waiting_room_address, 'schedule_job', wait)
-        ]
+        msgs = []
+
+        if self._raster.io_pool is None:
+            work = Work(cache_fp, path)
+            status = work.func()
+            msgs += [Msg(
+                'CacheSupervisor', 'inferred_cache_file_status', cache_fp, path, status
+            )]
+        else:
+            wait = Wait(self, cache_fp, path)
+            self._waiting_jobs.add(wait)
+            msgs += [Msg(self._waiting_room_address, 'schedule_job', wait)]
+
+        return msgs
 
     def receive_token_to_working_room(self, job, token):
         self._waiting_jobs.remove(job)

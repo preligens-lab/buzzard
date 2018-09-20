@@ -1,7 +1,6 @@
 # Waiting *************************************************************************************** **
 class PoolJobWaiting:
-    def __init__(self, fp, sender_address):
-        self.fp = fp
+    def __init__(self, sender_address):
         self.sender_address = sender_address
 
 class MaxPrioJobWaiting(PoolJobWaiting):
@@ -9,14 +8,16 @@ class MaxPrioJobWaiting(PoolJobWaiting):
 
 class ProductionJobWaiting(PoolJobWaiting):
     def __init__(self, sender_address, qi, prod_idx, action_priority, fp):
-        super().__init__(sender_address, fp)
+        super().__init__(sender_address)
+        self.fp = fp
         self.qi = qi
         self.prod_idx = prod_idx
         self.action_priority = action_priority
 
 class CacheJobWaiting(PoolJobWaiting):
     def __init__(self, sender_address, raster_uid, cache_fp, action_priority, fp):
-        super().__init__(sender_address, fp)
+        super().__init__(sender_address)
+        self.fp = fp
         self.raster_uid = raster_uid
         self.cache_fp = cache_fp
         self.action_priority = action_priority
