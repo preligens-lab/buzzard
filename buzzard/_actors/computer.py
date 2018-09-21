@@ -3,53 +3,43 @@ from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 
 import numpy as np
 
-
 class ActorComputer(object):
-    """Actor that takes care of waiting for cache tiles reads and launching resamplings"""
+    """Actor that takes care of sheduling computations by using user's `compute_array` function"""
 
     def __init__(self, raster):
         self._raster = raster
         self._alive = True
-
+        self._waiting_jobs = set()
+        self._working_jobs = set()
 
     @property
     def address(self):
-        return '/Raster{}/Producer'.format(self._raster.uid)
+        return '/Raster{}/Computer'.format(self._raster.uid)
 
     @property
     def alive(self):
         return self._alive
 
     # ******************************************************************************************* **
-    def receive_compute_this_array(self, qi, cache_fp):
+    def receive_compute_this_array(self, qi, compute_fp):
         """Receive message: Start making this array"""
         msgs = []
-        # TODO
         return msgs
 
     def ext_receive_nothing(self):
         """Receive message sent by something else than an actor, still treated synchronously: What's
         up?
         Was an output queue sinked?
-        Was an output queue collected by gc?
         """
         msgs = []
-        # TODO
         return msgs
 
     def receive_token_to_working_room(self, job, token):
         self._waiting_jobs.remove(job)
-        # TODO
 
     def receive_job_done(self, job, result):
-        if self._same_address_space:
-            assert result is None
-            array = self.dst_array
-        else:
-            array = result
         self._working_jobs.remove(job)
 
-        # TODO: where to define path????
         return [
             Msg('Writer', 'write_this_array',
                 job.cache_fp, array, job.path,

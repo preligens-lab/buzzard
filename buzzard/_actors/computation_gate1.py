@@ -117,7 +117,7 @@ class ComputationGate1(object):
                 break
             i += 1
             msgs += [Msg(
-                'ComputationGate2', 'compute_this_array', qi, compute_fp,
+                'ComputationGate2', 'compute_this_array', qi, i,
             )]
         q.allowed_count = i
 

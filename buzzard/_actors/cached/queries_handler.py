@@ -66,7 +66,6 @@ class ActorQueriesHandler(object):
         q = _Query(queue_wref)
         self._queries[qi] = q
         msgs += [
-            # Msg('/GlobalPrioritiesWatcher', 'new_query', qi),
             Msg('ProductionGate', 'make_those_arrays', qi),
         ]
         if len(qi.list_of_cache_fp) > 0:
@@ -151,6 +150,8 @@ class ActorQueriesHandler(object):
                     Msg('ComputationGate1', 'output_queue_update', *args),
                 ]
                 if qi.key_in_parent is not None:
+                    # Notify the parent raster that a new array was put in the queue
+                    # If the parent raster was collected this message is discarded
                     msgs += [DroppableMsg(
                         '/Raster{}/QueriesHandler'.format(qi.parent_uid),
                         'input_queue_update',

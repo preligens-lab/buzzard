@@ -5,7 +5,7 @@ class ComputationGate2(object):
 
     def __init__(self, raster):
         self._raster = raster
-        # self._queries = {}
+        self._queries = {}
         self._alive = True
 
     @property
@@ -17,25 +17,27 @@ class ComputationGate2(object):
         return self._alive
 
     # ******************************************************************************************* **
-    def receive_compute_this_array(self, qi, compute_fp):
+    def receive_compute_this_array(self, qi, compute_idx):
         """Receive message: Wait for the inputs of this computation to be ready
 
         Parameters
         ----------
         qi: _actors.cached.query_infos.QueryInfos
-        compute_fp: Footprint
+        compute_idx: int
         """
         msgs = []
 
         qicc = qi.cache_computation
         assert qicc is not None
 
-        # if qi in self._queries:
-        #     # `receive_output_queue_update` happened before this call
-        #     q = self._queries[qi]
-        # else:
-        #     q = _Query()
-        #     self._queries[qi] = q
+        if qi in self._queries:
+            q = self._queries[qi]
+            assert q.max_compute_idx_allowed + 1 == compute_idx
+            q.max_compute_idx_allowed = compute_idx
+        else:
+            q = _Query()
+            self._queries[qi] = q
+
         msgs += self._allow(qi, q)
         return msgs
 
@@ -49,29 +51,9 @@ class ComputationGate2(object):
         msgs = []
 
         qi, prim_name = queue_key
-
-        # pulled_count = produced_count - queue_size
-        # qicc = qi.cache_computation
-
-        # if produced_count == qi.produce_count:
-        #     # Query finished
-        #     if qi in self._queries:
-        #         assert (qicc is None) or (q.allowed_count == len(qicc.list_of_compute_fp))
-        #         del self._queries[qi]
-        # else:
-        #     if qicc is None:
-        #         # this call happened before `receive_compute_those_cache_files`
-        #         if qi in self._queries:
-        #             # this call already happened
-        #             q = self._queries[qi]
-        #         else:
-        #             q = _Query()
-        #             self._queries[qi] = q
-        #         q.pulled_count = pulled_count
-        #     else:
-        #         q = self._queries[qi]
-        #         q.pulled_count = pulled_count
-        #         msgs += self._allow(qi, q)
+        if qi in self._queries:
+            q = self._queries[qi]
+            msgs += self._allow(qi, q)
 
         return msgs
 
@@ -82,15 +64,15 @@ class ComputationGate2(object):
         ----------
         qi: _actors.cached.query_infos.QueryInfos
         """
-        # if qi in self._queries:
-            # del self._queries[qi]
+        if qi in self._queries:
+            del self._queries[qi]
         return []
 
     def receive_die(self):
         """Receive message: The raster was killed"""
         assert self._alive
         self._alive = False
-        # self._queries.clear()
+        self._queries.clear()
         return []
 
     # ******************************************************************************************* **
@@ -99,22 +81,17 @@ class ComputationGate2(object):
         msgs = []
         qicc = qi.cache_computation
 
-        # max_prod_idx_allowed = q.pulled_count + qi.max_queue_size - 1
-        # i = q.allowed_count
-        # while True:
-        #     # list_of_compute_fp being sorted by priority, `min_prod_idx` is increasing between loops
+        queues_min_qsize = min(qicc.primitive_queue_per_primitive.values(), key=lambda v: v.qsize())
+        max_compute_idx_ready = qicc.pulled_count + queues_min_qsize - 1
+        assert max_compute_idx_ready >= q.max_compute_idx_allowed
 
-        #     if i == len(qicc.list_of_compute_fp):
-        #         break
-        #     compute_fp = qicc.list_of_compute_fp[i]
-        #     min_prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]
-        #     if min_prod_idx > max_prod_idx_allowed:
-        #         break
-        #     i += 1
-        #     msgs += [Msg(
-        #         'ComputationGate2', 'compute_this_array', qi, compute_fp,
-        #     )]
-        # q.allowed_count = i
+        i = q.allowed_count
+        while i <= max_compute_idx_ready and i <= q.max_compute_idx_allowed:
+            msgs += [Msg(
+                'Computer', 'compute_this_array', qi, i,
+            )]
+            i += 1
+        q.allowed_count = i
 
         return msgs
 
@@ -123,5 +100,5 @@ class ComputationGate2(object):
 class _Query(object):
 
     def __init__(self):
-        # self.pulled_count = 0
-        # self.allowed_count = 0
+        self.allowed_count = 0
+        self.max_compute_idx_allowed = 0
