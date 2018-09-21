@@ -70,12 +70,16 @@ class CachedQueryInfos(object):
 
     def __init__(self, raster, list_of_prod_fp,
                  band_ids, dst_nodata, interpolation,
-                 max_queue_size):
+                 max_queue_size,
+                 parent_uid, key_in_parent):
         # Mutable attributes ******************************************************************** **
         # Attributes that relates a query to a single optional computation phase
         self.cache_computation = None # type: Union[None, CacheComputationInfos]
 
         # Immutable attributes ****************************************************************** **
+        self.parent_uid = parent_uid
+        self.key_in_parent = key_in_parent
+
         # The parameters given by user in invocation
         self.band_ids = band_ids # type: Sequence[int]
         for bi in band_ids:
@@ -279,8 +283,14 @@ class CacheComputationInfos(object):
 
         # Step 3 - Start collection phase
         self.primitive_queue_per_primitive = {
-            name: func(primitive_fps_per_primitive[name])
-            for name, func in self._raster.queue_data_per_primitive.items()
+            name: back_prim.queue_data(
+                primitive_fps_per_primitive[name],
+                *raster.primitives_args[name],
+                parent_uid=raster.uid,
+                key_in_parent=(qi, name),
+                **raster.primitives_kwargs[name],
+            )
+            for name, back_prim in self._raster.back_primitives.items()
         }
 
     # def pull_primitives(self, prim_idx):

@@ -1,6 +1,6 @@
 import logging
 
-from buzzard._actors.message import Msg
+from buzzard._actors.message import Msg, DroppableMsg
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class ActorQueriesHandler(object):
 
     # ******************************************************************************************* **
     def ext_receive_new_query(self, queue_wref, max_queue_size, produce_fps,
-                              band_ids, dst_nodata, interpolation):
+                              band_ids, dst_nodata, interpolation, parent_uid, key_in_parent):
         """Receive message sent by something else than an actor, still treated synchronously: There
         is a new query.
 
@@ -47,13 +47,21 @@ class ActorQueriesHandler(object):
            Parameter of the underlying `(get|iter|queue)_data`
         interpolation: str
            Parameter of the underlying `(get|iter|queue)_data`
+        parent_uid: None or uuid
+           if None: This query comes directly from the user
+           else: The id of the parent that issued the query
+        key_in_parent: None or object
+           if None: This query comes directly from the user
+           else: This query was issued by another raster, it identifies this transaction with this
+               key.
         """
         msgs = []
 
         qi = CachedQueryInfos(
             self._raster, produce_fps,
             band_ids, dst_nodata, interpolation,
-            max_queue_size
+            max_queue_size,
+            parent_uid, key_in_parent,
         )
         q = _Query(queue_wref)
         self._queries[qi] = q
@@ -88,7 +96,7 @@ class ActorQueriesHandler(object):
                     msgs += [
                         Msg('/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
                         Msg('ProductionGate', 'output_queue_update', *args),
-                        Msg('ComputationGate', 'output_queue_update', *args),
+                        Msg('ComputationGate1', 'output_queue_update', *args),
                     ]
             del q
 
@@ -140,8 +148,14 @@ class ActorQueriesHandler(object):
                 msgs += [
                     Msg('/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
                     Msg('ProductionGate', 'output_queue_update', *args),
-                    Msg('ComputationGate', 'output_queue_update', *args),
+                    Msg('ComputationGate1', 'output_queue_update', *args),
                 ]
+                if qi.key_in_parent is not None:
+                    msgs += [DroppableMsg(
+                        '/Raster{}/QueriesHandler'.format(qi.parent_uid),
+                        'input_queue_update',
+                        qi.key_in_parent,
+                    ]
             if q.produced_count == qi.produce_count:
                 del self._queries[qi]
         del queue
@@ -178,7 +192,8 @@ class ActorQueriesHandler(object):
             Msg('Reader', 'cancel_this_query', qi),
 
             Msg('CacheSupervisor', 'cancel_this_query', qi),
-            Msg('ComputationGate', 'cancel_this_query', qi),
+            Msg('ComputationGate1', 'cancel_this_query', qi),
+            Msg('ComputationGate2', 'cancel_this_query', qi),
             Msg('Computer', 'cancel_this_query', qi),
         ]
 

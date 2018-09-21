@@ -1,6 +1,6 @@
 from buzzard._actors.message import Msg
 
-class ComputationGate(object):
+class ComputationGate1(object):
     """Actor that takes care of delaying the computation of a cache file until needed soon by
     the query. It receives resquests to compute `cache footprints`, it outputs requests to compute
     `compute footprints`.
@@ -13,7 +13,7 @@ class ComputationGate(object):
 
     @property
     def address(self):
-        return '/Raster{}/ComputationGate'.format(self._raster.uid)
+        return '/Raster{}/ComputationGate1'.format(self._raster.uid)
 
     @property
     def alive(self):
@@ -111,13 +111,13 @@ class ComputationGate(object):
 
             if i == len(qicc.list_of_compute_fp):
                 break
-            computation_fp = qicc.list_of_compute_fp[i]
+            compute_fp = qicc.list_of_compute_fp[i]
             min_prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]
             if min_prod_idx > max_prod_idx_allowed:
                 break
             i += 1
             msgs += [Msg(
-                'Computer', 'compute_this_array', compute_fp,
+                'ComputationGate2', 'compute_this_array', qi, compute_fp,
             )]
         q.allowed_count = i
 

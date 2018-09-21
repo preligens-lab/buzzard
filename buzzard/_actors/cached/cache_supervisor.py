@@ -7,6 +7,15 @@ import glob
 from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CacheComputationInfos
 
+    # def fname_prefix_of_cache_fp(self, cache_fp):
+    #     params = list(itertools.chain(
+    #         self._raster.indices_of_cache_fp(cache_fp),
+    #         # cache_fp.rsize,
+    #         # self._raster.fp.rsize,
+    #         self._raster.fp.spatial_to_raster(cache_fp.tl),
+    #     ))
+    #     return "ti_{:03d}-{:03d}_tri_{:05d}-{:05d}".format(*params)
+
 class ActorCacheSupervisor(object):
     """Actor that takes care of tracking, checking and schedule computation of cache files"""
 
@@ -32,20 +41,6 @@ class ActorCacheSupervisor(object):
     @property
     def alive(self):
         return self._alive
-
-
-    def _fname_prefix_of_cache_fp(self, cache_fp):
-        params = list(itertools.chain(
-            self._raster.indices_of_cache_fp(cache_fp),
-            # cache_fp.rsize,
-            # self._raster.fp.rsize,
-            self._raster.fp.spatial_to_raster(cache_fp.tl),
-        ))
-        return "ti_{:03d}-{:03d}_tri_{:05d}-{:05d}".format(*params)
-
-    def _list_cache_path_candidates(self, cache_fp):
-        prefix = self._fname_prefix_of_cache_fp(cache_fp)
-        return glob.glob(os.path.join(self._raster.cache_dir, prefix + '_[a-f0-9]+.tif'))
 
     # ******************************************************************************************* **
     def receive_make_those_cache_files_available(self, qi):
@@ -212,7 +207,11 @@ class ActorCacheSupervisor(object):
         ]
         assert qi.cache_computation is None
         qi.cache_computation = CacheComputationInfos(qi, self._raster, cache_fps)
-        return [Msg('ComputationGate', 'compute_those_cache_files', qi)]
+        return [Msg('ComputationGate1', 'compute_those_cache_files', qi)]
+
+    def _list_cache_path_candidates(self, cache_fp):
+        prefix = self._raster.fname_prefix_of_cache_fp(cache_fp)
+        return glob.glob(os.path.join(self._raster.cache_dir, prefix + '_[a-f0-9]+.tif'))
 
     # ******************************************************************************************* **
 

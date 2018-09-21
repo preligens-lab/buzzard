@@ -152,6 +152,7 @@ class DataSource(DataSourceRegisterMixin):
 
     Sources activation / deactivation
     ---------------------------------
+    TODO: Rewrite
     A source may be temporary deactivated, releasing it's internal file descriptor while keeping
     enough informations to reactivate itself later. By setting a `max_activated` different that
     `np.inf` in DataSource constructor, the sources of data are automatically deactivated in a
@@ -848,27 +849,28 @@ class DataSource(DataSourceRegisterMixin):
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
-        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray
+        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray
+        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
-        queue_data_per_primitive: dict or None
-            if dict:
-                key is hashable (primitive identifier) and value is a function similar to queue_data
-        convert_footprint_per_primitive: function f(Footprint): dict
+        queue_data_per_primitive: dict of callable
+            should be the bound `queue_data` method of another ScheduledRaster in the same DataSource.
+            can also be a functools.partial instance to that method
+            (see queue_data below) TODO
+        convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint
         remap_in_primitives: bool
-            if True: does the remap in the primitives
+            if True: defer the remap operations in the primitives
             if False: does the remap when producing
-        computation_pool: str or mp.ThreadPool or mp.Pool or None
+        computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        merge_pool: str or mp.ThreadPool or mp.Pool or None
+        merge_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        resample_pool: str or mp.ThreadPool or mp.Pool or None
+        resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
 
-        max_computation_size: int or tuple(int) (size 2) or None
-        max_resampling_size: int or tuple(int) (size 2) or None
+        max_computation_size: None or int or (int, int)
+        max_resampling_size: None or int or (int, int)
 
         Returns
         -------
@@ -901,7 +903,7 @@ class DataSource(DataSourceRegisterMixin):
                                     cache_dir=None,
                                     queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                                     computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-                                    computation_tiles=None, cache_tiles=None,
+                                    computation_tiles=None, cache_tiles=(512, 512),
                                     max_resampling_size=None):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
@@ -925,27 +927,29 @@ class DataSource(DataSourceRegisterMixin):
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
-        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe): np.ndarray
+        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)): np.ndarray
+        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         cache_dir: str
-        queue_data_per_primitive: dict or None
-            if dict:
-                key is hashable (primitive identifier) and value is a function similar to queue_data
-        convert_footprint_per_primitive: function f(Footprint): dict
+        queue_data_per_primitive: dict of callable
+            should be the bound `queue_data` method of another ScheduledRaster in the same DataSource
+            can also be a functools.partial instance to that method
+            (see queue_data below) TODO
+        convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint
-        computation_pool: str or mp.ThreadPool or mp.Pool or None
+        computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        merge_pool: str or mp.ThreadPool or mp.Pool or None
+        merge_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        io_pool: str or mp.ThreadPool or mp.Pool or None
+        io_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        resample_pool: str or mp.ThreadPool or mp.Pool or None
+        resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        computation_tiles: np.ndarray of Footprint
-        cache_tiles: np.ndarray of Footprint
-        max_resampling_size: int or tuple(int) (size 2) or None
+        computation_tiles: None or np.ndarray of Footprint
+        cache_tiles: (int, int) or np.ndarray of Footprint or shape (TY, TX)
+            if (int, int): The maximum cache tile size
+        max_resampling_size: None or int or (int, int)
 
         Returns
         -------

@@ -22,3 +22,6 @@ class Msg(object):
         self.address = address
         self.title = title
         self.args = args
+
+class DroppableMsg(Msg):
+    pass
