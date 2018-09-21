@@ -198,7 +198,7 @@ class CachedQueryInfos(object):
         # The list of all cache Footprints needed, ordered by priority
         self.list_of_cache_fp = [] # type: Sequence[CacheFootprint]
         seen = set()
-        for fps in self.list_of_prod_cache_fps:
+        for fps in list_of_prod_cache_fps:
             for fp in fps:
                 if fp not in seen:
                     seen.add(fp)
@@ -209,7 +209,7 @@ class CachedQueryInfos(object):
         # The dict of cache Footprint to set of production idxs
         # For each `cache_fp`, the set of prod_idx that need this cache tile
         self.dict_of_prod_idxs_per_cache_fp = collections.defaultdict(set) # type: Mapping[CacheFootprint, AbstractSet[int]]
-        for i, (prod_fp, cache_fps) in enumerate(zip(self.list_of_prod_fp, self.list_of_prod_cache_fps)):
+        for i, (prod_fp, cache_fps) in enumerate(zip(self.list_of_prod_fp, list_of_prod_cache_fps)):
             for cache_fp in cache_fps:
                 self.dict_of_prod_idxs_per_cache_fp[cache_fp].add(i)
         for k, v in self.dict_of_prod_idxs_per_cache_fp.items():
@@ -241,7 +241,7 @@ class CacheComputationInfos(object):
     This object is instanciated for each query that requires missing cache file
     """
 
-    def __init__(self, raster, list_of_cache_fp):
+    def __init__(self, qi, raster, list_of_cache_fp):
         """
         Parameters
         ----------
@@ -259,11 +259,14 @@ class CacheComputationInfos(object):
         # Step 1 - List compute Footprints
         l = []
         seen = set()
+        self.dict_of_min_prod_idx_per_compute_fp = {}
         for cache_fp in self.list_of_cache_fp:
-            for compute_fp in raster.compute_fp_of_cache_fp(cache_fp):
+            prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
+            for compute_fp in raster.compute_fps_of_cache_fp(cache_fp):
                 if compute_fp not in seen:
                     seen.add(compute_fp)
                     l.append(compute_fp)
+                    self.dict_of_min_prod_idx_per_compute_fp[compute_fp] = prod_idx
         self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint, ...]
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
         del l, seen

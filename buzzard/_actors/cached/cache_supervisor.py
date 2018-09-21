@@ -211,7 +211,7 @@ class ActorCacheSupervisor(object):
             if fp in query.cache_fps_to_compute
         ]
         assert qi.cache_computation is None
-        qi.cache_computation = CacheComputationInfos(self._raster, cache_fps)
+        qi.cache_computation = CacheComputationInfos(qi, self._raster, cache_fps)
         return [Msg('ComputationGate', 'compute_those_cache_files', qi)]
 
     # ******************************************************************************************* **

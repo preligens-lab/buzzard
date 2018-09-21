@@ -2,7 +2,8 @@ from buzzard._actors.message import Msg
 
 class ComputationGate(object):
     """Actor that takes care of delaying the computation of a cache file until needed soon by
-    the query.
+    the query. It receives resquests to compute `cache footprints`, it outputs requests to compute
+    `compute footprints`.
     """
 
     def __init__(self, raster):
@@ -106,17 +107,17 @@ class ComputationGate(object):
         max_prod_idx_allowed = q.pulled_count + qi.max_queue_size - 1
         i = q.allowed_count
         while True:
+            # list_of_compute_fp being sorted by priority, `min_prod_idx` is increasing between loops
+
             if i == len(qicc.list_of_compute_fp):
                 break
             computation_fp = qicc.list_of_compute_fp[i]
-            cache_fp = ... # TODO: Get cache_fp of compute_fp in log time
-            min_prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
-            # list_of_compute_fp being sorted by priority, `min_prod_idx` is increasing between loops
+            min_prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]
             if min_prod_idx > max_prod_idx_allowed:
                 break
             i += 1
             msgs += [Msg(
-                'Computer', 'compute_this_array', cache_fp
+                'Computer', 'compute_this_array', compute_fp,
             )]
         q.allowed_count = i
 
