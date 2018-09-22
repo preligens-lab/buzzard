@@ -887,7 +887,7 @@ class DataSource(DataSourceRegisterMixin):
         """
         proxs = [
             prox
-            for prox in self._keys_of_proxy.keys():
+            for prox in self._keys_of_proxy.keys()
             if isinstance(prox, APooledEmissary)
         ]
         total = len(proxs)
