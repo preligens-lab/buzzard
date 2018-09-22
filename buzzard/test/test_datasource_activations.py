@@ -2,7 +2,6 @@
 
 from __future__ import division, print_function
 
-import resource
 import uuid
 import os
 import sys

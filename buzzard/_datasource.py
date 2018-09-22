@@ -20,7 +20,7 @@ from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
 from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
-from buzzard.__a_pooled_emissary import APooledEmissary
+from buzzard._a_pooled_emissary import APooledEmissary
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to sources. A source is either a raster, or a
