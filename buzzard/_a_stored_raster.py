@@ -6,7 +6,13 @@ from buzzard._a_stored import AStored, ABackStored
 from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
 
 class AStoredRaster(AStored, AProxyRaster):
-    """Proxy that has both Stored and Raster specifications"""
+    """Base abstract class defining the common behavior of all rasters that are stored somewhere
+    (like RAM or disk).
+
+    Features Defined
+    ----------------
+    - Has a `set_data` method that allows to write pixels to storage
+    """
 
     def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None):
         """Write a rectangle of data on several channels to the destination raster. An optional

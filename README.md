@@ -148,7 +148,7 @@ pip install buzzard
 ## Supported Python versions
 To enjoy the latest buzzard features, update your python!
 
-### Fully python support
+### Full python support
 - Latest supported version: `3.7` (June 2018)
 - Oldest supported version: `3.4` (March 2014)
 

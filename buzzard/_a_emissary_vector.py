@@ -2,7 +2,12 @@ from buzzard._a_stored_vector import AStoredVector, ABackStoredVector
 from buzzard._a_emissary import AEmissary, ABackEmissary
 
 class AEmissaryVector(AEmissary, AStoredVector):
-    """Proxy that has both Emissary and Vector specifications"""
+    """Base abstract class defining the common behavior of all vectors that are backed by a driver.
+
+    Features Defined
+    ----------------
+    - Has a `layer` (if the driver supports it)
+    """
 
     @property
     def layer(self):

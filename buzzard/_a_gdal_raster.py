@@ -86,6 +86,7 @@ class ABackGDALRaster(ABackStoredRaster):
         del dstfp
 
         # Write ****************************************************************
+        # TODO: Close all but 1 driver? Or let user do this
         with self.acquire_driver_object() as gdal_ds:
             for i, band_id in enumerate(band_ids):
                 leftx, topy = self.fp.spatial_to_raster(fp.tl)

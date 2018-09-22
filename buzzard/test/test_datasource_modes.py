@@ -179,7 +179,7 @@ def test_mode1(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
         ds.shp2.proj4_stored,
     )
     assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
-    assert eq(
+    assert (
         None ==
         ds.wkt ==
         ds.proj4 ==
@@ -406,7 +406,7 @@ def test_mode3(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
         ds.shp3.proj4_virtual,
     )
     assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
-    assert eq(
+    assert (
         None ==
         ds.tif3.wkt_stored ==
         ds.tif3.proj4_stored ==
@@ -539,7 +539,7 @@ def test_mode4(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
         ds.shp3.proj4_virtual,
     )
     assert not sreq(ds.tif1.wkt_stored, ds.tif2.wkt_stored)
-    assert eq(
+    assert (
         None ==
         ds.tif3.wkt_stored ==
         ds.tif3.proj4_stored ==
