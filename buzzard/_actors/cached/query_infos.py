@@ -263,20 +263,28 @@ class CacheComputationInfos(object):
         # Step 1 - List compute Footprints
         l = []
         seen = set()
+        prev_prod_idx = 0
         self.dict_of_min_prod_idx_per_compute_fp = {}
         for cache_fp in self.list_of_cache_fp:
             prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
+            assert prod_idx >= prev_prod_idx
+            prev_prod_idx = prod_idx
+            tmp_fps = []
             for compute_fp in raster.compute_fps_of_cache_fp(cache_fp):
                 if compute_fp not in seen:
                     seen.add(compute_fp)
-                    l.append(compute_fp)
+                    tmp_fps.append(compute_fp)
                     self.dict_of_min_prod_idx_per_compute_fp[compute_fp] = prod_idx
+
+            # Sort those tiles by using the same scheme as the WaitingRoom does
+            tmp_fps = sorted(tmp_fps, key=lambda fp: (-fp.cy, +fp.cx))
+            l += tmp_fps
         self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint, ...]
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
-        del l, seen
+        del l, seen, tmp_fps
 
         # Step 2 - List primtive Footprints
-        primitive_fps_per_primitive = {
+        self.primitive_fps_per_primitive = {
             name: tuple([func(fp) for fp in self.list_of_compute_fp])
             for name, func in self._raster.convert_footprint_per_primitive.items()
         }
@@ -284,7 +292,7 @@ class CacheComputationInfos(object):
         # Step 3 - Start collection phase
         self.primitive_queue_per_primitive = {
             name: back_prim.queue_data(
-                primitive_fps_per_primitive[name],
+                self.primitive_fps_per_primitive[name],
                 *raster.primitives_args[name],
                 parent_uid=raster.uid,
                 key_in_parent=(qi, name),

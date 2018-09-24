@@ -1,3 +1,5 @@
+import numpy as np
+
 from buzzard._actors.message import Msg
 
 class ComputationGate2(object):
@@ -81,9 +83,12 @@ class ComputationGate2(object):
         msgs = []
         qicc = qi.cache_computation
 
-        queues_min_qsize = min(qicc.primitive_queue_per_primitive.values(), key=lambda v: v.qsize())
-        max_compute_idx_ready = qicc.pulled_count + queues_min_qsize - 1
-        assert max_compute_idx_ready >= q.max_compute_idx_allowed
+        if len(qicc.primitive_queue_per_primitive) == 0:
+            queues_min_qsize = min(qicc.primitive_queue_per_primitive.values(), key=lambda v: v.qsize())
+            max_compute_idx_ready = qicc.pulled_count + queues_min_qsize - 1
+            assert q.max_compute_idx_allowed <= max_compute_idx_ready, 'allowed more than ready count'
+        else:
+            max_compute_idx_ready = np.inf
 
         i = q.allowed_count
         while i <= max_compute_idx_ready and i <= q.max_compute_idx_allowed:
