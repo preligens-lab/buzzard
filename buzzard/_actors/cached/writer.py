@@ -1,4 +1,8 @@
+import os
+import uuid
 import functools
+import multiprocessing as mp
+import multiprocessing.pool
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
@@ -10,8 +14,9 @@ class ActorWriter(object):
         self._raster = raster
         self._alive = True
         io_pool = raster.io_pool
-        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
-        self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
+        if io_pool is not None:
+            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
+            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
         self._waiting_jobs = set()
         self._working_jobs = set()
 
@@ -24,77 +29,88 @@ class ActorWriter(object):
         return self._alive
 
     # ******************************************************************************************* **
-    def receive_write_this_array(self, cache_fp, array, path):
-        wait = Wait(self, cache_fp, array, path)
-        self._waiting_jobs.add(wait)
-        return [
-            Msg(self._waiting_room_address, 'schedule_job', wait)
-        ]
+    def receive_write_this_array(self, cache_fp, array):
+        msgs = []
+
+        if self._raster.computation_pool is None:
+            work = self._create_work_job(cache_fp, array)
+            path = work.func()
+            msgs += [Msg('CacheSupervisor', 'cache_file_written', cache_fp, path)]
+        else:
+            wait = Wait(self, cache_fp, array)
+            self._waiting_jobs.add(wait)
+            msgs += [Msg(self._waiting_room_address, 'schedule_job', wait)]
+
+        return msgs
 
     def receive_token_to_working_room(self, job, token):
         self._waiting_jobs.remove(job)
-
-        work = Work(self, job.cache_fp, job.array, job.path)
+        work = Work(self, job.cache_fp, job.array)
         self._working_jobs.add(work)
         return [
             Msg(self._working_room_address, 'launch_job_with_token', work, token)
         ]
 
-    def receive_job_done(self, job, _result):
-        # Result is None: write doesn't return an array
-        return [
-            Msg('CacheSupervisor', 'cache_file_written',
-                job.cache_fp, job.path,
-            )
-        ]
-
-    def receive_cancel_this_query(self, qi):
-        msgs = []
-        # TODO: find a way to link waiting writes to a set of qi's
-        #       if there is no qi left in the set, set priority to np.inf
-        #       else, set priority according to qi's left in the set after 
-        #       the removal of `qi` (the parameter)
-        return []
-
+    def receive_job_done(self, job, result):
+        return [Msg('CacheSupervisor', 'cache_file_written', job.cache_fp, result)]
 
     def receive_die(self):
         """Receive message: The raster was killed"""
         assert self._alive
         self._alive = False
-        # TODO: set the priority of waiting jobs to np.inf
+
+        msgs = []
+        for job in self._waiting_jobs:
+            msgs += [Msg(self._waiting_room_address, 'unschedule_job', job)]
+        for job in self._working_jobs:
+            msgs += [Msg(self._working_room_address, 'cancel_job', job)]
+        self._waiting_jobs.clear()
+        self._working_jobs.clear()
+
         return []
 
     # ******************************************************************************************* **
 
 class Wait(CacheJobWaiting):
 
-    def __init__(self, actor, cache_fp, array, path):
+    def __init__(self, actor, cache_fp, array):
         self.cache_fp = cache_fp
         self.array = array
-        self.path = path
-        # TODO: set action priority other than 1 
-        # TODO: raster uid
-        # TODO: fp = cache fp? (last parameter)
-        super().__init__(actor.address, actor._raster.uid, self.cache_fp, 1, self.cache_fp)
+        super().__init__(actor.address, actor._raster.uid, self.cache_fp, 2, self.cache_fp)
 
 class Work(PoolJobWorking):
-    def __init__(self, actor, cache_fp, array, path):
+    def __init__(self, actor, cache_fp, array):
         self.cache_fp = cache_fp
 
         func = functools.partial(
             _cache_file_write,
-            cache_fp, array, path,
+            array,
+            actor._raster.cache_dir,
+            actor._raster.fname_prefix_of_cache_fp(cache_fp),
+            '.tif',
+            cache_fp,
+            {'nodata': actor._raster.nodata},
+            actor._raster.sr,
         )
 
         super().__init__(actor.address, func)
 
-def _cache_file_write(cache_fp, array, path):
+def _cache_file_write(array,
+                      dir_path, filename_prefix, filename_suffix,
+                      cache_fp, band_schema, sr):
     """
     Parameters
     ----------
-    cache_fp: Footprint
-        Footprint of the cache file
-    array: np.array
-    path: str
     """
     assert (True or False) == 'That is the TODO question'
+    # Step 1. Create/close file
+    src_path = os.path.join(dir_path, filename_prefix + str(uuid.uuid4()) + filename_suffix)
+
+    # Step 2. md5 hash file
+
+    # Step 3. move file
+    dst_path = os.path.join(dir_path, filename_prefix + '_' + md5 + filename_suffix)
+    # TODO: Undefined if it exists, but it will most likely work
+    os.rename(src_path, dst_path)
+
+    return dst_path
