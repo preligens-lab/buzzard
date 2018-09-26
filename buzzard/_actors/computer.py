@@ -42,6 +42,7 @@ class ActorComputer(object):
             compute_fp = qi.cache_computation.list_of_compute_fp[compute_idx]
             if compute_fp not in self._performed_computations:
                 res = work.func()
+                res = self._normalize_user_result(compute_fp, res)
                 self._performed_computations.add(compute_fp)
                 msgs += self._commit_work_result(work, res)
         else:
@@ -71,6 +72,7 @@ class ActorComputer(object):
         return msgs
 
     def receive_job_done(self, job, result):
+        result = self._normalize_user_result(job.compute_fp, result)
         self._working_jobs.remove(job)
         return self._commit_work_result(job, result)
 
@@ -116,6 +118,27 @@ class ActorComputer(object):
 
     def _commit_work_result(self, work_job, res):
         return [Msg('ComputationAccumulator', 'combine_this_array', work_job.compute_fp, res)]
+
+    def _normalize_user_result(self, compute_fp, res):
+        try:
+            res = np.atleast_3d(res)
+        except:
+            raise ValueError("Result of recipe's `compute_array` has type {}, it can't be converted to ndarray".format(
+                type(res)
+            ))
+        y, x, c = res.shape
+        if (y, x) != compute_fp.shape:
+            raise ValueError("Result of recipe's `compute_array` has shape `{}`, should start with {}".format(
+                res.shape,
+                compute_fp.shape,
+            ))
+        if c != len(self._raster):
+            raise ValueError("Result of recipe's `compute_array` has shape `{}`, should have {} bands".format(
+                res.shape,
+                len(self._raster),
+            ))
+        res = res.astype(self._raster.dtype, copy=False)
+        return res
 
     # ******************************************************************************************* **
 
