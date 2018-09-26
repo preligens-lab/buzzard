@@ -21,14 +21,14 @@ class ActorResampler(object):
         if resample_pool is not None:
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(resample_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(resample_pool))
-            self._waiting_jobs = set()
-            self._working_jobs = set()
             if isinstance(resample_pool, mp.ThreadPool):
                 self._same_address_space = True
             elif isinstance(resample_pool, mp.Pool):
                 self._same_address_space = False
             else:
                 assert False, 'Type should be checked in facade'
+        self._waiting_jobs = set()
+        self._working_jobs = set()
 
         self._prod_array_of_prod_tile = (
             collections.defaultdict(dict)

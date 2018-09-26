@@ -19,16 +19,17 @@ class ActorMerger(object):
         self._raster = raster
         self._alive = True
         merge_pool = raster.merge_pool
-        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(merge_pool))
-        self._working_room_address = '/Pool{}/WorkingRoom'.format(id(merge_pool))
+        if merge_pool is not None:
+            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(merge_pool))
+            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(merge_pool))
+            if isinstance(merge_pool, mp.ThreadPool):
+                self._same_address_space = True
+            elif isinstance(merge_pool, mp.Pool):
+                self._same_address_space = False
+            else:
+                assert False, 'Type should be checked in facade'
         self._waiting_jobs = set()
         self._working_jobs = set()
-        if isinstance(merge_pool, mp.ThreadPool):
-            self._same_address_space = True
-        elif isinstance(merge_pool, mp.Pool):
-            self._same_address_space = False
-        else:
-            assert False, 'Type should be checked in facade'
 
         self.dst_array = None
 

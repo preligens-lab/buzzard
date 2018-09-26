@@ -9,8 +9,10 @@ class ActorFileChecker(object):
     def __init__(self, raster):
         self._raster = raster
         self._alive = True
-        self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(raster.io_pool))
-        self._working_room_address = '/Pool{}/WorkingRoom'.format(id(raster.io_pool))
+        io_pool = raster.io_pool
+        if io_pool is not None:
+            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(raster.io_pool))
+            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(raster.io_pool))
         self._waiting_jobs = set()
         self._working_jobs = set()
 
