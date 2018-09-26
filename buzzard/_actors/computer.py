@@ -1,9 +1,11 @@
 import collections
+import multiprocessing as mp
+import multiprocessing.pool
+
+import numpy as np
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
-
-import numpy as np
 
 class ActorComputer(object):
     """Actor that takes care of sheduling computations by using user's `compute_array` function"""
