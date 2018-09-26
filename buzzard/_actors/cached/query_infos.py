@@ -69,7 +69,7 @@ class CachedQueryInfos(object):
     """
 
     def __init__(self, raster, list_of_prod_fp,
-                 band_ids, dst_nodata, interpolation,
+                 band_ids, is_flat, dst_nodata, interpolation,
                  max_queue_size,
                  parent_uid, key_in_parent):
         # Mutable attributes ******************************************************************** **
@@ -82,6 +82,7 @@ class CachedQueryInfos(object):
 
         # The parameters given by user in invocation
         self.band_ids = band_ids # type: Sequence[int]
+        self.is_flat = is_flat # type: bool
         for bi in band_ids:
             if bi not in self.unique_band_ids:
                 self.unique_band_ids.append(bi)
