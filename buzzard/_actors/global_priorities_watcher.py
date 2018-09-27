@@ -26,7 +26,7 @@ class ActorGlobalPrioritiesWatcher(object):
 
     @property
     def address(self):
-        return '/GlobalPrioritiesWatcher'
+        return '/Global/GlobalPrioritiesWatcher'
 
     @property
     def alive(self):

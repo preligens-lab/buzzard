@@ -22,7 +22,7 @@ class ActorTopLevel(object):
         self._primed = False
         self._alive = True
 
-    address = '/TopLevel'
+    address = '/Global/TopLevel'
 
     @property
     def alive(self):
