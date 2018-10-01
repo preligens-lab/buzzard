@@ -1,0 +1,81 @@
+
+
+Inter raster optimisation
+Inter raster query optimisation
+
+** ************************************************************************** **
+** ************************************************************************** **
+
+BackCachedRaster
+    cache_fps_of_fp
+    compute_fps_of_cache_fp
+    cache_fps_of_compute_fp
+    fname_prefix_of_cache_fp
+
+    facade_proxy
+    create_actors
+    new_queries
+    lock
+
+    uid
+    __len__
+    dtype
+    cache_dir
+    indices_of_cache_fp
+
+    computation_pool
+    merge_pool
+    io_pool
+    resample_pool
+
+    compute_array
+    merge_arrays
+
+    max_resampling_size
+
+    back_primitives
+    queue_data
+    primitives_kwargs
+    convert_footprint_per_primitive (build_primitive_footprints)
+
+
+
+   ************************************************************************** **
+** TODO 
+** ************************************************************************** **
+
+
+- Get CachedRecipe.queue_data to work on really basic unit test
+- Get BasicRecipe.queue_data to work on really basic unit test
+- Get GDALAsyncFileRaster to work on really basic unit test
+- Create debug callbacks and then: create unit tests, create dashboard
+- Create examples
+- Create PR
+
+
+
+# Step 1 - Faire marcher
+- Finish writing actors for cached recipes
+    - Priorities classes (update xml graph)
+    - Production pipeline
+    - Caching pipeline
+- Scheduler
+    - DataSource Back mixin
+    - Schedule class
+    - Raster back class/mixin
+- DataSource method/class-facade
+- Worker functions
+
+
+# Step 2 - Uncached recipes
+- Not cached recipes
+    - Make shared actors use polymorphism
+    - Not cached actors
+
+
+
+# Step 3 - Debug callbacks
+- Exception handling, RuntimeError VS NameError
+- Debug callbacks injections
+- Debugging with dashboard / Unit testings
+
