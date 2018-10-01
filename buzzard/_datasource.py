@@ -388,6 +388,8 @@ class DataSource(DataSourceRegisterMixin):
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
+        if band_count <= 0:
+            raise NameError('`band_count` should be >0')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -440,6 +442,8 @@ class DataSource(DataSourceRegisterMixin):
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
+        if band_count <= 0:
+            raise NameError('`band_count` should be >0')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -955,7 +959,122 @@ class DataSource(DataSourceRegisterMixin):
         -------
         RasterCachedRecipe with get_data, queue_data and iter_data entry points
         """
-        pass
+        # Parameter checking ***************************************************
+        self._validate_key(key)
+        if not isinstance(fp, Footprint): # pragma: no cover
+            raise TypeError('`fp` should be a Footprint')
+        dtype = np.dtype(dtype)
+        band_count = int(band_count)
+        if band_count <= 0:
+            raise NameError('`band_count` should be >0')
+        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+        if sr is not None:
+            fp = self._back.convert_footprint(fp, sr)
+
+        if not callable(compute_array):
+            raise TypeError('`compute_array` should be callable')
+        if not callable(merge_array):
+            raise TypeError('`merge_array` should be callable')
+
+        # Primitives ***************************************
+        queue_data_per_primitive = dict(queue_data_per_primitive)
+        for name, met in queue_data_per_primitive.items():
+            queue_data_per_primitive[name] = _shatter_queue_data_method(met)
+
+        if queue_data_per_primitive.keys() != convert_footprint_per_primitive.keys():
+            err = 'There should be the same keys in `queue_data_per_primitive` and '
+            err += '`convert_footprint_per_primitive`.'.
+            if queue_data_per_primitive.keys() - convert_footprint_per_primitive.keys():
+                err += '\n{} are missing from `convert_footprint_per_primitive`.'.format(
+                    queue_data_per_primitive.keys() - convert_footprint_per_primitive.keys()
+                )
+            if convert_footprint_per_primitive.keys() - queue_data_per_primitive.keys():
+                err += '\n{} are missing from `queue_data_per_primitive`.'.format(
+                    convert_footprint_per_primitive.keys() - queue_data_per_primitive.keys()
+                )
+            raise NameError(err)
+
+        for name, func in convert_footprint_per_primitive.items():
+            if not callable(func):
+                raise TypeError('convert_footprint_per_primitive[{}] should be callable'.format(
+                    name
+                ))
+
+        # Pools ********************************************
+        computation_pool = normalize_pool_parameter(
+            computation_pool, self._back.pool_cache, 'computation_pool'
+        )
+        merge_pool = normalize_pool_parameter(
+            merge_pool, self._back.pool_cache, 'merge_pool'
+        )
+        io_pool = normalize_pool_parameter(
+            io_pool, self._back.pool_cache, 'io_pool'
+        )
+        resample_pool = normalize_pool_parameter(
+            resample_pool, self._back.pool_cache, 'resample_pool'
+        )
+
+        # Tilings ******************************************
+        if isinstance(cache_tiles, np.ndarray) and cache_tiles.dtype == np.object:
+            if not is_tiling_bijection_of(cache_tiles, fp): # TODO: implement
+                raise NameError("`computation_tiles` should be a tiling of raster's Footprint")
+        else:
+            cache_tiles = fp.tile(cache_tiles)
+
+        if computation_tiles is None:
+            computation_tiles = cache_tiles
+        elif isinstance(computation_tiles, np.ndarray) and computation_tiles.dtype == np.object:
+            if not is_tiling_surjection_of(computation_tiles, fp): # TODO: implement
+                raise NameError("`computation_tiles` should be a tiling of raster's Footprint")
+        else:
+            computation_tiles = fp.tile(computation_tiles)
+
+        # Misc *********************************************
+        if max_resampling_size is not None:
+            max_resampling_size = int(max_resampling_size)
+            if max_resampling_size <= 1:
+                raise NameError('`max_resampling_size` should be >0')
+
+        cache_dir = str(cache_dir)
+        os.makedirs(cache_dir, exist_ok=True)
+
+        # Construction *********************************************************
+        prox = CachedRasterRecipe(self, ...)
+
+        # DataSource Registering ***********************************************
+        self._register([key], prox)
+        return prox
+
+    def normalize_pool_parameter(pool_param, cache, param_name): # TODO: Move to argument parsing file
+        if isinstance(pool_param, [mp.pool.Pool, mp.pool.ThreadPool]):
+            return pool_param
+        if pool_param is None:
+            return None
+        if not (hasattr(pool_param, '__hash__') and hasattr(pool_param, '__eq__')):
+            types = ['multiprocessing.pool.Pool', 'multiprocessing.pool.ThreadPool', 'None', 'hashable']
+            raise TypeError('`{}` parameter should be one of {{{}}}'.format(name, ', '.join(types)))
+        if pool_param not in cache:
+            cache[pool_param] = mp.pool.ThreadPool(mp.cpu_count())
+        return cache[pool_param]
+
+    def shatter_queue_data_method(met, name): # TODO: Move to argument parsing file
+        kwargs = {}
+        while isinstance(met, functools.partial):
+            if met.args:
+                raise ValueError("Can't handle positional arguments in functools.partial of `queue_data_per_primitive` element")
+            kwargs.update(met.keywords)
+            met = met.func
+        if not callable(met):
+            raise TypeError('`queue_data_per_primitive[{}]` should be callable'.format(
+                name
+            ))
+        if not hasattr(met, '__self__') or not isinstance(met.__self__, SchedulerRaster): # TODO: Implement SchedulerRaster abstract class
+            raise TypeError('`queue_data_per_primitive[{}]` should be the `.queue_data` method of a scheduler raster'.format(
+                name
+            ))
+        return met.__self__._back, kwargs
 
     # Proxy getters ********************************************************* **
     def __getitem__(self, key):

@@ -16,7 +16,7 @@ class BackDataSourceSchedulerMixin(object):
 
     # Public methods **************************************************************************** **
     def start_scheduler(self):
-        assert not self.started
+        assert self._thread is None
         self._thread = threading.Thread(
             target=self._scheduler_loop_until_datasource_close,
             name='DataSource{}Scheduler'.format(ds_id),
@@ -31,6 +31,10 @@ class BackDataSourceSchedulerMixin(object):
     def stop_scheduler(self):
         assert not self._stop
         self._stop = True
+
+    @property
+    def started(self):
+        return self._thread is not None
 
     # Private methods *************************************************************************** **
     def _scheduler_loop_until_datasource_close(self):
@@ -72,7 +76,6 @@ class BackDataSourceSchedulerMixin(object):
         actors = collections.defaultdict(dict) # type: Mapping[str, Mapping[str, Actor]]
 
         # List of actors that need to be kept alive with calls to `ext_receive_nothing`
-        # `keep_alive_iterator` helps simulate
         # `keep_alive_iterator` should never be iterated if `keep_alive_actors` is empty
         keep_alive_actors = []
         keep_alive_iterator = _cycle_list(keep_alive_actors)
@@ -103,7 +106,7 @@ class BackDataSourceSchedulerMixin(object):
                     else:
                         new_msgs = getattr(dst_actor, 'receive_' + msg.title)(*msg.args)
                         if self._stop:
-                            # DataSource is closing. This is the same as `step 5`
+                            # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
                             return
                         if not dst_actor.alive:
                             # Actor is closing
@@ -133,7 +136,7 @@ class BackDataSourceSchedulerMixin(object):
                     # Iter at most once on each "keep alive" actor
                     new_msgs = actor.ext_receive_nothing()
                     if self._stop
-                        # DataSource is closing. This is the same as `step 5`
+                        # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
                         return
                     if not actor.alive:
                         # Actor is closing

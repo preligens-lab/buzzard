@@ -294,7 +294,6 @@ class CacheComputationInfos(object):
         self.primitive_queue_per_primitive = {
             name: back_prim.queue_data(
                 self.primitive_fps_per_primitive[name],
-                *raster.primitives_args[name],
                 parent_uid=raster.uid,
                 key_in_parent=(qi, name),
                 **raster.primitives_kwargs[name],
