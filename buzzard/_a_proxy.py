@@ -85,7 +85,7 @@ class AProxy(object):
 class ABackProxy(object):
     """Implementation of AProxy's specifications"""
 
-    def __init__(self, back_ds, wkt_stored, rect):
+    def __init__(self, back_ds, wkt_stored, rect, **kwargs):
         wkt_virtual = back_ds.virtual_of_stored_given_mode(
             wkt_stored, back_ds.wkt_work, back_ds.wkt_fallback, back_ds.wkt_forced,
         )
@@ -102,6 +102,7 @@ class ABackProxy(object):
         self.wkt_virtual = wkt_virtual
         self.to_work = to_work
         self.to_virtual = to_virtual
+        super().__init__(**kwargs)
 
     def close(self):
         """Virtual method:

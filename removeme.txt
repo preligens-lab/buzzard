@@ -75,7 +75,7 @@ BackCachedRaster
 
 
 # Step 3 - Debug callbacks
-- Exception handling, RuntimeError VS NameError
+- Exception handling, assertions/RuntimeError VS ValueError
 - Debug callbacks injections
 - Debugging with dashboard / Unit testings
 
