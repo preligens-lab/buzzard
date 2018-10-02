@@ -38,7 +38,6 @@ class CachedRasterRecipe(AProxyRaster, ASchedulerRaster):
     def queue_data(self, fps, band=1, dst_nodata=None, interpolation='cv_area', max_queue_size=5):
         """TODO: Docstring
         """
-        # Normalize and check fps parameter
         for fp in fps:
             if not isinstance(fp, Footprint):
                 raise ValueError('element of `fps` parameter should be a Footprint (not {})'.format(fp)) # pragma: no cover
@@ -114,7 +113,7 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackSchedulerRaster):
     def get_data(self, fp, band_ids, dst_nodata, interpolation):
         q = self.queue_data(
             [fp], band_ids, dst_nodata, interpolation, 1,
-            False, # `is_flat` is not importent since caller reshapes
+            False, # `is_flat` is not importent since caller reshapes output
             None, None,
         )
         return q.get()
