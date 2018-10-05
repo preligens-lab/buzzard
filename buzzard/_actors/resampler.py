@@ -62,15 +62,19 @@ class ActorResampler(object):
         pi = qi.prod[prod_idx]
         interpolation_needed = pi.share_area and not pi.same_grid
         if self._raster.resample_pool is not None and interpolation_needed:
-            # Need to externalize resampling on a pool
+            # Case 1: Need to externalize resampling on a pool
             wait = Wait(self, qi, prod_idx, sample_fp, resample_fp, subsample_array)
             self._waiting_jobs.add(wait)
             msgs += [
                 Msg(self._waiting_room_address, 'schedule_job', wait)
             ]
         else:
-            # Perform remapping on the scheduler
+            # Case 2: Perform remapping right now on the scheduler
             if interpolation_needed:
+                # Case 2.1: Remapping with interpolation
+                #   side effect: memory allocation is inevitable
+                #   side effect: since interpolation may imply tiling, the result will be
+                #      commited now and might be pushed now or later
                 job = self._create_work_job(
                     self, qi, prod_idx, sample_fp, resample_fp, subsample_array,
                 )
@@ -78,43 +82,36 @@ class ActorResampler(object):
                 msgs += self._commit_work_result(job, None)
 
             else:
-                # There is no need to accumulate
+                # Case 2.2: Remapping without interpolation
+                #   side effect: memory reallocation is avoidable
+                #   side effect: no interpolation imply no tiling, the result will be pushed now
                 if not pi.share_area:
-                    # production footprint is fully outside raster
+                    # Case 2.2.1: production footprint is fully outside raster
                     assert sample_fp is None
                     assert subsample_array is None
                     arr = np.full(
                         np.r_[resample_fp.shape, len(qi.band_ids)],
-                        qi.dst_nodata, raster.dtype,
+                        qi.dst_nodata, qi.dtype,
                     )
                 elif sample_fp == pi.fp:
-                    # production footprint is fully inside raster
+                    # Case 2.2.2: production footprint is fully inside raster
                     assert subsample_array.shape[:2] == tuple(resample_fp.shape)
                     arr = subsample_array
                     if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
                         arr[arr == self._raster.nodata] = qi.dst_nodata
-                    if qi.band_ids != qi.unique_band_ids:
-                        indices = [
-                            qi.unique_band_ids.find(bi)
-                            for bi in qi.band_ids
-                        ]
-                        arr = arr[..., indices]
+                    arr = arr.astype(qi.dtype, copy=False)
+                    arr = _reorder_channels(qi, arr)
                 else:
-                    # production footprint is both inside and outside raster
+                    # Case 2.2.3: production footprint is both inside and outside raster
                     arr = np.full(
                         np.r_[resample_fp.shape, len(qi.unique_band_ids)],
-                        qi.dst_nodata, raster.dtype,
+                        qi.dst_nodata, qi.dtype,
                     )
                     slices = sample_fp.slice_in(pr.fp)
                     arr[slices] = subsample_array
                     if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
                         arr[slices][arr == self._raster.nodata] = qi.dst_nodata
-                    if qi.band_ids != qi.unique_band_ids:
-                        indices = [
-                            qi.unique_band_ids.find(bi)
-                            for bi in qi.band_ids
-                        ]
-                        arr = arr[..., indices]
+                    arr = _reorder_channels(qi, arr)
 
                 msgs += [Msg(
                     'Producer', 'made_this_array', qi, prod_idx, arr
@@ -194,7 +191,7 @@ class ActorResampler(object):
             prod_idx not in self._prod_array_of_prod_tile[qi]):
             self._prod_array_of_prod_tile[qi][prod_idx] = np.full(
                 np.r_[pi.fp.shape, len(qi.band_ids)],
-                qi.dst_nodata, raster.dtype,
+                qi.dst_nodata, qi.dtype,
             )
             self._missing_resample_fps_per_prod_tile[qi][prod_idx] = set(pi.resample_fps)
         arr = self._prod_array_of_prod_tile[qi][prod_idx]
@@ -223,12 +220,7 @@ class ActorResampler(object):
             arr = self._prod_array_of_prod_tile[qi][prod_idx]
 
             # Produce array
-            if qi.band_ids != qi.unique_band_ids:
-                indices = [
-                    qi.unique_band_ids.find(bi)
-                    for bi in qi.band_ids
-                ]
-                arr = arr[..., indices]
+            arr = _reorder_channels(qi, arr)
             msgs += [
                 Msg('Producer', 'made_this_array', qi, prod_idx, arr)
             ]
@@ -243,6 +235,15 @@ class ActorResampler(object):
         return msgs
 
     # ******************************************************************************************* **
+
+def _reorder_channels(qi, arr):
+    if qi.band_ids != qi.unique_band_ids:
+        indices = [
+            qi.unique_band_ids.find(bi)
+            for bi in qi.band_ids
+        ]
+        arr = arr[..., indices]
+    return arr
 
 class Wait(ProductionJobWaiting):
 

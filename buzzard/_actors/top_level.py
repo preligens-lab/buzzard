@@ -14,7 +14,7 @@ class ActorTopLevel(object):
     """
     def __init__(self):
         self._rasters = set()
-        self._rasters_of_pool = collections.defaultdict(list)
+        self._rasters_per_pool = collections.defaultdict(list)
 
         self._actor_addresses_of_raster = {}
         self._actor_addresses_of_pool = {}
@@ -70,7 +70,7 @@ class ActorTopLevel(object):
             if pool is not None
         }
         for pool_id, pool in pools.items():
-            if pool_id not in self._rasters_of_pool:
+            if pool_id not in self._rasters_per_pool:
                 actors = [
                     ActorPoolWaitingRoom(pool),
                     ActorPoolWorkingRoom(pool),
@@ -82,7 +82,7 @@ class ActorTopLevel(object):
                     for actor in actors
                 ]
 
-            self._rasters_of_pool.append(raster)
+            self._rasters_per_pool[pool_id].append(raster)
 
         return msgs
 
@@ -115,9 +115,9 @@ class ActorTopLevel(object):
             for pool in [getattr(raster, attr)]
         }
         for pool_id, pool in pools.items():
-            self._rasters_of_pool[pool_id].remove(raster)
-            if len(self._rasters_of_pool) == 0:
-                del self._rasters_of_pool[pool_id]
+            self._rasters_per_pool[pool_id].remove(raster)
+            if len(self._rasters_per_pool) == 0:
+                del self._rasters_per_pool[pool_id]
                 msgs += [
                     Msg(actor.address, 'die')
                     for actor in self._actor_addresses_of_pool[pool_id]
@@ -143,7 +143,7 @@ class ActorTopLevel(object):
 
         # Clear attributes *****************************************************
         self._rasters.clear()
-        self._rasters_of_pool.clear()
+        self._rasters_per_pool.clear()
         self._actor_addresses_of_raster.clear()
         self._actor_addresses_of_pool.clear()
 

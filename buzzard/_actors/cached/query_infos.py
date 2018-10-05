@@ -163,7 +163,7 @@ class CachedQueryInfos(object):
                         resample_fps[0]: sample_fp
                     }
                 else:
-                    sample_fp = raster.build_sampling_footprint_to_remap(prod_fp, interpolation)
+                    sample_fp = raster.build_sampling_footprint_to_remap_interpolate(prod_fp, interpolation)
 
                     if raster.max_resampling_size is None:
                         # Resampling will be performed in one pass, on a Pool
@@ -179,7 +179,7 @@ class CachedQueryInfos(object):
                             (countx, county), boundary_effect='shrink'
                         ).flatten().tolist()
                         sample_dep_fp = {
-                            resample_fp: raster.build_sampling_footprint_to_remap(resample_fp, interpolation)
+                            resample_fp: raster.build_sampling_footprint_to_remap_interpolate(resample_fp, interpolation)
                             for resample_fp in resample_fps
                         }
 
@@ -297,13 +297,13 @@ class CacheComputationInfos(object):
 
         # Step 3 - Start collection phase
         self.primitive_queue_per_primitive = {
-            name: back_prim.queue_data(
+            name: prim_back.queue_data(
                 self.primitive_fps_per_primitive[name],
                 parent_uid=raster.uid,
                 key_in_parent=(qi, name),
                 **raster.primitives_kwargs[name],
             )
-            for name, back_prim in self._raster.back_primitives.items()
+            for name, prim_back in self._raster.primitives_back.items()
         }
 
     # def pull_primitives(self, prim_idx):

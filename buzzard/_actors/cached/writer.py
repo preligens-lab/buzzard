@@ -32,7 +32,7 @@ class ActorWriter(object):
     def receive_write_this_array(self, cache_fp, array):
         msgs = []
 
-        if self._raster.computation_pool is None:
+        if self._raster.io_pool is None:
             work = self._create_work_job(cache_fp, array)
             path = work.func()
             msgs += [Msg('CacheSupervisor', 'cache_file_written', cache_fp, path)]

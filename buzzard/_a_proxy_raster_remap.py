@@ -32,9 +32,9 @@ class ABackProxyRasterRemapMixin(object):
             fp = fp & self.fp
             assert fp.same_grid(self.fp)
             return fp
-        return self.build_sampling_footprint_to_remap(fp, interpolation)
+        return self.build_sampling_footprint_to_remap_interpolate(fp, interpolation)
 
-    def build_sampling_footprint_to_remap(self, fp, interpolation):
+    def build_sampling_footprint_to_remap_interpolate(self, fp, interpolation):
         if not self.back_ds.allow_interpolation: # pragma: no cover
             raise ValueError(_EXN_FORMAT.format(
                 src=self.fp,

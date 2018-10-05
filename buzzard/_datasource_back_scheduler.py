@@ -27,6 +27,7 @@ class BackDataSourceSchedulerMixin(object):
         self.started = True
 
     def put_message(self, msg):
+        # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
         self._ext_message_to_scheduler_queue.append(msg)
 
     def stop_scheduler(self):

@@ -116,9 +116,7 @@ class ActorReader(object):
         return msgs
 
     # ******************************************************************************************* **
-
     def _create_work_job(self, qi, prod_idx, cache_fp, path):
-
         if prod_idx not in self._sample_array_per_prod_tile[qi]:
             # Allocate sample array
             # If no interpolation or nodata conversion is necessary, this is the array that will be
@@ -126,7 +124,7 @@ class ActorReader(object):
             full_sample_fp = qi.prod[prod_idx].sample_fp
             self._sample_array_per_prod_tile[qi][prod_idx] = np.empty(
                 np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
-                qi.dtype,
+                qi.dtype, # TODO: raster.dtype or qi.dtype?
             )
             self._missing_cache_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].cache_fps)
 
@@ -213,6 +211,8 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
         optional destination for read
     """
     assert (True or False) == 'That is the TODO question'
+
+    # TODO: check the dtype of the `buf_obj` parameter
 
     if dst_opt is not None:
         return None

@@ -20,6 +20,7 @@ class ActorQueriesHandler(object):
 
     @property
     def address(self):
+        # TODO: Precompute the address in all 22 actors
         return '/Raster{}/QueriesHandler'.format(self._raster.uid)
 
     @property
@@ -50,13 +51,14 @@ class ActorQueriesHandler(object):
            Parameter of the underlying `(get|iter|queue)_data`
         interpolation: str
            Parameter of the underlying `(get|iter|queue)_data`
-        parent_uid: None or uuid
+        parent_uid: None or uuid.UUID4
+           uuid of parent raster
            if None: This query comes directly from the user
            else: The id of the parent that issued the query
         key_in_parent: None or object
+           identity of this query in the parent query
            if None: This query comes directly from the user
-           else: This query was issued by another raster, it identifies this transaction with this
-               key.
+           else: This query was issued by another raster
         """
         msgs = []
 

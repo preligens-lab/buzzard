@@ -52,7 +52,7 @@ class ActorMerger(object):
             msgs += [
                 Msg('Writer', 'write_this_array', cache_fp, arr)
             ]
-        elif self._raster.computation_pool is None:
+        elif self._raster.merge_pool is None:
             work = self._create_work_job(cache_fp, array_per_fp)
             res = work.func()
             res = self._normalize_user_result(res)
@@ -135,7 +135,7 @@ class Work(PoolJobWorking):
     def __init__(self, actor, cache_fp, array_per_fp):
         self.cache_fp = cache_fp
 
-        if actor._raster.resample_pool is None or actor._same_address_space:
+        if actor._raster.merge_pool is None or actor._same_address_space:
             func = functools.partial(
                 # TODO: Refine `merge_arrays` function prototype
                 self._raster.merge_arrays,

@@ -15,8 +15,8 @@ class ActorComputer(object):
         self._alive = True
         computation_pool = raster.computation_pool
         if computation_pool is not None:
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(resample_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(resample_pool))
+            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(computation_pool))
+            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(computation_pool))
             if isinstance(computation_pool, mp.ThreadPool):
                 self._same_address_space = True
             elif isinstance(computation_pool, mp.Pool):
@@ -172,7 +172,7 @@ class Work(PoolJobWorking):
 
         qicc.collected_count += 1
 
-        if actor._raster.resample_pool is None or actor._same_address_space:
+        if actor._raster.computation_pool is None or actor._same_address_space:
             func = functools.partial(
                 actor._raster.compute_array,
                 compute_fp,
