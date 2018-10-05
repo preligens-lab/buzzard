@@ -137,7 +137,7 @@ class BackDataSourceSchedulerMixin(object):
                 for actor, _ in zip(keep_alive_iterator, range(len(keep_alive_actors))):
                     # Iter at most once on each "keep alive" actor
                     new_msgs = actor.ext_receive_nothing()
-                    if self._stop
+                    if self._stop:
                         # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
                         return
                     if not actor.alive:

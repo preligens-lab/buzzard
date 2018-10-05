@@ -6,9 +6,9 @@ import numpy as np
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
-from buzzard._a_scheduled_raster import ABackScheduledRaster, ASchedulerRaster
+from buzzard._a_scheduled_raster import ABackScheduledRaster, AScheduledRaster
 
-class CachedRasterRecipe(AProxyRaster, ASchedulerRaster):
+class CachedRasterRecipe(AProxyRaster, AScheduledRaster):
 
     def __init__(
         self,

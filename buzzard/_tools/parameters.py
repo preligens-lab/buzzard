@@ -13,7 +13,7 @@ from .helper_classes import Singleton
 from . import conv
 
 # Beware of the potential recursive import if `_a_scheduled_raster` imports `_tools`
-from buzzard._a_scheduled_raster import ABackScheduledRaster, ASchedulerRaster
+from buzzard._a_scheduled_raster import ABackScheduledRaster, AScheduledRaster
 
 Footprint = None # Lazy import
 
@@ -446,7 +446,7 @@ def shatter_queue_data_method(met, name):
         raise TypeError('`queue_data_per_primitive[{}]` should be callable'.format(
             name
         ))
-    if not hasattr(met, '__self__') or not isinstance(met.__self__, ASchedulerRaster):
+    if not hasattr(met, '__self__') or not isinstance(met.__self__, AScheduledRaster):
         fmt = '`queue_data_per_primitive[{}]` should be the `.queue_data` method ' +\
               'of a scheduler raster'
         raise TypeError(fmt.format(name))
