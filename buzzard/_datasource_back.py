@@ -1,7 +1,10 @@
 from buzzard._datasource_back_conversions import BackDataSourceConversionsMixin
 from buzzard._datasource_back_activation_pool import BackDataSourceActivationPoolMixin
+from buzzard._datasource_back_scheduler import BackDataSourceSchedulerMixin
 
-class BackDataSource(BackDataSourceConversionsMixin, BackDataSourceActivationPoolMixin):
+class BackDataSource(BackDataSourceConversionsMixin,
+                     BackDataSourceActivationPoolMixin,
+                     BackDataSourceSchedulerMixin):
     """Backend of the DataSource, referenced by backend proxies
     Implements activation (pooling) and conversion methods"""
 

@@ -7,12 +7,13 @@ from buzzard._actors.message import Msg, DroppableMsg
 
 class BackDataSourceSchedulerMixin(object):
 
-    def __init__(self, ds_id):
+    def __init__(self, ds_id, **kwargs):
         self._ext_message_to_scheduler_queue = []
         self._thread = None
         self._ds_id = ds_id
         self._stop = False
         self._started = False
+        super().__init__(**kwargs)
 
     # Public methods **************************************************************************** **
     def start_scheduler(self):

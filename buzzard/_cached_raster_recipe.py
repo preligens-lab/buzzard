@@ -27,11 +27,12 @@ class CachedRasterRecipe(AProxyRaster, ASchedulerRaster):
         merge_pool,
         io_pool,
         resample_pool,
-        computation_tiles,
         cache_tiles,
+        computation_tiles,
         max_resampling_size
     ):
         back = BackCachedRasterRecipe(
+            # TODO: Fill
         )
         super().__init__(ds=ds, back=back)
 
@@ -77,8 +78,8 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackSchedulerRaster):
         merge_pool,
         io_pool,
         resample_pool,
-        computation_tiles,
         cache_tiles,
+        computation_tiles,
         max_resampling_size
     ):
         super()(
@@ -86,7 +87,8 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackSchedulerRaster):
             wkt_stored=sr,
             band_schema=band_schema,
             dtype=dtype,
-            fp_stored=...,
+            fp_stored=..., # TODO
+
         )
         if not back_ds.started:
             back_ds.start_scheduler()
@@ -113,7 +115,7 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackSchedulerRaster):
     def get_data(self, fp, band_ids, dst_nodata, interpolation):
         q = self.queue_data(
             [fp], band_ids, dst_nodata, interpolation, 1,
-            False, # `is_flat` is not importent since caller reshapes output
+            False, # `is_flat` is not important since caller reshapes output
             None, None,
         )
         return q.get()

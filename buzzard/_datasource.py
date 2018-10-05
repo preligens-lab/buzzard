@@ -229,6 +229,7 @@ class DataSource(DataSourceRegisterMixin):
             allow_none_geometry=allow_none_geometry,
             allow_interpolation=allow_interpolation,
             max_active=max_active,
+            ds_id=id(self),
         )
         super(DataSource, self).__init__()
 
@@ -825,6 +826,10 @@ class DataSource(DataSourceRegisterMixin):
     def _concat():
         pass
 
+    @staticmethod
+    def _identity():
+        pass
+
     def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                              compute_array=None, merge_array=_concat,
                              queue_data_per_primitive={}, convert_footprint_per_primitive=None,
@@ -832,6 +837,8 @@ class DataSource(DataSourceRegisterMixin):
                              computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
                              max_computation_size=None, max_resampling_size=None):
         """Create a raster recipe and register it under `key` in this DataSource.
+
+        TODO: Fill
 
         Parameters
         ----------
@@ -905,11 +912,13 @@ class DataSource(DataSourceRegisterMixin):
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                                     compute_array=None, merge_array=_concat,
                                     cache_dir=None,
-                                    queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+                                    queue_data_per_primitive={}, convert_footprint_per_primitive=_identity,
                                     computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-                                    computation_tiles=None, cache_tiles=(512, 512),
+                                    cache_tiles=(512, 512), computation_tiles=None,
                                     max_resampling_size=None):
         """Create a raster cached recipe and register it under `key` in this DataSource.
+
+        TODO: Fill
 
         Parameters
         ----------
@@ -950,9 +959,11 @@ class DataSource(DataSourceRegisterMixin):
             if None, operation done on scheduler
         resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        computation_tiles: None or np.ndarray of Footprint
-        cache_tiles: (int, int) or np.ndarray of Footprint or shape (TY, TX)
-            if (int, int): The maximum cache tile size
+        cache_tiles:
+            if (int, int): Construct the tiling by calling Footprint.tile with this tile size
+        computation_tiles: None or np.ndarray of Footprint or shape (TY, TX) or (int, int)
+            if None: Use the same tiling as cache_tiles
+            if (int, int): Construct the tiling by calling Footprint.tile with this tile size
         max_resampling_size: None or int or (int, int)
 
         Returns
@@ -1025,7 +1036,8 @@ class DataSource(DataSourceRegisterMixin):
                                 "without overlap, with `boundary_effect='shrink'`"
                 )
         else:
-            cache_tiles = fp.tile(cache_tiles)
+            # Defer the parameter checking to fp.tile
+            cache_tiles = fp.tile(cache_tiles, 0, 0, boundary_effect='shrink')
 
         if computation_tiles is None:
             computation_tiles = cache_tiles
@@ -1035,7 +1047,8 @@ class DataSource(DataSourceRegisterMixin):
                                 "with `boundary_effect='shrink'`"
                 )
         else:
-            computation_tiles = fp.tile(computation_tiles)
+            # Defer the parameter checking to fp.tile
+            computation_tiles = fp.tile(computation_tiles, 0, 0, boundary_effect='shrink')
 
         # Misc *********************************************
         if max_resampling_size is not None:
@@ -1047,7 +1060,9 @@ class DataSource(DataSourceRegisterMixin):
         os.makedirs(cache_dir, exist_ok=True)
 
         # Construction *********************************************************
-        prox = CachedRasterRecipe(self, ...)
+        prox = CachedRasterRecipe(
+            # TODO: Fill
+        )
 
         # DataSource Registering ***********************************************
         self._register([key], prox)
