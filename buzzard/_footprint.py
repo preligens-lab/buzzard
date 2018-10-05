@@ -1041,6 +1041,14 @@ class Footprint(TileMixin, IntersectionMixin):
     # Binary predicates - geometry ************************************************************** **
     def __eq__(self, other):
         """Returns self.equals"""
+
+        # TODO: Modify `__eq__` to also be compatible with `__hash__`
+        # 1. move current `self.equals` to `self.almost_equal`, modify the docstring
+        # 2. create a `self.equal` that checks for `perfect equality` (less computation intensive)
+        # 3. call the `perfect equality` from `__eq__`
+        # 4. add to the changelog this breaking change
+        # 5. implement the `__hash__` function
+
         return self.equals(other)
 
     def __ne__(self, other):
