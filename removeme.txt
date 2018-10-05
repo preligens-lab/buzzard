@@ -43,9 +43,6 @@ BackCachedRaster
 1       queue_data
 1       primitives_kwargs
 1       convert_footprint_per_primitive (build_primitive_footprints)
-        some_other?
-
-
 
 
    ************************************************************************** **
