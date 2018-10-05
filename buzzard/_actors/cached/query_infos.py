@@ -189,8 +189,13 @@ class CachedQueryInfos(object):
                 )
                 list_of_prod_resample_fps.append(tuple(resample_fps))
                 list_of_prod_resample_cache_deps_fps.append(MappingProxyType({
-                    resample_fp: frozenset(raster.cache_fps_of_fp(resample_fp))
+                    # TODO: Remove the 2 lines of old code below
+                    # resample_fp: frozenset(raster.cache_fps_of_fp(resample_fp))
+                    # for resample_fp in resample_fps
+
+                    resample_fp: frozenset(raster.cache_fps_of_fp(sample_subfp))
                     for resample_fp in resample_fps
+                    for sample_subfp in [sample_dep_fp[resample_fp]]
                 }))
                 list_of_prod_resample_sample_dep_fp.append(MappingProxyType(sample_dep_fp))
 
