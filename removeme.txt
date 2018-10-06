@@ -1,4 +1,4 @@
-ack '^class' _actors | ack -v 'Footprint'+ | ack -v 'pool_job' | ack -v 'Msg' | ack -v 'class _' | ack -v '\b(Wait|Work)\b' 
+ack '^class' _actors | ack -v 'Footprint'+ | ack -v 'pool_job' | ack -v 'Msg' | ack -v 'class _' | ack -v '\b(Wait|Work)\b'
 
 
 
@@ -46,17 +46,23 @@ BackCachedRaster
 
 
    ************************************************************************** **
-** TODO 
+** TODO
 ** ************************************************************************** **
 
 
-- Get CachedRecipe.queue_data to work on really basic unit test
-- Get BasicRecipe.queue_data to work on really basic unit test
-- Get GDALAsyncFileRaster to work on really basic unit test
+- Get CachedRasterRecipe.queue_data to work on really basic unit test
+- Get NocacheRasterRecipe.queue_data to work on really basic unit test
+- Get GDALScheduledFileRaster to work on really basic unit test
 - Create debug callbacks and then: create unit tests, create dashboard
 - Create examples
 - Create PR
 
+
+```
+basic
+direct
+nocache
+```
 
 
 # Step 1 - Faire marcher
@@ -83,4 +89,3 @@ BackCachedRaster
 - Exception handling, assertions/RuntimeError VS ValueError
 - Debug callbacks injections
 - Debugging with dashboard / Unit testings
-

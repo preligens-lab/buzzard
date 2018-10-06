@@ -8,7 +8,7 @@ from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 
 class ActorWriter(object):
-    """Actor that takes care of writing cache tiles"""
+    """Actor that takes care of writing to disk a cache tile that has been computed and merged."""
 
     def __init__(self, raster):
         self._raster = raster
@@ -30,20 +30,35 @@ class ActorWriter(object):
 
     # ******************************************************************************************* **
     def receive_write_this_array(self, cache_fp, array):
+        """Receive message: Please write this array to disk.
+
+        Parameters
+        ----------
+        cache_fp: Footprint of shape (Y, X)
+        array: ndarray of shape (Y, X, C)
+        """
         msgs = []
 
         if self._raster.io_pool is None:
-            work = self._create_work_job(cache_fp, array)
+            # No `io_pool` provided by user, perform write operation right now on this thread.
+            work = Work(self, job.cache_fp, job.array)
             path = work.func()
             msgs += [Msg('CacheSupervisor', 'cache_file_written', cache_fp, path)]
         else:
+            # Enqueue job in the `Pool/WaitingRoom` actor
             wait = Wait(self, cache_fp, array)
             self._waiting_jobs.add(wait)
             msgs += [Msg(self._waiting_room_address, 'schedule_job', wait)]
-
         return msgs
 
     def receive_token_to_working_room(self, job, token):
+        """Receive message: It is your turn to use the `Pool/WorkingRoom` actor
+
+        Parameters
+        ----------
+        job: Wait
+        token: pool_waiting_room._PoolToken
+        """
         self._waiting_jobs.remove(job)
         work = Work(self, job.cache_fp, job.array)
         self._working_jobs.add(work)
@@ -52,10 +67,18 @@ class ActorWriter(object):
         ]
 
     def receive_job_done(self, job, result):
+        """Receive message: Writing operation is complete
+
+        Parameters
+        ----------
+        job: Work
+        result: str
+            Path to the written file
+        """
         return [Msg('CacheSupervisor', 'cache_file_written', job.cache_fp, result)]
 
     def receive_die(self):
-        """Receive message: The raster was killed"""
+        """Receive message: The raster was killed (collect by gc or closed by user)"""
         assert self._alive
         self._alive = False
 
@@ -72,7 +95,6 @@ class ActorWriter(object):
     # ******************************************************************************************* **
 
 class Wait(CacheJobWaiting):
-
     def __init__(self, actor, cache_fp, array):
         self.cache_fp = cache_fp
         self.array = array
@@ -98,7 +120,14 @@ class Work(PoolJobWorking):
 def _cache_file_write(array,
                       dir_path, filename_prefix, filename_suffix,
                       cache_fp, band_schema, sr):
-    """
+    """Write this ndarray to disk.
+
+    It can't use the datasource's activation pool because the file need to be closed after
+    writing to:
+    1. flush to disk
+    2. md5hash
+    3. be renamed
+
     Parameters
     ----------
     """
