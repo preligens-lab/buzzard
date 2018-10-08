@@ -11,25 +11,14 @@ from buzzard._a_scheduled_raster import ABackScheduledRaster, AScheduledRaster
 class CachedRasterRecipe(AProxyRaster, AScheduledRaster):
 
     def __init__(
-        self,
-        ds,
-        fp,
-        dtype,
-        band_count,
-        band_schema,
-        sr,
-        compute_array,
-        merge_array,
-        cache_dir,
-        queue_data_per_primitive,
-        convert_footprint_per_primitive,
-        computation_pool,
-        merge_pool,
-        io_pool,
-        resample_pool,
-        cache_tiles,
-        computation_tiles,
-        max_resampling_size
+            self,
+            ds,
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_array,
+            queue_data_per_primitive, convert_footprint_per_primitive,
+            computation_pool, merge_pool, resample_pool, io_pool,
+            cache_dir, cache_tiles, computation_tiles,
+            max_resampling_size,
     ):
         back = BackCachedRasterRecipe(
             # TODO: Fill
@@ -62,25 +51,14 @@ class CachedRasterRecipe(AProxyRaster, AScheduledRaster):
 class BackCachedRasterRecipe(ABackProxyRaster, ABackSchedulerRaster):
 
     def __init__(
-        self,
-        back_ds,
-        fp,
-        dtype,
-        band_count,
-        band_schema,
-        sr,
-        compute_array,
-        merge_array,
-        cache_dir,
-        queue_data_per_primitive,
-        convert_footprint_per_primitive,
-        computation_pool,
-        merge_pool,
-        io_pool,
-        resample_pool,
-        cache_tiles,
-        computation_tiles,
-        max_resampling_size
+            self,
+            back_ds,
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_array,
+            queue_data_per_primitive, convert_footprint_per_primitive,
+            computation_pool, merge_pool, resample_pool, io_pool,
+            cache_dir, cache_tiles, computation_tiles,
+            max_resampling_size,
     ):
         super()(
             back_ds=back_ds,

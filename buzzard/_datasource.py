@@ -833,9 +833,9 @@ class DataSource(DataSourceRegisterMixin):
     def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                              compute_array=None, merge_array=_concat,
                              queue_data_per_primitive={}, convert_footprint_per_primitive=None,
-                             remap_in_primitives=False,
                              computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
-                             max_computation_size=None, max_resampling_size=None):
+                             max_computation_size=None, max_resampling_size=None
+                             remap_in_primitives=False):
         """Create a raster recipe and register it under `key` in this DataSource.
 
         TODO: Fill
@@ -870,18 +870,17 @@ class DataSource(DataSourceRegisterMixin):
             (see queue_data below) TODO
         convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint
-        remap_in_primitives: bool
-            if True: defer the remap operations in the primitives
-            if False: does the remap when producing
         computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
         merge_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
         resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-
         max_computation_size: None or int or (int, int)
         max_resampling_size: None or int or (int, int)
+        remap_in_primitives: bool
+            if True: defer the remap operations in the primitives
+            if False: does the remap when producing
 
         Returns
         -------
@@ -911,10 +910,9 @@ class DataSource(DataSourceRegisterMixin):
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                                     compute_array=None, merge_array=_concat,
-                                    cache_dir=None,
                                     queue_data_per_primitive={}, convert_footprint_per_primitive=_identity,
-                                    computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-                                    cache_tiles=(512, 512), computation_tiles=None,
+                                    computation_pool='cpu', merge_pool='cpu', resample_pool='cpu', io_pool='io',
+                                    cache_dir=None, cache_tiles=(512, 512), computation_tiles=None,
                                     max_resampling_size=None):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
@@ -933,18 +931,15 @@ class DataSource(DataSourceRegisterMixin):
             Band(s) metadata. (see `Band fields` below)
         sr: string or None
             Spatial reference of the new file
-
             if None: don't set a spatial reference
             if string:
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
-
         compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
         merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
-        cache_dir: str
         queue_data_per_primitive: dict of callable
             should be the bound `queue_data` method of another ScheduledRaster in the same DataSource
             can also be a functools.partial instance to that method
@@ -955,10 +950,11 @@ class DataSource(DataSourceRegisterMixin):
             if None, operation done on scheduler
         merge_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
-        io_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
         resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
             if None, operation done on scheduler
+        io_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
+            if None, operation done on scheduler
+        cache_dir: str
         cache_tiles:
             if (int, int): Construct the tiling by calling Footprint.tile with this tile size
         computation_tiles: None or np.ndarray of Footprint or shape (TY, TX) or (int, int)
@@ -1022,11 +1018,11 @@ class DataSource(DataSourceRegisterMixin):
         merge_pool = _tools.normalize_pool_parameter(
             merge_pool, self._back.pool_cache, 'merge_pool'
         )
-        io_pool = _tools.normalize_pool_parameter(
-            io_pool, self._back.pool_cache, 'io_pool'
-        )
         resample_pool = _tools.normalize_pool_parameter(
             resample_pool, self._back.pool_cache, 'resample_pool'
+        )
+        io_pool = _tools.normalize_pool_parameter(
+            io_pool, self._back.pool_cache, 'io_pool'
         )
 
         # Tilings ******************************************
@@ -1045,7 +1041,7 @@ class DataSource(DataSourceRegisterMixin):
             if not _tools.is_tiling_surjection_of(computation_tiles, fp):
                 raise ValueError("`computation_tiles` should be a tiling of raster's Footprint, " +\
                                 "with `boundary_effect='shrink'`"
-                )
+               )
         else:
             # Defer the parameter checking to fp.tile
             computation_tiles = fp.tile(computation_tiles, 0, 0, boundary_effect='shrink')
@@ -1061,7 +1057,13 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction *********************************************************
         prox = CachedRasterRecipe(
-            # TODO: Fill
+            self,
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_array,
+            queue_data_per_primitive, convert_footprint_per_primitive,
+            computation_pool, merge_pool, resample_pool, io_pool,
+            cache_dir, cache_tiles, computation_tiles,
+            max_resampling_size,
         )
 
         # DataSource Registering ***********************************************
