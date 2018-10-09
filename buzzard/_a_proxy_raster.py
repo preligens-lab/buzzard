@@ -154,6 +154,10 @@ class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
         else:
             fp = fp_stored
 
+        print('//////////////////////////////////////////////////')
+        print('ABackProxyRaster')
+        print(band_schema)
+        print('//////////////////////////////////////////////////')
         self.shared_band_id = None
         for i, type in enumerate(band_schema['mask'], 1):
             if type == 'per_dataset':

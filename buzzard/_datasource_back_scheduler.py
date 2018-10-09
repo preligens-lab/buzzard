@@ -20,11 +20,10 @@ class BackDataSourceSchedulerMixin(object):
         assert self._thread is None
         self._thread = threading.Thread(
             target=self._scheduler_loop_until_datasource_close,
-            name='DataSource{}Scheduler'.format(ds_id),
+            name='DataSource{:#x}Scheduler'.format(self._ds_id),
             daemon=True,
         )
         self._thread.start()
-        self.started = True
 
     def put_message(self, msg):
         # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173

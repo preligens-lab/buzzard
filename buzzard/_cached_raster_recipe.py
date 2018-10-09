@@ -1,15 +1,16 @@
+import collections
 import queue
 import weakref
 
 import numpy as np
 import rtree.index # TODO: add rtree to deps
 
+from buzzard._actors.message import Msg
 from buzzard import _tools
 from buzzard._footprint import Footprint
-from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
 from buzzard._a_raster_recipe import ARasterRecipe, ABackRasterRecipe
 
-class CachedRasterRecipe(AProxyRaster, ARasterRecipe):
+class CachedRasterRecipe(ARasterRecipe):
     """TODO: docstring"""
     def __init__(
         self, ds,
@@ -20,6 +21,11 @@ class CachedRasterRecipe(AProxyRaster, ARasterRecipe):
         cache_tiles,computation_tiles,
         max_resampling_size
     ):
+        print('//////////////////////////////////////////////////')
+        print('CachedRasterRecipe')
+        print(band_schema)
+        print('//////////////////////////////////////////////////')
+
         back = BackCachedRasterRecipe(
             ds._back,
             weakref.proxy(self),
@@ -32,7 +38,7 @@ class CachedRasterRecipe(AProxyRaster, ARasterRecipe):
         )
         super().__init__(ds=ds, back=back)
 
-class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
+class BackCachedRasterRecipe(ABackRasterRecipe):
     """TODO: docstring"""
 
     def __init__(
@@ -44,7 +50,7 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
         cache_tiles,computation_tiles,
         max_resampling_size
     ):
-        super()(
+        super().__init__(
             # Proxy
             back_ds=back_ds,
             wkt_stored=sr,
@@ -53,13 +59,14 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
             band_schema=band_schema,
             dtype=dtype,
             fp_stored=fp,
+            band_count=band_count,
 
             # Recipe
             facade_proxy=facade_proxy,
             computation_pool=computation_pool,
             merge_pool=merge_pool,
             compute_array=compute_array,
-            merge_arrays=merge_arrays,
+            merge_array=merge_array,
             primitives_back=primitives_back,
             primitives_kwargs=primitives_kwargs,
             convert_footprint_per_primitive=convert_footprint_per_primitive,
@@ -69,14 +76,15 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
             max_resampling_size=max_resampling_size,
         )
         self.io_pool = io_pool
+        self._cache_tiles = cache_tiles
 
         # Tilings shortcuts ****************************************************
         self._cache_footprint_index = self._build_cache_fps_index(
             cache_tiles,
         )
         self.cache_fps_of_compute_fp = {
-            self.cache_fps_of_fp(compute_fp)
-            for compute_fp in computation_tiles
+            compute_fp: self.cache_fps_of_fp(compute_fp)
+            for compute_fp in computation_tiles.flat
         }
         self.compute_fps_of_cache_fp = collections.defaultdict(list)
         for compute_fp, cache_fps in self.cache_fps_of_compute_fp.items():
@@ -91,7 +99,7 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
         if not back_ds.started:
             back_ds.start_scheduler()
         back_ds.put_message(Msg(
-            '/Global/TopLevel', 'new_raster' self
+            '/Global/TopLevel', 'new_raster', self,
         ))
 
     def queue_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
@@ -122,7 +130,7 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
     def cache_fps_of_fp(self, fp):
         assert fp.same_grid(self.fp)
         rtl = self.fp.spatial_to_raster(fp.tl, dtype=float)
-        bounds = np._r[rtl, rtl + fp.rsize] + bounds_inset
+        bounds = np.r_[rtl, rtl + fp.rsize]# + bounds_inset
         return [
             self._cache_tiles.flat[i]
             for i in list(self._cache_footprint_index.intersection(bounds))
@@ -149,6 +157,6 @@ class BackCachedRasterRecipe(ABackProxyRaster, ABackRasterRecipe):
         ])
         for i, fp in enumerate(cache_fps.flat):
             rtl = self.fp.spatial_to_raster(fp.tl, dtype=float)
-            bounds = np._r[rtl, rtl + fp.rsize] + bounds_inset
-            idx.insert(i, fp.bounds + self._bounds_lookup_inset)
+            bounds = np.r_[rtl, rtl + fp.rsize] + bounds_inset
+            idx.insert(i, bounds)
         return idx

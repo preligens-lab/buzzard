@@ -1,6 +1,8 @@
 import uuid
 
-class AScheduledRaster(object):
+from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
+
+class AScheduledRaster(AProxyRaster):
     """TODO: docstring"""
 
     def queue_data(self, fps, band=1, dst_nodata=None, interpolation='cv_area', max_queue_size=5):
@@ -26,7 +28,7 @@ class AScheduledRaster(object):
                 yield q.get()
         return _iter_data_generator
 
-class ABackScheduledRaster(object):
+class ABackScheduledRaster(ABackProxyRaster):
     """TODO: docstring"""
 
     def __init__(self, resample_pool, max_resampling_size, **kwargs):

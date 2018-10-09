@@ -4,6 +4,7 @@
 import ntpath
 import numbers
 import sys
+import os
 
 from osgeo import osr
 import numpy as np
@@ -19,6 +20,11 @@ from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
 from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
+from buzzard._cached_raster_recipe import CachedRasterRecipe
+
+def _concat():
+    """remove me"""
+    pass
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
@@ -557,7 +563,15 @@ class DataSource(DataSourceRegisterMixin):
         if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
         band_count = 1 if array.ndim == 2 else array.shape[-1]
+        print('//////////////////////////////////////////////////')
+        print('awrap_numpy_raster')
+        print(band_schema)
+        print('//////////////////////////////////////////////////')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        print('//////////////////////////////////////////////////')
+        print('awrap_numpy_raster')
+        print(band_schema)
+        print('//////////////////////////////////////////////////')
         if sr is not None:
             sr = osr.GetUserInputAsWKT(sr)
         _ = conv.of_of_mode(mode)
@@ -822,14 +836,6 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    @staticmethod
-    def _concat():
-        pass
-
-    @staticmethod
-    def _identity():
-        pass
-
     def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                              compute_array=None, merge_array=_concat,
                              queue_data_per_primitive={}, convert_footprint_per_primitive=None,
@@ -912,7 +918,7 @@ class DataSource(DataSourceRegisterMixin):
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                                     compute_array=None, merge_array=_concat,
                                     cache_dir=None,
-                                    queue_data_per_primitive={}, convert_footprint_per_primitive=_identity,
+                                    queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                                     computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
                                     cache_tiles=(512, 512), computation_tiles=None,
                                     max_resampling_size=None):
@@ -992,6 +998,12 @@ class DataSource(DataSourceRegisterMixin):
             raise TypeError('`merge_array` should be callable')
 
         # Primitives ***************************************
+        if convert_footprint_per_primitive is None:
+            convert_footprint_per_primitive = {
+                name: (lambda fp: fp)
+                for name in queue_data_per_primitive.keys()
+            }
+
         if queue_data_per_primitive.keys() != convert_footprint_per_primitive.keys():
             err = 'There should be the same keys in `queue_data_per_primitive` and '
             err += '`convert_footprint_per_primitive`.'
@@ -1017,17 +1029,17 @@ class DataSource(DataSourceRegisterMixin):
                 ))
 
         # Pools ********************************************
-        computation_pool = _tools.normalize_pool_parameter(
-            computation_pool, self._back.pool_cache, 'computation_pool'
+        computation_pool = self._back.normalize_pool_parameter(
+            computation_pool, 'computation_pool'
         )
-        merge_pool = _tools.normalize_pool_parameter(
-            merge_pool, self._back.pool_cache, 'merge_pool'
+        merge_pool = self._back.normalize_pool_parameter(
+            merge_pool, 'merge_pool'
         )
-        io_pool = _tools.normalize_pool_parameter(
-            io_pool, self._back.pool_cache, 'io_pool'
+        io_pool = self._back.normalize_pool_parameter(
+            io_pool, 'io_pool'
         )
-        resample_pool = _tools.normalize_pool_parameter(
-            resample_pool, self._back.pool_cache, 'resample_pool'
+        resample_pool = self._back.normalize_pool_parameter(
+            resample_pool, 'resample_pool'
         )
 
         # Tilings ******************************************
