@@ -7,15 +7,6 @@ import glob
 from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CacheComputationInfos
 
-    # def fname_prefix_of_cache_fp(self, cache_fp):
-    #     params = list(itertools.chain(
-    #         self._raster.indices_of_cache_fp(cache_fp),
-    #         # cache_fp.rsize,
-    #         # self._raster.fp.rsize,
-    #         self._raster.fp.spatial_to_raster(cache_fp.tl),
-    #     ))
-    #     return "ti_{:03d}-{:03d}_tri_{:05d}-{:05d}".format(*params)
-
 class ActorCacheSupervisor(object):
     """Actor that takes care of tracking, checking and schedule computation of cache files"""
 

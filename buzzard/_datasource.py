@@ -992,10 +992,6 @@ class DataSource(DataSourceRegisterMixin):
             raise TypeError('`merge_array` should be callable')
 
         # Primitives ***************************************
-        queue_data_per_primitive = dict(queue_data_per_primitive)
-        for name, met in queue_data_per_primitive.items():
-            queue_data_per_primitive[name] = _tools._shatter_queue_data_method(met)
-
         if queue_data_per_primitive.keys() != convert_footprint_per_primitive.keys():
             err = 'There should be the same keys in `queue_data_per_primitive` and '
             err += '`convert_footprint_per_primitive`.'
@@ -1008,6 +1004,11 @@ class DataSource(DataSourceRegisterMixin):
                     convert_footprint_per_primitive.keys() - queue_data_per_primitive.keys()
                 )
             raise ValueError(err)
+
+        primitives_back = {}
+        primitives_kwargs = {}
+        for name, met in queue_data_per_primitive.items():
+            primitives_back[name], primitives_kwargs[name] = _tools._shatter_queue_data_method(met)
 
         for name, func in convert_footprint_per_primitive.items():
             if not callable(func):
@@ -1061,7 +1062,13 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction *********************************************************
         prox = CachedRasterRecipe(
-            # TODO: Fill
+            self,
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_array,
+            cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+            computation_pool, merge_pool, io_pool, resample_pool,
+            cache_tiles,computation_tiles,
+            max_resampling_size
         )
 
         # DataSource Registering ***********************************************
