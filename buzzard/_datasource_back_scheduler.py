@@ -61,14 +61,14 @@ class BackDataSourceSchedulerMixin(object):
             address = a.address
             actors[address] = a
 
-            grp_name, name = address.split('/')
+            _, grp_name, name = address.split('/')
             assert name not in actors[grp_name]
             actors[grp_name][name] = a
 
         def _find_actor(address, relative_actor):
             names = address.split('/')
-            if len(names) == 2:
-                return actors[names[0]].get(names[1])
+            if len(names) == 3:
+                return actors[names[1]].get(names[2])
             elif len(names) == 1:
                 grp_name = relative_actor.address.split('/')[0]
                 return actors[grp_name].get(names[0])
@@ -77,7 +77,7 @@ class BackDataSourceSchedulerMixin(object):
 
         def _unregister_actor(a):
             address = a.address
-            grp_name, name = address.split('/')
+            _, grp_name, name = address.split('/')
             del actors[grp_name][name]
             if not actors[grp_name]:
                 del actors[grp_name]
@@ -99,24 +99,25 @@ class BackDataSourceSchedulerMixin(object):
         top_level_actor = ActorTopLevel()
         _register_actor(top_level_actor)
         piles_of_msgs.append(
-            (top_level_actor, top_level_actor.ext_receive_prime()),
+            (top_level_actor, 'ext_receive_', top_level_actor.ext_receive_prime()),
         )
 
         while True:
             # Step 1: Process all messages on flight
             while piles_of_msgs:
-                msgs = piles_of_msgs[-1]
+                src_actor, title_prefix, msgs = piles_of_msgs[-1]
                 if not msgs:
                     del piles_of_msgs[-1]
                     continue
-                src_actor, msg = msgs.pop(-1)
+                msg = msgs.pop(-1)
                 if isinstance(msg, Msg):
                     dst_actor = _find_actor(msg.address, src_actor)
                     if dst_actor is None:
                         # This message may be discarted
                         assert isinstance(msg, DroppableMsg)
                     else:
-                        new_msgs = getattr(dst_actor, 'receive_' + msg.title)(*msg.args)
+                        print(f'{">":->{len(piles_of_msgs) + 2}} {msg}')
+                        new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)
                         if self._stop:
                             # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
                             return
@@ -126,7 +127,7 @@ class BackDataSourceSchedulerMixin(object):
                         if new_msgs:
                             # Message need to be sent
                             piles_of_msgs.append((
-                                dst_actor, new_msgs
+                                dst_actor, 'receive_', new_msgs
                             ))
                 else:
                     _register_actor(msg)
@@ -136,7 +137,7 @@ class BackDataSourceSchedulerMixin(object):
             if self._ext_message_to_scheduler_queue:
                 msg = self._ext_message_to_scheduler_queue.pop(0)
                 piles_of_msgs.append((
-                    _find_actor(msg, None), [msg]
+                    _find_actor(msg.address, None), 'ext_receive_', [msg]
                 ))
 
             # Step 3: If no messages from phase 2 and some `keep_alive_actors`
@@ -156,7 +157,7 @@ class BackDataSourceSchedulerMixin(object):
                     if new_msgs:
                         # Messages need to be sent
                         piles_of_msgs.append((
-                            actor, new_msgs
+                            actor, 'receive_', new_msgs
                         ))
                         break
                 for actor in actors_to_remove:

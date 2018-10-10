@@ -1,6 +1,6 @@
 from buzzard._actors.message import Msg
 
-class ComputationGate1(object):
+class ActorComputationGate1(object):
     """Actor that takes care of delaying the computation of a cache file until needed soon by
     the query. It receives resquests to compute `cache footprints`, it outputs requests to compute
     `compute footprints`.

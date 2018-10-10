@@ -2,7 +2,7 @@ import numpy as np
 
 from buzzard._actors.message import Msg
 
-class ComputationGate2(object):
+class ActorComputationGate2(object):
     """Actor that takes care of delaying the computation of a cache file until inputs are ready."""
 
     def __init__(self, raster):
