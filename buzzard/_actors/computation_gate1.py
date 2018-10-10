@@ -61,6 +61,7 @@ class ActorComputationGate1(object):
         if produced_count == qi.produce_count:
             # Query finished
             if qi in self._queries:
+                q = self._queries[qi]
                 assert (qicc is None) or (q.allowed_count == len(qicc.list_of_compute_fp))
                 del self._queries[qi]
         else:

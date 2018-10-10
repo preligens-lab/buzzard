@@ -66,13 +66,20 @@ class BackDataSourceSchedulerMixin(object):
             # print('Adding', grp_name, name)
             actors[grp_name][name] = a
 
-        def _find_actor(address, relative_actor):
+        def _find_actors(address, relative_actor):
             names = address.split('/')
             if len(names) == 3:
-                return actors[names[1]].get(names[2])
+                if names[1] == 'pool*':
+                    return [
+                        v[names[2]]
+                        for k, v in actors.keys()
+                        if k.startswith('Pool')
+                    ]
+                else:
+                    return [actors[names[1]].get(names[2])]
             elif len(names) == 1:
                 grp_name = relative_actor.address.split('/')[1]
-                return actors[grp_name].get(names[0])
+                return [actors[grp_name].get(names[0])]
             else:
                 assert False
 
@@ -112,7 +119,7 @@ class BackDataSourceSchedulerMixin(object):
                     continue
                 msg = msgs.pop(-1)
                 if isinstance(msg, Msg):
-                    dst_actor = _find_actor(msg.address, src_actor)
+                    dst_actor, = _find_actors(msg.address, src_actor)
                     if dst_actor is None:
                         # This message may be discarted
                         assert isinstance(msg, DroppableMsg), msg
@@ -142,8 +149,9 @@ class BackDataSourceSchedulerMixin(object):
             # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
             if self._ext_message_to_scheduler_queue:
                 msg = self._ext_message_to_scheduler_queue.pop(0)
+                dst_actor, = _find_actors(msg.address, None)
                 piles_of_msgs.append((
-                    _find_actor(msg.address, None), 'ext_receive_', [msg]
+                    dst_actor, 'ext_receive_', [msg]
                 ))
 
             # Step 3: If no messages from phase 2 and some `keep_alive_actors`

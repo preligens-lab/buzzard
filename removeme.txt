@@ -13,7 +13,6 @@ BackCachedRaster
 # all (gdalfile, nocache, cache) ***************************
 5       __len__
 3ou4    dtype
-2       cache_dir
 9       nodata
 3       fp
 6       build_sampling_footprint_to_remap_interpolate
@@ -36,6 +35,8 @@ BackCachedRaster
 1       convert_footprint_per_primitive (build_primitive_footprints) (ctor param)
 
 # cache ****************************************************
+2       cache_dir
+1       cache_fps
 2       cache_fps_of_fp() (should be same grid)
 2       compute_fps_of_cache_fp[] (should be a dict in the background)
 1       cache_fps_of_compute_fp[] (should be a dict in the background)
