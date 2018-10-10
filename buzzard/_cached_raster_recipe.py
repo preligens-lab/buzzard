@@ -9,6 +9,21 @@ from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._a_raster_recipe import ARasterRecipe, ABackRasterRecipe
 
+from buzzard._actors.cached.cache_extractor import ActorCacheExtractor
+from buzzard._actors.cached.cache_supervisor import ActorCacheSupervisor
+from buzzard._actors.cached.file_checker import ActorFileChecker
+from buzzard._actors.cached.merger import ActorMerger
+from buzzard._actors.cached.producer import ActorProducer
+from buzzard._actors.cached.queries_handler import ActorQueriesHandler
+from buzzard._actors.cached.reader import ActorReader
+from buzzard._actors.cached.writer import ActorWriter
+from buzzard._actors.computation_accumulator import ActorComputationAccumulator
+from buzzard._actors.computation_gate1 import ActorComputationGate1
+from buzzard._actors.computation_gate2 import ActorComputationGate2
+from buzzard._actors.computer import ActorComputer
+from buzzard._actors.production_gate import ActorProductionGate
+from buzzard._actors.resampler import ActorResampler
+
 class CachedRasterRecipe(ARasterRecipe):
     """TODO: docstring"""
     def __init__(
@@ -20,11 +35,6 @@ class CachedRasterRecipe(ARasterRecipe):
         cache_tiles,computation_tiles,
         max_resampling_size
     ):
-        print('//////////////////////////////////////////////////')
-        print('CachedRasterRecipe')
-        print(band_schema)
-        print('//////////////////////////////////////////////////')
-
         back = BackCachedRasterRecipe(
             ds._back,
             weakref.proxy(self),
@@ -75,7 +85,8 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             max_resampling_size=max_resampling_size,
         )
         self.io_pool = io_pool
-        self._cache_tiles = cache_tiles
+        self.cache_fps = cache_tiles
+        self.cache_dir = cache_dir
 
         # Tilings shortcuts ****************************************************
         self._cache_footprint_index = self._build_cache_fps_index(
@@ -105,7 +116,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         rtl = self.fp.spatial_to_raster(fp.tl, dtype=float)
         bounds = np.r_[rtl, rtl + fp.rsize]# + bounds_inset
         return [
-            self._cache_tiles.flat[i]
+            self.cache_fps.flat[i]
             for i in list(self._cache_footprint_index.intersection(bounds))
         ]
 
@@ -118,6 +129,24 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         ]
         return "tile_x{:03d}-y{:03d}_px_x{:05d}-y{:05d}".format(*params) # TODO: better file name
 
+    def create_actors(self):
+        actors = [
+            ActorCacheExtractor(self),
+            ActorCacheSupervisor(self),
+            ActorFileChecker(self),
+            ActorMerger(self),
+            ActorProducer(self),
+            ActorQueriesHandler(self),
+            ActorReader(self),
+            ActorWriter(self),
+            ActorComputationAccumulator(self),
+            ActorComputationGate1(self),
+            ActorComputationGate2(self),
+            ActorComputer(self),
+            ActorProductionGate(self),
+            ActorResampler(self),
+        ]
+        return actors
 
     # ******************************************************************************************* **
     def _build_cache_fps_index(self, cache_fps):

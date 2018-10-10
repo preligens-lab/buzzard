@@ -63,6 +63,7 @@ class BackDataSourceSchedulerMixin(object):
 
             _, grp_name, name = address.split('/')
             assert name not in actors[grp_name]
+            # print('Adding', grp_name, name)
             actors[grp_name][name] = a
 
         def _find_actor(address, relative_actor):
@@ -70,7 +71,7 @@ class BackDataSourceSchedulerMixin(object):
             if len(names) == 3:
                 return actors[names[1]].get(names[2])
             elif len(names) == 1:
-                grp_name = relative_actor.address.split('/')[0]
+                grp_name = relative_actor.address.split('/')[1]
                 return actors[grp_name].get(names[0])
             else:
                 assert False
@@ -114,9 +115,14 @@ class BackDataSourceSchedulerMixin(object):
                     dst_actor = _find_actor(msg.address, src_actor)
                     if dst_actor is None:
                         # This message may be discarted
-                        assert isinstance(msg, DroppableMsg)
+                        assert isinstance(msg, DroppableMsg), msg
                     else:
-                        print(f'{">":->{len(piles_of_msgs) + 2}} {msg}')
+                        print('{} {}'.format(
+                            ' |' * (len(piles_of_msgs) - 1),
+                            msg,
+                        ))
+
+                        # print(f'{"|":->{len(piles_of_msgs) * 2 + 1}} {msg}')
                         new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)
                         if self._stop:
                             # DataSource is closing. This is the same as `step 5`. (optimisation purposes)

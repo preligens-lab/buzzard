@@ -88,7 +88,7 @@ class ActorProductionGate(object):
                 # Enough production started yet
                 break
             msgs += [Msg(
-                'Producer', 'make_this_array', q.allowed_count
+                'Producer', 'make_this_array', qi, q.allowed_count
             )]
             q.allowed_count += 1
 

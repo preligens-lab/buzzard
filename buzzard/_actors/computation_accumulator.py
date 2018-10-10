@@ -31,16 +31,19 @@ class ActorComputationAccumulator(object):
     def receive_combine_this_array(self, compute_fp, array):
         msgs = []
 
-        for cache_fp in self._raster.cache_fps_of_compute_fp(compute_fp):
+        for cache_fp in self._raster.cache_fps_of_compute_fp[compute_fp]:
 
             # Fetch and update storage for that cache_fp
             if cache_fp in self._cache_tiles_accumulations:
                 store = self._cache_tiles_accumulations[cache_fp]
             else:
-                store = {'missing': self._raster.compute_fps_of_cache_fp(cache_fp), 'ready': {}}
+                store = {
+                    'missing': set(self._raster.compute_fps_of_cache_fp[cache_fp]),
+                    'ready': {},
+                }
                 self._cache_tiles_accumulations[cache_fp] = store
             assert compute_fp in store['missing']
-            del store['missing'][compute_fp]
+            store['missing'].remove(compute_fp)
 
             compute_fp_part = compute_fp & cache_fp
             # TODO IDEA: Should cache_fp be dilated before the above intersection? This could be a
@@ -53,7 +56,7 @@ class ActorComputationAccumulator(object):
             # Send news to merger
             if len(store['missing']) == 0:
                 msgs += [
-                    Msg('Merger', 'schedule_one_merge', cache_fp, store['ready'])
+                    Msg('Merger', 'merge_those_arrays', cache_fp, store['ready'])
                 ]
                 del self._cache_tiles_accumulations[cache_fp]
         return msgs

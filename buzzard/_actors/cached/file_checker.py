@@ -1,7 +1,10 @@
+import logging
 import functools
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import MaxPrioJobWaiting, PoolJobWorking
+
+LOGGER = logging.getLogger(__name__)
 
 class ActorFileChecker(object):
     """Actor that takes care of performing various checks on a cache file from a pool"""
@@ -85,4 +88,6 @@ class Work(PoolJobWorking):
 
 def _cache_file_check(cache_fp, path, band_count, dtype):
     # TODO: Check file opening/footprint/band_count/dtype/md5
+    # Remove and warn if necessary
     assert (True or False) == 'That is the TODO question'
+    LOGGER.warn('Removing {}'.format(path))

@@ -22,9 +22,9 @@ class ActorMerger(object):
         if merge_pool is not None:
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(merge_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(merge_pool))
-            if isinstance(merge_pool, mp.ThreadPool):
+            if isinstance(merge_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
-            elif isinstance(merge_pool, mp.Pool):
+            elif isinstance(merge_pool, mp.pool.Pool):
                 self._same_address_space = False
             else:
                 assert False, 'Type should be checked in facade'

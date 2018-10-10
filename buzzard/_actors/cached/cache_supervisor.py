@@ -3,9 +3,12 @@ import os
 import collections
 import itertools
 import glob
+import logging
 
 from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CacheComputationInfos
+
+LOGGER = logging.getLogger(__name__)
 
 class ActorCacheSupervisor(object):
     """Actor that takes care of tracking, checking and schedule computation of cache files"""
@@ -19,7 +22,7 @@ class ActorCacheSupervisor(object):
         self._raster = raster
         self._cache_fps_status = {
             cache_fp: _CacheTileStatus.unknown
-            for cache_fp in raster.cache_fps
+            for cache_fp in raster.cache_fps.flat
         }
         self._path_of_cache_fp = {}
         self._queries = {}
@@ -74,6 +77,7 @@ class ActorCacheSupervisor(object):
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
                     for path in path_candidates:
                         # TODO: What if can't delete?
+                        LOGGER.warn('Removing {}'.format(path))
                         os.remove(path)
                     query.cache_fps_to_compute.add(cache_fp)
             else:

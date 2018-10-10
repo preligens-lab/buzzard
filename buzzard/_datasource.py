@@ -5,6 +5,7 @@ import ntpath
 import numbers
 import sys
 import os
+import pathlib
 
 from osgeo import osr
 import numpy as np
@@ -1069,6 +1070,8 @@ class DataSource(DataSourceRegisterMixin):
             if max_resampling_size <= 1:
                 raise ValueError('`max_resampling_size` should be >0')
 
+        if not isinstance(cache_dir, (str, pathlib.Path)):
+            raise TypeError('cache_dir should be a string')
         cache_dir = str(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 

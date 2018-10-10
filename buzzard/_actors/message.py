@@ -24,15 +24,17 @@ class Msg(object):
         self.args = args
 
     def __str__(self):
+        if self.address[0] == '/':
+            b = _COLOR_PER_CLASSNAME.get(self.address.split('/')[2], '\033[37m')
+        else:
+            b = _COLOR_PER_CLASSNAME.get(self.address, '\033[37m')
         return '{u}{b}{letter}{}{z}.{}({}){u}{b}{letter}{z}'.format(
             self.address,
             self.title,
             ', '.join(type(a).__name__ for a in self.args),
             letter=u"\u2709",
-            # a='\033[36m',
             u='\033[4m',
-
-            b=_COLOR_PER_CLASSNAME.get(self.address.split('/')[2], '\033[37m'),
+            b=b,
             z='\033[0m'
         )
 
@@ -43,14 +45,14 @@ _COLOR_PER_CLASSNAME = {
     'TopLevel': '\033[37m',
     'GlobalPrioritiesWatcher': '\033[37m',
 
-    'PoolWaitingRoom': '\033[31m',
-    'PoolWorkingRoom': '\033[31m',
+    'WaitingRoom': '\033[36m',
+    'WorkingRoom': '\033[36m',
 
-    'ProductionGate': '\033[31m',
-    'Producer': '\033[31m',
-    'Resampler': '\033[31m',
-    'CacheExtractor': '\033[31m',
-    'Reader': '\033[31m',
+    'ProductionGate': '\033[32m',
+    'Producer': '\033[32m',
+    'Resampler': '\033[32m',
+    'CacheExtractor': '\033[32m',
+    'Reader': '\033[32m',
 
     'QueriesHandler': '\033[33m',
     'CacheSupervisor': '\033[33m',

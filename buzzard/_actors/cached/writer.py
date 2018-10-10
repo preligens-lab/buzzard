@@ -3,9 +3,12 @@ import uuid
 import functools
 import multiprocessing as mp
 import multiprocessing.pool
+import hashlib
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
+
+create_raster = None # lazy import
 
 class ActorWriter(object):
     """Actor that takes care of writing to disk a cache tile that has been computed and merged."""
@@ -112,10 +115,18 @@ class Work(PoolJobWorking):
             '.tif',
             cache_fp,
             {'nodata': actor._raster.nodata},
-            actor._raster.sr,
+            actor._raster.wkt_stored,
         )
 
         super().__init__(actor.address, func)
+
+def _md5(fname):
+    """https://stackoverflow.com/a/3431838/4952173"""
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 def _cache_file_write(array,
                       dir_path, filename_prefix, filename_suffix,
@@ -131,11 +142,20 @@ def _cache_file_write(array,
     Parameters
     ----------
     """
-    assert (True or False) == 'That is the TODO question'
+    global create_raster
+    if create_raster is None:
+        from buzzard import create_raster
+
     # Step 1. Create/close file
     src_path = os.path.join(dir_path, filename_prefix + str(uuid.uuid4()) + filename_suffix)
 
+    assert array.ndim == 3
+    with create_raster(src_path, cache_fp, array.dtype, array.shape[-1], band_schema,
+                       sr=sr).close as r:
+        r.set_data(array, band=-1)
+
     # Step 2. md5 hash file
+    md5 = _md5(src_path)
 
     # Step 3. move file
     dst_path = os.path.join(dir_path, filename_prefix + '_' + md5 + filename_suffix)

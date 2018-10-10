@@ -83,7 +83,7 @@ class ActorComputationGate2(object):
         msgs = []
         qicc = qi.cache_computation
 
-        if len(qicc.primitive_queue_per_primitive) == 0:
+        if len(qicc.primitive_queue_per_primitive) > 0:
             queues_min_qsize = min(qicc.primitive_queue_per_primitive.values(), key=lambda v: v.qsize())
             max_compute_idx_ready = qicc.pulled_count + queues_min_qsize - 1
             assert q.max_compute_idx_allowed <= max_compute_idx_ready, 'allowed more than ready count'

@@ -74,7 +74,7 @@ class ActorQueriesHandler(object):
             Msg('ProductionGate', 'make_those_arrays', qi),
         ]
         if len(qi.list_of_cache_fp) > 0:
-            msgs += [Msg('CacheSupervisor', 'make_those_cache_tiles_available', qi)]
+            msgs += [Msg('CacheSupervisor', 'make_those_cache_files_available', qi)]
 
         return msgs
 
@@ -165,7 +165,7 @@ class ActorQueriesHandler(object):
                         '/Raster{}/QueriesHandler'.format(qi.parent_uid),
                         'input_queue_update',
                         qi.key_in_parent,
-                    ]
+                    )]
             if q.produced_count == qi.produce_count:
                 del self._queries[qi]
         del queue

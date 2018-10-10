@@ -4,9 +4,11 @@ import multiprocessing as mp
 import multiprocessing.pool
 
 import numpy as np
+from osgeo import gdal
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
+from buzzard import _tools
 
 class ActorReader(object):
     """Actor that takes care of reading cache tiles"""
@@ -18,9 +20,9 @@ class ActorReader(object):
         if io_pool is not None:
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
-            if isinstance(io_pool, mp.ThreadPool):
+            if isinstance(io_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
-            elif isinstance(io_pool, mp.Pool):
+            elif isinstance(io_pool, mp.pool.Pool):
                 self._same_address_space = False
             else:
                 assert False, 'Type should be checked in facade'
@@ -124,12 +126,12 @@ class ActorReader(object):
             full_sample_fp = qi.prod[prod_idx].sample_fp
             self._sample_array_per_prod_tile[qi][prod_idx] = np.empty(
                 np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
-                qi.dtype, # TODO: raster.dtype or qi.dtype?
+                self._raster.dtype,
             )
             self._missing_cache_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].cache_fps)
 
         dst_array = self._sample_array_per_prod_tile[qi][prod_idx]
-        return Work(self, qi, prod_idx, cache_fp, sample_fp, path, dst_array)
+        return Work(self, qi, prod_idx, cache_fp, path, dst_array)
 
     def _commit_work_result(self, job, result):
         if self._same_address_space:
@@ -171,12 +173,13 @@ class Wait(ProductionJobWaiting):
         super().__init__(actor.address, qi, prod_idx, 1, self.sample_fp)
 
 class Work(PoolJobWorking):
-    def __init__(self, actor, qi, prod_idx, cache_fp, sample_fp, path, dst_array):
+    def __init__(self, actor, qi, prod_idx, cache_fp, path, dst_array):
         self.qi = qi
         self.prod_idx = prod_idx
         self.cache_fp = cache_fp
         raster = actor._raster
         full_sample_fp = qi.prod[prod_idx].sample_fp
+        sample_fp = full_sample_fp & cache_fp
 
         # dst_array = actor._sample_array_per_prod_tile[qi][prod_idx]
         dst_array_slice = dst_array[sample_fp.slice_in(full_sample_fp)]
@@ -184,13 +187,13 @@ class Work(PoolJobWorking):
         if actor._same_address_space:
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, qi.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
+                path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
             )
         else:
             self.dst_array_slice = dst_array_slice
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, qi.dtype, qi.unique_band_ids, sample_fp, None,
+                path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, None,
             )
 
         super().__init__(actor.address, func)
@@ -210,21 +213,54 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
     dst_opt: None or np.ndarray
         optional destination for read
     """
-    assert (True or False) == 'That is the TODO question'
 
-    # TODO: check the dtype of the `buf_obj` parameter
+    # Open raster
+    gdal_ds = gdal.OpenEx(
+        path,
+        _tools.conv.of_of_mode('r') | _tools.conv.of_of_str('raster'),
+        ['GTiff'],
+        (),
+    )
 
-    if dst_opt is not None:
-        return None
+    # Check raster
+    if gdal_ds is None:
+        raise RuntimeError("Could not open {path}, what happend to it?".format(
+            path
+        ))
+    if (gdal_ds.RasterXSize, gdal_ds.RasterYSize) != tuple(cache_fp.rsize):
+        raise RuntimeError('{} was expected to have rsize {}, not {}'.format(
+            path,
+            tuple(cache_fp.rsize),
+            (gdal_ds.RasterXSize, gdal_ds.RasterYSize),
+        ))
+    stored_dtype = _tools.conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+    if dtype != stored_dtype:
+        raise RuntimeError('{} was expected to have dtype {}, not {}'.format(
+            path,
+            dtype,
+            stored_dtype,
+        ))
+
+    # Allocate if ProcessPool
+    if dst_opt is None:
+        dst = np.empty(np.r_[sample_fp.shape, len(band_ids)], dtype)
+        ret = dst
     else:
-        return arr
+        dst = dst_opt
+        ret = None
 
-# class _ProdTileInfo(object):
+    # Perform read
+    rtlx, rtly = cache_fp.spatial_to_raster(sample_fp.tl)
+    for i, bi in enumerate(band_ids):
+        a = gdal_ds.GetRasterBand(bi).ReadAsArray(
+            int(rtlx),
+            int(rtly),
+            int(sample_fp.rsizex),
+            int(sample_fp.rsizey),
+            buf_obj=dst[..., i],
+        )
+        if a is None:
+            raise RuntimeError('Could not read band_id {}'.format(bi))
 
-#     def __init__(self):
-#         self._sample_array_per_prod_tile = (
-#             collections.defaultdict(dict)
-#         ) # type: Mapping[CachedQueryInfos, Mapping[int, np.ndarray]]
-#         self._missing_cache_fps_per_prod_tile = (
-#             collections.defaultdict(dict)
-#         ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]
+    # Return
+    return ret

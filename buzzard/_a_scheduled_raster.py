@@ -59,13 +59,15 @@ class ABackScheduledRaster(ABackProxyRaster):
                    parent_uid, key_in_parent):
         q = queue.Queue(max_queue_size)
         self.back_ds.put_message(Msg(
-            '/Raster{}/QueriesHandler'.format(id(self)),
+            '/Raster{}/QueriesHandler'.format(self.uid),
             'new_query',
             weakref.ref(q),
+            max_queue_size,
+            fps,
+            band_ids,
             is_flat,
             dst_nodata,
             interpolation,
-            max_queue_size,
             parent_uid,
             key_in_parent
         ))

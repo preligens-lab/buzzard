@@ -1,11 +1,12 @@
 import collections
 import multiprocessing as mp
 import multiprocessing.pool
+import functools
 
 import numpy as np
 
 from buzzard._actors.message import Msg
-from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
+from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 
 class ActorComputer(object):
     """Actor that takes care of sheduling computations by using user's `compute_array` function"""
@@ -17,9 +18,9 @@ class ActorComputer(object):
         if computation_pool is not None:
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(computation_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(computation_pool))
-            if isinstance(computation_pool, mp.ThreadPool):
+            if isinstance(computation_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
-            elif isinstance(computation_pool, mp.Pool):
+            elif isinstance(computation_pool, mp.pool.Pool):
                 self._same_address_space = False
             else:
                 assert False, 'Type should be checked in facade'
@@ -39,6 +40,8 @@ class ActorComputer(object):
     # ******************************************************************************************* **
     def receive_compute_this_array(self, qi, compute_idx):
         """Receive message: Start making this array"""
+        msgs = []
+
         if self._raster.computation_pool is None:
             work = self._create_work_job(qi, compute_idx)
             compute_fp = qi.cache_computation.list_of_compute_fp[compute_idx]
@@ -49,22 +52,21 @@ class ActorComputer(object):
                 msgs += self._commit_work_result(work, res)
         else:
             wait = Wait(self, qi, compute_idx)
-            self._waiting_jobs[qi].add(wait)
+            self._waiting_jobs_per_query[qi].add(wait)
             msgs += [Msg(self._waiting_room_address, 'schedule_job', wait)]
 
-        msgs = []
         return msgs
 
     def receive_token_to_working_room(self, job, token):
         msgs = []
 
-        self._waiting_jobs[job.qi].remove(job)
-        if len(self._waiting_jobs[job.qi]) == 0:
-            del self._waiting_jobs[job.qi]
+        self._waiting_jobs_per_query[job.qi].remove(job)
+        if len(self._waiting_jobs_per_query[job.qi]) == 0:
+            del self._waiting_jobs_per_query[job.qi]
 
         work = self._create_work_job(job.qi, job.compute_idx)
 
-        compute_fp = qi.cache_computation.list_of_compute_fp[job.compute_idx]
+        compute_fp = job.qi.cache_computation.list_of_compute_fp[job.compute_idx]
         if compute_fp not in self._performed_computations:
             msgs += [Msg(self._working_room_address, 'launch_job_with_token', work, token)]
             self._working_jobs.add(work)
@@ -86,9 +88,9 @@ class ActorComputer(object):
         qi: _actors.cached.query_infos.QueryInfos
         """
         msgs = []
-        for job in self._waiting_jobs[qi]:
+        for job in self._waiting_jobs_per_query[qi]:
             msgs += [Msg(self._waiting_room_address, 'unschedule_job', job)]
-        del self._waiting_jobs[qi]
+        del self._waiting_jobs_per_query[qi]
         return []
 
     def receive_die(self):
@@ -129,7 +131,7 @@ class ActorComputer(object):
                 type(res)
             ))
         y, x, c = res.shape
-        if (y, x) != compute_fp.shape:
+        if (y, x) != tuple(compute_fp.shape):
             raise ValueError("Result of recipe's `compute_array` has shape `{}`, should start with {}".format(
                 res.shape,
                 compute_fp.shape,
