@@ -147,7 +147,9 @@ def _cache_file_write(array,
         from buzzard import create_raster
 
     # Step 1. Create/close file
-    src_path = os.path.join(dir_path, filename_prefix + str(uuid.uuid4()) + filename_suffix)
+    src_path = os.path.join(
+        dir_path, 'tmp_' + filename_prefix + str(uuid.uuid4()) + filename_suffix
+    )
 
     assert array.ndim == 3
     with create_raster(src_path, cache_fp, array.dtype, array.shape[-1], band_schema,

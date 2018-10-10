@@ -1,9 +1,12 @@
 import logging
 import functools
+import os
+import hashlib
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import MaxPrioJobWaiting, PoolJobWorking
 
+open_raster = None # Lazy import
 LOGGER = logging.getLogger(__name__)
 
 class ActorFileChecker(object):
@@ -86,8 +89,49 @@ class Work(PoolJobWorking):
         )
         super().__init__(actor.address, func)
 
+def _md5(fname):
+    """https://stackoverflow.com/a/3431838/4952173"""
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
 def _cache_file_check(cache_fp, path, band_count, dtype):
-    # TODO: Check file opening/footprint/band_count/dtype/md5
-    # Remove and warn if necessary
-    assert (True or False) == 'That is the TODO question'
-    LOGGER.warn('Removing {}'.format(path))
+    exn = None
+    try:
+        _is_ok(cache_fp, path, band_count, dtype)
+    except Exception as e:
+        valid = False
+        exn = e
+    else:
+        valid = True
+
+    if not valid:
+        m = 'Removing {}'.format(path)
+        m += ' because {}'.format(exn)
+        LOGGER.warn(m)
+        os.remove(path)
+
+    return valid
+
+def _is_ok(cache_fp, path, band_count, dtype):
+    global open_raster
+    if open_raster is None:
+        from buzzard import open_raster
+
+    with open_raster(path).close as r:
+        if r.fp != cache_fp:
+            raise RuntimeError('invalid Footprint ({} instead of {})'.format(r.fp, cache_fp))
+        if r.dtype != dtype:
+            raise RuntimeError('invalid dtype ({} instead of {})'.format(r.dtype, dtype))
+        if len(r) != band_count:
+            raise RuntimeError('invalid band_count ({} instead of {})'.format(len(r), band_count))
+
+    md5 = path
+    md5 = md5.split('.')[-2]
+    md5 = md5.split('_')[-1]
+    new_md5 = _md5(path)
+    if new_md5 != md5:
+        raise RuntimeError('invalid md5 ({} instead of {})'.format(new_md5, md5))
+    return True

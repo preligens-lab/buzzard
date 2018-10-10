@@ -66,7 +66,6 @@ class ActorCacheSupervisor(object):
 
             elif status == _CacheTileStatus.unknown:
                 path_candidates = self._list_cache_path_candidates(cache_fp)
-
                 if len(path_candidates) == 1:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.checking
                     query.cache_fps_checking.add(cache_fp)
@@ -206,7 +205,8 @@ class ActorCacheSupervisor(object):
 
     def _list_cache_path_candidates(self, cache_fp):
         prefix = self._raster.fname_prefix_of_cache_fp(cache_fp)
-        return glob.glob(os.path.join(self._raster.cache_dir, prefix + '_[a-f0-9]+.tif'))
+        s = os.path.join(self._raster.cache_dir, prefix + '_[0123456789abcdef]*.tif')
+        return glob.glob(s)
 
     # ******************************************************************************************* **
 
