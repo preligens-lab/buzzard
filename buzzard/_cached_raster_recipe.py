@@ -1,5 +1,4 @@
 import collections
-import queue
 import weakref
 
 import numpy as np
@@ -96,35 +95,9 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         }
 
         # Scheduler notification ***********************************************
-        if not back_ds.started:
-            back_ds.start_scheduler()
-        back_ds.put_message(Msg(
+        self.back_ds.put_message(Msg(
             '/Global/TopLevel', 'new_raster', self,
         ))
-
-    def queue_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
-                   parent_uid, key_in_parent):
-        q = queue.Queue(max_queue_size)
-        back_ds.put_message(Msg(
-            '/Raster{}/QueriesHandler'.format(id(self)),
-            'new_query',
-            weakref.ref(q),
-            is_flat,
-            dst_nodata,
-            interpolation,
-            max_queue_size,
-            parent_uid,
-            key_in_parent
-        ))
-        return q
-
-    def get_data(self, fp, band_ids, dst_nodata, interpolation):
-        q = self.queue_data(
-            [fp], band_ids, dst_nodata, interpolation, 1,
-            False, # `is_flat` is not important since caller reshapes output
-            None, None,
-        )
-        return q.get()
 
     # ******************************************************************************************* **
     def cache_fps_of_fp(self, fp):

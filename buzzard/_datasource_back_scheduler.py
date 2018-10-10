@@ -10,22 +10,30 @@ class BackDataSourceSchedulerMixin(object):
     def __init__(self, ds_id, **kwargs):
         self._ext_message_to_scheduler_queue = []
         self._thread = None
+        self._thread_exn = None
         self._ds_id = ds_id
         self._stop = False
         self._started = False
         super().__init__(**kwargs)
 
     # Public methods **************************************************************************** **
-    def start_scheduler(self):
-        assert self._thread is None
-        self._thread = threading.Thread(
-            target=self._scheduler_loop_until_datasource_close,
-            name='DataSource{:#x}Scheduler'.format(self._ds_id),
-            daemon=True,
-        )
-        self._thread.start()
+    def ensure_scheduler_living(self):
+        if self._thread is None:
+            self._thread = threading.Thread(
+                target=self._exception_catcher,
+                name='DataSource{:#x}Scheduler'.format(self._ds_id),
+                daemon=True,
+            )
+            self._thread.start()
+        else:
+            self.ensure_scheduler_still_alive()
+
+    def ensure_scheduler_still_alive(self):
+        if not self._thread.isAlive():
+            raise self._thread_exn
 
     def put_message(self, msg):
+        self.ensure_scheduler_living()
         # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
         self._ext_message_to_scheduler_queue.append(msg)
 
@@ -33,11 +41,14 @@ class BackDataSourceSchedulerMixin(object):
         assert not self._stop
         self._stop = True
 
-    @property
-    def started(self):
-        return self._thread is not None
-
     # Private methods *************************************************************************** **
+    def _exception_catcher(self):
+        try:
+            self._scheduler_loop_until_datasource_close()
+        except Exception as e:
+            self._thread_exn = e
+            raise
+
     def _scheduler_loop_until_datasource_close(self):
         """This is the entry point of a DataSource's scheduler.
         The design of this method would be much better with recursive calls, but much slower too. (maybe)

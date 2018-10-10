@@ -366,7 +366,7 @@ def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='
     """
 
     # Normalize and check band parameter
-    band_ids, is_flat = _tools.normalize_band_parameter(band, len(raster), raster.shared_band_id)
+    band_ids, is_flat = normalize_band_parameter(band, len(raster), raster.shared_band_id)
     del band
 
     # Normalize and check dst_nodata parameter
@@ -389,7 +389,6 @@ def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='
         raise ValueError('`max_queue_size` should be >0')
 
     return dict(
-        fps=fps,
         band_ids=band_ids,
         dst_nodata=dst_nodata,
         interpolation=interpolation,
