@@ -1,3 +1,4 @@
+import numpy as np
 
 class Msg(object):
     """Message exchanged:
@@ -28,10 +29,22 @@ class Msg(object):
             b = _COLOR_PER_CLASSNAME.get(self.address.split('/')[2], '\033[37m')
         else:
             b = _COLOR_PER_CLASSNAME.get(self.address, '\033[37m')
+
+        def _dump_param(a):
+
+            # if isinstance(a, str):
+                # return '"{}"'.format(a)
+            if isinstance(a, (int)):
+                return str(a)
+            elif isinstance(a, (np.ndarray)):
+                return '{}{}'.format(a.dtype, a.shape)
+            else:
+                return type(a).__name__
+
         return '{u}{b}{letter}{}{z}.{}({}){u}{b}{letter}{z}'.format(
             self.address,
             self.title,
-            ', '.join(type(a).__name__ for a in self.args),
+            ', '.join(_dump_param(a) for a in self.args),
             letter=u"\u2709",
             u='\033[4m',
             b=b,
