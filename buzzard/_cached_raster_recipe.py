@@ -32,7 +32,7 @@ class CachedRasterRecipe(ARasterRecipe):
         compute_array, merge_array,
         cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
         computation_pool, merge_pool, io_pool, resample_pool,
-        cache_tiles,computation_tiles,
+        cache_tiles, computation_tiles,
         max_resampling_size
     ):
         back = BackCachedRasterRecipe(
@@ -42,7 +42,7 @@ class CachedRasterRecipe(ARasterRecipe):
             compute_array, merge_array,
             cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
-            cache_tiles,computation_tiles,
+            cache_tiles, computation_tiles,
             max_resampling_size
         )
         super().__init__(ds=ds, back=back)
@@ -56,7 +56,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         compute_array, merge_array,
         cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
         computation_pool, merge_pool, io_pool, resample_pool,
-        cache_tiles,computation_tiles,
+        cache_tiles, computation_tiles,
         max_resampling_size
     ):
         super().__init__(

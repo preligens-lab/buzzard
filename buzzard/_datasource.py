@@ -917,6 +917,7 @@ class DataSource(DataSourceRegisterMixin):
         pass
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
+                                    # TODO: reorder parameters
                                     compute_array=None, merge_array=_concat,
                                     cache_dir=None,
                                     queue_data_per_primitive={}, convert_footprint_per_primitive=None,
