@@ -1057,6 +1057,7 @@ class DataSource(DataSourceRegisterMixin):
         if computation_tiles is None:
             computation_tiles = cache_tiles
         elif isinstance(computation_tiles, np.ndarray) and computation_tiles.dtype == np.object:
+            # TODO: computation_tiles should be able to go out of bounds!!
             if not _tools.is_tiling_surjection_of(computation_tiles, fp):
                 raise ValueError("`computation_tiles` should be a tiling of raster's Footprint, " +\
                                 "with `boundary_effect='shrink'`"
