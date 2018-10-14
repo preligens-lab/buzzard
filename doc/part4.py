@@ -7,6 +7,7 @@ The CachedRasterRecipe takes two tilings of the raster's Footprint as parameter,
 - The `cache_tiles` tiling will define what pixels go into which cache file. To correctly reopen a cached raster after closing it the `cache_tiles` parameter should be identical from the time it was created. A cache file is saved with its md5 hash stored in its file name, if a cache file was corrupted in any way between two openings, the file will be removed and recomputed. By default tiles of size 512x512 are generated.
 - The `computation_tiles` tiling defines the exhaustive set of Footprints that can be queried to the `compute_array` function. This can for example be used to get some overlap in the computations or to enforce a constant size in the Footprints to compute. By default this tiling will be the same as `cache_tiles`.
 """
+
 import os
 
 import buzzard as buzz
