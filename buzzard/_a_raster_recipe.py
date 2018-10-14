@@ -13,7 +13,7 @@ class ABackRasterRecipe(ABackScheduledRaster):
                  computation_pool,
                  merge_pool,
                  compute_array,
-                 merge_array,
+                 merge_arrays,
                  primitives_back,
                  primitives_kwargs,
                  convert_footprint_per_primitive,
@@ -22,7 +22,7 @@ class ABackRasterRecipe(ABackScheduledRaster):
         self.computation_pool = computation_pool
         self.merge_pool = merge_pool
         self.compute_array = compute_array
-        self.merge_array = merge_array
+        self.merge_arrays = merge_arrays
         self.primitives_back = primitives_back
         self.primitives_kwargs = primitives_kwargs
         self.convert_footprint_per_primitive = convert_footprint_per_primitive

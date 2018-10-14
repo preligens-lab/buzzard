@@ -159,7 +159,7 @@ class Wait(ProductionJobWaiting):
 class Work(PoolJobWorking):
     def __init__(self, actor, qi, compute_idx):
         qicc = qi.cache_computation
-        assert qicc.collected_count == compute_idx
+        assert qicc.collected_count == compute_idx, (qicc.collected_count, compute_idx)
 
         compute_fp = qicc.list_of_compute_fp[compute_idx]
         # prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]

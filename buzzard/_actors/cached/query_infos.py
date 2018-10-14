@@ -267,7 +267,7 @@ class CacheComputationInfos(object):
         # Immutable ************************************************************
         self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint, ...]
 
-        # Step 1 - List compute Footprints
+        # Step 1 - List compute Footprints sorted by priority
         l = []
         seen = set()
         prev_prod_idx = 0
@@ -276,19 +276,17 @@ class CacheComputationInfos(object):
             prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
             assert prod_idx >= prev_prod_idx
             prev_prod_idx = prod_idx
-            tmp_fps = []
             for compute_fp in raster.compute_fps_of_cache_fp[cache_fp]:
                 if compute_fp not in seen:
                     seen.add(compute_fp)
-                    tmp_fps.append(compute_fp)
+                    l.append(compute_fp)
                     self.dict_of_min_prod_idx_per_compute_fp[compute_fp] = prod_idx
 
-            # Sort those tiles by using the same scheme as the WaitingRoom does
-            tmp_fps = sorted(tmp_fps, key=lambda fp: (-fp.cy, +fp.cx))
-            l += tmp_fps
+        # Sort those tiles by using the same scheme as the WaitingRoom does
+        l = sorted(l, key=lambda fp: (self.dict_of_min_prod_idx_per_compute_fp[fp], -fp.cy, +fp.cx))
         self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint, ...]
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
-        del l, seen, tmp_fps
+        del l, seen
 
         # Step 2 - List primtive Footprints
         self.primitive_fps_per_primitive = {
@@ -306,6 +304,3 @@ class CacheComputationInfos(object):
             )
             for name, prim_back in raster.primitives_back.items()
         }
-
-    # def pull_primitives(self, prim_idx):
-    #     assert prim_idx == self.collected_count

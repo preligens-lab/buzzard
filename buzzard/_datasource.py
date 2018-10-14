@@ -23,9 +23,23 @@ from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
 from buzzard._cached_raster_recipe import CachedRasterRecipe
 
-def _concat():
-    """remove me"""
-    pass
+def _concat(fp, array_per_fp, raster):
+    """TODO: move to buzz.algo?.concat_arrays
+    use is_tiling_bijection?
+    """
+    band_count = next(iter(array_per_fp.values())).shape[-1]
+
+    arr = np.empty(np.r_[fp.shape, band_count], raster.dtype)
+    debug_mask = np.zeros(fp.shape, 'bool')
+    for tile, tile_arr in array_per_fp.items():
+        assert tuple(tile.shape) == tile_arr.shape[:2]
+        slices = tile.slice_in(fp)
+        assert np.all(debug_mask[slices] == False), debug_mask[slices].mean()
+        debug_mask[slices] = True
+        arr[slices] = tile_arr
+
+    assert np.all(debug_mask), debug_mask.mean()
+    return arr
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
@@ -838,7 +852,7 @@ class DataSource(DataSourceRegisterMixin):
         return prox
 
     def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
-                             compute_array=None, merge_array=_concat,
+                             compute_array=None, merge_arrays=_concat,
                              queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                              remap_in_primitives=False,
                              computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
@@ -869,7 +883,7 @@ class DataSource(DataSourceRegisterMixin):
 
         compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
+        merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         queue_data_per_primitive: dict of callable
             should be the bound `queue_data` method of another ScheduledRaster in the same DataSource.
@@ -918,7 +932,7 @@ class DataSource(DataSourceRegisterMixin):
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                                     # TODO: reorder parameters
-                                    compute_array=None, merge_array=_concat,
+                                    compute_array=None, merge_arrays=_concat,
                                     cache_dir=None,
                                     queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                                     computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
@@ -950,7 +964,7 @@ class DataSource(DataSourceRegisterMixin):
 
         compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
+        merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         cache_dir: str
         queue_data_per_primitive: dict of callable
@@ -996,8 +1010,8 @@ class DataSource(DataSourceRegisterMixin):
         # Callables ****************************************
         if not callable(compute_array):
             raise TypeError('`compute_array` should be callable')
-        if not callable(merge_array):
-            raise TypeError('`merge_array` should be callable')
+        if not callable(merge_arrays):
+            raise TypeError('`merge_arrays` should be callable')
 
         # Primitives ***************************************
         if convert_footprint_per_primitive is None:
@@ -1081,7 +1095,7 @@ class DataSource(DataSourceRegisterMixin):
         prox = CachedRasterRecipe(
             self,
             fp, dtype, band_count, band_schema, sr,
-            compute_array, merge_array,
+            compute_array, merge_arrays,
             cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
             cache_tiles,computation_tiles,

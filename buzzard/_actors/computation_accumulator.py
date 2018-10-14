@@ -49,7 +49,7 @@ class ActorComputationAccumulator(object):
             # TODO IDEA: Should cache_fp be dilated before the above intersection? This could be a
             #   parameters in facade constructor.
             #   This means also depending on computation_fp that only touch in the border.
-            slices = compute_fp_part.slice_in(cache_fp)
+            slices = compute_fp_part.slice_in(compute_fp)
             assert compute_fp_part not in store['ready']
             store['ready'][compute_fp_part] = array[slices]
 

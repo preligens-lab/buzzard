@@ -73,7 +73,7 @@ class ActorMerger(object):
         ]
 
     def receive_job_done(self, job, result):
-        self._working_jobs.remove(work)
+        self._working_jobs.remove(job)
         return self._commit_work_result(job, result)
 
     def receive_die(self):
@@ -97,9 +97,9 @@ class ActorMerger(object):
             self, cache_fp, array_per_fp
         )
 
-    def _commit_work_result(self, cache_fp, arr):
+    def _commit_work_result(self, job, arr):
         return [
-            Msg('Writer', 'write_this_array', cache_fp, arr)
+            Msg('Writer', 'write_this_array', job.cache_fp, arr)
         ]
 
     def _normalize_user_result(self, cache_fp, res):
@@ -138,14 +138,14 @@ class Work(PoolJobWorking):
         if actor._raster.merge_pool is None or actor._same_address_space:
             func = functools.partial(
                 # TODO: Refine `merge_arrays` function prototype
-                self._raster.merge_arrays,
+                actor._raster.merge_arrays,
                 cache_fp,
                 array_per_fp,
                 actor._raster.facade_proxy,
             )
         else:
             func = functools.partial(
-                self._raster.merge_arrays,
+                actor._raster.merge_arrays,
                 cache_fp,
                 array_per_fp,
                 None
