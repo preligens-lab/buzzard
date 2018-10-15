@@ -3,18 +3,12 @@ import os
 import collections
 import itertools
 import glob
+import logging
 
 from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CacheComputationInfos
 
-    # def fname_prefix_of_cache_fp(self, cache_fp):
-    #     params = list(itertools.chain(
-    #         self._raster.indices_of_cache_fp(cache_fp),
-    #         # cache_fp.rsize,
-    #         # self._raster.fp.rsize,
-    #         self._raster.fp.spatial_to_raster(cache_fp.tl),
-    #     ))
-    #     return "ti_{:03d}-{:03d}_tri_{:05d}-{:05d}".format(*params)
+LOGGER = logging.getLogger(__name__)
 
 class ActorCacheSupervisor(object):
     """Actor that takes care of tracking, checking and schedule computation of cache files"""
@@ -28,7 +22,7 @@ class ActorCacheSupervisor(object):
         self._raster = raster
         self._cache_fps_status = {
             cache_fp: _CacheTileStatus.unknown
-            for cache_fp in raster.cache_fps
+            for cache_fp in raster.cache_fps.flat
         }
         self._path_of_cache_fp = {}
         self._queries = {}
@@ -72,7 +66,6 @@ class ActorCacheSupervisor(object):
 
             elif status == _CacheTileStatus.unknown:
                 path_candidates = self._list_cache_path_candidates(cache_fp)
-
                 if len(path_candidates) == 1:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.checking
                     query.cache_fps_checking.add(cache_fp)
@@ -83,6 +76,7 @@ class ActorCacheSupervisor(object):
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
                     for path in path_candidates:
                         # TODO: What if can't delete?
+                        LOGGER.warn('Removing {}'.format(path))
                         os.remove(path)
                     query.cache_fps_to_compute.add(cache_fp)
             else:
@@ -211,7 +205,8 @@ class ActorCacheSupervisor(object):
 
     def _list_cache_path_candidates(self, cache_fp):
         prefix = self._raster.fname_prefix_of_cache_fp(cache_fp)
-        return glob.glob(os.path.join(self._raster.cache_dir, prefix + '_[a-f0-9]+.tif'))
+        s = os.path.join(self._raster.cache_dir, prefix + '_[0123456789abcdef]*.tif')
+        return glob.glob(s)
 
     # ******************************************************************************************* **
 

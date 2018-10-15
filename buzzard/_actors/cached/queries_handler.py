@@ -74,7 +74,7 @@ class ActorQueriesHandler(object):
             Msg('ProductionGate', 'make_those_arrays', qi),
         ]
         if len(qi.list_of_cache_fp) > 0:
-            msgs += [Msg('CacheSupervisor', 'make_those_cache_tiles_available', qi)]
+            msgs += [Msg('CacheSupervisor', 'make_those_cache_files_available', qi)]
 
         return msgs
 
@@ -98,7 +98,7 @@ class ActorQueriesHandler(object):
                     q.queue_size = new_queue_size
                     args = qi, q.produced_count, q.queue_size
                     msgs += [
-                        Msg('/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
+                        Msg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
                         Msg('ProductionGate', 'output_queue_update', *args),
                         Msg('ComputationGate1', 'output_queue_update', *args),
                     ]
@@ -154,7 +154,7 @@ class ActorQueriesHandler(object):
                 prod_idx  = q.produced_count
                 args = qi, q.produced_count, q.queue_size
                 msgs += [
-                    Msg('/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
+                    Msg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
                     Msg('ProductionGate', 'output_queue_update', *args),
                     Msg('ComputationGate1', 'output_queue_update', *args),
                 ]
@@ -165,12 +165,12 @@ class ActorQueriesHandler(object):
                         '/Raster{}/QueriesHandler'.format(qi.parent_uid),
                         'input_queue_update',
                         qi.key_in_parent,
-                    ]
+                    )]
             if q.produced_count == qi.produce_count:
                 del self._queries[qi]
         del queue
 
-        return []
+        return msgs
 
     def receive_die(self):
         """Receive message: The raster was killed"""
@@ -193,7 +193,7 @@ class ActorQueriesHandler(object):
             qi.produce_count,
         ))
         return [
-            Msg('/GlobalPrioritiesWatcher', 'cancel_this_query', qi),
+            Msg('/Global/GlobalPrioritiesWatcher', 'cancel_this_query', qi),
 
             Msg('ProductionGate', 'cancel_this_query', qi),
             Msg('Producer', 'cancel_this_query', qi),

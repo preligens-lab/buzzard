@@ -1039,16 +1039,8 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Binary predicates ************************************************************************* **
     # Binary predicates - geometry ************************************************************** **
-    def __eq__(self, other):
+    def __eq__(self, other): # TODO: Indicate in changelog the change
         """Returns self.equals"""
-
-        # TODO: Modify `__eq__` to also be compatible with `__hash__`
-        # 1. move current `self.equals` to `self.almost_equal`, modify the docstring
-        # 2. create a `self.equal` that checks for `perfect equality` (less computation intensive)
-        # 3. call the `perfect equality` from `__eq__`
-        # 4. add to the changelog this breaking change
-        # 5. implement the `__hash__` function
-
         return self.equals(other)
 
     def __ne__(self, other):
@@ -1071,7 +1063,25 @@ class Footprint(TileMixin, IntersectionMixin):
         return not a.disjoint(b) and not a.touches(b)
 
     def equals(self, other):
-        """Binary predicate: Is other Footprint equal to self
+        """Binary predicate: Is other Footprint exactly equal to self
+
+        Parameters
+        ----------
+        other: Footprint
+
+        Returns
+        -------
+        bool
+        """
+        if (self.gt != other.gt).any():
+            return False
+        if (self.rsize != other.rsize).any():
+            return False
+        return True
+
+    def almost_equals(self, other):
+        """Binary predicate: Is other Footprint almost equal to self with regard to
+        buzz.env.significant.
 
         Parameters
         ----------
@@ -1351,7 +1361,6 @@ class Footprint(TileMixin, IntersectionMixin):
         """Experimental function!
 
         # TODO: Update doc about skimage.thin and 2x2 squares collapsing
-        # TODO: Add skimage requirements?
 
         Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
         when several disconnected components
@@ -2102,6 +2111,16 @@ class Footprint(TileMixin, IntersectionMixin):
 
     def __reduce__(self):
         return (_restore, (self.gt, self.rsize))
+
+    def __hash__(self):
+        """Should be optimized with respect with the current implementation of the Footprint
+        class.
+        """
+        # TODO: Speed test and optimize
+        return hash((
+            self._aff.to_gdal(),
+            tuple(self._rsize.tolist()),
+        ))
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **

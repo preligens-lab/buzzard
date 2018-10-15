@@ -1,6 +1,6 @@
 from buzzard._actors.message import Msg
 
-class ComputationGate1(object):
+class ActorComputationGate1(object):
     """Actor that takes care of delaying the computation of a cache file until needed soon by
     the query. It receives resquests to compute `cache footprints`, it outputs requests to compute
     `compute footprints`.
@@ -61,6 +61,7 @@ class ComputationGate1(object):
         if produced_count == qi.produce_count:
             # Query finished
             if qi in self._queries:
+                q = self._queries[qi]
                 assert (qicc is None) or (q.allowed_count == len(qicc.list_of_compute_fp))
                 del self._queries[qi]
         else:
@@ -115,10 +116,10 @@ class ComputationGate1(object):
             min_prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]
             if min_prod_idx > max_prod_idx_allowed:
                 break
-            i += 1
             msgs += [Msg(
                 'ComputationGate2', 'compute_this_array', qi, i,
             )]
+            i += 1
         q.allowed_count = i
 
         return msgs

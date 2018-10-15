@@ -4,6 +4,8 @@
 import ntpath
 import numbers
 import sys
+import os
+import pathlib
 
 from osgeo import osr
 import numpy as np
@@ -19,6 +21,25 @@ from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
 from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
+from buzzard._cached_raster_recipe import CachedRasterRecipe
+
+def _concat(fp, array_per_fp, raster):
+    """TODO: move to buzz.algo?.concat_arrays
+    use is_tiling_bijection?
+    """
+    band_count = next(iter(array_per_fp.values())).shape[-1]
+
+    arr = np.empty(np.r_[fp.shape, band_count], raster.dtype)
+    debug_mask = np.zeros(fp.shape, 'bool')
+    for tile, tile_arr in array_per_fp.items():
+        assert tuple(tile.shape) == tile_arr.shape[:2]
+        slices = tile.slice_in(fp)
+        assert np.all(debug_mask[slices] == False), debug_mask[slices].mean()
+        debug_mask[slices] = True
+        arr[slices] = tile_arr
+
+    assert np.all(debug_mask), debug_mask.mean()
+    return arr
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to files, it allows quick manipulations
@@ -557,7 +578,15 @@ class DataSource(DataSourceRegisterMixin):
         if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
         band_count = 1 if array.ndim == 2 else array.shape[-1]
+        print('//////////////////////////////////////////////////')
+        print('awrap_numpy_raster')
+        print(band_schema)
+        print('//////////////////////////////////////////////////')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        print('//////////////////////////////////////////////////')
+        print('awrap_numpy_raster')
+        print(band_schema)
+        print('//////////////////////////////////////////////////')
         if sr is not None:
             sr = osr.GetUserInputAsWKT(sr)
         _ = conv.of_of_mode(mode)
@@ -822,19 +851,11 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    @staticmethod
-    def _concat():
-        pass
-
-    @staticmethod
-    def _identity():
-        pass
-
     def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
-                             compute_array=None, merge_array=_concat,
+                             compute_array=None, merge_arrays=_concat,
                              queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                              computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
-                             max_computation_size=None, max_resampling_size=None
+                             max_computation_size=None, max_resampling_size=None,
                              remap_in_primitives=False):
         """Create a raster recipe and register it under `key` in this DataSource.
 
@@ -862,7 +883,7 @@ class DataSource(DataSourceRegisterMixin):
 
         compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
+        merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         queue_data_per_primitive: dict of callable
             should be the bound `queue_data` method of another ScheduledRaster in the same DataSource.
@@ -909,10 +930,12 @@ class DataSource(DataSourceRegisterMixin):
         pass
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
-                                    compute_array=None, merge_array=_concat,
-                                    queue_data_per_primitive={}, convert_footprint_per_primitive=_identity,
-                                    computation_pool='cpu', merge_pool='cpu', resample_pool='cpu', io_pool='io',
-                                    cache_dir=None, cache_tiles=(512, 512), computation_tiles=None,
+                                    # TODO: reorder parameters
+                                    compute_array=None, merge_arrays=_concat,
+                                    cache_dir=None,
+                                    queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+                                    computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+                                    cache_tiles=(512, 512), computation_tiles=None,
                                     max_resampling_size=None):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
@@ -938,7 +961,7 @@ class DataSource(DataSourceRegisterMixin):
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
         compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
+        merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         queue_data_per_primitive: dict of callable
             should be the bound `queue_data` method of another ScheduledRaster in the same DataSource
@@ -984,13 +1007,15 @@ class DataSource(DataSourceRegisterMixin):
         # Callables ****************************************
         if not callable(compute_array):
             raise TypeError('`compute_array` should be callable')
-        if not callable(merge_array):
-            raise TypeError('`merge_array` should be callable')
+        if not callable(merge_arrays):
+            raise TypeError('`merge_arrays` should be callable')
 
         # Primitives ***************************************
-        queue_data_per_primitive = dict(queue_data_per_primitive)
-        for name, met in queue_data_per_primitive.items():
-            queue_data_per_primitive[name] = _tools._shatter_queue_data_method(met)
+        if convert_footprint_per_primitive is None:
+            convert_footprint_per_primitive = {
+                name: (lambda fp: fp)
+                for name in queue_data_per_primitive.keys()
+            }
 
         if queue_data_per_primitive.keys() != convert_footprint_per_primitive.keys():
             err = 'There should be the same keys in `queue_data_per_primitive` and '
@@ -1005,6 +1030,11 @@ class DataSource(DataSourceRegisterMixin):
                 )
             raise ValueError(err)
 
+        primitives_back = {}
+        primitives_kwargs = {}
+        for name, met in queue_data_per_primitive.items():
+            primitives_back[name], primitives_kwargs[name] = _tools._shatter_queue_data_method(met)
+
         for name, func in convert_footprint_per_primitive.items():
             if not callable(func):
                 raise TypeError('convert_footprint_per_primitive[{}] should be callable'.format(
@@ -1012,17 +1042,17 @@ class DataSource(DataSourceRegisterMixin):
                 ))
 
         # Pools ********************************************
-        computation_pool = _tools.normalize_pool_parameter(
-            computation_pool, self._back.pool_cache, 'computation_pool'
+        computation_pool = self._back.normalize_pool_parameter(
+            computation_pool, 'computation_pool'
         )
-        merge_pool = _tools.normalize_pool_parameter(
-            merge_pool, self._back.pool_cache, 'merge_pool'
+        merge_pool = self._back.normalize_pool_parameter(
+            merge_pool, 'merge_pool'
         )
-        resample_pool = _tools.normalize_pool_parameter(
-            resample_pool, self._back.pool_cache, 'resample_pool'
+        io_pool = self._back.normalize_pool_parameter(
+            io_pool, 'io_pool'
         )
-        io_pool = _tools.normalize_pool_parameter(
-            io_pool, self._back.pool_cache, 'io_pool'
+        resample_pool = self._back.normalize_pool_parameter(
+            resample_pool, 'resample_pool'
         )
 
         # Tilings ******************************************
@@ -1038,6 +1068,7 @@ class DataSource(DataSourceRegisterMixin):
         if computation_tiles is None:
             computation_tiles = cache_tiles
         elif isinstance(computation_tiles, np.ndarray) and computation_tiles.dtype == np.object:
+            # TODO: computation_tiles should be able to go out of bounds!!
             if not _tools.is_tiling_surjection_of(computation_tiles, fp):
                 raise ValueError("`computation_tiles` should be a tiling of raster's Footprint, " +\
                                 "with `boundary_effect='shrink'`"
@@ -1052,6 +1083,8 @@ class DataSource(DataSourceRegisterMixin):
             if max_resampling_size <= 1:
                 raise ValueError('`max_resampling_size` should be >0')
 
+        if not isinstance(cache_dir, (str, pathlib.Path)):
+            raise TypeError('cache_dir should be a string')
         cache_dir = str(cache_dir)
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -1059,11 +1092,11 @@ class DataSource(DataSourceRegisterMixin):
         prox = CachedRasterRecipe(
             self,
             fp, dtype, band_count, band_schema, sr,
-            compute_array, merge_array,
-            queue_data_per_primitive, convert_footprint_per_primitive,
-            computation_pool, merge_pool, resample_pool, io_pool,
-            cache_dir, cache_tiles, computation_tiles,
-            max_resampling_size,
+            compute_array, merge_arrays,
+            cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+            computation_pool, merge_pool, io_pool, resample_pool,
+            cache_tiles,computation_tiles,
+            max_resampling_size
         )
 
         # DataSource Registering ***********************************************

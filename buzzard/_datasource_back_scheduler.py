@@ -10,23 +10,30 @@ class BackDataSourceSchedulerMixin(object):
     def __init__(self, ds_id, **kwargs):
         self._ext_message_to_scheduler_queue = []
         self._thread = None
+        self._thread_exn = None
         self._ds_id = ds_id
         self._stop = False
         self._started = False
         super().__init__(**kwargs)
 
     # Public methods **************************************************************************** **
-    def start_scheduler(self):
-        assert self._thread is None
-        self._thread = threading.Thread(
-            target=self._scheduler_loop_until_datasource_close,
-            name='DataSource{}Scheduler'.format(ds_id),
-            daemon=True,
-        )
-        self._thread.start()
-        self.started = True
+    def ensure_scheduler_living(self):
+        if self._thread is None:
+            self._thread = threading.Thread(
+                target=self._exception_catcher,
+                name='DataSource{:#x}Scheduler'.format(self._ds_id),
+                daemon=True,
+            )
+            self._thread.start()
+        else:
+            self.ensure_scheduler_still_alive()
+
+    def ensure_scheduler_still_alive(self):
+        if not self._thread.isAlive():
+            raise self._thread_exn
 
     def put_message(self, msg):
+        self.ensure_scheduler_living()
         # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
         self._ext_message_to_scheduler_queue.append(msg)
 
@@ -34,11 +41,14 @@ class BackDataSourceSchedulerMixin(object):
         assert not self._stop
         self._stop = True
 
-    @property
-    def started(self):
-        return self._thread is not None
-
     # Private methods *************************************************************************** **
+    def _exception_catcher(self):
+        try:
+            self._scheduler_loop_until_datasource_close()
+        except Exception as e:
+            self._thread_exn = e
+            raise
+
     def _scheduler_loop_until_datasource_close(self):
         """This is the entry point of a DataSource's scheduler.
         The design of this method would be much better with recursive calls, but much slower too. (maybe)
@@ -51,23 +61,31 @@ class BackDataSourceSchedulerMixin(object):
             address = a.address
             actors[address] = a
 
-            grp_name, name = address.split('/')
+            _, grp_name, name = address.split('/')
             assert name not in actors[grp_name]
+            # print('Adding', grp_name, name)
             actors[grp_name][name] = a
 
-        def _find_actor(address, relative_actor):
+        def _find_actors(address, relative_actor):
             names = address.split('/')
-            if len(names) == 2:
-                return actors[names[0]].get(names[1])
+            if len(names) == 3:
+                if names[1] == 'Pool*':
+                    return [
+                        v[names[2]]
+                        for k, v in actors.items()
+                        if k.startswith('Pool')
+                    ]
+                else:
+                    return [actors[names[1]].get(names[2])]
             elif len(names) == 1:
-                grp_name = relative_actor.address.split('/')[0]
-                return actors[grp_name].get(names[0])
+                grp_name = relative_actor.address.split('/')[1]
+                return [actors[grp_name].get(names[0])]
             else:
                 assert False
 
         def _unregister_actor(a):
             address = a.address
-            grp_name, name = address.split('/')
+            _, grp_name, name = address.split('/')
             del actors[grp_name][name]
             if not actors[grp_name]:
                 del actors[grp_name]
@@ -89,35 +107,41 @@ class BackDataSourceSchedulerMixin(object):
         top_level_actor = ActorTopLevel()
         _register_actor(top_level_actor)
         piles_of_msgs.append(
-            (top_level_actor, top_level_actor.ext_receive_prime()),
+            (top_level_actor, 'ext_receive_', top_level_actor.ext_receive_prime()),
         )
 
         while True:
             # Step 1: Process all messages on flight
             while piles_of_msgs:
-                msgs = piles_of_msgs[-1]
+                src_actor, title_prefix, msgs = piles_of_msgs[-1]
                 if not msgs:
                     del piles_of_msgs[-1]
                     continue
-                src_actor, msg = msgs.pop(-1)
+                msg = msgs.pop(0)
                 if isinstance(msg, Msg):
-                    dst_actor = _find_actor(msg.address, src_actor)
-                    if dst_actor is None:
-                        # This message may be discarted
-                        assert isinstance(msg, DroppableMsg)
-                    else:
-                        new_msgs = getattr(dst_actor, 'receive_' + msg.title)(*msg.args)
-                        if self._stop:
-                            # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
-                            return
-                        if not dst_actor.alive:
-                            # Actor is closing
-                            _unregister_actor(dst_actor)
-                        if new_msgs:
-                            # Message need to be sent
-                            piles_of_msgs.append((
-                                dst_actor, new_msgs
-                            ))
+                    print('{} {}'.format(
+                        ' '.join(['|'] * (len(piles_of_msgs))),
+                        msg,
+                    ))
+
+                    for dst_actor in _find_actors(msg.address, src_actor): # TODO: make sure that it is enough
+                        if dst_actor is None:
+                            # This message may be discarted
+                            assert isinstance(msg, DroppableMsg), '\n{}\n{}\n'.format(dst_actor, msg)
+                        else:
+                            # print(f'{"|":->{len(piles_of_msgs) * 2 + 1}} {msg}')
+                            new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)
+                            if self._stop:
+                                # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
+                                return
+                            if not dst_actor.alive:
+                                # Actor is closing
+                                _unregister_actor(dst_actor)
+                            if new_msgs:
+                                # Message need to be sent
+                                piles_of_msgs.append((
+                                    dst_actor, 'receive_', new_msgs
+                                ))
                 else:
                     _register_actor(msg)
 
@@ -125,8 +149,9 @@ class BackDataSourceSchedulerMixin(object):
             # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
             if self._ext_message_to_scheduler_queue:
                 msg = self._ext_message_to_scheduler_queue.pop(0)
+                dst_actor, = _find_actors(msg.address, None)
                 piles_of_msgs.append((
-                    _find_actor(msg, None), [msg]
+                    dst_actor, 'ext_receive_', [msg]
                 ))
 
             # Step 3: If no messages from phase 2 and some `keep_alive_actors`
@@ -145,8 +170,10 @@ class BackDataSourceSchedulerMixin(object):
                         actors_to_remove.append(actor)
                     if new_msgs:
                         # Messages need to be sent
+                        print(Msg(actor.address, 'receive_nothing'))
+
                         piles_of_msgs.append((
-                            actor, new_msgs
+                            actor, 'receive_', new_msgs
                         ))
                         break
                 for actor in actors_to_remove:

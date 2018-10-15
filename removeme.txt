@@ -9,40 +9,54 @@ Inter raster query optimisation
 ** ************************************************************************** **
 
 BackCachedRaster
-2       cache_fps_of_fp (should be same grid)
-2       compute_fps_of_cache_fp (should be a dict in the background)
-1       cache_fps_of_compute_fp (should be a dict in the background)
-2       fname_prefix_of_cache_fp (move out of `cache_supervisor`)
 
-2       facade_proxy
-1       create_actors
-0       new_queries
-0       lock
-
-3+16    uid
+# all (gdalfile, nocache, cache) ***************************
 5       __len__
 3ou4    dtype
-2       cache_dir
-0       indices_of_cache_fp
 9       nodata
 3       fp
 6       build_sampling_footprint_to_remap_interpolate
 1       sr
 
-3       computation_pool
-3       merge_pool
+3+16    uid (ctor)
+3       resample_pool (ctor param)
+2       max_resampling_size (ctor param)
+1       create_actors (pure)
+1       queue_data (pure)
+
+# nocache, cache *******************************************
+2       facade_proxy (ctor param)
+3       computation_pool (ctor param)
+3       merge_pool (ctor param)
+2       compute_array (ctor param)
+2       merge_arrays (ctor param)
+1       primitives_back (ctor param)
+1       primitives_kwargs (ctor param)
+1       convert_footprint_per_primitive (build_primitive_footprints) (ctor param)
+
+# cache ****************************************************
+2       cache_dir
+1       cache_fps
+2       cache_fps_of_fp() (should be same grid)
+2       compute_fps_of_cache_fp[] (should be a dict in the background)
+1       cache_fps_of_compute_fp[] (should be a dict in the background)
+2       fname_prefix_of_cache_fp() (move out of `cache_supervisor`)
+6       io_pool (ctor)
+
+# nocache **************************************************
+?       remap_in_primitives
+?       max_computation_size
+
+# gdalfile ************************************************
 6       io_pool
-3       resample_pool
 
-2       compute_array
-2       merge_arrays
+# none *****************************************************
+0       new_queries
+0       lock
+0       indices_of_cache_fp
 
-2       max_resampling_size
-
-1       primitives_back
-1       queue_data
-1       primitives_kwargs
-1       convert_footprint_per_primitive (build_primitive_footprints)
+# *********************************************************************************************** **
+# *********************************************************************************************** **
 
 
    ************************************************************************** **

@@ -21,9 +21,9 @@ class ActorResampler(object):
         if resample_pool is not None:
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(resample_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(resample_pool))
-            if isinstance(resample_pool, mp.ThreadPool):
+            if isinstance(resample_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
-            elif isinstance(resample_pool, mp.Pool):
+            elif isinstance(resample_pool, mp.pool.Pool):
                 self._same_address_space = False
             else:
                 assert False, 'Type should be checked in facade'
@@ -91,7 +91,7 @@ class ActorResampler(object):
                     assert subsample_array is None
                     arr = np.full(
                         np.r_[resample_fp.shape, len(qi.band_ids)],
-                        qi.dst_nodata, qi.dtype,
+                        qi.dst_nodata, self._raster.dtype,
                     )
                 elif sample_fp == pi.fp:
                     # Case 2.2.2: production footprint is fully inside raster
@@ -99,13 +99,13 @@ class ActorResampler(object):
                     arr = subsample_array
                     if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
                         arr[arr == self._raster.nodata] = qi.dst_nodata
-                    arr = arr.astype(qi.dtype, copy=False)
+                    arr = arr.astype(self._raster.dtype, copy=False)
                     arr = _reorder_channels(qi, arr)
                 else:
                     # Case 2.2.3: production footprint is both inside and outside raster
                     arr = np.full(
                         np.r_[resample_fp.shape, len(qi.unique_band_ids)],
-                        qi.dst_nodata, qi.dtype,
+                        qi.dst_nodata, self._raster.dtype,
                     )
                     slices = sample_fp.slice_in(pr.fp)
                     arr[slices] = subsample_array
@@ -191,7 +191,7 @@ class ActorResampler(object):
             prod_idx not in self._prod_array_of_prod_tile[qi]):
             self._prod_array_of_prod_tile[qi][prod_idx] = np.full(
                 np.r_[pi.fp.shape, len(qi.band_ids)],
-                qi.dst_nodata, qi.dtype,
+                qi.dst_nodata, self._raster.dtype,
             )
             self._missing_resample_fps_per_prod_tile[qi][prod_idx] = set(pi.resample_fps)
         arr = self._prod_array_of_prod_tile[qi][prod_idx]
@@ -239,7 +239,7 @@ class ActorResampler(object):
 def _reorder_channels(qi, arr):
     if qi.band_ids != qi.unique_band_ids:
         indices = [
-            qi.unique_band_ids.find(bi)
+            qi.unique_band_ids.index(bi)
             for bi in qi.band_ids
         ]
         arr = arr[..., indices]

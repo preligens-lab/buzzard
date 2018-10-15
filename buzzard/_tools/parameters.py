@@ -12,10 +12,7 @@ import numpy as np
 from .helper_classes import Singleton
 from . import conv
 
-# Beware of the potential recursive import if `_a_scheduled_raster` imports `_tools`
-from buzzard._a_scheduled_raster import ABackScheduledRaster, AScheduledRaster
-
-Footprint = None # Lazy import
+Footprint, AScheduledRaster = None, None # Lazy import
 
 BAND_SCHEMA_PARAMS = frozenset({
     'nodata', 'interpretation', 'offset', 'scale', 'mask',
@@ -369,7 +366,7 @@ def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='
     """
 
     # Normalize and check band parameter
-    band_ids, is_flat = _tools.normalize_band_parameter(band, len(raster), raster.shared_band_id)
+    band_ids, is_flat = normalize_band_parameter(band, len(raster), raster.shared_band_id)
     del band
 
     # Normalize and check dst_nodata parameter
@@ -392,31 +389,12 @@ def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='
         raise ValueError('`max_queue_size` should be >0')
 
     return dict(
-        fps=fps,
         band_ids=band_ids,
         dst_nodata=dst_nodata,
         interpolation=interpolation,
         max_queue_size=max_queue_size,
         is_flat=is_flat,
     )
-
-def normalize_pool_parameter(pool_param, cache, param_name):
-    """Check and transform a `*_pool` parameter given by user"""
-    if isinstance(pool_param, [mp.pool.Pool, mp.pool.ThreadPool]):
-        return pool_param
-    if pool_param is None:
-        return None
-    if not (hasattr(pool_param, '__hash__') and hasattr(pool_param, '__eq__')):
-        types = ['multiprocessing.pool.Pool',
-                 'multiprocessing.pool.ThreadPool',
-                 'None', 'hashable',
-        ]
-        raise TypeError('`{}` parameter should be one of {{{}}}'.format(
-            name, ', '.join(types)
-        ))
-    if pool_param not in cache:
-        cache[pool_param] = mp.pool.ThreadPool(mp.cpu_count())
-    return cache[pool_param]
 
 def shatter_queue_data_method(met, name):
     """Check and transform a `met = queue_data_per_primitive[name]` given by user
@@ -432,6 +410,11 @@ def shatter_queue_data_method(met, name):
     -------
     (ABackScheduledRaster, dict of str->object)
     """
+    global AScheduledRaster
+    if AScheduledRaster is None:
+        from buzzard._a_scheduled_raster import AScheduledRaster
+
+
     # Unwrap function.partial instances ****************************************
     kwargs = {}
     while isinstance(met, functools.partial):

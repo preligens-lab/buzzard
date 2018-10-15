@@ -139,7 +139,7 @@ class ActorTopLevel(object):
                 itertools.chain.from_iterable(self._actor_addresses_of_raster.values()),
                 itertools.chain.from_iterable(self._actor_addresses_of_pool.values()),
             )
-        ] + [Msg('/GlobalPrioritiesWatcher', 'die')]
+        ] + [Msg('/Global/GlobalPrioritiesWatcher', 'die')]
 
         # Clear attributes *****************************************************
         self._rasters.clear()

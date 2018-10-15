@@ -35,12 +35,12 @@ class ActorProducer(object):
 
         if len(pi.cache_fps) != 0:
             # If this prod_idx requires some cache file reads (this is the case most of the time)
-            msgs += [
+            msgs += [Msg(
                 'CacheExtractor', 'sample_those_cache_files_to_an_array', qi, prod_idx,
-            ]
+            )]
 
         # Start the 'resampling' step of the resample_fp fully outside of raster
-        if pr.share_area is None:
+        if pi.share_area is None:
             resample_fp = next(pr.resample_fps)
             del pr.resample_needs[resample_fp]
             sample_fp = pi.resample_sample_dep_fp[resample_fp]
@@ -67,7 +67,7 @@ class ActorProducer(object):
         """
         msgs = []
         pr = self._produce_per_query[qi][prod_idx]
-        pi = pr.produce[prod_idx]
+        pi = qi.prod[prod_idx]
 
         # The constraints on `cache_fp` are now satisfied
         for resample_fp, cache_fps in pr.resample_needs.items():
@@ -125,5 +125,5 @@ class _ProdArray(object):
     def __init__(self, pi):
         self.resample_needs = {
             resample_fp: set(cache_fps)
-            for resample_fp, cache_fps in pi.resample_cache_deps_fps
+            for resample_fp, cache_fps in pi.resample_cache_deps_fps.items()
         }

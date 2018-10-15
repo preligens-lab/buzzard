@@ -83,6 +83,7 @@ class CachedQueryInfos(object):
         # The parameters given by user in invocation
         self.band_ids = band_ids # type: Sequence[int]
         self.is_flat = is_flat # type: bool
+        self.unique_band_ids = []
         for bi in band_ids:
             if bi not in self.unique_band_ids:
                 self.unique_band_ids.append(bi)
@@ -144,7 +145,7 @@ class CachedQueryInfos(object):
         list_of_prod_resample_sample_dep_fp = [] # type: List[Mapping[ResampleFootprint, Union[None, SampleFootprint]]]
         to_zip.append(list_of_prod_resample_sample_dep_fp)
 
-        it = zip(list_of_prod_fp, list_of_prod_sample_fp, list_of_prod_share_area)
+        it = zip(list_of_prod_fp, list_of_prod_same_grid, list_of_prod_share_area)
         for prod_fp, same_grid, share_area in it:
             if not share_area:
                 # Resampling will be performed in one pass, on the scheduler
@@ -219,7 +220,7 @@ class CachedQueryInfos(object):
         # The dict of cache Footprint to set of production idxs
         # For each `cache_fp`, the set of prod_idx that need this cache tile
         self.dict_of_prod_idxs_per_cache_fp = collections.defaultdict(set) # type: Mapping[CacheFootprint, AbstractSet[int]]
-        for i, (prod_fp, cache_fps) in enumerate(zip(self.list_of_prod_fp, list_of_prod_cache_fps)):
+        for i, (prod_fp, cache_fps) in enumerate(zip(list_of_prod_fp, list_of_prod_cache_fps)):
             for cache_fp in cache_fps:
                 self.dict_of_prod_idxs_per_cache_fp[cache_fp].add(i)
         for k, v in self.dict_of_prod_idxs_per_cache_fp.items():
@@ -266,7 +267,7 @@ class CacheComputationInfos(object):
         # Immutable ************************************************************
         self.list_of_cache_fp = tuple(list_of_cache_fp) # type: Tuple[CacheFootprint, ...]
 
-        # Step 1 - List compute Footprints
+        # Step 1 - List compute Footprints sorted by priority
         l = []
         seen = set()
         prev_prod_idx = 0
@@ -275,24 +276,22 @@ class CacheComputationInfos(object):
             prod_idx = qi.dict_of_min_prod_idx_per_cache_fp[cache_fp]
             assert prod_idx >= prev_prod_idx
             prev_prod_idx = prod_idx
-            tmp_fps = []
-            for compute_fp in raster.compute_fps_of_cache_fp(cache_fp):
+            for compute_fp in raster.compute_fps_of_cache_fp[cache_fp]:
                 if compute_fp not in seen:
                     seen.add(compute_fp)
-                    tmp_fps.append(compute_fp)
+                    l.append(compute_fp)
                     self.dict_of_min_prod_idx_per_compute_fp[compute_fp] = prod_idx
 
-            # Sort those tiles by using the same scheme as the WaitingRoom does
-            tmp_fps = sorted(tmp_fps, key=lambda fp: (-fp.cy, +fp.cx))
-            l += tmp_fps
+        # Sort those tiles by using the same scheme as the WaitingRoom does
+        l = sorted(l, key=lambda fp: (self.dict_of_min_prod_idx_per_compute_fp[fp], -fp.cy, +fp.cx))
         self.list_of_compute_fp = tuple(l) # type: Tuple[ComputationFootprint, ...]
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
-        del l, seen, tmp_fps
+        del l, seen
 
         # Step 2 - List primtive Footprints
         self.primitive_fps_per_primitive = {
             name: tuple([func(fp) for fp in self.list_of_compute_fp])
-            for name, func in self._raster.convert_footprint_per_primitive.items()
+            for name, func in raster.convert_footprint_per_primitive.items()
         }
 
         # Step 3 - Start collection phase
@@ -303,8 +302,5 @@ class CacheComputationInfos(object):
                 key_in_parent=(qi, name),
                 **raster.primitives_kwargs[name],
             )
-            for name, prim_back in self._raster.primitives_back.items()
+            for name, prim_back in raster.primitives_back.items()
         }
-
-    # def pull_primitives(self, prim_idx):
-    #     assert prim_idx == self.collected_count

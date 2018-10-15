@@ -2,7 +2,7 @@ import numpy as np
 
 from buzzard._actors.message import Msg
 
-class ComputationGate2(object):
+class ActorComputationGate2(object):
     """Actor that takes care of delaying the computation of a cache file until inputs are ready."""
 
     def __init__(self, raster):
@@ -83,7 +83,7 @@ class ComputationGate2(object):
         msgs = []
         qicc = qi.cache_computation
 
-        if len(qicc.primitive_queue_per_primitive) == 0:
+        if len(qicc.primitive_queue_per_primitive) > 0:
             queues_min_qsize = min(qicc.primitive_queue_per_primitive.values(), key=lambda v: v.qsize())
             max_compute_idx_ready = qicc.pulled_count + queues_min_qsize - 1
             assert q.max_compute_idx_allowed <= max_compute_idx_ready, 'allowed more than ready count'
