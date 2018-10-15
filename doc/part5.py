@@ -19,7 +19,9 @@ def download_tile(fp, *_, url_per_tile):
 def example():
     ds = buzz.DataSource()
 
-    andromeda_infos = example_tools.infos_of_zoomable_url(ZOOMABLE_URLS['andromeda'], max_zoom=None)
+    andromeda_infos = example_tools.infos_of_zoomable_url(
+        ZOOMABLE_URLS['andromeda'], max_zoom=9, verbose=True
+    )
     for zoom_level, (fp, tiles, url_per_tile) in enumerate(zip(*andromeda_infos)):
         print('Opening andromeda at zoom {}, {}x{} pixels for {} tiles total.'.format(
             zoom_level, *fp.rsize, tiles.size,
@@ -39,6 +41,8 @@ def example():
             cache_dir=f'andromeda_zoom{zoom_level}',
         )
         print('d')
+
+
 
 if __name__ == '__main__':
     for cache_dir in ZOOMABLE_URLS.keys():

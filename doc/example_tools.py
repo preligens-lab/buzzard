@@ -88,15 +88,13 @@ def infos_of_zoomable_url(img_dir, images_center=np.asarray([0., 0.]),
             tile_count = np.ceil(tile_count / 2).astype(int)
         return zoom_count
     zoom_count = _zoom_count()
-    if max_zoom is not None:
-        zoom_count = min(zoom_count, max_zoom)
+    # if max_zoom is not None:
+        # zoom_count = min(zoom_count, max_zoom)
     if verbose:
         print(f'{zoom_count} zoom levels')
 
-    # Build all footprints
-    def _footprints_per_zoom():
-        fp_per_zoom = []
-        tile_matrix_per_zoom = []
+    # Build zoom's Footprint
+    def _footprint_per_zoom():
         for zoom in range(zoom_count):
             pxsizex = 2 ** (zoom_count - zoom - 1)
             scale = np.asarray([pxsizex, -pxsizex])
@@ -105,27 +103,39 @@ def infos_of_zoomable_url(img_dir, images_center=np.asarray([0., 0.]),
             size = rsize * pxsizex
 
             tl = images_center - (rsize / 2 * pxvec)
-            fp = buzz.Footprint(tl=tl, size=size, rsize=rsize)
-            tiles = fp.tile((max_tile_size, max_tile_size), boundary_effect='shrink')
-            fp_per_zoom.append(fp)
-            tile_matrix_per_zoom.append(tiles)
-        tile_count = sum(m.size for m in tile_matrix_per_zoom)
-        expected_tile_count = int(content['IMAGE_PROPERTIES']['@NUMTILES'])
-        if max_zoom is None:
-            assert tile_count == expected_tile_count, f"""
-            ImageProperties.xml states NUMTILES="{expected_tile_count}"
-            but tile_count={tile_count} was calculated
-            """
-        return fp_per_zoom, tile_matrix_per_zoom
-    fp_per_zoom, tile_matrix_per_zoom = _footprints_per_zoom()
+            yield buzz.Footprint(tl=tl, size=size, rsize=rsize)
+
+    fp_per_zoom = list(_footprint_per_zoom())
+
+    # Check tile count found against attributes
+    expected_tile_count = int(content['IMAGE_PROPERTIES']['@NUMTILES'])
+    tile_count = sum(
+        np.ceil(fp.rw / max_tile_size) * np.ceil(fp.rh / max_tile_size)
+        for fp in fp_per_zoom
+    )
+    assert tile_count == expected_tile_count, f"""
+    ImageProperties.xml states NUMTILES="{expected_tile_count}"
+    but tile_count={tile_count} was calculated
+    """
+
+    # Apply the max_zoom parameter
+    if max_zoom is not None:
+        fp_per_zoom = fp_per_zoom[:max_zoom]
+
+    # Create the tile's Footprint
+    tile_matrix_per_zoom = [
+        fp.tile((max_tile_size, max_tile_size), boundary_effect='shrink')
+        for fp in fp_per_zoom
+    ]
+
     if verbose:
         for zoom, (fp, tiles) in enumerate(zip(fp_per_zoom, tile_matrix_per_zoom)):
             print(f'''zoom {zoom}
                   fp.tl: {fp.tl}, fp.c: {fp.c}, fp.br: {fp.br}
                 fp.size: {fp.size}, fp.rsize: {fp.rsize}
-                 pxsize: {fp.pxsize}
-               px-count: {fp.rarea:,}, byte-count: {fp.rarea * 3:,}
-             tiles.size: {tiles.size}, tiles.shape: {tiles.shape}''')
+        size of a pixel: {fp.pxsize}
+            pixel count: {fp.rarea:,}, byte count: {fp.rarea * 3:,}
+        number of tiles: {tiles.size}, tiles.shape: {tiles.shape}''')
 
     # Build all paths
     def _tile_url(zoom, x, y):
