@@ -38,8 +38,18 @@ class Msg(object):
                 return str(a)
             elif isinstance(a, (np.ndarray)):
                 return '{}{}'.format(a.dtype, a.shape)
+            elif isinstance(a, (tuple, list)):
+                types = list(set(type(b).__name__ for b in a))
+                types = '|'.join(types)
+                s = '[{}]*{}'.format(types, len(a))
+                t = '[{}]'.format(', '.join(map(_dump_param, a)))
+                return min([t, s], key=len)
+            elif type(a).__name__ == 'CachedQueryInfos':
+                return 'qi'
             else:
-                return type(a).__name__
+                s = type(a).__name__
+                t = str(a)
+                return min([t, s], key=len)
 
         return '{u}{b}{letter}{}{z}.{}({}){u}{b}{letter}{z}'.format(
             self.address,

@@ -221,6 +221,7 @@ class ActorPoolWaitingRoom(object):
                 prio = self._global_priorities.prio_of_prod_tile(job.qi, job.prod_idx)
                 cx, cy = job.fp.c
                 prio += (-cy, +cx, job.action_priority,)
+                # print('_store_job', prio, job, job.prod_idx)
 
             elif isinstance(job, CacheJobWaiting):
                 self._jobs_cache.add(job)
@@ -278,6 +279,17 @@ class ActorPoolWaitingRoom(object):
         # Unstore a rank 1 job
         prio = self._sset_of_prios[0]
         job = next(iter(self._dict_of_r1jobs_per_prio[prio])) # Pop an arbitrary one
+
+
+        # print('--------------------')
+        # print('_unstore_most_urgent_job')
+        # for p in self._sset_of_prios:
+        #     d = self._dict_of_r1jobs_per_prio[p]
+        #     print(p, d)
+        #     for j in d:
+        #         print(f'  pidx:{j.prod_idx}, cidx{j.compute_idx}')
+        # print('--------------------')
+
         self._unstore_job(job)
         return job
 

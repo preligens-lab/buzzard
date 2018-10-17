@@ -152,6 +152,7 @@ class Wait(ProductionJobWaiting):
         self.qi = qi
         self.compute_idx = compute_idx
         qicc = qi.cache_computation
+
         compute_fp = qicc.list_of_compute_fp[compute_idx]
         prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]
         super().__init__(actor.address, qi, prod_idx, 4, compute_fp)

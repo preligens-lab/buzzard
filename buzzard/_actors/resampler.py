@@ -76,7 +76,7 @@ class ActorResampler(object):
                 #   side effect: since interpolation may imply tiling, the result will be
                 #      commited now and might be pushed now or later
                 job = self._create_work_job(
-                    self, qi, prod_idx, sample_fp, resample_fp, subsample_array,
+                    qi, prod_idx, sample_fp, resample_fp, subsample_array,
                 )
                 job.func()
                 msgs += self._commit_work_result(job, None)
@@ -93,7 +93,8 @@ class ActorResampler(object):
                         np.r_[resample_fp.shape, len(qi.band_ids)],
                         qi.dst_nodata, self._raster.dtype,
                     )
-                elif sample_fp == pi.fp:
+                elif sample_fp.almost_equals(pi.fp):
+                # elif sample_fp == pi.fp:
                     # Case 2.2.2: production footprint is fully inside raster
                     assert subsample_array.shape[:2] == tuple(resample_fp.shape)
                     arr = subsample_array
@@ -107,7 +108,7 @@ class ActorResampler(object):
                         np.r_[resample_fp.shape, len(qi.unique_band_ids)],
                         qi.dst_nodata, self._raster.dtype,
                     )
-                    slices = sample_fp.slice_in(pr.fp)
+                    slices = sample_fp.slice_in(pr.fp) # TODO: fix, what is `pr`?
                     arr[slices] = subsample_array
                     if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
                         arr[slices][arr == self._raster.nodata] = qi.dst_nodata
@@ -125,7 +126,7 @@ class ActorResampler(object):
         self._waiting_jobs.remove(job)
 
         work = self._create_work_job(
-            self, job.qi, job.prod_idx, job.sample_fp, job.resample_fp, job.subsample_array,
+            job.qi, job.prod_idx, job.sample_fp, job.resample_fp, job.subsample_array,
         )
         self._working_jobs.add(work)
 

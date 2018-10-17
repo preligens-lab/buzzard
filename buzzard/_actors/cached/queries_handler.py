@@ -122,7 +122,7 @@ class ActorQueriesHandler(object):
         msgs = []
         q = self._queries[qi]
         assert prod_idx not in q.produce_arrays_dict, 'This array was already computed'
-        assert prod_idx <= q.produced_count, 'This array was already sent'
+        assert prod_idx >= q.produced_count, 'This array was already sent'
         q.produce_arrays_dict[prod_idx] = array
 
         # Send arrays ready ****************************************************
@@ -162,7 +162,7 @@ class ActorQueriesHandler(object):
                     # Notify the parent raster that a new array was put in the queue
                     # If the parent raster was collected this message is discarded
                     msgs += [DroppableMsg(
-                        '/Raster{}/QueriesHandler'.format(qi.parent_uid),
+                        '/Raster{}/ComputationGate2'.format(qi.parent_uid),
                         'input_queue_update',
                         qi.key_in_parent,
                     )]

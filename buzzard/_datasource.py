@@ -1033,7 +1033,7 @@ class DataSource(DataSourceRegisterMixin):
         primitives_back = {}
         primitives_kwargs = {}
         for name, met in queue_data_per_primitive.items():
-            primitives_back[name], primitives_kwargs[name] = _tools._shatter_queue_data_method(met)
+            primitives_back[name], primitives_kwargs[name] = _tools.shatter_queue_data_method(met, name)
 
         for name, func in convert_footprint_per_primitive.items():
             if not callable(func):

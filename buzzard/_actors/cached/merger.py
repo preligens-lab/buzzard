@@ -48,7 +48,7 @@ class ActorMerger(object):
 
         if len(array_per_fp) == 1:
             (fp, arr), = array_per_fp.items()
-            assert fp == cache_fp
+            assert fp.almost_equals(cache_fp)
             msgs += [
                 Msg('Writer', 'write_this_array', cache_fp, arr)
             ]

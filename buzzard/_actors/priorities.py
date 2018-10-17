@@ -12,7 +12,7 @@ class Priorities(object):
 
     def prio_of_prod_tile(self, qi, prod_idx):
         if self._prio_actor is None:
-            return (0,)
+            return (prod_idx,)
         else:
             assert self._db_version == self._prio_actor.db_version, 'Failed to fetch latest priorities object'
             return self._prio_actor.prio_of_prod_tile(qi, prod_idx)

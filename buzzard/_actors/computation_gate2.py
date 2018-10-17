@@ -34,11 +34,12 @@ class ActorComputationGate2(object):
 
         if qi in self._queries:
             q = self._queries[qi]
-            assert q.max_compute_idx_allowed + 1 == compute_idx
-            q.max_compute_idx_allowed = compute_idx
+            assert q.allowed_up_count == compute_idx, ''
         else:
+            assert compute_idx == 0, 'This is the first call for qi, compute_idx it should be 0'
             q = _Query()
             self._queries[qi] = q
+        q.allowed_up_count = compute_idx + 1
 
         msgs += self._allow(qi, q)
         return msgs
@@ -84,19 +85,25 @@ class ActorComputationGate2(object):
         qicc = qi.cache_computation
 
         if len(qicc.primitive_queue_per_primitive) > 0:
-            queues_min_qsize = min(qicc.primitive_queue_per_primitive.values(), key=lambda v: v.qsize())
-            max_compute_idx_ready = qicc.pulled_count + queues_min_qsize - 1
-            assert q.max_compute_idx_allowed <= max_compute_idx_ready, 'allowed more than ready count'
+            qsizes = [v.qsize() for v in qicc.primitive_queue_per_primitive.values()]
+            min_qsize = min(qsizes)
+            allowed_gate2_count = qicc.collected_count + min_qsize
+            assert q.allowed_down_count <= allowed_gate2_count, (
+                'allowed more than ready count'
+                # 'Input qsizes:{}, collected_count:{}, max_compute_idx_ready:{}'.format(
+                    # qsizes, qicc.collected_count, max_compute_idx_ready,
+                # )
+            )
         else:
-            max_compute_idx_ready = np.inf
+            allowed_gate2_count = np.inf
 
-        i = q.allowed_count
-        while i <= max_compute_idx_ready and i <= q.max_compute_idx_allowed:
+        i = q.allowed_down_count
+        while i < allowed_gate2_count and i < q.allowed_up_count:
             msgs += [Msg(
                 'Computer', 'compute_this_array', qi, i,
             )]
             i += 1
-        q.allowed_count = i
+        q.allowed_down_count = i
 
         return msgs
 
@@ -105,5 +112,5 @@ class ActorComputationGate2(object):
 class _Query(object):
 
     def __init__(self):
-        self.allowed_count = 0
-        self.max_compute_idx_allowed = 0
+        self.allowed_up_count = 0 # How many compute allowed by `ComputationGate1`
+        self.allowed_down_count = 0 # How many allowed to `Computer`

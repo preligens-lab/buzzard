@@ -18,7 +18,7 @@ class ActorGlobalPrioritiesWatcher(object):
     def __init__(self):
         self._alive = True
         self._pulled_count_per_query = {}
-        self._db_version = 0
+        self.db_version = 0
 
         self._sorted_prod_tiles_per_cache_tile = {} # type: Dict[Tuple[uuid.UUID, Footprint], sortedcontainers.SortedListWithKey]
         self._pulled_count_per_query = {} # type: Dict[CachedQueryInfos, int]
@@ -73,8 +73,8 @@ class ActorGlobalPrioritiesWatcher(object):
 
         # Emmit messages *******************************************************
         if len(cache_tile_updates) != 0:
-            self._db_version += 1
-            new_prio = Priorities(self, self._db_version)
+            self.db_version += 1
+            new_prio = Priorities(self, self.db_version)
             msgs += [Msg(
                 '/Pool*/WaitingRoom', 'global_priorities_update',
                 new_prio, frozenset(), frozenset(cache_tile_updates)
@@ -89,8 +89,8 @@ class ActorGlobalPrioritiesWatcher(object):
         """
         cache_tile_updates = self._get_rid_of_query(raster_uid, qi)
         if cache_tile_updates:
-            self._db_version += 1
-            new_prio = Priorities(self, self._db_version)
+            self.db_version += 1
+            new_prio = Priorities(self, self.db_version)
             return [Msg(
                 '/Pool*/WaitingRoom', 'global_priorities_update',
                 new_prio, frozenset(), frozenset(cache_tile_updates)
@@ -150,8 +150,8 @@ class ActorGlobalPrioritiesWatcher(object):
                             cache_tile_updates.add(cache_tile_key)
 
         if query_updates or cache_tile_updates:
-            self._db_version += 1
-            new_prio = Priorities(self, self._db_version)
+            self.db_version += 1
+            new_prio = Priorities(self, self.db_version)
             return [Msg(
                 '/Pool*/WaitingRoom', 'global_priorities_update',
                 new_prio, frozenset(query_updates), frozenset(cache_tile_updates)
