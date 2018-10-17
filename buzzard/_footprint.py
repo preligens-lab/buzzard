@@ -618,7 +618,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def tl(self):
         """Spatial coordinates: raster top left (x, y)"""
-        return self._tl
+        return self._tl.copy()
 
     @property
     def tlx(self):
@@ -633,7 +633,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def bl(self):
         """Spatial coordinates: raster bottom left (x, y)"""
-        return self._bl
+        return self._bl.copy()
 
     @property
     def blx(self):
@@ -648,7 +648,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def br(self):
         """Spatial coordinates: raster bottom right (x, y)"""
-        return self._br
+        return self._br.copy()
 
     @property
     def brx(self):
@@ -663,7 +663,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def tr(self):
         """Spatial coordinates: raster top right (x, y)"""
-        return self._tr
+        return self._tr.copy()
 
     @property
     def trx(self):
@@ -777,7 +777,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def rsize(self):
         """Pixel quantities: (pixel per line, pixel per column)"""
-        return self._rsize
+        return self._rsize.copy()
 
     @property
     def rsizex(self):
@@ -959,12 +959,16 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def rarea(self):
         """Pixel quantity: pixel count"""
-        return int(np.prod(self.rsize))
+        rx, ry = self.rsize
+        # Convert to int before multiplication to avoid overflow
+        return int(rx) * int(ry)
 
     @property
     def rlength(self):
         """Pixel quantity: pixel count in the outer ring"""
-        inner_area = max(0, self.rsizex - 2) * max(0, self.rsizey - 2)
+        rx, ry = self.rsize
+        # Convert to int before multiplication to avoid overflow
+        inner_area = max(0, int(rx) - 2) * max(0, int(ry) - 2)
         return self.rarea - inner_area
 
     # Accessors - Affine transformations ******************************************************** **
@@ -991,6 +995,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def affine(self):
         """Underlying affine object"""
+        # TODO: Check if _aff is mutable
         return self._aff
 
     @property
