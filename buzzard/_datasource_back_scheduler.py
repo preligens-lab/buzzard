@@ -5,6 +5,8 @@ import threading
 from buzzard._actors.top_level import ActorTopLevel
 from buzzard._actors.message import Msg, DroppableMsg
 
+VERBOSE = 0
+
 class BackDataSourceSchedulerMixin(object):
 
     def __init__(self, ds_id, **kwargs):
@@ -30,7 +32,12 @@ class BackDataSourceSchedulerMixin(object):
 
     def ensure_scheduler_still_alive(self):
         if not self._thread.isAlive():
-            raise self._thread_exn
+            if isinstance(self._thread_exn, Exception):
+                raise self._thread_exn
+            else:
+                raise RuntimeError(
+                    "DataSource's scheduler crashed without exception. Did you call `exit()`?"
+                )
 
     def put_message(self, msg):
         self.ensure_scheduler_living()
@@ -63,7 +70,6 @@ class BackDataSourceSchedulerMixin(object):
 
             _, grp_name, name = address.split('/')
             assert name not in actors[grp_name]
-            # print('Adding', grp_name, name)
             actors[grp_name][name] = a
 
         def _find_actors(address, relative_actor):
@@ -119,17 +125,17 @@ class BackDataSourceSchedulerMixin(object):
                     continue
                 msg = msgs.pop(0)
                 if isinstance(msg, Msg):
-                    print('{} {}'.format(
-                        ' '.join(['|'] * (len(piles_of_msgs))),
-                        msg,
-                    ))
+                    if VERBOSE:
+                        print('{} {}'.format(
+                            ' '.join(['|'] * (len(piles_of_msgs))),
+                            msg,
+                        ))
 
                     for dst_actor in _find_actors(msg.address, src_actor): # TODO: make sure that it is enough
                         if dst_actor is None:
                             # This message may be discarted
                             assert isinstance(msg, DroppableMsg), '\n{}\n{}\n'.format(dst_actor, msg)
                         else:
-                            # print(f'{"|":->{len(piles_of_msgs) * 2 + 1}} {msg}')
                             new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)
                             if self._stop:
                                 # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
@@ -170,7 +176,8 @@ class BackDataSourceSchedulerMixin(object):
                         actors_to_remove.append(actor)
                     if new_msgs:
                         # Messages need to be sent
-                        print(Msg(actor.address, 'receive_nothing'))
+                        if VERBOSE:
+                            print(Msg(actor.address, 'receive_nothing'))
 
                         piles_of_msgs.append((
                             actor, 'receive_', new_msgs

@@ -69,6 +69,7 @@ class ActorComputer(object):
         compute_fp = job.qi.cache_computation.list_of_compute_fp[job.compute_idx]
         if compute_fp not in self._performed_computations:
             msgs += [Msg(self._working_room_address, 'launch_job_with_token', work, token)]
+            self._performed_computations.add(compute_fp)
             self._working_jobs.add(work)
         else:
             msgs += [Msg(self._working_room_address, 'salvage_token', token)]

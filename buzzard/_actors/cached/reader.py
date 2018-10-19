@@ -213,6 +213,7 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
     dst_opt: None or np.ndarray
         optional destination for read
     """
+    # TODO: Use DataSource's file descriptor pooling
 
     # Open raster
     gdal_ds = gdal.OpenEx(

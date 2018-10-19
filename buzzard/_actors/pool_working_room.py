@@ -38,6 +38,11 @@ class ActorPoolWorkingRoom(object):
 
         future = self._pool.apply_async(job.func)
         self._jobs[job] = (future, token)
+
+        # import collections
+        # j = collections.Counter([type(j).__module__ for j in self._jobs])
+        # print(j)
+
         return []
 
     def receive_salvage_token(self, token):

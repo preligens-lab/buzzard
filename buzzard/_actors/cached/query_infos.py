@@ -145,9 +145,13 @@ class CachedQueryInfos(object):
         list_of_prod_resample_sample_dep_fp = [] # type: List[Mapping[ResampleFootprint, Union[None, SampleFootprint]]]
         to_zip.append(list_of_prod_resample_sample_dep_fp)
 
+        print = lambda *_: None # Disabling verbose
+
         it = zip(list_of_prod_fp, list_of_prod_same_grid, list_of_prod_share_area)
+        print('- CachedQueryInfos -------------------------------------', raster.fp.scale)
         for prod_fp, same_grid, share_area in it:
             if not share_area:
+                print(f' {prod_fp.rsize!s:15} - Out')
                 # Resampling will be performed in one pass, on the scheduler
                 list_of_prod_sample_fp.append(None)
                 list_of_prod_cache_fps.append(frozenset())
@@ -157,7 +161,8 @@ class CachedQueryInfos(object):
                 list_of_prod_resample_sample_dep_fp.append(MappingProxyType({resample_fp: None}))
             else:
                 if same_grid:
-                    # Resampling will be performed in one pass, on the scheduler
+                    print(f' {prod_fp.rsize!s:15} - In - Aligned')
+                    # Remapping will be performed in one pass, on the scheduler
                     sample_fp = raster.fp & prod_fp
                     resample_fps = [cast(ResampleFootprint, prod_fp)]
                     sample_dep_fp = {
@@ -167,17 +172,20 @@ class CachedQueryInfos(object):
                     sample_fp = raster.build_sampling_footprint_to_remap_interpolate(prod_fp, interpolation)
 
                     if raster.max_resampling_size is None:
-                        # Resampling will be performed in one pass, on a Pool
+                        print(f' {prod_fp.rsize!s:15} - In - Unaligned - 1step')
+                        # Remapping will be performed in one pass, on a Pool
                         resample_fps = [cast(ResampleFootprint, prod_fp)]
                         sample_dep_fp = {
                             resample_fps[0]: sample_fp
                         }
                     else:
                         # Resampling will be performed in several passes, on a Pool
+                        # TODO: Tile on input-rsize or output-rsize or max(both) (like now)?
                         rsize = np.maximum(prod_fp.rsize, sample_fp.rsize)
                         countx, county = np.ceil(rsize / raster.max_resampling_size).astype(int)
-                        resample_fps = sample_fp.tile_count(
-                            (countx, county), boundary_effect='shrink'
+                        print(f' {prod_fp.rsize!s:15} - In - Unaligned - nstep({countx * county})')
+                        resample_fps = prod_fp.tile_count(
+                            countx, county, boundary_effect='shrink'
                         ).flatten().tolist()
                         sample_dep_fp = {
                             resample_fp: raster.build_sampling_footprint_to_remap_interpolate(resample_fp, interpolation)
