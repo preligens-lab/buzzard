@@ -65,12 +65,14 @@ class ActorCacheSupervisor(object):
                 path_candidates = self._list_cache_path_candidates(cache_fp)
                 if len(path_candidates) == 1:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.checking
+                    self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'unknown')
                     query.cache_fps_checking.add(cache_fp)
                     msgs += [
                         Msg('FileChecker', 'infer_cache_file_status', cache_fp, path_candidates[0])
                     ]
                 else:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
+                    self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'absent')
                     for path in path_candidates:
                         # TODO: What if can't delete?
                         LOGGER.warn('Removing {}'.format(path))
@@ -120,12 +122,14 @@ class ActorCacheSupervisor(object):
             # - notify the production pipeline
             self._path_of_cache_fp[cache_fp] = path
             self._cache_fps_status[cache_fp] = _CacheTileStatus.ready
+            self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'ready')
             msgs += [
                 Msg('CacheExtractor', 'cache_files_ready', {cache_fp: path})
             ]
         else:
             # This cache tile was corrupted and removed
             self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
+            self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'absent')
 
         queries_treated = []
         for qi, query in self._queries.items():
@@ -163,6 +167,7 @@ class ActorCacheSupervisor(object):
 
         self._path_of_cache_fp[cache_fp] = path
         self._cache_fps_status[cache_fp] = _CacheTileStatus.ready
+        self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'ready')
         msgs += [
             Msg('CacheExtractor', 'cache_files_ready', {cache_fp: path})
         ]

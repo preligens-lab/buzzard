@@ -931,12 +931,14 @@ class DataSource(DataSourceRegisterMixin):
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                                     # TODO: reorder parameters
+                                    # TODO: overwrite
                                     compute_array=None, merge_arrays=_concat,
                                     cache_dir=None,
                                     queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                                     computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
                                     cache_tiles=(512, 512), computation_tiles=None,
-                                    max_resampling_size=None):
+                                    max_resampling_size=None,
+                                    debug_observers=()):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
         TODO: Fill
@@ -1096,7 +1098,8 @@ class DataSource(DataSourceRegisterMixin):
             cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
             cache_tiles,computation_tiles,
-            max_resampling_size
+            max_resampling_size,
+            debug_observers,
         )
 
         # DataSource Registering ***********************************************

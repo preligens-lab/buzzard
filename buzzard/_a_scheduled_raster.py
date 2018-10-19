@@ -6,6 +6,7 @@ from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
 from buzzard._footprint import Footprint
 from buzzard import _tools
 from buzzard._actors.message import Msg
+from buzzard._debug_observers_manager import DebugObserversManager
 
 class AScheduledRaster(AProxyRaster):
     """TODO: docstring"""
@@ -39,10 +40,11 @@ class AScheduledRaster(AProxyRaster):
 class ABackScheduledRaster(ABackProxyRaster):
     """TODO: docstring"""
 
-    def __init__(self, resample_pool, max_resampling_size, **kwargs):
+    def __init__(self, resample_pool, max_resampling_size, debug_observers, **kwargs):
         self.uid = uuid.uuid4()
         self.resample_pool = resample_pool
         self.max_resampling_size = max_resampling_size
+        self.debug_mngr = DebugObserversManager(debug_observers)
         super().__init__(**kwargs)
 
     def close(self):

@@ -49,6 +49,7 @@ class ActorTopLevel(object):
         """
         msgs = []
         self._rasters.add(raster)
+        raster.debug_mngr.event('raster_started', raster.facade_proxy)
 
         # Instanciate raster's actors ******************************************
         actors = raster.create_actors()
@@ -96,6 +97,7 @@ class ActorTopLevel(object):
         """
         msgs = []
         self._rasters.remove(raster)
+        raster.debug_mngr.event('raster_stopped', raster.facade_proxy)
 
         # Deleting raster's actors *********************************************
         msgs += [
@@ -133,19 +135,14 @@ class ActorTopLevel(object):
         assert self._alive
         self._alive = False
 
-        msgs = [
-            Msg(address, 'die')
-            for address in itertools.chain(
-                itertools.chain.from_iterable(self._actor_addresses_of_raster.values()),
-                itertools.chain.from_iterable(self._actor_addresses_of_pool.values()),
-            )
-        ] + [Msg('/Global/GlobalPrioritiesWatcher', 'die')]
+        for raster in list(self._rasters):
+            self.ext_receive_kill_raster(raster)
 
         # Clear attributes *****************************************************
-        self._rasters.clear()
-        self._rasters_per_pool.clear()
-        self._actor_addresses_of_raster.clear()
-        self._actor_addresses_of_pool.clear()
+        assert not self._rasters
+        assert not self._rasters_per_pool
+        assert not self._actor_addresses_of_raster
+        assert not self._actor_addresses_of_pool
 
         return []
 

@@ -33,7 +33,8 @@ class CachedRasterRecipe(ARasterRecipe):
         cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
         computation_pool, merge_pool, io_pool, resample_pool,
         cache_tiles, computation_tiles,
-        max_resampling_size
+        max_resampling_size,
+        debug_observers,
     ):
         back = BackCachedRasterRecipe(
             ds._back,
@@ -43,7 +44,8 @@ class CachedRasterRecipe(ARasterRecipe):
             cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
             cache_tiles, computation_tiles,
-            max_resampling_size
+            max_resampling_size,
+            debug_observers,
         )
         super().__init__(ds=ds, back=back)
 
@@ -61,7 +63,8 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
         computation_pool, merge_pool, io_pool, resample_pool,
         cache_tiles, computation_tiles,
-        max_resampling_size
+        max_resampling_size,
+        debug_observers,
     ):
         super().__init__(
             # Proxy
@@ -87,6 +90,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             # Scheduled
             resample_pool=resample_pool,
             max_resampling_size=max_resampling_size,
+            debug_observers=debug_observers,
         )
         self.io_pool = io_pool
         self.cache_fps = cache_tiles
