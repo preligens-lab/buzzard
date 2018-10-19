@@ -18,10 +18,7 @@ class ActorComputationAccumulator(object):
         self._raster = raster
         self._alive = True
         self._cache_tiles_accumulations = {}
-
-    @property
-    def address(self):
-        return '/Raster{}/ComputationAccumulator'.format(self._raster.uid)
+        self.address = '/Raster{}/ComputationAccumulator'.format(self._raster.uid)
 
     @property
     def alive(self):

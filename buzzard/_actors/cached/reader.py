@@ -35,10 +35,7 @@ class ActorReader(object):
         self._missing_cache_fps_per_prod_tile = (
             collections.defaultdict(dict)
         ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]
-
-    @property
-    def address(self):
-        return '/Raster{}/Reader'.format(self._raster.uid)
+        self.address = '/Raster{}/Reader'.format(self._raster.uid)
 
     @property
     def alive(self):

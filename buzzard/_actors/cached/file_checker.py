@@ -21,10 +21,7 @@ class ActorFileChecker(object):
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
         self._waiting_jobs = set()
         self._working_jobs = set()
-
-    @property
-    def address(self):
-        return '/Raster{}/FileChecker'.format(self._raster.uid)
+        self.address = '/Raster{}/FileChecker'.format(self._raster.uid)
 
     @property
     def alive(self):
@@ -62,6 +59,8 @@ class ActorFileChecker(object):
         ]
 
     def receive_die(self):
+        assert self._alive
+        self._alive = False
         msgs = []
         for job in self._waiting_jobs:
             msgs += [Msg(self._waiting_room_address, 'unschedule_job', job)]

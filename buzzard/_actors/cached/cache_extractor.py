@@ -17,10 +17,7 @@ class ActorCacheExtractor(object):
         self._reads_waiting_for_cache_fp = (
             collections.defaultdict(lambda: collections.defaultdict(set))
         ) # type: Mapping[Footprint, Mapping[CachedQueryInfos, Set[int]]]
-
-    @property
-    def address(self):
-        return '/Raster{}/CacheExtractor'.format(self._raster.uid)
+        self.address = '/Raster{}/CacheExtractor'.format(self._raster.uid)
 
     @property
     def alive(self):

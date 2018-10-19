@@ -36,10 +36,7 @@ class ActorResampler(object):
         self._missing_resample_fps_per_prod_tile = (
             collections.defaultdict(dict)
         ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]
-
-    @property
-    def address(self):
-        return '/Raster{}/Resampler'.format(self._raster.uid)
+        self.address = '/Raster{}/Resampler'.format(self._raster.uid)
 
     @property
     def alive(self):

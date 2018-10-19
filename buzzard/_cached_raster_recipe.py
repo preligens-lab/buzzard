@@ -47,6 +47,10 @@ class CachedRasterRecipe(ARasterRecipe):
         )
         super().__init__(ds=ds, back=back)
 
+    @property
+    def cache_tiles(self):
+        return self._back.cache_fps.copy()
+
 class BackCachedRasterRecipe(ABackRasterRecipe):
     """TODO: docstring"""
 
@@ -127,7 +131,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             y,
             self.fp.spatial_to_raster(cache_fp.tl),
         ]
-        return "tile_x{:03d}-y{:03d}_px_x{:05d}-y{:05d}".format(*params) # TODO: better file name
+        return "x{:03d}-y{:03d}_x{:05d}-y{:05d}".format(*params) # TODO: better file name
 
     def create_actors(self):
         actors = [

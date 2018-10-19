@@ -16,10 +16,7 @@ class ActorPoolWorkingRoom(object):
         self._pool = pool
         self._jobs = {}
         self._alive = True
-
-    @property
-    def address(self):
-        return '/Pool{}/WorkingRoom'.format(id(self._pool))
+        self.address = '/Pool{}/WorkingRoom'.format(id(self._pool))
 
     @property
     def alive(self):

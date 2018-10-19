@@ -17,11 +17,7 @@ class ActorQueriesHandler(object):
         self._raster = raster
         self._queries = {}
         self._alive = True
-
-    @property
-    def address(self):
-        # TODO: Precompute the address in all 22 actors
-        return '/Raster{}/QueriesHandler'.format(self._raster.uid)
+        self.address = '/Raster{}/QueriesHandler'.format(self._raster.uid)
 
     @property
     def alive(self):

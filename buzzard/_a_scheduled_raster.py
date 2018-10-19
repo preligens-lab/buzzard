@@ -45,6 +45,13 @@ class ABackScheduledRaster(ABackProxyRaster):
         self.max_resampling_size = max_resampling_size
         super().__init__(**kwargs)
 
+    def close(self):
+        # print('ABackScheduledRaster.close', id(self))
+        self.back_ds.put_message(Msg(
+            '/Global/TopLevel', 'kill_raster', self,
+        ))
+        return super().close()
+
     def queue_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
                    parent_uid, key_in_parent):
         q = queue.Queue(max_queue_size)

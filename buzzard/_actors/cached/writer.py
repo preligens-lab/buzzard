@@ -22,10 +22,7 @@ class ActorWriter(object):
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
         self._waiting_jobs = set()
         self._working_jobs = set()
-
-    @property
-    def address(self):
-        return '/Raster{}/Writer'.format(self._raster.uid)
+        self.address = '/Raster{}/Writer'.format(self._raster.uid)
 
     @property
     def alive(self):

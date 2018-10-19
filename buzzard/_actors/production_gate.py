@@ -7,10 +7,7 @@ class ActorProductionGate(object):
         self._raster = raster
         self._queries = {}
         self._alive = True
-
-    @property
-    def address(self):
-        return '/Raster{}/ProductionGate'.format(self._raster.uid)
+        self.address = '/Raster{}/ProductionGate'.format(self._raster.uid)
 
     @property
     def alive(self):

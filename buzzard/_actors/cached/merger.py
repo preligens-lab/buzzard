@@ -32,10 +32,7 @@ class ActorMerger(object):
         self._working_jobs = set()
 
         self.dst_array = None
-
-    @property
-    def address(self):
-        return '/Raster{}/Merger'.format(self._raster.uid)
+        self.address = '/Raster{}/Merger'.format(self._raster.uid)
 
     @property
     def alive(self):

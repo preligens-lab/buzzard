@@ -23,10 +23,7 @@ class ActorGlobalPrioritiesWatcher(object):
         self._sorted_prod_tiles_per_cache_tile = {} # type: Dict[Tuple[uuid.UUID, Footprint], sortedcontainers.SortedListWithKey]
         self._pulled_count_per_query = {} # type: Dict[CachedQueryInfos, int]
         self._cache_fp_per_query = {} # type: Dict[CachedQueryInfos, Set[Footprint]]
-
-    @property
-    def address(self):
-        return '/Global/GlobalPrioritiesWatcher'
+        self.address = '/Global/GlobalPrioritiesWatcher'
 
     @property
     def alive(self):

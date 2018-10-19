@@ -28,10 +28,7 @@ class ActorComputer(object):
         self._working_jobs = set()
 
         self._performed_computations = set() # type: Set[Footprint]
-
-    @property
-    def address(self):
-        return '/Raster{}/Computer'.format(self._raster.uid)
+        self.address = '/Raster{}/Computer'.format(self._raster.uid)
 
     @property
     def alive(self):
@@ -128,17 +125,17 @@ class ActorComputer(object):
         try:
             res = np.atleast_3d(res)
         except:
-            raise ValueError("Result of recipe's `compute_array` has type {}, it can't be converted to ndarray".format(
+            raise ValueError("Result of recipe's `compute_array` have type {}, it can't be converted to ndarray".format(
                 type(res)
             ))
         y, x, c = res.shape
         if (y, x) != tuple(compute_fp.shape):
-            raise ValueError("Result of recipe's `compute_array` has shape `{}`, should start with {}".format(
+            raise ValueError("Result of recipe's `compute_array` have shape `{}`, should start with {}".format(
                 res.shape,
                 compute_fp.shape,
             ))
         if c != len(self._raster):
-            raise ValueError("Result of recipe's `compute_array` has shape `{}`, should have {} bands".format(
+            raise ValueError("Result of recipe's `compute_array` have shape `{}`, should have {} bands".format(
                 res.shape,
                 len(self._raster),
             ))

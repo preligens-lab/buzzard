@@ -108,19 +108,19 @@ class ActorTopLevel(object):
         pools = {
             id(pool): pool
             for attr in [
-                'computation_pool', 'merge_pool', 'write_pool',
-                'file_checker_pool', 'read_pool', 'resample_pool',
+                'computation_pool', 'merge_pool', 'io_pool', 'resample_pool',
             ]
             if hasattr(raster, attr)
             for pool in [getattr(raster, attr)]
+            if pool is not None
         }
         for pool_id, pool in pools.items():
             self._rasters_per_pool[pool_id].remove(raster)
-            if len(self._rasters_per_pool) == 0:
+            if len(self._rasters_per_pool[pool_id]) == 0:
                 del self._rasters_per_pool[pool_id]
                 msgs += [
-                    Msg(actor.address, 'die')
-                    for actor in self._actor_addresses_of_pool[pool_id]
+                    Msg(actor_adress, 'die')
+                    for actor_adress in self._actor_addresses_of_pool[pool_id]
                 ]
                 del self._actor_addresses_of_pool[pool_id]
 

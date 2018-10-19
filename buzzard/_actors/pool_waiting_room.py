@@ -89,10 +89,7 @@ class ActorPoolWaitingRoom(object):
             self._prod_jobs_of_query,
             self._cache_jobs_of_cache_fp,
         ]
-
-    @property
-    def address(self):
-        return '/Pool{}/WaitingRoom'.format(self._pool_id)
+        self.address = '/Pool{}/WaitingRoom'.format(self._pool_id)
 
     @property
     def alive(self):

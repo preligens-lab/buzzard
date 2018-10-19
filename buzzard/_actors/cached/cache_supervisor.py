@@ -27,10 +27,7 @@ class ActorCacheSupervisor(object):
         self._path_of_cache_fp = {}
         self._queries = {}
         self._alive = True
-
-    @property
-    def address(self):
-        return '/Raster{}/CacheSupervisor'.format(self._raster.uid)
+        self.address = '/Raster{}/CacheSupervisor'.format(self._raster.uid)
 
     @property
     def alive(self):

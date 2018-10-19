@@ -66,9 +66,10 @@ class BackDataSourceSchedulerMixin(object):
                 keep_alive_actors.append(a)
 
             address = a.address
-            actors[address] = a
+            # actors[address] = a
 
             _, grp_name, name = address.split('/')
+            # print(f'+ {grp_name:30} {name:30}')
             assert name not in actors[grp_name]
             actors[grp_name][name] = a
 
@@ -92,6 +93,7 @@ class BackDataSourceSchedulerMixin(object):
         def _unregister_actor(a):
             address = a.address
             _, grp_name, name = address.split('/')
+            # print(f'- {grp_name:30} {name:30}')
             del actors[grp_name][name]
             if not actors[grp_name]:
                 del actors[grp_name]
@@ -150,6 +152,12 @@ class BackDataSourceSchedulerMixin(object):
                                 ))
                 else:
                     _register_actor(msg)
+                del msg
+            src_actor = None
+            msgs = None
+            msg = None
+            dst_actor = None
+            new_msgs = None
 
             # Step 2: Receive external messages
             # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
@@ -159,6 +167,7 @@ class BackDataSourceSchedulerMixin(object):
                 piles_of_msgs.append((
                     dst_actor, 'ext_receive_', [msg]
                 ))
+                msg = None
 
             # Step 3: If no messages from phase 2 and some `keep_alive_actors`
             #   Find "keep alive" actors that need to be closed
@@ -185,11 +194,21 @@ class BackDataSourceSchedulerMixin(object):
                         break
                 for actor in actors_to_remove:
                     _unregister_actor(actor)
+                actors_to_remove = None
+                new_msgs = None
+                actor = None
 
             # Step 4: If no messages from phase 2 nor from phase 3
             #   Sleep
             if not piles_of_msgs:
+                # print('DataSource', id(self), 'loop', len(actors))
                 time.sleep(1 / 20)
+                # print('++++++++++++++++++++')
+                # for k, v in locals().items():
+                #     if v is not None:
+                #         print('   ', k, v)
+                # print('++++++++++++++++++++')
+
 
             # Step 5: Check if DataSource was collected
             if self._stop:

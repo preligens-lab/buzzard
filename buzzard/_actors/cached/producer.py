@@ -10,10 +10,7 @@ class ActorProducer(object):
         self._alive = True
 
         self._produce_per_query = collections.defaultdict(dict) # type: Mapping[CachedQueryInfos, Mapping[int, _ProdArray]]
-
-    @property
-    def address(self):
-        return '/Raster{}/Producer'.format(self._raster.uid)
+        self.address = '/Raster{}/Producer'.format(self._raster.uid)
 
     @property
     def alive(self):
