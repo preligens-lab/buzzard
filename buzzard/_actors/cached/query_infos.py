@@ -145,7 +145,7 @@ class CachedQueryInfos(object):
         list_of_prod_resample_sample_dep_fp = [] # type: List[Mapping[ResampleFootprint, Union[None, SampleFootprint]]]
         to_zip.append(list_of_prod_resample_sample_dep_fp)
 
-        print = lambda *_: None # Disabling verbose
+        # print = lambda *_: None # Disabling verbose
 
         it = zip(list_of_prod_fp, list_of_prod_same_grid, list_of_prod_share_area)
         print('- CachedQueryInfos -------------------------------------', raster.fp.scale)

@@ -151,9 +151,14 @@ def _cache_file_write(array,
         dir_path, 'tmp_' + filename_prefix + str(uuid.uuid4()) + filename_suffix
     )
 
+    options = [
+        "TILED=YES",
+        "BLOCKXSIZE=256", "BLOCKYSIZE=256",
+        "SPARSE_OK=TRUE",
+    ]
     assert array.ndim == 3
     with create_raster(src_path, cache_fp, array.dtype, array.shape[-1], band_schema,
-                       sr=sr).close as r:
+                       sr=sr, options=options).close as r:
         r.set_data(array, band=-1)
 
     # Step 2. md5 hash file
