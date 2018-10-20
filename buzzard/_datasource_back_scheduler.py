@@ -39,13 +39,14 @@ class BackDataSourceSchedulerMixin(object):
                     "DataSource's scheduler crashed without exception. Did you call `exit()`?"
                 )
 
-    def put_message(self, msg):
-        self.ensure_scheduler_living()
+    def put_message(self, msg, check_scheduler_status=True):
+        if check_scheduler_status:
+            self.ensure_scheduler_living()
+
         # a list is thread-safe: https://stackoverflow.com/a/6319267/4952173
         self._ext_message_to_scheduler_queue.append(msg)
 
     def stop_scheduler(self):
-        assert not self._stop
         self._stop = True
 
     # Private methods *************************************************************************** **

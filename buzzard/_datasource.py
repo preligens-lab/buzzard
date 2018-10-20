@@ -1121,6 +1121,9 @@ class DataSource(DataSourceRegisterMixin):
         """Retrieve proxy count registered in this DataSource"""
         return len(self._keys_of_proxy)
 
+    def __del__(self): # TODO: `ds.close()`
+        self._back.stop_scheduler()
+
     # Spatial reference getters ********************************************* **
     @property
     def proj4(self):

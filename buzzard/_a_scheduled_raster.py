@@ -51,7 +51,7 @@ class ABackScheduledRaster(ABackProxyRaster):
         # print('ABackScheduledRaster.close', id(self))
         self.back_ds.put_message(Msg(
             '/Global/TopLevel', 'kill_raster', self,
-        ))
+        ), check_scheduler_status=False)
         return super().close()
 
     def queue_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
