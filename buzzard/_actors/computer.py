@@ -122,12 +122,11 @@ class ActorComputer(object):
         return [Msg('ComputationAccumulator', 'combine_this_array', work_job.compute_fp, res)]
 
     def _normalize_user_result(self, compute_fp, res):
-        try:
-            res = np.atleast_3d(res)
-        except:
-            raise ValueError("Result of recipe's `compute_array` have type {}, it can't be converted to ndarray".format(
+        if not isinstance(res, np.ndarray):
+            raise ValueError("Result of recipe's `compute_array` have type {}, it should be ndarray".format(
                 type(res)
             ))
+        res = np.atleast_3d(res)
         y, x, c = res.shape
         if (y, x) != tuple(compute_fp.shape):
             raise ValueError("Result of recipe's `compute_array` have shape `{}`, should start with {}".format(
