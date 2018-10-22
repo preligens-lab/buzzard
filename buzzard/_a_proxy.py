@@ -45,6 +45,10 @@ class AProxy(object):
         """
         return self._back.proj4_virtual
 
+    def get_keys(self):
+        """Get the list the keys under which this proxy is registed in the DataSource"""
+        return list(self._ds._keys_of_proxy[self])
+
     @property
     def close(self):
         """Close a proxy with a call or a context management.
