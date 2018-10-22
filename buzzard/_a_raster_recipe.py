@@ -2,7 +2,20 @@ from buzzard._a_scheduled_raster import ABackScheduledRaster, AScheduledRaster
 
 class ARasterRecipe(AScheduledRaster):
     """TODO: docstring"""
-    pass
+
+    @property
+    def primitives(self):
+        # TODO: differenciate _datasource_register and _datasource_back_register for this job
+        # TODO: Make sure primitives come from the same datasource
+        d = {}
+        for key, back in self._back.primitives_back.items():
+            for facade in self._ds._keys_of_proxy.keys():
+                if facade._back is back:
+                    d[key] = facade
+                    break
+            else:
+                assert False
+        return d
 
 class ABackRasterRecipe(ABackScheduledRaster):
     """TODO: docstring"""
