@@ -1124,6 +1124,11 @@ class DataSource(DataSourceRegisterMixin):
     def __del__(self): # TODO: `ds.close()`
         self._back.stop_scheduler()
 
+    def items(self):
+        """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
+        for proxy, keys in self._keys_of_proxy.items():
+            yield list(keys), proxy
+
     # Spatial reference getters ********************************************* **
     @property
     def proj4(self):

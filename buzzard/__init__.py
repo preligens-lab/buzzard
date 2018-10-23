@@ -22,6 +22,9 @@ from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._numpy_raster import NumpyRaster
 from buzzard._gdal_file_vector import GDALFileVector
 from buzzard._gdal_memory_vector import GDALMemoryVector
+from buzzard._cached_raster_recipe import CachedRasterRecipe
+
+# TODO: Export the new concrete classes
 
 from buzzard._env import Env, env
 import buzzard.srs
