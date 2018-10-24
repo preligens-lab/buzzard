@@ -1,5 +1,7 @@
 import collections
 import weakref
+import glob
+import os
 
 import numpy as np
 import rtree.index # TODO: add rtree to deps
@@ -34,7 +36,8 @@ class CachedRasterRecipe(ARasterRecipe):
         computation_pool, merge_pool, io_pool, resample_pool,
         cache_tiles, computation_tiles,
         max_resampling_size,
-        debug_observers,
+
+            debug_observers,
     ):
         back = BackCachedRasterRecipe(
             ds._back,
@@ -52,6 +55,10 @@ class CachedRasterRecipe(ARasterRecipe):
     @property
     def cache_tiles(self):
         return self._back.cache_fps.copy()
+
+    @property
+    def cache_dir(self):
+        return self._back.cache_dir
 
 class BackCachedRasterRecipe(ABackRasterRecipe):
     """TODO: docstring"""
@@ -136,6 +143,11 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             self.fp.spatial_to_raster(cache_fp.tl),
         ]
         return "x{:03d}-y{:03d}_x{:05d}-y{:05d}".format(*params) # TODO: better file name
+
+    def list_cache_path_candidates(self, cache_fp):
+        prefix = self.fname_prefix_of_cache_fp(cache_fp)
+        s = os.path.join(self.cache_dir, prefix + '_[0123456789abcdef]*.tif')
+        return glob.glob(s)
 
     def create_actors(self):
         actors = [

@@ -1,8 +1,6 @@
 import enum
-import os
 import collections
 import itertools
-import glob
 import logging
 
 from buzzard._actors.message import Msg
@@ -62,7 +60,7 @@ class ActorCacheSupervisor(object):
                 query.cache_fps_to_compute.add(cache_fp)
 
             elif status == _CacheTileStatus.unknown:
-                path_candidates = self._list_cache_path_candidates(cache_fp)
+                path_candidates = self._raster.list_cache_path_candidates(cache_fp)
                 if len(path_candidates) == 1:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.checking
                     self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'unknown')
@@ -204,11 +202,6 @@ class ActorCacheSupervisor(object):
         assert qi.cache_computation is None
         qi.cache_computation = CacheComputationInfos(qi, self._raster, cache_fps)
         return [Msg('ComputationGate1', 'compute_those_cache_files', qi)]
-
-    def _list_cache_path_candidates(self, cache_fp):
-        prefix = self._raster.fname_prefix_of_cache_fp(cache_fp)
-        s = os.path.join(self._raster.cache_dir, prefix + '_[0123456789abcdef]*.tif')
-        return glob.glob(s)
 
     # ******************************************************************************************* **
 
