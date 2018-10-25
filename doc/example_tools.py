@@ -8,6 +8,7 @@ import urllib.request
 from concurrent.futures import ProcessPoolExecutor
 import http.client
 import os
+import uuid
 
 import buzzard as buzz
 import matplotlib.pyplot as plt
@@ -15,6 +16,24 @@ import xmltodict
 import buzzard as buzz
 import numpy as np
 from tqdm import tqdm
+import scipy.ndimage as ndi
+import skimage.morphology as skm
+
+def create_random_elevation_gtiff():
+    path = f'{uuid.uuid4()}.tif'
+    fp = buzz.Footprint(
+        tl=(2000, 2100),
+        size=(1000, 1000),
+        rsize=(10000, 10000),
+    )
+    arr = np.random.rand(*fp.shape)
+    kernel = skm.disk(3)
+    arr = ndi.convolve(arr, kernel / kernel.sum())
+    arr -= arr.min()
+    arr *= 100
+    with buzz.create_raster(path, fp, 'float32', 1).close as r:
+        r.set_data(arr)
+    return path
 
 class Timer():
 
@@ -29,7 +48,7 @@ class Timer():
     def __str__(self):
         dt = self._stop - self._start
         dt = dt.total_seconds()
-        return '{:.2}s'.format(dt)
+        return '{:.4f}s'.format(dt)
 
 def list_cache_files_path_in_dir(cache_dir):
     s = os.path.join(cache_dir, '*_[0123456789abcdef]*.tif')

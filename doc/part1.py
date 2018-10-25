@@ -1,10 +1,13 @@
 """
-# Part 1: A GDAL elevation file opened in the scheduler
-By default in buzzard when calling `get_data()` on a file opened with a gdal driver, all the data is read at once (using one `gdal.Band.ReadAsArray`), and all the optional resampling is performed at once (using one `cv2.remap` for example). When performing this operation on a large chunk of data it would be much more efficient to read and resample tile by tile in parallel, and then perform reading and resampling at the same time. To do so, the `scheduled` parameter in `open_raster` (or `create_raster`) should be `True` (or `{params}`).
+Part 1: A raster file configured to be read asynchronously
 
-Another feature unlocked by using a sheduled raster to read a file is the `iter_data()` method. This method does not return an `ndarray` but an `iterator of ndarray` and it takes as parameter not one `Footprint` but a `list of Footprint` to generate. Using this method allows the system to prepare data in advance.
+ By default in buzzard when calling `get_data()` on a raster file opened normally, all the data is read from disk at once (using one `gdal.Band.ReadAsArray()` for example), and all the optional resampling is performed in one step (using one `cv2.remap()` for example). When performing this operation on a large chunk of data, it would be much more efficient to read and resample __tile by tile to parallelize__ those tasks. To do so, use `scheduled=True` in `open_raster()` and `create_raster()`.
 
-It also takes an optional `max_queue_size=5` parameter to determine how much `ndarray` should be made available in advance. This features allows you to prevent backpressure if you consume the `iterator of ndarray` too slowly.
+Another feature unlocked by using a sheduled raster to read a file is the `iter_data()` method. This method does not return an _ndarray_, like `get_data()` does, but an _iterator of ndarray_ and it takes as parameter not one _Footprint_ but a _list of Footprint_ to generate. By using this method the next array to be yielded is prepared in priority and the next ones are also prepared at the same time if there are enough workers available. You can control how much arrays can be made available in advance by setting the optional `max_queue_size=5` parameter of the `iter_data()` method, this allows you to __prevent backpressure__ if you consume the _iterator of ndarray_ too slowly.
+
+As seen before, the `scheduled` parameter can be a boolean, but instead of `True` you can also pass a _dict of options_ to parameterize how the raster is handled in the background. Some options control the amount of chunking to perform for the read and resampling steps, some other options allow you to choose the two _thread pools_ that will be used for reading and resampling. By default a single pool is shared by all rasters for _io_ operations (like reading a file), and another pool is shared by all rasters for cpu intensive operations (like resampling).
+
+This kind of __ressource sharing__ between rasters is not trivial and requires some synchronization. To do so, a thread (called the _scheduler_) is spawned in the `DataSource` to manage the queries to rasters. As you will see in the next parts, the _scheduler_ is able to manage other kind of rasters.
 """
 
 import time
@@ -13,7 +16,28 @@ import buzzard as buzz
 
 import example_tools
 
+def main():
+    path = example_tools.create_random_elevation_gtiff()
+    ds = buzz.DataSource(allow_interpolation=True)
+
+    # Classic opening. Features:
+    # - Disk reads are not tiled
+    # - Resampling operations are not tiled
+    with ds.aopen_raster(path).close as r:
+        test_raster(r)
+
+    # Opening with scheduler. Features:
+    # - Disk reads are automatically tiled and parallelized
+    # - Resampling operations are automatically tiled and parallelized
+    # - `iter_data()` method is available
+    with ds.aopen_raster(path, scheduled=True).close as r:
+        # `scheduled=True` is equivalent to
+        # `scheduled={}`, and also equivalent to
+        # `scheduled={io_pool='io', resample_pool='cpu', max_resampling_size=512, max_read_size=512}`
+        test_raster(r)
+
 def test_raster(r):
+    """Basic testing functions. It will be reused throughout those tests"""
     print('Test 1 - Print raster informations') # *************************** **
     fp = r.fp
     fp_lowres = fp.intersection(fp, scale=fp.scale * 2)
@@ -22,58 +46,43 @@ def test_raster(r):
     print(f'  Footprint: center:{fp.c}, scale:{fp.scale}')
     print(f'             size:{fp.size}, raster-size:{fp.rsize}')
 
+    # Read the raster a first time to limit the impact of page caching in the
+    # results. https://en.wikipedia.org/wiki/Page_cache
+    r.get_data()
+
     print('Test 2 - Reading/computing the full raster') # ******************* **
     with example_tools.Timer() as t:
         arr = r.get_data()
-    print('  array: px-width:{}, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
+    print('  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
         fp.pxsizex, arr.dtype, arr.shape, arr.mean(),
     ))
-    print(f'  took {t:.1f}')
+    print(f'  took {t}')
 
     print('Test 3 - Reading/computing and downsampling the full raster') # ** **
     with example_tools.Timer() as t:
         arr = r.get_data(fp=fp_lowres)
-    print('  array: px-width:{}, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
+    print('  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
         fp_lowres.pxsizex, arr.dtype, arr.shape, arr.mean(),
     ))
-    print(f'  took {t:.1f}')
+    print(f'  took {t}')
 
-    print('Test 4 - Test reading/computing 9 consecutive arrays') # ********* **
-    tiles = fp.tile_count(3, 3, boundary_effect='shrink')
+    print('Test 4 - Reading/computing the full raster in 9 tiles') # ******** **
+    tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
     if hasattr(r, 'iter_data'):
         # Using `iter_data` of scheduled rasters
-        arr_iterator = r.iter_data(tiles.flat)
+        arr_iterator = r.iter_data(tiles)
     else:
         # Making up an `iter_data` for classic rasters
         arr_iterator = (
             r.get_data(fp=tile)
-            for tile in tiles.flat
+            for tile in tiles
         )
     with example_tools.Timer() as t:
-        for tile, arr in zip(tiles.flat, arr_iterator):
-            print('  array: px-width:{}, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
+        for tile, arr in zip(tiles, arr_iterator):
+            print('  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
                 tile.pxsizex, arr.dtype, arr.shape, arr.mean(),
             ))
-            time.sleep(0.1) # Simulate a blocking task on this thread
-    print(f'  took {t:.1f}\n')
-
+    print(f'  took {t}\n')
 
 if __name__ == '__main__':
-    path = example_tools.create_random_elevation_gtiff()
-    ds = buzz.DataSource(allow_interpolation=True)
-
-    with ds.open_raster(path).close as r:
-        # Disk reads are not tiled
-        # Resampling operations are not tiled
-        test_raster(r)
-
-    with ds.open_raster(
-            path,
-            scheduled=True,
-            # Using `True` for `scheduled` is equivalent to
-            # `{io_pool='io', resample_pool='cpu', max_resampling_size=512, max_read_size=512}`
-    ).close as r:
-        # Disk reads are automatically tiled and parallelized
-        # Resampling operations are automatically tiled and parallelized
-        # `t.iter_data` internally fills a bounded queue with the results
-        test_raster(r)
+    main()
