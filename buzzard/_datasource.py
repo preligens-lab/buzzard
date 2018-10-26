@@ -1129,6 +1129,11 @@ class DataSource(DataSourceRegisterMixin):
         for proxy, keys in self._keys_of_proxy.items():
             yield list(keys), proxy
 
+    def values(self):
+        """Generate all proxies"""
+        for proxy, _ in self._keys_of_proxy.items():
+            yield proxy
+
     # Spatial reference getters ********************************************* **
     @property
     def proj4(self):
