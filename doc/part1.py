@@ -3,7 +3,9 @@ Part 1: A raster file configured to be read asynchronously
 
  By default in buzzard when calling `get_data()` on a raster file opened normally, all the data is read from disk at once (using one `gdal.Band.ReadAsArray()` for example), and all the optional resampling is performed in one step (using one `cv2.remap()` for example). When performing this operation on a large chunk of data, it would be much more efficient to read and resample __tile by tile to parallelize__ those tasks. To do so, use `scheduled=True` in `open_raster()` and `create_raster()`.
 
-Another feature unlocked by using a sheduled raster to read a file is the `iter_data()` method. This method does not return an _ndarray_, like `get_data()` does, but an _iterator of ndarray_ and it takes as parameter not one _Footprint_ but a _list of Footprint_ to generate. By using this method the next array to be yielded is prepared in priority and the next ones are also prepared at the same time if there are enough workers available. You can control how much arrays can be made available in advance by setting the optional `max_queue_size=5` parameter of the `iter_data()` method, this allows you to __prevent backpressure__ if you consume the _iterator of ndarray_ too slowly.
+Another feature unlocked by using a sheduled raster to read a file is the `iter_data()` method. Compared to the `get_data()` method that takes a _Footprint_ and return an _ndarray_, this new method takes a _list of Footprint_ and return an _iterator of ndarray_.
+
+By using this method the next array to be yielded is prepared in priority and the next ones are also prepared at the same time if there are enough workers available. You can control how much arrays can be made available in advance by setting the optional `max_queue_size=5` parameter of the `iter_data()` method, this allows you to __prevent backpressure__ if you consume the _iterator of ndarray_ too slowly.
 
 As seen before, the `scheduled` parameter can be a boolean, but instead of `True` you can also pass a _dict of options_ to parameterize how the raster is handled in the background. Some options control the amount of chunking to perform for the read and resampling steps, some other options allow you to choose the two _thread pools_ that will be used for reading and resampling. By default a single pool is shared by all rasters for _io_ operations (like reading a file), and another pool is shared by all rasters for cpu intensive operations (like resampling).
 
@@ -56,7 +58,7 @@ def test_raster(r):
     print('  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
         fp.pxsizex, arr.dtype, arr.shape, arr.mean(),
     ))
-    print(f'  took {t}')
+    print(f'  took {t}, {fp.rarea / float(t):_.0f}pixel/sec')
 
     print('Test 3 - Reading/computing and downsampling the full raster') # ** **
     with example_tools.Timer() as t:
@@ -64,7 +66,7 @@ def test_raster(r):
     print('  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
         fp_lowres.pxsizex, arr.dtype, arr.shape, arr.mean(),
     ))
-    print(f'  took {t}')
+    print(f'  took {t}, {fp_lowres.rarea / float(t):_.0f}pixel/sec')
 
     print('Test 4 - Reading/computing the full raster in 9 tiles') # ******** **
     tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
@@ -82,7 +84,7 @@ def test_raster(r):
             print('  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'.format(
                 tile.pxsizex, arr.dtype, arr.shape, arr.mean(),
             ))
-    print(f'  took {t}\n')
+    print(f'  took {t}, {r.fp.rarea / float(t):_.0f}pixel/sec')
 
 if __name__ == '__main__':
     main()
