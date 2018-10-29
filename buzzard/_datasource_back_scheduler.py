@@ -4,18 +4,20 @@ import threading
 
 from buzzard._actors.top_level import ActorTopLevel
 from buzzard._actors.message import Msg, DroppableMsg
+from buzzard._debug_observers_manager import DebugObserversManager
 
 VERBOSE = 0
 
 class BackDataSourceSchedulerMixin(object):
 
-    def __init__(self, ds_id, **kwargs):
+    def __init__(self, ds_id, debug_observers, **kwargs):
         self._ext_message_to_scheduler_queue = []
         self._thread = None
         self._thread_exn = None
         self._ds_id = ds_id
         self._stop = False
         self._started = False
+        self._debug_mngr = DebugObserversManager(debug_observers)
         super().__init__(**kwargs)
 
     # Public methods **************************************************************************** **
@@ -52,7 +54,9 @@ class BackDataSourceSchedulerMixin(object):
     # Private methods *************************************************************************** **
     def _exception_catcher(self):
         try:
+            self._debug_mngr.event('scheduler_activity_update', True)
             self._scheduler_loop_until_datasource_close()
+            self._debug_mngr.event('scheduler_activity_update', False)
         except Exception as e:
             self._thread_exn = e
             raise
@@ -100,6 +104,7 @@ class BackDataSourceSchedulerMixin(object):
                 del actors[grp_name]
             if hasattr(a, 'ext_receive_nothing'):
                 keep_alive_actors.remove(a)
+
 
         # Dicts of actors
         actors = collections.defaultdict(dict) # type: Mapping[str, Mapping[str, Actor]]
@@ -202,6 +207,8 @@ class BackDataSourceSchedulerMixin(object):
             # Step 4: If no messages from phase 2 nor from phase 3
             #   Sleep
             if not piles_of_msgs:
+                self._debug_mngr.event('scheduler_activity_update', False)
+
                 # print('DataSource', id(self), 'loop', len(actors))
                 time.sleep(1 / 20)
                 # print('++++++++++++++++++++')
@@ -209,6 +216,7 @@ class BackDataSourceSchedulerMixin(object):
                 #     if v is not None:
                 #         print('   ', k, v)
                 # print('++++++++++++++++++++')
+                self._debug_mngr.event('scheduler_activity_update', True)
 
 
             # Step 5: Check if DataSource was collected

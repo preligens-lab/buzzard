@@ -63,6 +63,7 @@ class DataSource(DataSourceRegisterMixin):
     assert_no_change_on_activation: bool
         When activating a deactivated file, check that the definition did not change
         (see `Sources activation / deactivation` below)
+    debug_observers: sequence
 
     Example
     -------
@@ -197,6 +198,7 @@ class DataSource(DataSourceRegisterMixin):
                  allow_none_geometry=False,
                  allow_interpolation=False,
                  max_active=np.inf,
+                 debug_observers=(),
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
@@ -251,6 +253,7 @@ class DataSource(DataSourceRegisterMixin):
             allow_interpolation=allow_interpolation,
             max_active=max_active,
             ds_id=id(self),
+            debug_observers=debug_observers,
         )
         super(DataSource, self).__init__()
 
