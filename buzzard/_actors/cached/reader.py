@@ -125,13 +125,17 @@ class ActorReader(object):
                 np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
                 self._raster.dtype,
             )
+            self._raster.debug_mngr.event(
+                'object_allocated',
+                self._sample_array_per_prod_tile[qi][prod_idx]
+            )
             self._missing_cache_fps_per_prod_tile[qi][prod_idx] = set(qi.prod[prod_idx].cache_fps)
 
         dst_array = self._sample_array_per_prod_tile[qi][prod_idx]
         return Work(self, qi, prod_idx, cache_fp, path, dst_array)
 
     def _commit_work_result(self, job, result):
-        if self._same_address_space:
+        if self._raster.io_pool is None or self._same_address_space:
             assert result is None
         else:
             # TODO: Warn that process_pool for io_pool is not smart lol
@@ -178,10 +182,9 @@ class Work(PoolJobWorking):
         full_sample_fp = qi.prod[prod_idx].sample_fp
         sample_fp = full_sample_fp & cache_fp
 
-        # dst_array = actor._sample_array_per_prod_tile[qi][prod_idx]
         dst_array_slice = dst_array[sample_fp.slice_in(full_sample_fp)]
 
-        if actor._same_address_space:
+        if actor._raster.io_pool is None or actor._same_address_space:
             func = functools.partial(
                 _cache_file_read,
                 path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
@@ -192,7 +195,7 @@ class Work(PoolJobWorking):
                 _cache_file_read,
                 path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, None,
             )
-
+        actor._raster.debug_mngr.event('object_allocated', func)
         super().__init__(actor.address, func)
 
 def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
@@ -250,15 +253,18 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
     # Perform read
     rtlx, rtly = cache_fp.spatial_to_raster(sample_fp.tl)
     for i, bi in enumerate(band_ids):
-        a = gdal_ds.GetRasterBand(bi).ReadAsArray(
+        b = gdal_ds.GetRasterBand(bi)
+        a = b.ReadAsArray(
             int(rtlx),
             int(rtly),
             int(sample_fp.rsizex),
             int(sample_fp.rsizey),
             buf_obj=dst[..., i],
         )
+        del b
         if a is None:
             raise RuntimeError('Could not read band_id {}'.format(bi))
+    del gdal_ds
 
     # Return
     return ret

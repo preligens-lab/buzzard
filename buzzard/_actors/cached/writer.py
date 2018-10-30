@@ -41,7 +41,7 @@ class ActorWriter(object):
 
         if self._raster.io_pool is None:
             # No `io_pool` provided by user, perform write operation right now on this thread.
-            work = Work(self, job.cache_fp, job.array)
+            work = Work(self, cache_fp, array)
             path = work.func()
             msgs += [Msg('CacheSupervisor', 'cache_file_written', cache_fp, path)]
         else:
@@ -114,6 +114,7 @@ class Work(PoolJobWorking):
             {'nodata': actor._raster.nodata},
             actor._raster.wkt_stored,
         )
+        actor._raster.debug_mngr.event('object_allocated', func)
 
         super().__init__(actor.address, func)
 

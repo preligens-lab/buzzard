@@ -1,6 +1,7 @@
 import collections
 import time
 import threading
+import datetime # debug
 
 from buzzard._actors.top_level import ActorTopLevel
 from buzzard._actors.message import Msg, DroppableMsg
@@ -29,6 +30,7 @@ class BackDataSourceSchedulerMixin(object):
                 daemon=True,
             )
             self._thread.start()
+            self._debug_mngr.event('object_allocated', self._thread)
         else:
             self.ensure_scheduler_still_alive()
 
@@ -54,9 +56,11 @@ class BackDataSourceSchedulerMixin(object):
     # Private methods *************************************************************************** **
     def _exception_catcher(self):
         try:
+            self._debug_mngr.event('scheduler_starting')
             self._debug_mngr.event('scheduler_activity_update', True)
             self._scheduler_loop_until_datasource_close()
             self._debug_mngr.event('scheduler_activity_update', False)
+            self._debug_mngr.event('scheduler_stopping')
         except Exception as e:
             self._thread_exn = e
             raise
@@ -144,7 +148,11 @@ class BackDataSourceSchedulerMixin(object):
                             # This message may be discarted
                             assert isinstance(msg, DroppableMsg), '\n{}\n{}\n'.format(dst_actor, msg)
                         else:
+                            a = datetime.datetime.now()
                             new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)
+                            b = datetime.datetime.now()
+                            delta = (b - a).total_seconds()
+                            self._debug_mngr.event('message_passed', dst_actor.__class__.__name__, msg.title, delta)
                             if self._stop:
                                 # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
                                 return
@@ -182,7 +190,13 @@ class BackDataSourceSchedulerMixin(object):
                 actors_to_remove = []
                 for actor, _ in zip(keep_alive_iterator, range(len(keep_alive_actors))):
                     # Iter at most once on each "keep alive" actor
+
+                    a = datetime.datetime.now()
                     new_msgs = actor.ext_receive_nothing()
+                    b = datetime.datetime.now()
+                    delta = (b - a).total_seconds()
+                    self._debug_mngr.event('message_passed', actor.__class__.__name__, 'nothing', delta)
+
                     if self._stop:
                         # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
                         return

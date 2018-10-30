@@ -64,6 +64,8 @@ class ActorQueriesHandler(object):
             max_queue_size,
             parent_uid, key_in_parent,
         )
+        self._raster.debug_mngr.event('object_allocated', qi)
+
         q = _Query(queue_wref)
         self._queries[qi] = q
         msgs += [

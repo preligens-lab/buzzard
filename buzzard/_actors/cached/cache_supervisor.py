@@ -201,6 +201,7 @@ class ActorCacheSupervisor(object):
         ]
         assert qi.cache_computation is None
         qi.cache_computation = CacheComputationInfos(qi, self._raster, cache_fps)
+        self._raster.debug_mngr.event('object_allocated', qi.cache_computation)
         return [Msg('ComputationGate1', 'compute_those_cache_files', qi)]
 
     # ******************************************************************************************* **

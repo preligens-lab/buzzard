@@ -86,6 +86,7 @@ class Work(PoolJobWorking):
             _cache_file_check,
             cache_fp, path, len(actor._raster), actor._raster.dtype,
         )
+        actor._raster.debug_mngr.event('object_allocated', func)
         super().__init__(actor.address, func)
 
 def _md5(fname):

@@ -23,4 +23,14 @@ class BackDataSourcePools(object):
             ))
         if pool_param not in self._pool_cache:
             self._pool_cache[pool_param] = mp.pool.ThreadPool(mp.cpu_count())
+            self._debug_mngr.event('object_allocated', self._pool_cache[pool_param])
         return self._pool_cache[pool_param]
+
+    def join_all_pools(self):
+        for pool in self._pool_cache.values():
+            if pool is not None:
+                pool.close()
+        for pool in self._pool_cache.values():
+            if pool is not None:
+                pool.join()
+        self._pool_cache.clear()

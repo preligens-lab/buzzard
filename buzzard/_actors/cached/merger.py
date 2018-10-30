@@ -147,5 +147,6 @@ class Work(PoolJobWorking):
                 array_per_fp,
                 None
             )
+        actor._raster.debug_mngr.event('object_allocated', func)
 
         super().__init__(actor.address, func)

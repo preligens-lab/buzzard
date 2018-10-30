@@ -166,6 +166,8 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             ActorProductionGate(self),
             ActorResampler(self),
         ]
+        for a in actors:
+            self.debug_mngr.event('object_allocated', a)
         return actors
 
     # ******************************************************************************************* **

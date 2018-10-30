@@ -45,6 +45,7 @@ class ActorComputer(object):
             if compute_fp not in self._performed_computations:
                 res = work.func()
                 res = self._normalize_user_result(compute_fp, res)
+                self._raster.debug_mngr.event('object_allocated', res)
                 self._performed_computations.add(compute_fp)
                 msgs += self._commit_work_result(work, res)
         else:
@@ -75,6 +76,7 @@ class ActorComputer(object):
 
     def receive_job_done(self, job, result):
         result = self._normalize_user_result(job.compute_fp, result)
+        self._raster.debug_mngr.event('object_allocated', result)
         self._working_jobs.remove(job)
         return self._commit_work_result(job, result)
 
@@ -188,5 +190,6 @@ class Work(PoolJobWorking):
                 primitive_arrays,
                 None,
             )
+        actor._raster.debug_mngr.event('object_allocated', func)
 
         super().__init__(actor.address, func)

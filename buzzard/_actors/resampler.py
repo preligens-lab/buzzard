@@ -111,6 +111,7 @@ class ActorResampler(object):
                         arr[slices][arr == self._raster.nodata] = qi.dst_nodata
                     arr = _reorder_channels(qi, arr)
 
+                self._raster.debug_mngr.event('object_allocated', arr)
                 msgs += [Msg(
                     'Producer', 'made_this_array', qi, prod_idx, arr
                 )]
@@ -191,6 +192,10 @@ class ActorResampler(object):
                 np.r_[pi.fp.shape, len(qi.band_ids)],
                 qi.dst_nodata, self._raster.dtype,
             )
+            self._raster.debug_mngr.event(
+                'object_allocated',
+                self._prod_array_of_prod_tile[qi][prod_idx],
+            )
             self._missing_resample_fps_per_prod_tile[qi][prod_idx] = set(pi.resample_fps)
         arr = self._prod_array_of_prod_tile[qi][prod_idx]
 
@@ -209,7 +214,7 @@ class ActorResampler(object):
 
         self._missing_resample_fps_per_prod_tile[qi][prod_idx].remove(resample_fp)
 
-        if not self._same_address_space:
+        if self._raster.resample_pool is not None and not self._same_address_space:
             work_job.dst_array_slice[:] = res
         else:
             assert res is None
@@ -277,6 +282,7 @@ class Work(PoolJobWorking):
                 actor._raster.nodata, qi.dst_nodata,
                 qi.interpolation, None,
             )
+        actor._raster.debug_mngr.event('object_allocated', func)
 
         super().__init__(actor.address, func)
 
@@ -300,7 +306,6 @@ def _resample_subsample_array(sample_fp, resample_fp, subsample_array, src_nodat
     -------
     None or np.ndarray of shape (Y', X')
     """
-
     # TODO: Inplace remap
     res = ABackProxyRasterRemapMixin.remap(
         src_fp=sample_fp, dst_fp=resample_fp,
