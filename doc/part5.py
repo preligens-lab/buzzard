@@ -1,8 +1,18 @@
+"""
+TODO: Talk about cache file checking
+TODO: Talk about computation_tiles
+TODO: Give credit to spacetelescope.org
+
+"""
+
 import functools
 import os
+import multiprocessing as mp
+import multiprocessing.pool
 
 import buzzard as buzz
 import numpy as np
+import skimage.io
 
 import example_tools
 
@@ -10,24 +20,72 @@ from part1 import test_raster
 
 ZOOMABLE_URLS = {
     'andromeda': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic1502a/',
+    # 'andromeda': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic1501a/', # Shape problem
+    # 'monocerotis': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic0503a/',
+
 }
+DOWNLOAD_POOL = mp.pool.ThreadPool(5)
 
-def download_tile(fp, *_, url_per_tile):
-    url = url_per_tile[fp]
+def main():
+    ds = buzz.DataSource(allow_interpolation=True)
+    open_zoomable_rasters(ds, 'andromeda')
 
+    # Test 1 - Perform basic tests ****************************************** **
+    test_raster(ds.andromeda_zoom0)
+    example_tools.show_several_images((
+        'andromeda_zoom0', ds.andromeda_zoom0.fp,
+        ds.andromeda_zoom0.get_data(band=-1)
+    ))
 
-def example():
-    ds = buzz.DataSource()
+    test_raster(ds.andromeda_zoom1)
+    example_tools.show_several_images((
+        'andromeda_zoom1', ds.andromeda_zoom1.fp,
+        ds.andromeda_zoom1.get_data(band=-1)
+    ))
 
-    andromeda_infos = example_tools.infos_of_zoomable_url(
-        ZOOMABLE_URLS['andromeda'], max_zoom=9, verbose=True
+    test_raster(ds.andromeda_zoom2)
+    example_tools.show_several_images((
+        'andromeda_zoom2', ds.andromeda_zoom2.fp,
+        ds.andromeda_zoom2.get_data(band=-1)
+    ))
+
+    # Test 2 - Test `get_data` timings ************************************** **
+    with example_tools.Timer() as t:
+        ds.andromeda_zoom5.get_data(band=-1)
+    print(f'Getting andromeda_zoom5 took {t}, download was performed')
+
+    with example_tools.Timer() as t:
+        ds.andromeda_zoom5.get_data(band=-1)
+    print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
+
+    print('Closing and opening andromeda rasters again...')
+    ds.close()
+    ds = buzz.DataSource(allow_interpolation=True)
+    open_zoomable_rasters(ds, 'andromeda')
+
+    with example_tools.Timer() as t:
+        ds.andromeda_zoom5.get_data(band=-1)
+    print(f'Getting andromeda_zoom5 took {t}, cached files validity was checked')
+
+    with example_tools.Timer() as t:
+        ds.andromeda_zoom5.get_data(band=-1)
+    print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
+
+    example_tools.show_several_images((
+        'andromeda_zoom5', ds.andromeda_zoom5.fp,
+        ds.andromeda_zoom5.get_data(band=-1)
+    ))
+
+def open_zoomable_rasters(ds, name):
+    infos = example_tools.infos_of_zoomable_url(
+        ZOOMABLE_URLS[name], max_zoom=8, verbose=False,
     )
-    for zoom_level, (fp, tiles, url_per_tile) in enumerate(zip(*andromeda_infos)):
-        print('Opening andromeda at zoom {}, {}x{} pixels for {} tiles total.'.format(
-            zoom_level, *fp.rsize, tiles.size,
+    for zoom_level, (fp, tiles, url_per_tile) in enumerate(zip(*infos)):
+        print('  Opening {} at zoom {}, {}x{} pixels within {} tiles.'.format(
+            name, zoom_level, *fp.rsize, tiles.size,
         ))
         ds.create_cached_raster_recipe(
-            key=f'andromeda_zoom{zoom_level}',
+            key=f'{name}_zoom{zoom_level}',
 
             fp=fp,
             dtype='uint8',
@@ -36,18 +94,26 @@ def example():
                 download_tile,
                 url_per_tile=url_per_tile
             ),
+            computation_pool=DOWNLOAD_POOL,
 
             cache_tiles=tiles,
-            cache_dir=f'andromeda_zoom{zoom_level}',
+            cache_dir=f'{name}_zoom{zoom_level}',
         )
-        print('d')
 
-
+def download_tile(fp, *_, url_per_tile):
+    """A function to be fed to `compute_array` when constructing a recipe"""
+    url = url_per_tile[fp]
+    arr = skimage.io.imread(url)
+    return arr
 
 if __name__ == '__main__':
-    for cache_dir in ZOOMABLE_URLS.keys():
-        if os.path.isdir(cache_dir):
-            for path in example_tools.list_cache_files_path_in_dir(cache_dir):
-                os.remove(path)
+    # Clean cache
+    for name in ZOOMABLE_URLS.keys():
+        for i in range(12):
+            cache_dir = f'{name}_zoom{i}'
+            if os.path.isdir(cache_dir):
+                for path in example_tools.list_cache_files_path_in_dir(cache_dir):
+                    os.remove(path)
+
     with buzz.Env(allow_complex_footprint=True, warnings=False):
-        example()
+        main()
