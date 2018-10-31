@@ -58,39 +58,39 @@ def test_raster(r):
 
     # Read the raster a first time to limit the impact of page caching in the
     # results. https://en.wikipedia.org/wiki/Page_cache
-    r.get_data()
+    r.get_data(band=-1)
     # ***************************************** **
 
     print('Test 2 - Getting the full raster')
     with example_tools.Timer() as t:
-        arr = r.get_data()
+        arr = r.get_data(band=-1)
     print_array_infos(fp, arr)
-    print(f'  took {t}, {fp.rarea / float(t):_.0f}pixel/sec')
+    print(f'  took {t}, {fp.rarea / float(t):_.0f} pixel/sec')
     # ***************************************** **
 
     print('Test 3 - Getting and downsampling the full raster')
     with example_tools.Timer() as t:
-        arr = r.get_data(fp=fp_lowres)
+        arr = r.get_data(fp=fp_lowres, band=-1)
     print_array_infos(fp_lowres, arr)
-    print(f'  took {t}, {fp_lowres.rarea / float(t):_.0f}pixel/sec')
+    print(f'  took {t}, {fp_lowres.rarea / float(t):_.0f} pixel/sec')
     # ***************************************** **
 
     print('Test 4 - Getting the full raster in 9 tiles with a slow main thread')
     tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
     if hasattr(r, 'iter_data'):
         # Using `iter_data` of scheduled rasters
-        arr_iterator = r.iter_data(tiles)
+        arr_iterator = r.iter_data(tiles, band=-1)
     else:
         # Making up an `iter_data` for classic rasters
         arr_iterator = (
-            r.get_data(fp=tile)
+            r.get_data(fp=tile, band=-1)
             for tile in tiles
         )
     with example_tools.Timer() as t:
         for tile, arr in zip(tiles, arr_iterator):
             print_array_infos(tile, arr)
             time.sleep(1 / 9)
-    print(f'  took {t}, {r.fp.rarea / float(t):_.0f}pixel/sec')
+    print(f'  took {t}, {r.fp.rarea / float(t):_.0f} pixel/sec')
     print_array_infos(fp_lowres, arr)
     # ***************************************** **
 

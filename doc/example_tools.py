@@ -51,7 +51,7 @@ class Timer():
         return dt
 
     def __str__(self):
-        return '{:.4f}s'.format(float(self))
+        return '\033[33m{:.4f}s\033[0m'.format(float(self))
 
 def list_cache_files_path_in_dir(cache_dir):
     s = os.path.join(cache_dir, '*_[0123456789abcdef]*.tif')
