@@ -75,6 +75,7 @@ class ActorWriter(object):
         result: str
             Path to the written file
         """
+        self._working_jobs.remove(job)
         return [Msg('CacheSupervisor', 'cache_file_written', job.cache_fp, result)]
 
     def receive_die(self):
