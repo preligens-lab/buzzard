@@ -1,6 +1,4 @@
 """
-TODO: Talk about cache file checking
-TODO: Talk about computation_tiles
 TODO: Give credit to spacetelescope.org
 
 """
@@ -21,7 +19,7 @@ from part1 import test_raster
 ZOOMABLE_URLS = {
     'andromeda': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic1502a/',
     # 'andromeda': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic1501a/', # Shape problem
-    # 'monocerotis': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic0503a/',
+    'monocerotis': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic0503a/',
 
 }
 DOWNLOAD_POOL = mp.pool.ThreadPool(5)
@@ -59,13 +57,13 @@ def main():
     print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
 
     print('Closing and opening andromeda rasters again...')
-    ds.close()
+    # ds.close() # TODO: `uncomment` or `close/reopen only the one`
     ds = buzz.DataSource(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda')
 
     with example_tools.Timer() as t:
         ds.andromeda_zoom5.get_data(band=-1)
-    print(f'Getting andromeda_zoom5 took {t}, cached files validity was checked')
+    print(f'Getting andromeda_zoom5 took {t}, cache files validity was checked')
 
     with example_tools.Timer() as t:
         ds.andromeda_zoom5.get_data(band=-1)
@@ -76,12 +74,20 @@ def main():
         ds.andromeda_zoom5.get_data(band=-1)
     ))
 
+    # Test 3 **************************************************************** **
+    open_zoomable_rasters(ds, 'monocerotis')
+    example_tools.show_several_images((
+        'monocerotis_zoom3', ds.monocerotis_zoom3.fp,
+        ds.monocerotis_zoom3.get_data(band=-1)
+    ))
+
+
 def open_zoomable_rasters(ds, name):
     infos = example_tools.infos_of_zoomable_url(
         ZOOMABLE_URLS[name], max_zoom=8, verbose=False,
     )
     for zoom_level, (fp, tiles, url_per_tile) in enumerate(zip(*infos)):
-        print('  Opening {} at zoom {}, {}x{} pixels within {} tiles.'.format(
+        print('  Opening {} at zoom {}, {}x{} pixels split between {} files'.format(
             name, zoom_level, *fp.rsize, tiles.size,
         ))
         ds.create_cached_raster_recipe(
@@ -107,13 +113,5 @@ def download_tile(fp, *_, url_per_tile):
     return arr
 
 if __name__ == '__main__':
-    # Clean cache
-    for name in ZOOMABLE_URLS.keys():
-        for i in range(12):
-            cache_dir = f'{name}_zoom{i}'
-            if os.path.isdir(cache_dir):
-                for path in example_tools.list_cache_files_path_in_dir(cache_dir):
-                    os.remove(path)
-
     with buzz.Env(allow_complex_footprint=True, warnings=False):
         main()

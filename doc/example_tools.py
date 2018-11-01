@@ -9,15 +9,17 @@ from concurrent.futures import ProcessPoolExecutor
 import http.client
 import os
 import uuid
+import gc
 
 import buzzard as buzz
-import matplotlib.pyplot as plt
 import xmltodict
 import buzzard as buzz
 import numpy as np
 from tqdm import tqdm
 import scipy.ndimage as ndi
 import skimage.morphology as skm
+import matplotlib
+import matplotlib.pyplot as plt
 
 def create_random_elevation_gtiff():
     path = f'{uuid.uuid4()}.tif'
@@ -51,17 +53,20 @@ class Timer():
         return dt
 
     def __str__(self):
-        return '\033[33m{:.4f}s\033[0m'.format(float(self))
+        return '\033[33m{:.4f} sec\033[0m'.format(float(self))
 
 def list_cache_files_path_in_dir(cache_dir):
     s = os.path.join(cache_dir, '*_[0123456789abcdef]*.tif')
     return glob.glob(s)
 
 def show_several_images(*args):
-
     for title, fp, arr in args:
         plt.imshow(arr, extent=fp.extent)
         plt.show()
+    plt.close('all')
+    gc.collect() # Collect to avoid some rare problem
+
+
 """
 # spacetelescope.org
 - https://www.spacetelescope.org/images/viewall/

@@ -19,16 +19,18 @@ import buzzard as buzz
 import example_tools
 
 def main():
-    path = example_tools.create_random_elevation_gtiff()
+    path = example_tools.create_random_elevation_gtiff() # TODO: tiled gtiff in construction
     ds = buzz.DataSource(allow_interpolation=True)
 
-    # Classic opening. Features:
+    print('Classic opening')
+    # Features:
     # - Disk reads are not tiled
     # - Resampling operations are not tiled
     with ds.aopen_raster(path).close as r:
         test_raster(r)
 
-    # Opening within scheduler. Features:
+    print('Opening within scheduler')
+    # Features:
     # - Disk reads are automatically tiled and parallelized
     # - Resampling operations are automatically tiled and parallelized
     # - `iter_data()` method is available
@@ -47,12 +49,14 @@ def main():
 
 def test_raster(r):
     """Basic testing functions. It will be reused throughout those tests"""
-    print('Test 1 - Print raster informations')
+    print('| Test 1 - Print raster informations')
     fp = r.fp
-    print(f'  type: {type(r)}')
-    print(f'  dtype: {r.dtype}')
-    print(f'  Footprint: center:{fp.c}, scale:{fp.scale}')
-    print(f'             size:{fp.size}, raster-size:{fp.rsize}')
+    if r.get_keys():
+        print(f'|   key: {r.get_keys()[0]}')
+    print(f'|   type: {type(r)}')
+    print(f'|   dtype: {r.dtype}, band-count: {len(r)}')
+    print(f'|   Footprint: center:{fp.c}, scale:{fp.scale}')
+    print(f'|              size(m):{fp.size}, raster-size(px):{fp.rsize}')
     fp_lowres = fp.intersection(fp, scale=fp.scale * 2)
     # ***************************************** **
 
@@ -61,21 +65,19 @@ def test_raster(r):
     r.get_data(band=-1)
     # ***************************************** **
 
-    print('Test 2 - Getting the full raster')
+    print('| Test 2 - Getting the full raster')
     with example_tools.Timer() as t:
         arr = r.get_data(band=-1)
-    print_array_infos(fp, arr)
-    print(f'  took {t}, {fp.rarea / float(t):_.0f} pixel/sec')
+    print(f'|   took {t}, {fp.rarea / float(t):_.0f} pixel/sec')
     # ***************************************** **
 
-    print('Test 3 - Getting and downsampling the full raster')
+    print('| Test 3 - Getting and downsampling the full raster')
     with example_tools.Timer() as t:
         arr = r.get_data(fp=fp_lowres, band=-1)
-    print_array_infos(fp_lowres, arr)
-    print(f'  took {t}, {fp_lowres.rarea / float(t):_.0f} pixel/sec')
+    print(f'|   took {t}, {fp_lowres.rarea / float(t):_.0f} pixel/sec')
     # ***************************************** **
 
-    print('Test 4 - Getting the full raster in 9 tiles with a slow main thread')
+    print('| Test 4 - Getting the full raster in 9 tiles with a slow main thread')
     tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
     if hasattr(r, 'iter_data'):
         # Using `iter_data` of scheduled rasters
@@ -88,15 +90,9 @@ def test_raster(r):
         )
     with example_tools.Timer() as t:
         for tile, arr in zip(tiles, arr_iterator):
-            print_array_infos(tile, arr)
             time.sleep(1 / 9)
-    print(f'  took {t}, {r.fp.rarea / float(t):_.0f} pixel/sec')
-    print_array_infos(fp_lowres, arr)
+    print(f'|   took {t}, {r.fp.rarea / float(t):_.0f} pixel/sec\n')
     # ***************************************** **
-
-def print_array_infos(fp, arr):
-    format_ = '  array: px-width:{:.2f}m, dtype:{}, shape:{}, mean-value:{:3.3f}'
-    print(format_.format(fp.pxsizex, arr.dtype, arr.shape, arr.mean()))
 
 if __name__ == '__main__':
     main()
