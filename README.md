@@ -167,7 +167,7 @@ pytest buzzard/buzzard/test
 Hosted soon, in the meantime
 - look at docstrings in code
 - get familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
-- play with the exemples in [examples.ipynb](./doc/examples.ipynb)
+- play with the examples in [examples.ipynb](./doc/examples.ipynb)
 
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.

@@ -10,7 +10,7 @@ class AEmissary(AStored):
     - Has a `driver` (like "GTiff" for GDAL's geotiff driver)
     - Has `open_options`
     - Has a `path` (if the driver supports it)
-    - Can deleted (if the driver supports it)
+    - Can be deleted (if the driver supports it)
     """
 
     @property

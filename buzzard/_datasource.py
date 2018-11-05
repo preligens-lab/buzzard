@@ -102,8 +102,9 @@ class DataSource(DataSourceRegisterMixin):
     -------------------
     There are always two ways to create source, with a key or anonymously.
 
-    When creating a source using a key, an identifier should be provided for this source (for
-    exemple the string "my_source_name"), there are three ways to access that source:
+    When creating a source using a key, said key (e.g. the string "my_source_name") must be provided
+    by user. Each key identify one source and should thus be unique. There are then three ways to
+    access that source:
     - from the object returned by the method that created the source,
     - from the DataSource with the attribute syntax: `ds.my_source_name`,
     - from the DataSource with the item syntax: ds["my_source_name"].
@@ -116,7 +117,7 @@ class DataSource(DataSourceRegisterMixin):
     ---------------------------------
     The sources that inherit from `APooledEmissary` (like `GDALFileVector` and `GDALFileRaster`) are
     flexible about their underlying driver object. Those sources may be temporary deactivated
-    (useful to limit the number of file descriptors active), or activated multiple time are the
+    (useful to limit the number of file descriptors active), or activated multiple time at the
     same time (useful to perfom concurrent reads).
 
     Those sources are automatically activated and deactivated given the current needs and
@@ -151,16 +152,16 @@ class DataSource(DataSourceRegisterMixin):
         often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
         `sr_virtual` to `sr_work`. When writing vector data, a conversion is performed from
         `sr_work` to `sr_virtual`.
-    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for exemple
+    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for example
         useful when the `sr` stored in the input files are corrupted.
     `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
-        for exemple useful when an input file can't store a `sr` (e.g. DFX).
+        for example useful when an input file can't store a `sr` (e.g. DFX).
 
     ### DataSource parameters and modes
     | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a source determined                                  |
     |------|---------|-------------|-----------|---------------------------------------------------------------------------------|
     | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this DataSource |
-    | 2    | string  | None        | None      | Use `sr_stored`, if None raise an exception                                     |
+    | 2    | string  | None        | None      | Use `sr_stored`, if None raises an exception                                    |
     | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                   |
     | 4    | string  | None        | string    | Use `sr_forced`                                                                 |
 
@@ -170,7 +171,8 @@ class DataSource(DataSourceRegisterMixin):
     - If all opened files are known to be written in the same sr but you wish to work in a different
         sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
         concerning spatial references have no impacts on the data you manipulate.
-    - If you don't have a priori informations on files' `sr`, `mode 2` and `mode 3` should be used.
+    - And the other hand if you don't have a priori information on files' `sr`, `mode 2` or
+       `mode 3` should be used.
        Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
            create a GeoJSON file in `mode 2`.
 
@@ -896,6 +898,9 @@ class DataSource(DataSourceRegisterMixin):
             raise RuntimeError("Can't activate all pooled sources at the same time: {} pooled sources and max_activated is {}".format(
                 total, self._back.max_active,
             ))
+
+        # Hacky implementation to get the expected behavior
+        # TODO: Implement that routine in the back driver pool
         i = 0
         for prox in itertools.cycle(proxs):
             if i == total:

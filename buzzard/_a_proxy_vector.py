@@ -16,10 +16,10 @@ class AProxyVector(AProxy):
     Features Defined
     ----------------
     - Has a `type` that defines the type of geometry (like "Polygon")
-    - Has `fields` that defines the type of informations that are paired with each geometries
-    - Has a `stored` extent that allows to retreive the current extent of all the geometries
+    - Has `fields` that define the type of informations that is paired with each geometries
+    - Has a `stored` extent that allows to retrieve the current extent of all the geometries
     - Has a length that indicates how many geometries this source contains.
-    - Has several read functions (like `iter_data`) to retreive geometries in their current state to
+    - Has several read functions (like `iter_data`) to retrieve geometries in their current state to
         shapely objects
     """
 

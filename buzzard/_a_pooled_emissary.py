@@ -15,7 +15,6 @@ class APooledEmissary(AEmissary):
     - An `active_count` property
     - An `active` property
     """
-    # """Emissary that has a notion of activation/deactivation (file descriptor)"""
 
     def activate(self):
         """Make sure that at least one driver object is active for this Raster/Vector"""
