@@ -12,12 +12,12 @@ from numba import jit
 import buzzard as buzz
 
 
-def generate_dsm(rsize=(15000, 15000),
+def generate_dsm(rsize=(16000, 16000),
                  resolution=0.03,
                  delta_z=(10, 110),
                  roughness=0.45,
                  nb_houses=5,
-                 verbose=True):
+                 verbose=False):
     """generates a `.tif` file containing an artificial dsm.
     the generated dsm does not have a projection, nor no_data values.
 
@@ -62,8 +62,6 @@ def generate_dsm(rsize=(15000, 15000),
     if verbose:
         print(f'  {fp}')
         print('  filename = ' + filename)
-    else:
-        print(filename)
 
     with ds.acreate_raster(filename, fp, dtype='float32', band_count=1, sr=None).close as out:
         out.set_data(dsm)
