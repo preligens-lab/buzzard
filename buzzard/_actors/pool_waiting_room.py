@@ -5,7 +5,7 @@ import functools
 import logging
 import uuid # For mypy
 
-import sortedcontainers # TODO: add to requirements.txt
+import sortedcontainers
 import numpy as np
 
 from buzzard._footprint import Footprint # For mypy

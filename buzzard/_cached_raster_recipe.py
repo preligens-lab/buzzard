@@ -4,7 +4,7 @@ import glob
 import os
 
 import numpy as np
-import rtree.index # TODO: add rtree to deps
+import rtree.index
 
 from buzzard._actors.message import Msg
 from buzzard import _tools

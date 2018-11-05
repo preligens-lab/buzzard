@@ -950,7 +950,6 @@ class DataSource(DataSourceRegisterMixin):
         queue_data_per_primitive: dict of callable
             should be the bound `queue_data` method of another ScheduledRaster in the same DataSource.
             can also be a functools.partial instance to that method
-            (see queue_data below) TODO
         convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint
         computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
@@ -1042,7 +1041,6 @@ class DataSource(DataSourceRegisterMixin):
         queue_data_per_primitive: dict of callable
             should be the bound `queue_data` method of another ScheduledRaster in the same DataSource
             can also be a functools.partial instance to that method
-            (see queue_data below) TODO
         convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint
         computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None

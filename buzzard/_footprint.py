@@ -1044,7 +1044,7 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Binary predicates ************************************************************************* **
     # Binary predicates - geometry ************************************************************** **
-    def __eq__(self, other): # TODO: Indicate in changelog the change
+    def __eq__(self, other):
         """Returns self.equals"""
         return self.equals(other)
 
