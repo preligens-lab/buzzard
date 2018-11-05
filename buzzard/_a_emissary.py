@@ -1,8 +1,17 @@
 from buzzard._a_stored import AStored, ABackStored
+
 from buzzard import _tools
 
 class AEmissary(AStored):
-    """Stored proxy that has a driver notion"""
+    """Base abstract class defining the common behavior of all sources that are backed by a driver.
+
+    Features Defined
+    ----------------
+    - Has a `driver` (like "GTiff" for GDAL's geotiff driver)
+    - Has `open_options`
+    - Has a `path` (if the driver supports it)
+    - Can be deleted (if the driver supports it)
+    """
 
     @property
     def driver(self):

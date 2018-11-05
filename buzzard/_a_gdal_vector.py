@@ -11,9 +11,7 @@ from buzzard._tools import conv
 from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
-    """Abstract class defining the common implementation of all vector file formats
-    defined by the OGR
-    """
+    """Abstract class defining the common implementation of all vector formats in OGR"""
 
     # extent/len implementation ***************************************************************** **
     @property

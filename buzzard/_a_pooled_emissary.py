@@ -1,7 +1,20 @@
 from buzzard._a_emissary import AEmissary, ABackEmissary
 
 class APooledEmissary(AEmissary):
-    """Emissary that has a notion of activation/deactivation (file descriptor)"""
+    """Base abstract class defining the common behavior of all sources that can deactivate and
+    reactivate their underlying driver at will.
+
+    This is useful to balance the number of active file descriptors.
+    This is useful to perform concurrent reads if the driver does no support it.
+
+    Features Defined
+    ----------------
+    - An `activate` method to manually open the driver (Mostly useless feature since opening
+        is automatic if necessary)
+    - A `deactivate` method to close the driver (Useful to flush data to disk)
+    - An `active_count` property
+    - An `active` property
+    """
 
     def activate(self):
         """Make sure that at least one driver object is active for this Raster/Vector"""

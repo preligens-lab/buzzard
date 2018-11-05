@@ -1,7 +1,13 @@
 from buzzard._a_proxy import AProxy, ABackProxy
 
 class AStored(AProxy):
-    """Proxy that has some kind of storage (RAM or disk), and opening mode"""
+    """Base abstract class defining the common behavior of all sources that are stored somewhere
+    (like RAM or disk).
+
+    Features Defined
+    ----------------
+    - Has an opening mode
+    """
 
     @property
     def mode(self):

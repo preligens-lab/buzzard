@@ -6,7 +6,13 @@ from buzzard._a_stored import AStored, ABackStored
 from buzzard._a_proxy_vector import AProxyVector, ABackProxyVector
 
 class AStoredVector(AStored, AProxyVector):
-    """Proxy that has both Stored and Vector specifications"""
+    """Base abstract class defining the common behavior of all vectors that are stored somewhere
+    (like RAM or disk).
+
+    Features Defined
+    ----------------
+    - Has an `insert_data` method that allows to write geometries to storage
+    """
 
     def insert_data(self, geom, fields=(), index=-1):
         """Insert a feature in vector.

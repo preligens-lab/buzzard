@@ -5,7 +5,14 @@ from osgeo import osr
 from buzzard import _tools
 
 class AProxy(object):
-    """Base abstract class defining the common behavior of all sources"""
+    """Base abstract class defining the common behavior of all sources opened in the DataSource.
+
+    Features Defined
+    ----------------
+    - Has a `stored` spatial reference
+    - Has a `virtual` spatial reference that is influenced by the DataSource's opening mode
+    - Can be closed
+    """
 
     def __init__(self, ds, back):
         self._ds = ds
