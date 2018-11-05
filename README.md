@@ -148,7 +148,7 @@ pip install buzzard
 ## Supported Python versions
 To enjoy the latest buzzard features, update your python!
 
-### Fully python support
+### Full python support
 - Latest supported version: `3.7` (June 2018)
 - Oldest supported version: `3.4` (March 2014)
 
@@ -167,7 +167,7 @@ pytest buzzard/buzzard/test
 Hosted soon, in the meantime
 - look at docstrings in code
 - get familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
-- play with the exemples in [examples.ipynb](./doc/examples.ipynb)
+- play with the examples in [examples.ipynb](./doc/examples.ipynb)
 
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.

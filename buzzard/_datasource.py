@@ -4,6 +4,7 @@
 import ntpath
 import numbers
 import sys
+import itertools
 
 from osgeo import osr
 import numpy as np
@@ -19,45 +20,58 @@ from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
 from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
+from buzzard._a_pooled_emissary import APooledEmissary
 
 class DataSource(DataSourceRegisterMixin):
-    """DataSource is a class that stores references to files, it allows quick manipulations
-    by assigning a key to each registered file.
+    """DataSource is a class that stores references to sources. A source is either a raster, or a
+    vector. It allows quick manipulations by assigning a key to each registered source. It also
+    allows inter-sources operations, like:
+    - spatial reference harmonization (see `On the fly re-projections in buzzard` below)
+    - workload scheduling on pools (buzzard v0.5)
+    - other features in the future (like data visualization)
 
-    For actions specific to opened files, see Raster, RasterStored and VectorProxy classes
+    For actions specific to opened sources, see those classes:
+    - GDALFileRaster,
+    - GDALMemRaster,
+    - NumpyRaster,
+    - GDALFileVector,
+    - GDALMemoryVector.
 
     Parameters
     ----------
-    sr_work: None or string (see `Coordinates conversions` below)
-    sr_fallback: None or string (see `Coordinates conversions` below)
-    sr_forced: None or string (see `Coordinates conversions` below)
+    sr_work: None or string (see `On the fly re-projections in buzzard` below)
+    sr_fallback: None or string (see `On the fly re-projections in buzzard` below)
+    sr_forced: None or string (see `On the fly re-projections in buzzard` below)
     analyse_transformation: bool
-        Whether or not to perform a basic analysis on two sr to check their compatibilty
-    ogr_layer_lock: one of ('none', 'wait', 'raise')
-        Mutex operations when reading or writing vector files
+        Whether or not to perform a basic analysis on two `sr` to check their compatibility.
+        if True: Read the `buzz.env.significant` variable and raise an exception if a spatial
+            reference conversions is too lossy in precision.
+        if False: Skip all checks.
+        (see `On the fly re-projections in buzzard` below)
     allow_none_geometry: bool
+        Whether or not a vector geometry should raise an exception when encountering a None geometry
     allow_interpolation: bool
+        Whether or not a raster geometry should raise an exception when remapping with interpolation
+        is necessary.
     max_active: nbr >= 1
-        Maximum number of sources active at the same time.
-    assert_no_change_on_activation: bool
-        When activating a deactivated file, check that the definition did not change
+        Maximum number of pooled sources active at the same time.
         (see `Sources activation / deactivation` below)
 
     Example
     -------
     >>> import buzzard as buzz
 
-    Creating DataSource
+    Creating a DataSource
     >>> ds = buzz.DataSource()
 
-    Opening
+    Opening two files
     >>> ds.open_vector('roofs', 'path/to/roofs.shp')
-    >>> feature_count = len(ds.roofs)
+    ... feature_count = len(ds.roofs)
 
     >>> ds.open_raster('dem', 'path/to/dem.tif')
-    >>> data_type = ds.dem.dtype
+    ... data_type = ds.dem.dtype
 
-    Opening with context management
+    Opening, reading and closing two raster files with context management
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
     ...     data_type = ds.rgb.fp
     ...     arr = ds.rgb.get_data()
@@ -66,70 +80,103 @@ class DataSource(DataSourceRegisterMixin):
     ...     data_type = rgb.dtype
     ...     arr = rgb.get_data()
 
-    Creation
+    Creating two files
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
-    >>> geometry_type = ds.targets.type
+    ... geometry_type = ds.targets.type
 
     >>> with ds.acreate_raster('/tmp/cache.tif', ds.dem.fp, 'float32', 1).delete as cache:
     ...     file_footprint = cache.fp
     ...     cache.set_data(dem.get_data())
 
+    Sources type
+    ------------
+    Raster sources:
+    - numpy.ndarray
+    - GDAL drivers http://www.gdal.org/formats_list.html
+        (e.g. 'GTIff', 'JPEG', 'PNG', ...)
+    Vector sources:
+    - OGR drivers: https://www.gdal.org/ogr_formats.html
+        (e.g. 'ESRI Shapefile', 'GeoJSON', 'DXF', ...)
+
+    Sources registering
+    -------------------
+    There are always two ways to create source, with a key or anonymously.
+
+    When creating a source using a key, said key (e.g. the string "my_source_name") must be provided
+    by user. Each key identify one source and should thus be unique. There are then three ways to
+    access that source:
+    - from the object returned by the method that created the source,
+    - from the DataSource with the attribute syntax: `ds.my_source_name`,
+    - from the DataSource with the item syntax: ds["my_source_name"].
+    All keys should be unique.
+
+    When creating a source anonymously you don't have to provide a key, but the only way to access
+    this source is to use the object returned by the method that created the source.
+
+    Sources activation / deactivation
+    ---------------------------------
+    The sources that inherit from `APooledEmissary` (like `GDALFileVector` and `GDALFileRaster`) are
+    flexible about their underlying driver object. Those sources may be temporary deactivated
+    (useful to limit the number of file descriptors active), or activated multiple time at the
+    same time (useful to perfom concurrent reads).
+
+    Those sources are automatically activated and deactivated given the current needs and
+    constraints. Setting a `max_activated` lower than `np.inf` in the DataSource constructor, will
+    ensure that no more than `max_activated` driver objects are active at the same time, by
+    deactivating the LRU ones.
+
     On the fly re-projections in buzzard
     ------------------------------------
     A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
-    read operations and write operations, all are performed by OSR.
+    read operations and write operations, all are performed by the OSR library.
 
     Those conversions are only perfomed on vector's data/metadata and raster's Footprints.
     This implies that classic raster warping is not included (yet) in those conversions, only raster
-    shifting/scaling/rotation.
+    shifting/scaling/rotation work.
 
-    The `z` coordinates of vectors features are also converted, on the other hand elevations are not
-    converted in DEM rasters.
+    The `z` coordinates of vectors geometries are also converted, on the other hand elevations are
+    not converted in DEM rasters.
 
     If `analyse_transformation` is set to `True` (default), all coordinates conversions are
     tested against `buzz.env.significant` on file opening to ensure their feasibility or
     raise an exception otherwise. This system is naive and very restrictive, a smarter
     version is planned. Use with caution.
 
-    Terminology:
+    ### Terminology
     `sr`: Spatial reference
     `sr_work`: The sr of all interactions with a DataSource (i.e. Footprints, extents, Polygons...),
-        may be missing
-    `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None
-        or ignored
+        may be None.
+    `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None.
     `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
         often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
-        `sr_virtual` to `sr_work`. When setting vector data, a conversion is performed from
+        `sr_virtual` to `sr_work`. When writing vector data, a conversion is performed from
         `sr_work` to `sr_virtual`.
-    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for exemple
+    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for example
         useful when the `sr` stored in the input files are corrupted.
     `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
-        for exemple useful when an input file can't store a `sr (e.g. DFX).
+        for example useful when an input file can't store a `sr` (e.g. DFX).
 
-    DataSource parameters and modes:
-    | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a raster/vector determined                               |
-    |------|---------|-------------|-----------|-------------------------------------------------------------------------------------|
-    | 1    | None    | None        | None      | Use `sr_stored`, but no conversion is performed for the lifetime of this DataSource |
-    | 2    | string  | None        | None      | Use `sr_stored`, if None raise an exception                                         |
-    | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                       |
-    | 4    | string  | None        | string    | Use `sr_forced`                                                                     |
+    ### DataSource parameters and modes
+    | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a source determined                                  |
+    |------|---------|-------------|-----------|---------------------------------------------------------------------------------|
+    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this DataSource |
+    | 2    | string  | None        | None      | Use `sr_stored`, if None raises an exception                                    |
+    | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                   |
+    | 4    | string  | None        | string    | Use `sr_forced`                                                                 |
 
-    - If all opened files are known to be written in a same sr, use `mode 1`. No conversions will
-        be performed, this is the safest way to work.
+    ### Use cases
+    - If all opened files are known to be written in a same sr in advance, use `mode 1`. No
+        conversions will be performed, this is the safest way to work.
     - If all opened files are known to be written in the same sr but you wish to work in a different
         sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
         concerning spatial references have no impacts on the data you manipulate.
-    - If you want to manipulate files in different sr, `mode 2` and `mode 3` should be used.
-       - Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
-         create a GeoJSON file in `mode 2`.
+    - And the other hand if you don't have a priori information on files' `sr`, `mode 2` or
+       `mode 3` should be used.
+       Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
+           create a GeoJSON file in `mode 2`.
 
-    A spatial reference parameter may be
-    - A path to a file
-    - A [textual spatial reference](http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-)
-
-    Example
-    -------
+    ### Examples
     mode 1 - No conversions at all
     >>> ds = buzz.DataSource()
 
@@ -149,24 +196,6 @@ class DataSource(DataSourceRegisterMixin):
             sr_work='EPSG:32632',
             sr_forced='EPSG:27561',
         )
-
-    Sources activation / deactivation
-    ---------------------------------
-    A source may be temporary deactivated, releasing it's internal file descriptor while keeping
-    enough informations to reactivate itself later. By setting a `max_activated` different that
-    `np.inf` in DataSource constructor, the sources of data are automatically deactivated in a
-    lru fashion, and automatically reactivated when necessary.
-
-    Benefits:
-    - Open an infinite number of files without worrying about the number of file descriptors allowed
-      by the system.
-    - Pickle/unpickle a DataSource
-
-    Side notes:
-    - A `RasterRecipe` may require the `cloudpickle` library to be pickled
-    - All sources open in 'w' mode should be closed before pickling
-    - If a source's definition changed between a deactivation and an activation an exception is
-      raised (i.e. file changed on the file system)
 
     """
 
@@ -346,6 +375,11 @@ class DataSource(DataSourceRegisterMixin):
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
 
+        Example
+        -------
+        >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
+        >>> file_footprint = ds.out.fp
+
         Returns
         -------
         one of {GDALFileRaster, GDALMemRaster}
@@ -369,11 +403,6 @@ class DataSource(DataSourceRegisterMixin):
         A field can be passed as:
             a value: All bands are set to this value
             a sequence of length `band_count` of value: All bands will be set to respective state
-
-        Example
-        -------
-        >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> file_footprint = ds.out.fp
 
         Caveat
         ------
@@ -696,6 +725,20 @@ class DataSource(DataSourceRegisterMixin):
         -------
         one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
 
+        Example
+        -------
+        >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
+        >>> geometry_type = ds.lines.type
+
+        >>> fields = [
+            {'name': 'name', 'type': str},
+            {'name': 'count', 'type': 'int32'},
+            {'name': 'area', 'type': np.float64, 'width': 5, precision: 18},
+            {'name': 'when', 'type': np.datetime64},
+        ]
+        >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
+        >>> field0_type = ds.zones.fields[0]['type']
+
         Field attributes
         ----------------
         Attributes:
@@ -723,20 +766,6 @@ class DataSource(DataSourceRegisterMixin):
         IntegerList   key: 'integerlist'
         RealList      key: 'reallist', 'float list'
         StringList    key: 'stringlist', 'str list'
-
-        Example
-        -------
-        >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
-        >>> geometry_type = ds.lines.type
-
-        >>> fields = [
-            {'name': 'name', 'type': str},
-            {'name': 'count', 'type': 'int32'},
-            {'name': 'area', 'type': np.float64, 'width': 5, precision: 18},
-            {'name': 'when', 'type': np.datetime64},
-        ]
-        >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
-        >>> field0_type = ds.zones.fields[0]['type']
 
         """
         # Parameter checking ***************************************************
@@ -835,7 +864,7 @@ class DataSource(DataSourceRegisterMixin):
     @property
     def proj4(self):
         """DataSource's work spatial reference in WKT proj4.
-        Returns None if none set.
+        Returns None if `mode 1`.
         """
         if self._back.wkt_work is None:
             return None
@@ -844,7 +873,7 @@ class DataSource(DataSourceRegisterMixin):
     @property
     def wkt(self):
         """DataSource's work spatial reference in WKT format.
-        Returns None if none set.
+        Returns None if `mode 1`.
         """
         return self._back.wkt_work
 
@@ -858,13 +887,29 @@ class DataSource(DataSourceRegisterMixin):
         """Activate all deactivable proxies.
         May raise an exception if the number of sources is greater than `max_activated`
         """
-        if self._back.max_active < len(self._keys_of_proxy):
-            raise RuntimeError("Can't activate all sources at the same time: {} sources and max_activated is {}".format(
-                len(self._keys_of_proxy), self._back.max_active,
+        proxs = [
+            prox
+            for prox in self._keys_of_proxy.keys()
+            if isinstance(prox, APooledEmissary)
+        ]
+        total = len(proxs)
+
+        if self._back.max_active < total:
+            raise RuntimeError("Can't activate all pooled sources at the same time: {} pooled sources and max_activated is {}".format(
+                total, self._back.max_active,
             ))
-        for prox in self._keys_of_proxy.keys():
+
+        # Hacky implementation to get the expected behavior
+        # TODO: Implement that routine in the back driver pool
+        i = 0
+        for prox in itertools.cycle(proxs):
+            if i == total:
+                break
             if not prox.active:
                 prox.activate()
+                i = 1
+            else:
+                i += 1
 
     def deactivate_all(self):
         """Deactivate all deactivable proxies. Useful to flush all files to disk"""

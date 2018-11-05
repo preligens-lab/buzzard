@@ -6,7 +6,17 @@ from buzzard._footprint import Footprint
 from buzzard import _tools
 
 class AProxyRaster(AProxy):
-    """Base abstract class defining the common behavior of all rasters"""
+    """Base abstract class defining the common behavior of all rasters.
+
+    Features Defined
+    ----------------
+    - Has a `stored` Footprint that defines the location of the raster
+    - Has a Footprint that is influenced by the DataSource's opening mode
+    - Has a lenght that defines how many bands are available
+    - Has a `band_schema` that defines per band attributes (like nodata)
+    - Has a `dtype` (like np.float32)
+    - Has a `get_data` method that allows to read pixels in their current state to numpy arrays
+    """
 
     @property
     def fp_stored(self):
