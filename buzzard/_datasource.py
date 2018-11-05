@@ -899,12 +899,26 @@ class DataSource(DataSourceRegisterMixin):
         self._register([], prox)
         return prox
 
-    def create_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
-                             compute_array=None, merge_arrays=_concat,
-                             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
-                             computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
-                             max_computation_size=None, max_resampling_size=None,
-                             remap_in_primitives=False):
+    def create_raster_recipe(
+            self, key,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=_concat,
+
+            # primitives
+            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
+
+            # misc
+            computation_tiles=None, max_computation_size=None,
+            max_resampling_size=None, automatic_remapping=True,
+            debug_observers=()
+    ):
         """Create a raster recipe and register it under `key` in this DataSource.
 
         TODO: Fill
@@ -977,15 +991,28 @@ class DataSource(DataSourceRegisterMixin):
         """
         pass
 
-    def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
-                                    # TODO: reorder parameters
-                                    compute_array=None, merge_arrays=_concat,
-                                    cache_dir=None, o=False,
-                                    queue_data_per_primitive={}, convert_footprint_per_primitive=None,
-                                    computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-                                    cache_tiles=(512, 512), computation_tiles=None,
-                                    max_resampling_size=None,
-                                    debug_observers=()):
+    def create_cached_raster_recipe(
+            self, key,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=_concat,
+
+            # filesystem
+            cache_dir=None, o=False,
+
+            # primitives
+            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+
+            # misc
+            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
+            debug_observers=()
+    ):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
         TODO: Fill
@@ -1054,6 +1081,8 @@ class DataSource(DataSourceRegisterMixin):
             fp = self._back.convert_footprint(fp, sr)
 
         # Callables ****************************************
+        if compute_array is None:
+            raise ValueError('Missing `compute_array` parameter')
         if not callable(compute_array):
             raise TypeError('`compute_array` should be callable')
         if not callable(merge_arrays):
@@ -1083,6 +1112,10 @@ class DataSource(DataSourceRegisterMixin):
         primitives_kwargs = {}
         for name, met in queue_data_per_primitive.items():
             primitives_back[name], primitives_kwargs[name] = _tools.shatter_queue_data_method(met, name)
+            if primitives_back[name].back_ds is not self._back:
+                raise ValueError('The `{}` primitive comes from another DataSource'.format(
+                    name
+                ))
 
         for name, func in convert_footprint_per_primitive.items():
             if not callable(func):
@@ -1132,6 +1165,8 @@ class DataSource(DataSourceRegisterMixin):
             if max_resampling_size <= 1:
                 raise ValueError('`max_resampling_size` should be >0')
 
+        if cache_dir is None:
+            raise ValueError('Missing `cache_dir` parameter')
         if not isinstance(cache_dir, (str, pathlib.Path)):
             raise TypeError('cache_dir should be a string')
         cache_dir = str(cache_dir)

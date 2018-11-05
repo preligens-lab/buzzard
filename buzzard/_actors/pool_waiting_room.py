@@ -15,6 +15,7 @@ from buzzard._actors.priorities import dummy_priorities, Priorities
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)
+OVERLOAD = 2
 
 class ActorPoolWaitingRoom(object):
     """Actor that takes care of prioritizing jobs waiting for spots in a thread/process pool.
@@ -54,13 +55,13 @@ class ActorPoolWaitingRoom(object):
         # Tokens *****************************************************
         pool_id = id(pool)
         self._pool_id = pool_id
-        self._token_count = pool._processes
+        self._token_count = pool._processes + OVERLOAD
         short_id = short_id_of_id(pool_id)
         self._tokens = {
             # This has no particular meaning, the only hard requirement is just to have
             # different tokens in a pool.
             _PoolToken(short_id * 1000 + i)
-            for i in range(pool._processes)
+            for i in range(self._token_count)
         }
         self._all_tokens = set(self._tokens)
 

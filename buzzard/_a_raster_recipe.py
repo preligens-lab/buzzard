@@ -6,7 +6,6 @@ class ARasterRecipe(AScheduledRaster):
     @property
     def primitives(self):
         # TODO: differenciate _datasource_register and _datasource_back_register for this job
-        # TODO: Make sure primitives come from the same datasource
         d = {}
         for key, back in self._back.primitives_back.items():
             for facade in self._ds._keys_of_proxy.keys():
