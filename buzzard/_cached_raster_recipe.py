@@ -32,7 +32,8 @@ class CachedRasterRecipe(ARasterRecipe):
         self, ds,
         fp, dtype, band_count, band_schema, sr,
         compute_array, merge_arrays,
-        cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+        cache_dir, overwrite,
+        primitives_back, primitives_kwargs, convert_footprint_per_primitive,
         computation_pool, merge_pool, io_pool, resample_pool,
         cache_tiles, computation_tiles,
         max_resampling_size,
@@ -44,7 +45,8 @@ class CachedRasterRecipe(ARasterRecipe):
             weakref.proxy(self),
             fp, dtype, band_count, band_schema, sr,
             compute_array, merge_arrays,
-            cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+            cache_dir, overwrite,
+            primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
             cache_tiles, computation_tiles,
             max_resampling_size,
@@ -67,7 +69,8 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         self, back_ds, facade_proxy,
         fp, dtype, band_count, band_schema, sr,
         compute_array, merge_arrays,
-        cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+        cache_dir, overwrite,
+        primitives_back, primitives_kwargs, convert_footprint_per_primitive,
         computation_pool, merge_pool, io_pool, resample_pool,
         cache_tiles, computation_tiles,
         max_resampling_size,
@@ -102,6 +105,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         self.io_pool = io_pool
         self.cache_fps = cache_tiles
         self.cache_dir = cache_dir
+        self.overwrite = overwrite
 
         # Tilings shortcuts ****************************************************
         self._cache_footprint_index = self._build_cache_fps_index(
@@ -142,12 +146,19 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             y,
             self.fp.spatial_to_raster(cache_fp.tl),
         ]
-        return "x{:03d}-y{:03d}_x{:05d}-y{:05d}".format(*params)
+        return "buzz_x{:03d}-y{:03d}_x{:05d}-y{:05d}".format(*params)
 
-    def list_cache_path_candidates(self, cache_fp):
-        prefix = self.fname_prefix_of_cache_fp(cache_fp)
-        s = os.path.join(self.cache_dir, prefix + '_[0123456789abcdef]*.tif')
-        return glob.glob(s)
+    def list_cache_path_candidates(self, cache_fp=None):
+        if cache_fp is not None:
+            prefix = self.fname_prefix_of_cache_fp(cache_fp)
+            s = os.path.join(self.cache_dir, prefix + '_[0123456789abcdef]*.tif')
+            return glob.glob(s)
+        else:
+            s = os.path.join(
+                self.cache_dir,
+                'buzz_x[0-9]*-y[0-9]*_x[0-9]*-y[0-9]*_[0123456789abcdef]*.tif',
+            )
+            return glob.glob(s)
 
     def create_actors(self):
         actors = [

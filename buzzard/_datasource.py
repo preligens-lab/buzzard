@@ -4,7 +4,6 @@
 import ntpath
 import numbers
 import sys
-import os
 import pathlib
 import itertools
 
@@ -980,9 +979,8 @@ class DataSource(DataSourceRegisterMixin):
 
     def create_cached_raster_recipe(self, key, fp, dtype, band_count, band_schema=None, sr=None,
                                     # TODO: reorder parameters
-                                    # TODO: overwrite
                                     compute_array=None, merge_arrays=_concat,
-                                    cache_dir=None,
+                                    cache_dir=None, o=False,
                                     queue_data_per_primitive={}, convert_footprint_per_primitive=None,
                                     computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
                                     cache_tiles=(512, 512), computation_tiles=None,
@@ -1137,14 +1135,16 @@ class DataSource(DataSourceRegisterMixin):
         if not isinstance(cache_dir, (str, pathlib.Path)):
             raise TypeError('cache_dir should be a string')
         cache_dir = str(cache_dir)
-        os.makedirs(cache_dir, exist_ok=True)
+        overwrite = bool(o)
+        del o
 
         # Construction *********************************************************
         prox = CachedRasterRecipe(
             self,
             fp, dtype, band_count, band_schema, sr,
             compute_array, merge_arrays,
-            cache_dir, primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+            cache_dir, overwrite,
+            primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
             cache_tiles,computation_tiles,
             max_resampling_size,

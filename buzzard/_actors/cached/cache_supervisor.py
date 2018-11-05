@@ -2,6 +2,7 @@ import enum
 import collections
 import itertools
 import logging
+import os
 
 from buzzard._actors.message import Msg
 from buzzard._actors.cached.query_infos import CacheComputationInfos
@@ -26,6 +27,7 @@ class ActorCacheSupervisor(object):
         self._queries = {}
         self._alive = True
         self.address = '/Raster{}/CacheSupervisor'.format(self._raster.uid)
+        self._directory_primed = False
 
     @property
     def alive(self):
@@ -41,6 +43,18 @@ class ActorCacheSupervisor(object):
         ----------
         qi: _actors.cached.query_infos.QueryInfos
         """
+
+        if not self._directory_primed:
+            self._directory_primed = True
+            os.makedirs(self._raster.cache_dir, exist_ok=True)
+            if self._raster.overwrite:
+                file_list = self._raster.list_cache_path_candidates()
+                LOGGER.info('Removing {} cache files'.format(
+                    len(file_list)
+                ))
+                for path in file_list:
+                    os.remove(path)
+
         msgs = []
         cache_fps = qi.list_of_cache_fp
 

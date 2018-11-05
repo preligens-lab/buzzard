@@ -26,7 +26,7 @@ DOWNLOAD_POOL = mp.pool.ThreadPool(5)
 
 def main():
     ds = buzz.DataSource(allow_interpolation=True)
-    open_zoomable_rasters(ds, 'andromeda')
+    open_zoomable_rasters(ds, 'andromeda', overwrite=True)
 
     # Test 1 - Perform basic tests ****************************************** **
     test_raster(ds.andromeda_zoom0)
@@ -59,7 +59,7 @@ def main():
     print('Closing and opening andromeda rasters again...')
     # ds.close() # TODO: `uncomment` or `close/reopen only the one`
     ds = buzz.DataSource(allow_interpolation=True)
-    open_zoomable_rasters(ds, 'andromeda')
+    open_zoomable_rasters(ds, 'andromeda', overwrite=False)
 
     with example_tools.Timer() as t:
         ds.andromeda_zoom5.get_data(band=-1)
@@ -75,14 +75,14 @@ def main():
     ))
 
     # Test 3 **************************************************************** **
-    open_zoomable_rasters(ds, 'monocerotis')
+    open_zoomable_rasters(ds, 'monocerotis', overwrite=False)
     example_tools.show_several_images((
         'monocerotis_zoom3', ds.monocerotis_zoom3.fp,
         ds.monocerotis_zoom3.get_data(band=-1)
     ))
 
 
-def open_zoomable_rasters(ds, name):
+def open_zoomable_rasters(ds, name, overwrite):
     infos = example_tools.infos_of_zoomable_url(
         ZOOMABLE_URLS[name], max_zoom=8, verbose=False,
     )
@@ -104,6 +104,7 @@ def open_zoomable_rasters(ds, name):
 
             cache_tiles=tiles,
             cache_dir=f'{name}_zoom{zoom_level}',
+            o=overwrite,
         )
 
 def download_tile(fp, *_, url_per_tile):
