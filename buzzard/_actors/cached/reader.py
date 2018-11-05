@@ -138,7 +138,6 @@ class ActorReader(object):
         if self._raster.io_pool is None or self._same_address_space:
             assert result is None
         else:
-            # TODO: Warn that process_pool for io_pool is not smart lol
             job.dst_array_slice[:] = result
 
         dst_array = self._sample_array_per_prod_tile[job.qi][job.prod_idx]

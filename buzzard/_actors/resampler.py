@@ -91,7 +91,6 @@ class ActorResampler(object):
                         qi.dst_nodata, self._raster.dtype,
                     )
                 elif sample_fp.almost_equals(pi.fp):
-                # elif sample_fp == pi.fp:
                     # Case 2.2.2: production footprint is fully inside raster
                     assert subsample_array.shape[:2] == tuple(resample_fp.shape)
                     arr = subsample_array
@@ -105,7 +104,7 @@ class ActorResampler(object):
                         np.r_[resample_fp.shape, len(qi.unique_band_ids)],
                         qi.dst_nodata, self._raster.dtype,
                     )
-                    slices = sample_fp.slice_in(pr.fp) # TODO: fix, what is `pr`?
+                    slices = sample_fp.slice_in(resample_fp)
                     arr[slices] = subsample_array
                     if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
                         arr[slices][arr == self._raster.nodata] = qi.dst_nodata

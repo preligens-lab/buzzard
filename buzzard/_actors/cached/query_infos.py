@@ -181,7 +181,6 @@ class CachedQueryInfos(object):
                         }
                     else:
                         # Resampling will be performed in several passes, on a Pool
-                        # TODO: Tile on input-rsize or output-rsize or max(both) (like now)?
                         rsize = np.maximum(prod_fp.rsize, sample_fp.rsize)
                         countx, county = np.ceil(rsize / raster.max_resampling_size).astype(int)
                         print(f' {prod_fp.rsize!s:15} - In - Unaligned - nstep({countx * county})')
@@ -199,10 +198,6 @@ class CachedQueryInfos(object):
                 )
                 list_of_prod_resample_fps.append(tuple(resample_fps))
                 list_of_prod_resample_cache_deps_fps.append(MappingProxyType({
-                    # TODO: Remove the 2 lines of old code below
-                    # resample_fp: frozenset(raster.cache_fps_of_fp(resample_fp))
-                    # for resample_fp in resample_fps
-
                     resample_fp: frozenset(raster.cache_fps_of_fp(sample_subfp))
                     for resample_fp in resample_fps
                     for sample_subfp in [sample_dep_fp[resample_fp]]

@@ -129,7 +129,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
     def cache_fps_of_fp(self, fp):
         assert fp.same_grid(self.fp)
         rtl = self.fp.spatial_to_raster(fp.tl, dtype=float)
-        bounds = np.r_[rtl, rtl + fp.rsize]# + bounds_inset
+        bounds = np.r_[rtl, rtl + fp.rsize]
         return [
             self.cache_fps.flat[i]
             for i in list(self._cache_footprint_index.intersection(bounds))
@@ -142,7 +142,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             y,
             self.fp.spatial_to_raster(cache_fp.tl),
         ]
-        return "x{:03d}-y{:03d}_x{:05d}-y{:05d}".format(*params) # TODO: better file name
+        return "x{:03d}-y{:03d}_x{:05d}-y{:05d}".format(*params)
 
     def list_cache_path_candidates(self, cache_fp):
         prefix = self.fname_prefix_of_cache_fp(cache_fp)

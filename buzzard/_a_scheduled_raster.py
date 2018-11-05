@@ -48,7 +48,6 @@ class ABackScheduledRaster(ABackProxyRaster):
         super().__init__(**kwargs)
 
     def close(self):
-        # print('ABackScheduledRaster.close', id(self))
         self.back_ds.put_message(Msg(
             '/Global/TopLevel', 'kill_raster', self,
         ), check_scheduler_status=False)

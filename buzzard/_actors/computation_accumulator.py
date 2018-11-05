@@ -43,7 +43,7 @@ class ActorComputationAccumulator(object):
             store['missing'].remove(compute_fp)
 
             compute_fp_part = compute_fp & cache_fp
-            # TODO IDEA: Should cache_fp be dilated before the above intersection? This could be a
+            # TODO Idea: Should cache_fp be dilated before the above intersection? This could be a
             #   parameters in facade constructor.
             #   This means also depending on computation_fp that only touch in the border.
             slices = compute_fp_part.slice_in(compute_fp)
