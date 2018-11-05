@@ -288,7 +288,7 @@ class DataSource(DataSourceRegisterMixin):
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
         analyse_transformation = bool(analyse_transformation)
-
+        self._ds_closed = False
         self._back = BackDataSource(
             wkt_work=sr_work,
             wkt_fallback=sr_fallback,
@@ -1205,8 +1205,47 @@ class DataSource(DataSourceRegisterMixin):
         """Retrieve proxy count registered in this DataSource"""
         return len(self._keys_of_proxy)
 
-    def __del__(self): # TODO: `ds.close()`
-        self._back.stop_scheduler()
+    def __del__(self):
+        if not self._ds_closed:
+            self.close()
+
+    @property
+    def close(self):
+        """Close the DataSource with a call or a context management.
+        The `close` attribute returns an object that can be both called and used in a with statement
+
+        The DataSource can be closed manually or automatically when garbage collected, it is safer
+        to do it manually. The steps are:
+        - Stopping the scheduler
+        - Joining the mp.Pool that have been automatically allocated
+        - Close all sources
+
+        Examples
+        --------
+        >>> ds = buzz.DataSource()
+        ... # code...
+        ... ds.close()
+
+        >>> with buzz.DataSource().close as ds
+        ...     # code...
+        """
+        if self._ds_closed:
+            raise RuntimeError("DataSource already closed")
+
+        def _close():
+            if self._ds_closed:
+                raise RuntimeError("DataSource already closed")
+            self._ds_closed = True
+
+            # Tell scheduler to stop, wait until it is done
+            self._back.stop_scheduler()
+
+            # Safely release all resources
+            self._back.join_all_pools()
+            for proxy in list(self._keys_of_proxy.keys()):
+                proxy.close()
+
+        return _CloseRoutine(self, _close)
 
     def items(self):
         """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
@@ -1322,3 +1361,7 @@ def create_vector(*args, **kwargs):
 def wrap_numpy_raster(*args, **kwargs):
     """Shortcut for `DataSource().awrap_numpy_raster`"""
     return DataSource().awrap_numpy_raster(*args, **kwargs)
+
+_CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
+    '__doc__': DataSource.close.__doc__,
+})

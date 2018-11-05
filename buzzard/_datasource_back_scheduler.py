@@ -17,7 +17,6 @@ class BackDataSourceSchedulerMixin(object):
         self._thread_exn = None
         self._ds_id = ds_id
         self._stop = False
-        self._started = False
         self._debug_mngr = DebugObserversManager(debug_observers)
         super().__init__(**kwargs)
 
@@ -52,6 +51,8 @@ class BackDataSourceSchedulerMixin(object):
 
     def stop_scheduler(self):
         self._stop = True
+        if self._thread is not None:
+            self._thread.join()
 
     # Private methods *************************************************************************** **
     def _exception_catcher(self):
@@ -75,10 +76,8 @@ class BackDataSourceSchedulerMixin(object):
                 keep_alive_actors.append(a)
 
             address = a.address
-            # actors[address] = a
 
             _, grp_name, name = address.split('/')
-            # print(f'+ {grp_name:30} {name:30}')
             assert name not in actors[grp_name]
             actors[grp_name][name] = a
 
@@ -102,7 +101,6 @@ class BackDataSourceSchedulerMixin(object):
         def _unregister_actor(a):
             address = a.address
             _, grp_name, name = address.split('/')
-            # print(f'- {grp_name:30} {name:30}')
             del actors[grp_name][name]
             if not actors[grp_name]:
                 del actors[grp_name]
