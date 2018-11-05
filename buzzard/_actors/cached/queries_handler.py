@@ -180,6 +180,7 @@ class ActorQueriesHandler(object):
             msgs += self._cancel_query(qi)
 
         self._queries.clear()
+        self._raster = None
         return msgs
 
     # ******************************************************************************************* **

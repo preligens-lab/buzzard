@@ -2,6 +2,7 @@ import functools
 import collections
 import multiprocessing as mp
 import multiprocessing.pool
+import contextlib
 
 import numpy as np
 from osgeo import gdal
@@ -9,6 +10,7 @@ from osgeo import gdal
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 from buzzard import _tools
+from buzzard._gdal_file_raster import BackGDALFileRaster
 
 class ActorReader(object):
     """Actor that takes care of reading cache tiles"""
@@ -112,6 +114,7 @@ class ActorReader(object):
 
         self._sample_array_per_prod_tile.clear()
         self._missing_cache_fps_per_prod_tile.clear()
+        self._raster = None
         return msgs
 
     # ******************************************************************************************* **
@@ -187,17 +190,18 @@ class Work(PoolJobWorking):
             func = functools.partial(
                 _cache_file_read,
                 path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
+                actor._raster.back_ds,
             )
         else:
             self.dst_array_slice = dst_array_slice
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, None,
+                path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, None, None,
             )
         actor._raster.debug_mngr.event('object_allocated', func)
         super().__init__(actor.address, func)
 
-def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
+def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_ds_opt):
     """
     Parameters
     ----------
@@ -212,57 +216,56 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt):
     dst_opt: None or np.ndarray
         optional destination for read
     """
-    # TODO: Use DataSource's file descriptor pooling
 
-    # Open raster
-    gdal_ds = gdal.OpenEx(
-        path,
-        _tools.conv.of_of_mode('r') | _tools.conv.of_of_str('raster'),
-        ['GTiff'],
-        (),
-    )
+    allocator = lambda: BackGDALFileRaster.open_file(path, 'GTiff', [], 'r')
+    with contextlib.ExitStack() as stack:
+        if back_ds_opt is None:
+            gdal_ds = allocator()
+        else:
+            gdal_ds = stack.enter_context(back_ds_opt.acquire_driver_object(path, allocator))
 
-    # Check raster
-    if gdal_ds is None:
-        raise RuntimeError("Could not open {path}, what happend to it?".format(
-            path
-        ))
-    if (gdal_ds.RasterXSize, gdal_ds.RasterYSize) != tuple(cache_fp.rsize):
-        raise RuntimeError('{} was expected to have rsize {}, not {}'.format(
-            path,
-            tuple(cache_fp.rsize),
-            (gdal_ds.RasterXSize, gdal_ds.RasterYSize),
-        ))
-    stored_dtype = _tools.conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
-    if dtype != stored_dtype:
-        raise RuntimeError('{} was expected to have dtype {}, not {}'.format(
-            path,
-            dtype,
-            stored_dtype,
-        ))
+        # Check raster
+        if gdal_ds is None:
+            raise RuntimeError("Could not open {path}, what happend to it?".format(
+                path
+            ))
+        if (gdal_ds.RasterXSize, gdal_ds.RasterYSize) != tuple(cache_fp.rsize):
+            raise RuntimeError('{} was expected to have rsize {}, not {}'.format(
+                path,
+                tuple(cache_fp.rsize),
+                (gdal_ds.RasterXSize, gdal_ds.RasterYSize),
+            ))
+        stored_dtype = _tools.conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+        if dtype != stored_dtype:
+            raise RuntimeError('{} was expected to have dtype {}, not {}'.format(
+                path,
+                dtype,
+                stored_dtype,
+            ))
 
-    # Allocate if ProcessPool
-    if dst_opt is None:
-        dst = np.empty(np.r_[sample_fp.shape, len(band_ids)], dtype)
-        ret = dst
-    else:
-        dst = dst_opt
-        ret = None
+        # Allocate if ProcessPool
+        if dst_opt is None:
+            dst = np.empty(np.r_[sample_fp.shape, len(band_ids)], dtype)
+            ret = dst
+        else:
+            dst = dst_opt
+            ret = None
 
-    # Perform read
-    rtlx, rtly = cache_fp.spatial_to_raster(sample_fp.tl)
-    for i, bi in enumerate(band_ids):
-        b = gdal_ds.GetRasterBand(bi)
-        a = b.ReadAsArray(
-            int(rtlx),
-            int(rtly),
-            int(sample_fp.rsizex),
-            int(sample_fp.rsizey),
-            buf_obj=dst[..., i],
-        )
-        del b
-        if a is None:
-            raise RuntimeError('Could not read band_id {}'.format(bi))
+        # Perform read
+        rtlx, rtly = cache_fp.spatial_to_raster(sample_fp.tl)
+        for i, bi in enumerate(band_ids):
+            b = gdal_ds.GetRasterBand(bi)
+            a = b.ReadAsArray(
+                int(rtlx),
+                int(rtly),
+                int(sample_fp.rsizex),
+                int(sample_fp.rsizey),
+                buf_obj=dst[..., i],
+            )
+            del b
+            if a is None:
+                raise RuntimeError('Could not read band_id {}'.format(bi))
+
     del gdal_ds
 
     # Return

@@ -23,7 +23,7 @@ class ActorCacheSupervisor(object):
             cache_fp: _CacheTileStatus.unknown
             for cache_fp in raster.cache_fps.flat
         }
-        self._path_of_cache_fp = {}
+        self._path_of_cache_fp = raster.async_dict_path_of_cache_fp
         self._queries = {}
         self._alive = True
         self.address = '/Raster{}/CacheSupervisor'.format(self._raster.uid)
@@ -202,6 +202,9 @@ class ActorCacheSupervisor(object):
         self._alive = False
 
         self._queries.clear()
+        self._path_of_cache_fp = None
+        self._cache_fps_status.clear()
+        self._raster = None
         return []
 
     # ******************************************************************************************* **

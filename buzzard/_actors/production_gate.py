@@ -70,6 +70,7 @@ class ActorProductionGate(object):
         self._alive = False
 
         self._queries.clear()
+        self._raster = None
         return []
 
     # ******************************************************************************************* **

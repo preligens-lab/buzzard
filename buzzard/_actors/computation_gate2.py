@@ -73,6 +73,7 @@ class ActorComputationGate2(object):
         assert self._alive
         self._alive = False
         self._queries.clear()
+        self._raster = None
         return []
 
     # ******************************************************************************************* **

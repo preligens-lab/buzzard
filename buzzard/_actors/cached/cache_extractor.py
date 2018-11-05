@@ -91,6 +91,7 @@ class ActorCacheExtractor(object):
         assert self._alive
         self._alive = False
         self._reads_waiting_for_cache_fp.clear()
+        self._raster = None
         return []
 
     # ******************************************************************************************* **

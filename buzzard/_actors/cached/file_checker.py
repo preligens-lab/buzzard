@@ -2,11 +2,16 @@ import logging
 import functools
 import os
 import hashlib
+import contextlib
+import multiprocessing as mp
+import multiprocessing.pool
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import MaxPrioJobWaiting, PoolJobWorking
+from buzzard._gdal_file_raster import BackGDALFileRaster
+from buzzard._tools import conv
+from buzzard._footprint import Footprint
 
-open_raster = None # Lazy import
 LOGGER = logging.getLogger(__name__)
 
 class ActorFileChecker(object):
@@ -17,6 +22,12 @@ class ActorFileChecker(object):
         self._alive = True
         io_pool = raster.io_pool
         if io_pool is not None:
+            if isinstance(io_pool, mp.pool.ThreadPool):
+                self._same_address_space = True
+            elif isinstance(io_pool, mp.pool.Pool):
+                self._same_address_space = False
+            else:
+                assert False, 'Type should be checked in facade'
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
         self._waiting_jobs = set()
@@ -68,6 +79,7 @@ class ActorFileChecker(object):
             msgs += [Msg(self._working_room_address, 'cancel_job', job)]
         self._waiting_jobs.clear()
         self._working_jobs.clear()
+        self._raster = None
         return msgs
 
     # ******************************************************************************************* **
@@ -82,10 +94,18 @@ class Work(PoolJobWorking):
     def __init__(self, actor, cache_fp, path):
         self.cache_fp = cache_fp
         self.path = path
-        func = functools.partial(
-            _cache_file_check,
-            cache_fp, path, len(actor._raster), actor._raster.dtype,
-        )
+        if actor._raster.io_pool is None or actor._same_address_space:
+            func = functools.partial(
+                _cache_file_check,
+                cache_fp, path, len(actor._raster), actor._raster.dtype,
+                actor._raster.back_ds
+            )
+        else:
+            func = functools.partial(
+                _cache_file_check,
+                cache_fp, path, len(actor._raster), actor._raster.dtype,
+                None,
+            )
         actor._raster.debug_mngr.event('object_allocated', func)
         super().__init__(actor.address, func)
 
@@ -97,10 +117,10 @@ def _md5(fname):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-def _cache_file_check(cache_fp, path, band_count, dtype):
+def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
     exn = None
     try:
-        _is_ok(cache_fp, path, band_count, dtype)
+        _is_ok(cache_fp, path, band_count, dtype, back_ds_opt)
     except Exception as e:
         valid = False
         exn = e
@@ -108,6 +128,8 @@ def _cache_file_check(cache_fp, path, band_count, dtype):
         valid = True
 
     if not valid:
+        if back_ds_opt is not None:
+            back_ds_opt.deactivate(path)
         m = 'Removing {}'.format(path)
         m += ' because {}'.format(exn)
         LOGGER.warn(m)
@@ -115,18 +137,28 @@ def _cache_file_check(cache_fp, path, band_count, dtype):
 
     return valid
 
-def _is_ok(cache_fp, path, band_count, dtype):
-    global open_raster
-    if open_raster is None:
-        from buzzard import open_raster
+def _is_ok(cache_fp, path, band_count, dtype, back_ds_opt):
 
-    with open_raster(path).close as r:
-        if r.fp != cache_fp:
-            raise RuntimeError('invalid Footprint ({} instead of {})'.format(r.fp, cache_fp))
-        if r.dtype != dtype:
-            raise RuntimeError('invalid dtype ({} instead of {})'.format(r.dtype, dtype))
-        if len(r) != band_count:
-            raise RuntimeError('invalid band_count ({} instead of {})'.format(len(r), band_count))
+    allocator = lambda: BackGDALFileRaster.open_file(path, 'GTiff', [], 'r')
+    with contextlib.ExitStack() as stack:
+        if back_ds_opt is None:
+            gdal_ds = allocator()
+        else:
+            gdal_ds = stack.enter_context(back_ds_opt.acquire_driver_object(path, allocator))
+
+        file_fp = Footprint(
+            gt=gdal_ds.GetGeoTransform(),
+            rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
+        )
+        file_dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+        file_len = gdal_ds.RasterCount
+        if file_fp != cache_fp:
+            raise RuntimeError('invalid Footprint ({} instead of {})'.format(file_fp, cache_fp))
+        if file_dtype != dtype:
+            raise RuntimeError('invalid dtype ({} instead of {})'.format(file_dtype, dtype))
+        if file_len != band_count:
+            raise RuntimeError('invalid band_count ({} instead of {})'.format(file_len, band_count))
+    del gdal_ds
 
     md5 = path
     md5 = md5.split('.')[-2]

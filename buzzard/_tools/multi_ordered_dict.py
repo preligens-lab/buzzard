@@ -24,6 +24,9 @@ class MultiOrderedDict(object):
     def __len__(self):
         return len(self._od)
 
+    def __and__(self, other_set):
+        return self._ukeys_of_key.keys() & other_set
+
     def count(self, key):
         m = len(self._ukeys_of_key[key])
         if m == 0:

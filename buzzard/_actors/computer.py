@@ -112,6 +112,7 @@ class ActorComputer(object):
         ]
         self._working_jobs.clear()
 
+        self._raster = None
         return []
 
     # ******************************************************************************************* **

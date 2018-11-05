@@ -45,6 +45,11 @@ class ABackScheduledRaster(ABackProxyRaster):
         self.resample_pool = resample_pool
         self.max_resampling_size = max_resampling_size
         self.debug_mngr = DebugObserversManager(debug_observers)
+
+        # Quick hack to share the dict of path to cache files with the ActorCacheSupervisor
+        # This is useful to perform .close
+        self.async_dict_path_of_cache_fp = {}
+
         super().__init__(**kwargs)
 
     def close(self):
@@ -101,3 +106,13 @@ class ABackScheduledRaster(ABackProxyRaster):
 
     def create_actors(self):
         raise NotImplementedError('ABackScheduledRaster.create_actors is virtual pure')
+
+    def close(self):
+        """Virtual method:
+        - May be overriden
+        - Should always be called
+
+        Should be called after scheduler's end
+        """
+        self.back_ds.deactivate_many(self.async_dict_path_of_cache_fp.values())
+        super().close()

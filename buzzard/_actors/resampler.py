@@ -178,6 +178,7 @@ class ActorResampler(object):
             msgs += [Msg(self._working_room_address, 'cancel_job', job)]
         self._waiting_jobs.clear()
         self._working_jobs.clear()
+        self._raster = None
 
         return []
 

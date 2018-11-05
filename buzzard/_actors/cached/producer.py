@@ -113,6 +113,7 @@ class ActorProducer(object):
         self._alive = False
 
         self._produce_per_query.clear()
+        self._raster = None
         return []
 
     # ******************************************************************************************* **
