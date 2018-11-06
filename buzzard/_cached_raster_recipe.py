@@ -97,7 +97,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             primitives_kwargs=primitives_kwargs,
             convert_footprint_per_primitive=convert_footprint_per_primitive,
 
-            # Scheduled
+            # Async
             resample_pool=resample_pool,
             max_resampling_size=max_resampling_size,
             debug_observers=debug_observers,

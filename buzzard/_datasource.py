@@ -936,7 +936,7 @@ class DataSource(DataSourceRegisterMixin):
         merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         queue_data_per_primitive: dict of callable
-            should be the bound `queue_data` method of another ScheduledRaster in the same DataSource.
+            should be the bound `queue_data` method of another AsyncRaster in the same DataSource.
             can also be a functools.partial instance to that method
         convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint
@@ -1027,7 +1027,7 @@ class DataSource(DataSourceRegisterMixin):
         merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
             from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
         queue_data_per_primitive: dict of callable
-            should be the bound `queue_data` method of another ScheduledRaster in the same DataSource
+            should be the bound `queue_data` method of another AsyncRaster in the same DataSource
             can also be a functools.partial instance to that method
         convert_footprint_per_primitive: function f(Footprint) -> dict
             dict is key (same as above) and value: Footprint

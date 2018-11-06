@@ -8,7 +8,7 @@ from buzzard import _tools
 from buzzard._actors.message import Msg
 from buzzard._debug_observers_manager import DebugObserversManager
 
-class AScheduledRaster(AProxyRaster):
+class AAsyncRaster(AProxyRaster):
     """TODO: docstring"""
 
     def queue_data(self, fps, band=1, dst_nodata=None, interpolation='cv_area', max_queue_size=5):
@@ -37,7 +37,7 @@ class AScheduledRaster(AProxyRaster):
             **_tools.parse_queue_data_parameters(self, band, dst_nodata, interpolation, max_queue_size)
         )
 
-class ABackScheduledRaster(ABackProxyRaster):
+class ABackAsyncRaster(ABackProxyRaster):
     """TODO: docstring"""
 
     def __init__(self, resample_pool, max_resampling_size, debug_observers, **kwargs):
@@ -48,6 +48,7 @@ class ABackScheduledRaster(ABackProxyRaster):
 
         # Quick hack to share the dict of path to cache files with the ActorCacheSupervisor
         # This is useful to perform .close
+        # This is clearly a violation of the separation of concerns
         self.async_dict_path_of_cache_fp = {}
 
         super().__init__(**kwargs)
@@ -105,7 +106,7 @@ class ABackScheduledRaster(ABackProxyRaster):
         return next(it)
 
     def create_actors(self):
-        raise NotImplementedError('ABackScheduledRaster.create_actors is virtual pure')
+        raise NotImplementedError('ABackAsyncRaster.create_actors is virtual pure')
 
     def close(self):
         """Virtual method:

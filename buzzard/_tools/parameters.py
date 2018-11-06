@@ -12,7 +12,7 @@ import numpy as np
 from .helper_classes import Singleton
 from . import conv
 
-Footprint, AScheduledRaster = None, None # Lazy import
+Footprint, AAsyncRaster = None, None # Lazy import
 
 BAND_SCHEMA_PARAMS = frozenset({
     'nodata', 'interpretation', 'offset', 'scale', 'mask',
@@ -358,7 +358,7 @@ def normalize_fields_defn(fields):
         )
     return [_sanitize_dict(dic) for dic in fields]
 
-# Scheduled rasters ***************************************************************************** **
+# Async rasters ***************************************************************************** **
 def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='cv_area',
                                 max_queue_size=5):
     """Check and transform the last parameters of a `queue_data` method.
@@ -408,11 +408,11 @@ def shatter_queue_data_method(met, name):
 
     Returns
     -------
-    (ABackScheduledRaster, dict of str->object)
+    (ABackAsyncRaster, dict of str->object)
     """
-    global AScheduledRaster
-    if AScheduledRaster is None:
-        from buzzard._a_scheduled_raster import AScheduledRaster
+    global AAsyncRaster
+    if AAsyncRaster is None:
+        from buzzard._a_async_raster import AAsyncRaster
 
 
     # Unwrap function.partial instances ****************************************
@@ -429,7 +429,7 @@ def shatter_queue_data_method(met, name):
         raise TypeError('`queue_data_per_primitive[{}]` should be callable'.format(
             name
         ))
-    if not hasattr(met, '__self__') or not isinstance(met.__self__, AScheduledRaster):
+    if not hasattr(met, '__self__') or not isinstance(met.__self__, AAsyncRaster):
         fmt = '`queue_data_per_primitive[{}]` should be the `.queue_data` method ' +\
               'of a scheduler raster'
         raise TypeError(fmt.format(name))

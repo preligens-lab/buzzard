@@ -1,6 +1,6 @@
-from buzzard._a_scheduled_raster import ABackScheduledRaster, AScheduledRaster
+from buzzard._a_async_raster import ABackAsyncRaster, AAsyncRaster
 
-class ARasterRecipe(AScheduledRaster):
+class ARasterRecipe(AAsyncRaster):
     """TODO: docstring"""
 
     @property
@@ -16,7 +16,7 @@ class ARasterRecipe(AScheduledRaster):
                 assert False
         return d
 
-class ABackRasterRecipe(ABackScheduledRaster):
+class ABackRasterRecipe(ABackAsyncRaster):
     """TODO: docstring"""
     def __init__(self,
                  band_schema,
