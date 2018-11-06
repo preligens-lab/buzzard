@@ -316,13 +316,13 @@ def test_file(meta_file, path):
         for k, v in meta['band_schema'].items():
             assert r.band_schema[k] == v
         assert r.dtype == np.dtype(meta['dtype'])
-        assert r.fp_stored == fp
+        assert r.fp_stored.almost_equals(fp)
         if 'nodata' in meta['band_schema']:
             assert r.nodata == meta['band_schema']['nodata'][0]
         else:
             assert r.nodata == None
         assert len(r) == meta['band_count']
-        assert r.fp == fp
+        assert r.fp.almost_equals(fp)
         assert r.mode == 'r'
         assert r.driver == meta['driver']
         assert r.path == path
