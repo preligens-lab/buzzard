@@ -438,16 +438,26 @@ def shatter_queue_data_method(met, name):
     return met.__self__._back, kwargs
 
 # Tiling checks ********************************************************************************* **
-def is_tiling_bijection_of(tiling, fp):
-    """Is the `tiling` object, an output of `fp.tile` or `fp.tile_count`, with the parameter
-    `boundary_effect='shrink'`, without overlap?
-    Each and every pixel in `tiling` points to a unique and different pixel of `fp`, and vice versa.
+def is_tiling_covering_fp(tiling, fp, allow_outer_pixels, allow_overlapping_pixels):
+    """Is the `tiling` object, an output of `fp.tile` or `fp.tile.count`?
+
+    if `allow_outer_pixels`
+        Some pixels of `tiling` may be outside of `fp`
+    else
+        All pixels of `tiling` should be inside `fp`
+
+    if `allow_overlapping_pixels`
+        All pixels of `fp` should be covered at least once.
+    else
+        All pixels of `fp` should be covered exactly once.
 
     Parameters
     ----------
     tiling: object
         An object provided by user
     fp: Footprint
+    allow_outer_pixels: bool
+    allow_overlapping_pixels: bool
 
     Returns
     -------
@@ -493,89 +503,32 @@ def is_tiling_bijection_of(tiling, fp):
     if not np.all(rbrs[:1, :, 0] == rbrs[:, :, 0]):
         return False
 
-    # is shrink ********************************************
-    if not np.all(rtls[0, 0] == [0, 0]):
-        return False
-    if not np.all(rbrs[-1, -1] == fp.rsize):
-        return False
-
-    # is bijection *****************************************
-    # All line's consecutive tlx vs brx
-    if not np.all(rbrs[:, :-1, 0] == rtls[:, 1:, 0]):
-        return False
-    # All columns's consecutive tly vs bry
-    if not np.all(rbrs[:-1, :, 1] == rtls[1:, :, 1]):
-        return False
-
-    return True
-
-def is_tiling_surjection_of(tiling, fp):
-    """Is the `tiling` object, an output of `fp.tile` or `fp.tile_count`, with the parameter
-    `boundary_effect='shrink'`?
-    Each and every pixel in `fp` is pointed at by at least one pixel of `tiling`.
-
-    Parameters
-    ----------
-    tiling: object
-        An object provided by user
-    fp: Footprint
-
-    Returns
-    -------
-    bool
-    """
-    global Footprint
-    if Footprint is None:
-        from buzzard._footprint import Footprint
-
-    # Type checking ****************************************
-    if not isinstance(tiling, np.ndarray):
-        return False
-    if tiling.ndim != 2:
-        return False
-    for tile in tiling.flat:
-        if not isinstance(tile, Footprint):
+    # bounds ***********************************************
+    if not allow_outer_pixels:
+        if not np.all(rtls[0, 0] <= 0):
             return False
-        if not fp.same_grid(tile):
+        if not np.all(rbrs[-1, -1] >= fp.rsize):
+            return False
+    else:
+        if not np.all(rtls[0, 0] == [0, 0]):
+            return False
+        if not np.all(rbrs[-1, -1] == fp.rsize):
             return False
 
-    # Pixel indices extraction *****************************
-    rtls = np.asarray([
-        fp.spatial_to_raster(tile.tl)
-        for tile in tiling.flat
-    ]).reshape(*tiling.shape, 2)
-    rbrs = np.asarray([
-        fp.spatial_to_raster(tile.br)
-        for tile in tiling.flat
-    ]).reshape(*tiling.shape, 2)
-
-    # is tiling ********************************************
-    # All line's tly equal
-    if not np.all(rtls[:, :1, 1] == rtls[:, :, 1]):
-        return False
-    # All line's bry equal
-    if not np.all(rbrs[:, :1, 1] == rbrs[:, :, 1]):
-        return False
-
-    # All column's tlx equal
-    if not np.all(rtls[:1, :, 0] == rtls[:, :, 0]):
-        return False
-    # All column's brx equal
-    if not np.all(rbrs[:1, :, 0] == rbrs[:, :, 0]):
-        return False
-
-    # is shrink ********************************************
-    if not np.all(rtls[0, 0] == [0, 0]):
-        return False
-    if not np.all(rbrs[-1, -1] == fp.rsize):
-        return False
-
-    # is sujection *****************************************
-    # All line's consecutive tlx vs brx
-    if not np.all(rbrs[:, :-1, 0] >= rtls[:, 1:, 0]):
-        return False
-    # All columns's consecutive tly vs bry
-    if not np.all(rbrs[:-1, :, 1] >= rtls[1:, :, 1]):
-        return False
+    # overlap **********************************************
+    if allow_overlapping_pixels:
+        # All line's consecutive tlx vs brx
+        if not np.all(rbrs[:, :-1, 0] >= rtls[:, 1:, 0]):
+            return False
+        # All columns's consecutive tly vs bry
+        if not np.all(rbrs[:-1, :, 1] >= rtls[1:, :, 1]):
+            return False
+    else:
+        # All line's consecutive tlx vs brx
+        if not np.all(rbrs[:, :-1, 0] == rtls[:, 1:, 0]):
+            return False
+        # All columns's consecutive tly vs bry
+        if not np.all(rbrs[:-1, :, 1] == rtls[1:, :, 1]):
+            return False
 
     return True

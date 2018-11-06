@@ -26,7 +26,6 @@ from buzzard._a_pooled_emissary import APooledEmissary
 
 def _concat(fp, array_per_fp, raster):
     """TODO: move to buzz.algo?.concat_arrays
-    use is_tiling_bijection?
     """
     band_count = next(iter(array_per_fp.values())).shape[-1]
 
@@ -1137,7 +1136,10 @@ class DataSource(DataSourceRegisterMixin):
 
         # Tilings ******************************************
         if isinstance(cache_tiles, np.ndarray) and cache_tiles.dtype == np.object:
-            if not _tools.is_tiling_bijection_of(cache_tiles, fp):
+            if not _tools.is_tiling_covering_fp(
+                    cache_tiles, fp,
+                    allow_outer_pixels=False, allow_overlapping_pixels=False,
+            ):
                 raise ValueError("`cache_tiles` should be a tiling of raster's Footprint, " +\
                                 "without overlap, with `boundary_effect='shrink'`"
                 )
@@ -1148,11 +1150,11 @@ class DataSource(DataSourceRegisterMixin):
         if computation_tiles is None:
             computation_tiles = cache_tiles
         elif isinstance(computation_tiles, np.ndarray) and computation_tiles.dtype == np.object:
-            # TODO: computation_tiles should be able to go out of bounds!!
-            if not _tools.is_tiling_surjection_of(computation_tiles, fp):
-                raise ValueError("`computation_tiles` should be a tiling of raster's Footprint, " +\
-                                "with `boundary_effect='shrink'`"
-               )
+            if not _tools.is_tiling_covering_fp(
+                    cache_tiles, fp,
+                    allow_outer_pixels=True, allow_overlapping_pixels=True,
+            ):
+                raise ValueError("`computation_tiles` should be a tiling covering raster's Footprint")
         else:
             # Defer the parameter checking to fp.tile
             computation_tiles = fp.tile(computation_tiles, 0, 0, boundary_effect='shrink')
