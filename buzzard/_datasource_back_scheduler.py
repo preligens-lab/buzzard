@@ -107,7 +107,6 @@ class BackDataSourceSchedulerMixin(object):
             if hasattr(a, 'ext_receive_nothing'):
                 keep_alive_actors.remove(a)
 
-
         # Dicts of actors
         actors = collections.defaultdict(dict) # type: Mapping[str, Mapping[str, Actor]]
 

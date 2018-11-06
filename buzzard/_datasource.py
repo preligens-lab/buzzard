@@ -1228,6 +1228,22 @@ class DataSource(DataSourceRegisterMixin):
 
         >>> with buzz.DataSource().close as ds
         ...     # code...
+
+        Caveat
+        ------
+        Some memory leaks may still occur after closing. Possible origins:
+        - https://bugs.python.org/issue34172
+        - Gdal cache not flushed (not a leak)
+        - https://stackoverflow.com/a/1316799 (not a leak)
+        - Some unknown leak in the python threading or multiprocessing standard library
+        - Some unknown library leaking memory on the `C` side
+        - Some unknown library storing data in global variables
+
+        You can use a `debug_observer` with an `on_object_allocated` method to track large objects
+        allocated in the scheduler. It will most likely not be the source of the problem. If you
+        even find the source of those leaks please contact the buzzard team.
+        https://github.com/airware/buzzard/issues
+
         """
         if self._ds_closed:
             raise RuntimeError("DataSource already closed")
