@@ -10,9 +10,9 @@ All those rasters are called _async rasters_.
 ### A new type of raster: _recipes_
 A _recipe_ is an _async raster_ that __computes data on the fly__ by calling the `compute_array` function provided in the constructor. This function takes a _Footprint_ the defines a rectangle to compute, and it return a _ndarray_ containing the pixels computed at this location. This function will be called in parallel given the `computation_pool` parameter provided in the constructor.
 
-A _recipe_ may __depend on some other *async rasters*__. In this example, `ds.slopes` is a _RasterRecipe_ that depends on `ds.elevation` a _AsyncStoredRaster_. To declare the dependancy of `ds.slopes` on `ds.elevation`, in the constructor of `ds.slopes` you must provide `queue_data_per_primitive={'some_key': ds.elevation.queue_data}`, to allow the scheduler to issue queries to elevation when the slopes requires it. The `compute_array` function of `ds.slopes` will take as parameter the _ndarray_ of `ds.dem` previously extracted.
+A _recipe_ may __depend on some other *async rasters*__. In this example, `ds.slopes` is a _NocacheRasterRecipe_ that depends on `ds.elevation` an _AsyncStoredRaster_. To declare the dependancy of `ds.slopes` on `ds.elevation`, in the constructor of `ds.slopes` you must provide `queue_data_per_primitive={'some_key': ds.elevation.queue_data}`, to allow the scheduler to issue queries to elevation when the slopes requires it. The `compute_array` function of `ds.slopes` will take as parameter the _ndarray_ of `ds.dem` previously extracted.
 
-A _recipe_ may depend on more than one _async raster_, and a _recipe_ that depends on a _async raster_ may also be needed by another recipe. This means that recipes can be assembled to form __computation graphs__ of any width and any depth.
+A _recipe_ may depend on more than one _async raster_, and a _recipe_ that depends on an _async raster_ may also be needed by another recipe. This means that recipes can be assembled to form __computation graphs__ of any width and any depth.
 
 ### Parallelization within _async rasters_
 The computation intensive and io-bound steps of the scheduler are __defered to thread pools__ by default. You can configure the pools in the _async rasters_ constructors. Those parameters can be of the following types:

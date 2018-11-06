@@ -57,7 +57,7 @@ class ABackProxyRasterRemapMixin(object):
 
     @classmethod
     def remap(cls, src_fp, dst_fp, array, mask, src_nodata, dst_nodata, mask_mode, interpolation):
-        """Function matching the signature of RasterRecipe@resample_array parameter
+        """General remapping function from one Footprint to another.
 
         Caveat
         ------

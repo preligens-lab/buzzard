@@ -5,7 +5,7 @@ When creating a recipe you define a _Footprint_ through the `fp` parameter. When
 - If you request a Footprint on a different grid in a `get_data` call, the scheduler __takes care of resampling__ the outputs of your `compute_array` function.
 - If you request a Footprint partially or fully outside of the raster's extent, the scheduler will call your `compute_array` function to get the interior pixels and then __pad the output with nodata__.
 
-This system can be deactivated by passing `automatic_remapping=False` to the constructor of a _RasterRecipe_, in this case the scheduler will call your `compute_array` function for any kind of _Footprint_, your function must be able to comply with any request. In `Part 2` the slopes could have been opened that way without changing the rest of the code, the resampling operations would have been deferred to the `elevation` raster.
+This system can be deactivated by passing `automatic_remapping=False` to the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your `compute_array` function for any kind of _Footprint_, your function must be able to comply with any request. In `Part 2` the slopes could have been opened that way without changing the rest of the code, the resampling operations would have been deferred to the `elevation` raster.
 
 In the following example `mand_100px`, `mand_10kpx`, `mand_1mpx`, `mand_100mpx`, `mand_10gpx`, `mand_1tpx` are instanciated with automatic remapping, and `ds.mand` is instanciated without.
 
