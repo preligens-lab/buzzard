@@ -1,11 +1,11 @@
 """
 # Part 1: A raster file configured to be read asynchronously
 
- By default in buzzard when calling `get_data()` on a raster file opened normally, all the data is read from disk at once (using one `gdal.Band.ReadAsArray()` for example), and all the optional resampling is performed in one step (using one `cv2.remap()` for example). When performing this operation on a large chunk of data, it would be much more efficient to read and resample __tile by tile to parallelize__ those tasks. To do so, use `scheduled=True` in `open_raster()` and `create_raster()`.
+ By default in buzzard when calling `get_data()` on a raster file opened normally, all the data is read from disk at once (using one `gdal.Band.ReadAsArray()` for example), and all the optional resampling is performed in one step (using one `cv2.remap()` for example). When performing this operation on a large chunk of data, it would be much more efficient to read and resample __tile by tile to parallelize__ those tasks. To do so, use `async_=True` in `open_raster()` and `create_raster()`.
 
 Another feature unlocked by using a sheduled raster to read a file is the `iter_data()` method. Compared to the `get_data()` method that takes a _Footprint_ and return an _ndarray_, this new method takes a _list of Footprint_ and return an _iterator of ndarray_. By using this method the next array to be yielded is prepared in priority and the next ones are also prepared at the same time if there are enough workers available. You can control how much arrays can be made available in advance by setting the optional `max_queue_size=5` parameter of the `iter_data()` method, this allows you to __prevent backpressure__ if you consume the _iterator of ndarray_ too slowly.
 
-As seen before, the `scheduled` parameter can be a _boolean_, but instead of `True` you can also pass a _dict of options_ to parameterize how the raster is handled in the background. Some options control the amount of chunking to perform for the read and resampling steps, some other options allow you to choose the two _thread pools_ that will be used for reading and resampling. By default a single pool is shared by all rasters for _io_ operations (like reading a file), and another pool is shared by all rasters for cpu intensive operations (like resampling).
+As seen before, the `async_` parameter can be a _boolean_, but instead of `True` you can also pass a _dict of options_ to parameterize how the raster is handled in the background. Some options control the amount of chunking to perform for the read and resampling steps, some other options allow you to choose the two _thread pools_ that will be used for reading and resampling. By default a single pool is shared by all rasters for _io_ operations (like reading a file), and another pool is shared by all rasters for cpu intensive operations (like resampling).
 
 This kind of __ressource sharing__ between rasters is not trivial and requires some synchronization. To do so, a thread (called the _scheduler_) is spawned in the `DataSource` to manage the queries to rasters. As you will see in the next parts, the _scheduler_ is able to manage other kind of rasters.
 
@@ -34,10 +34,10 @@ def main():
     # - Disk reads are automatically tiled and parallelized
     # - Resampling operations are automatically tiled and parallelized
     # - `iter_data()` method is available
-    with ds.aopen_raster(path, scheduled=True).close as r:
-        # `scheduled=True` is equivalent to
-        # `scheduled={}`, and also equivalent to
-        # `scheduled={io_pool='io', resample_pool='cpu', max_resampling_size=512, max_read_size=512}`
+    with ds.aopen_raster(path, async_=True).close as r:
+        # `async_=True` is equivalent to
+        # `async_={}`, and also equivalent to
+        # `async_={io_pool='io', resample_pool='cpu', max_resampling_size=512, max_read_size=512}`
         test_raster(r)
 
     # `DataSource.close()` closes all rasters, the scheduler, and the pools.
@@ -80,7 +80,7 @@ def test_raster(r):
     print('| Test 4 - Getting the full raster in 9 tiles with a slow main thread')
     tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
     if hasattr(r, 'iter_data'):
-        # Using `iter_data` of scheduled rasters
+        # Using `iter_data` of async rasters
         arr_iterator = r.iter_data(tiles, band=-1)
     else:
         # Making up an `iter_data` for classic rasters
