@@ -11,6 +11,7 @@ import os
 import uuid
 import gc
 
+import matplotlib.pyplot as plt
 import buzzard as buzz
 import xmltodict
 import buzzard as buzz
@@ -18,8 +19,6 @@ import numpy as np
 from tqdm import tqdm
 import scipy.ndimage as ndi
 import skimage.morphology as skm
-import matplotlib
-import matplotlib.pyplot as plt
 
 from dsm_generation import generate_dsm as create_random_elevation_gtiff
 

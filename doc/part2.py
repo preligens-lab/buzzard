@@ -1,6 +1,6 @@
 """
 # Part 2: Deriving the slopes from a dem using a _raster recipe_
-In buzzard there exist 3 types of raster managed by the _DataSource_'s scheduler:
+In _buzzard_ there are 3 types of raster managed by the _DataSource_'s scheduler:
 - _AsyncStoredRaster_, seen in `Part 1`,
 - _NocacheRasterRecipe_, seen in this part,
 - _CachedRasterRecipe_, seen in `Part 4`.
@@ -8,16 +8,16 @@ In buzzard there exist 3 types of raster managed by the _DataSource_'s scheduler
 All those rasters are called _async rasters_.
 
 ### A new type of raster: _recipes_
-A _recipe_ is an _async raster_ that __computes data on the fly__ by calling the `compute_array` function provided in the constructor. This function takes a _Footprint_ the defines a rectangle to compute, and it return a _ndarray_ containing the pixels computed at this location. This function will be called in parallel given the `computation_pool` parameter provided in the constructor.
+A _recipe_ is an _async raster_ that __computes data on the fly__ by calling the `compute_array` function provided in the constructor. This function takes a _Footprint_ that defines a rectangle to compute, and it returns a _ndarray_ containing the pixels computed at this location. This function will be called in parallel given the `computation_pool` parameter provided in the constructor.
 
-A _recipe_ may __depend on some other *async rasters*__. In this example, `ds.slopes` is a _NocacheRasterRecipe_ that depends on `ds.elevation` an _AsyncStoredRaster_. To declare the dependancy of `ds.slopes` on `ds.elevation`, in the constructor of `ds.slopes` you must provide `queue_data_per_primitive={'some_key': ds.elevation.queue_data}`, to allow the scheduler to issue queries to elevation when the slopes requires it. The `compute_array` function of `ds.slopes` will take as parameter the _ndarray_ of `ds.dem` previously extracted.
+A _recipe_ may __depend on some other *async rasters*__. In this example, `ds.slopes` is a _NocacheRasterRecipe_ that depends on `ds.elevation`, an _AsyncStoredRaster_. To declare the dependancy of `ds.slopes` on `ds.elevation`, in the constructor of `ds.slopes` you must provide `queue_data_per_primitive={'some_key': ds.elevation.queue_data}`, to allow the scheduler to issue queries to elevation when the slopes requires it. The `compute_array` function of `ds.slopes` will take as parameter the _ndarray_ of `ds.dem` previously extracted.
 
 A _recipe_ may depend on more than one _async raster_, and a _recipe_ that depends on an _async raster_ may also be needed by another recipe. This means that recipes can be assembled to form __computation graphs__ of any width and any depth.
 
 ### Parallelization within _async rasters_
 The computation intensive and io-bound steps of the scheduler are __defered to thread pools__ by default. You can configure the pools in the _async rasters_ constructors. Those parameters can be of the following types:
 - A _multiprocessing.pool.ThreadPool_, should be the default choice.
-- A _multiprocessing.pool.Pool_, a process pool. Useful for computations that require the [GIL](https://en.wikipedia.org/wiki/Global_interpreter_lock) or that leaks memory.
+- A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the [GIL](https://en.wikipedia.org/wiki/Global_interpreter_lock) or that leaks memory.
 - `None`, to request the scheduler thread to perform the tasks itself. Should be used when the computation is very light.
 - A _hashable_ (like a _string_), that will map to a pool registered in the _DataSource_. If that key is missing from the _DataSource_, a _ThreadPool_ with `multiprocessing.cpu_count()` workers will be automatically instanciated.
 
@@ -57,7 +57,7 @@ def main():
         'slopes',
         computation_pool=cpu_pool,
 
-        # The next 6 lines can be replaced by **buzz.algo?.slopes(ds.elevation)
+        # The next 6 lines can be replaced by **buzz.algo.slopes(ds.elevation) TODO: algo?
         fp=ds.elevation.fp,
         dtype='float32',
         band_count=1,
@@ -85,27 +85,32 @@ def main():
 
     print('Creating a slopes iterator on 9 tiles')
     it = ds.slopes.iter_data(tiles, max_queue_size=1)
-    print('  At most 5 dem arrays can be ready between `ds.elevation` and `ds.slopes`')
+    print('  At most 5 dem arrays can be ready between `ds.elevation` and '
+          '`ds.slopes`')
     print('  At most 1 slopes array can be ready out of the slopes iterator')
 
-    print('Sleeping to allow 6/9 dem arrays to be created, and 1/9 slopes array to be created')
+    print('Sleeping several seconds to let the scheduler create 6/9 dem '
+          'arrays, and 1/9 slopes arrays.')
     time.sleep(4)
 
     with example_tools.Timer() as t:
         arr = next(it)
-    print(f'Getting the first array took {t}, this was instant because it was ready')
+    print(f'Getting the first array took {t}, this was instant because it was '
+          'ready')
 
     with example_tools.Timer() as t:
         for _ in range(5):
             next(it)
-    print(f'Getting the next 5 arrays took {t}, it was quick because the dems were ready')
+    print(f'Getting the next 5 arrays took {t}, it was quick because the dems '
+          'were ready')
 
     with example_tools.Timer() as t:
         for _ in range(3):
             next(it)
-    print(f'Getting the last 4 arrays took {t}, it was long because nothing was ready')
+    print(f'Getting the last 4 arrays took {t}, it was long because nothing was'
+          ' ready')
 
-    # Cleanup *********************************************************************************** **
+    # Cleanup *************************************************************** **
     ds.close()
     os.remove(path)
 

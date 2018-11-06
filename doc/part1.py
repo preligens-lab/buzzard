@@ -41,8 +41,8 @@ def main():
         test_raster(r)
 
     # `DataSource.close()` closes all rasters, the scheduler, and the pools.
-    # If you let the garbage collector collect the `DataSource`, the rasters and the scheduler will
-    # be correctly closed, but the pools will leak memory.
+    # If you let the garbage collector collect the `DataSource`, the rasters and
+    # the scheduler will be correctly closed, but the pools will leak memory.
     ds.close()
 
     os.remove(path)
@@ -58,26 +58,27 @@ def test_raster(r):
     print(f'|   Footprint: center:{fp.c}, scale:{fp.scale}')
     print(f'|              size(m):{fp.size}, raster-size(px):{fp.rsize}')
     fp_lowres = fp.intersection(fp, scale=fp.scale * 2)
-    # ***************************************** **
 
+    # *********************************************************************** **
     # Read the raster a first time to limit the impact of page caching in the
     # results. https://en.wikipedia.org/wiki/Page_cache
     r.get_data(band=-1)
-    # ***************************************** **
 
+    # *********************************************************************** **
     print('| Test 2 - Getting the full raster')
     with example_tools.Timer() as t:
         arr = r.get_data(band=-1)
     print(f'|   took {t}, {fp.rarea / float(t):_.0f} pixel/sec')
-    # ***************************************** **
 
+    # *********************************************************************** **
     print('| Test 3 - Getting and downsampling the full raster')
     with example_tools.Timer() as t:
         arr = r.get_data(fp=fp_lowres, band=-1)
     print(f'|   took {t}, {fp_lowres.rarea / float(t):_.0f} pixel/sec')
-    # ***************************************** **
 
-    print('| Test 4 - Getting the full raster in 9 tiles with a slow main thread')
+    # *********************************************************************** **
+    print('| Test 4 - Getting the full raster in 9 tiles with a slow main'
+          'thread')
     tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
     if hasattr(r, 'iter_data'):
         # Using `iter_data` of async rasters
@@ -92,7 +93,6 @@ def test_raster(r):
         for tile, arr in zip(tiles, arr_iterator):
             time.sleep(1 / 9)
     print(f'|   took {t}, {r.fp.rarea / float(t):_.0f} pixel/sec\n')
-    # ***************************************** **
 
 if __name__ == '__main__':
     main()
