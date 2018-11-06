@@ -23,11 +23,16 @@ class ActorCacheSupervisor(object):
             cache_fp: _CacheTileStatus.unknown
             for cache_fp in raster.cache_fps.flat
         }
-        self._path_of_cache_fp = raster.async_dict_path_of_cache_fp
         self._queries = {}
         self._alive = True
         self.address = '/Raster{}/CacheSupervisor'.format(self._raster.uid)
         self._directory_primed = False
+
+        # Should contain the path to all files that will be opened using the DataSource's activation
+        # pool. It means all cache files in those status:
+        # - _CacheTileStatus.checking
+        # - _CacheTileStatus.ready
+        self._path_of_cache_fp = raster.async_dict_path_of_cache_fp
 
     @property
     def alive(self):
@@ -77,6 +82,7 @@ class ActorCacheSupervisor(object):
                 path_candidates = self._raster.list_cache_path_candidates(cache_fp)
                 if len(path_candidates) == 1:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.checking
+                    self._path_of_cache_fp[cache_fp] = path_candidates[0]
                     self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'unknown')
                     query.cache_fps_checking.add(cache_fp)
                     msgs += [
@@ -141,6 +147,7 @@ class ActorCacheSupervisor(object):
         else:
             # This cache tile was corrupted and removed
             self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
+            del self._path_of_cache_fp[cache_fp]
             self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'absent')
 
         queries_treated = []

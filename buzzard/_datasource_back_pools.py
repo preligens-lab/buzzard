@@ -31,7 +31,7 @@ class BackDataSourcePools(object):
     def join_all_pools(self):
         """Should be performed only if scheduler is stopped"""
         for pool in self._auto_allocated_pools:
-            pool.close()
+            pool.terminate()
         for pool in self._auto_allocated_pools:
             pool.join()
         self._pool_cache.clear()
