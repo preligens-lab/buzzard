@@ -140,7 +140,7 @@ class BackDataSourceSchedulerMixin(object):
                             msg,
                         ))
 
-                    for dst_actor in _find_actors(msg.address, src_actor): # TODO: make sure that it is enough
+                    for dst_actor in _find_actors(msg.address, src_actor):
                         if dst_actor is None:
                             # This message may be discarted
                             assert isinstance(msg, DroppableMsg), '\n{}\n{}\n'.format(dst_actor, msg)

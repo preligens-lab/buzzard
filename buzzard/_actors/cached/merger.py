@@ -131,7 +131,6 @@ class Work(PoolJobWorking):
 
         if actor._raster.merge_pool is None or actor._same_address_space:
             func = functools.partial(
-                # TODO: Refine `merge_arrays` function prototype
                 actor._raster.merge_arrays,
                 cache_fp,
                 array_per_fp,

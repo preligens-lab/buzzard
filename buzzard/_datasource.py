@@ -26,19 +26,26 @@ from buzzard._a_pooled_emissary import APooledEmissary
 
 def _concat(fp, array_per_fp, raster):
     """TODO: move to buzz.algo?.concat_arrays
-    """
-    band_count = next(iter(array_per_fp.values())).shape[-1]
+    buzz.algo.concat_arrays
+    buzz.algo.slopes_recipe
+    buzz.algo.cascaded_resampled_recipes
 
+    """
+    # Allocate
+    for a in array_per_fp.values():
+        band_count = a.shape[-1]
     arr = np.empty(np.r_[fp.shape, band_count], raster.dtype)
-    debug_mask = np.zeros(fp.shape, 'bool')
+    # debug_mask = np.zeros(fp.shape, 'bool')
+
+    # Burn
     for tile, tile_arr in array_per_fp.items():
         assert tuple(tile.shape) == tile_arr.shape[:2]
         slices = tile.slice_in(fp)
         assert np.all(debug_mask[slices] == False), debug_mask[slices].mean()
-        debug_mask[slices] = True
+        # debug_mask[slices] = True
         arr[slices] = tile_arr
+    # assert np.all(debug_mask), debug_mask.mean()
 
-    assert np.all(debug_mask), debug_mask.mean()
     return arr
 
 class DataSource(DataSourceRegisterMixin):
