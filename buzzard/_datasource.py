@@ -217,24 +217,6 @@ class DataSource(DataSourceRegisterMixin):
             sr_forced='EPSG:27561',
         )
 
-    Sources activation / deactivation
-    ---------------------------------
-    A source may be temporary deactivated, releasing it's internal file descriptor while keeping
-    enough informations to reactivate itself later. By setting a `max_activated` different that
-    `np.inf` in DataSource constructor, the sources of data are automatically deactivated in a
-    lru fashion, and automatically reactivated when necessary.
-
-    Benefits:
-    - Open an infinite number of files without worrying about the number of file descriptors allowed
-      by the system.
-    - Pickle/unpickle a DataSource
-
-    Side notes:
-    - A `RasterRecipe` may require the `cloudpickle` library to be pickled
-    - All sources open in 'w' mode should be closed before pickling
-    - If a source's definition changed between a deactivation and an activation an exception is
-      raised (i.e. file changed on the file system)
-
     """
 
     def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
