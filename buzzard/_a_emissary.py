@@ -53,6 +53,8 @@ class AEmissary(AStored):
 
         return _DeleteRoutine(self, _delete)
 
+    remove = delete
+
 class ABackEmissary(ABackStored):
     """Implementation of AEmissary's specifications"""
 
