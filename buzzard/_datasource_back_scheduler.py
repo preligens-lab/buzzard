@@ -7,7 +7,7 @@ from buzzard._actors.top_level import ActorTopLevel
 from buzzard._actors.message import Msg, DroppableMsg
 from buzzard._debug_observers_manager import DebugObserversManager
 
-VERBOSE = 1
+VERBOSE = 0
 
 class BackDataSourceSchedulerMixin(object):
 

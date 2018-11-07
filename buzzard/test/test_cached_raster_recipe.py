@@ -66,7 +66,7 @@ def test_(pools, test_prefix):
         assert np.all(y == yref)
 
     def _test_resampling(fp):
-        print(fp)
+        # print(fp)
         arr = r.get_data(band=-1, fp=fp)
         ref = npr.get_data(band=-1, fp=fp)
         assert np.allclose(arr, ref)
@@ -159,45 +159,57 @@ def test_(pools, test_prefix):
         time.sleep(1 / 2)
         r.get_data() # This line will reraise any exception from scheduler
 
-
-        gc.collect()
-        time.sleep(1 / 4)
-        print(r.__class__)
-        print(r.__class__.mro())
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-
-
         # Raster closing during query
         it1 = r.iter_data(fps=[fp] * 2, max_queue_size=1) # 2/2 ready, 1/2 sinked
         it2 = r.iter_data(fps=[fp] * 1, max_queue_size=1) # 1/1 ready, 0/1 sinked
         it3 = r.iter_data(fps=[fp] * 2, max_queue_size=1) # 1/2 ready, 0/2 sinked
         next(it1)
         time.sleep(1/2)
+        # Close DataSource instead of Raster, because DataSource.close is currently blocking
 
-        r.close()
-        # _open()
+    with buzz.DataSource(allow_interpolation=1).close as ds:
+        # Corrupted cache file
+        files = glob.glob(os.path.join(test_prefix, '*.tif'))
+        mtimes0 = {f: os.stat(f).st_mtime for f in files}
+        corrupted_path = files[0]
+        with open(corrupted_path, 'wb') as stream:
+            stream.write(b'42')
+        r = _open()
+
+        r.get_data()
+        mtimes1 = {f: os.stat(f).st_mtime for f in files}
+        assert mtimes0.keys() == mtimes1.keys()
+        for path in files:
+            if path == corrupted_path:
+                assert mtimes0[path] != mtimes1[path]
+            else:
+                assert mtimes0[path] == mtimes1[path]
 
 
-        time.sleep(1)
-        print('--------------------------------------------------------------------------------')
-        print('--------------------------------------------------------------------------------')
-        print('--------------------------------------------------------------------------------')
-        print('--------------------------------------------------------------------------------')
-        # r.get_data() # This line will raise any exception from scheduler
 
+
+        # gc.collect()
+        # time.sleep(1 / 4)
+        # print(r.__class__)
+        # print(r.__class__.mro())
+        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+
+        # time.sleep(1)
+        # print('--------------------------------------------------------------------------------')
+        # print('--------------------------------------------------------------------------------')
+        # print('--------------------------------------------------------------------------------')
+        # print('--------------------------------------------------------------------------------')
 
 
         # Corrupted cache file
         # iter_data of several items, more than cache_max, test backpressure with time.sleep
-        # max resampling size
         # derived raster
         # in iter_data, the first one(s) don't need cache, the next ones need cache file checking
+        # max resampling size
         # computation tiles
-
-        # raster closed during query
 
 
 # Tools ***************************************************************************************** **

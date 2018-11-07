@@ -614,15 +614,7 @@ class DataSource(DataSourceRegisterMixin):
         if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
         band_count = 1 if array.ndim == 2 else array.shape[-1]
-        print('//////////////////////////////////////////////////')
-        print('awrap_numpy_raster')
-        print(band_schema)
-        print('//////////////////////////////////////////////////')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
-        print('//////////////////////////////////////////////////')
-        print('awrap_numpy_raster')
-        print(band_schema)
-        print('//////////////////////////////////////////////////')
         if sr is not None:
             sr = osr.GetUserInputAsWKT(sr)
         _ = conv.of_of_mode(mode)

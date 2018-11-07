@@ -120,7 +120,6 @@ class ABackProxy(object):
         - May be overriden
         - Should always be called
         """
-        print('==================== ABackProxy.close', self)
         del self.back_ds
 
     @property

@@ -140,7 +140,6 @@ def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
     return valid
 
 def _is_ok(cache_fp, path, band_count, dtype, back_ds_opt):
-
     allocator = lambda: BackGDALFileRaster.open_file(path, 'GTiff', [], 'r')
     with contextlib.ExitStack() as stack:
         if back_ds_opt is None:

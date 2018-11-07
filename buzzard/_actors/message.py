@@ -24,7 +24,7 @@ class Msg(object):
         self.title = title
         self.args = args
 
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         if self.address[0] == '/':
             b = _COLOR_PER_CLASSNAME.get(self.address.split('/')[2], '\033[37m')
         else:

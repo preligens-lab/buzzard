@@ -109,7 +109,6 @@ class ABackAsyncRaster(ABackProxyRaster):
 
         Should be called after scheduler's end
         """
-        print('==================== ABackAsyncRaster.close', self)
         self.back_ds.put_message(Msg(
             '/Global/TopLevel', 'kill_raster', self,
         ), check_scheduler_status=False)
