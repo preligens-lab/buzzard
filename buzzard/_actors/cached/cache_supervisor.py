@@ -96,8 +96,8 @@ class ActorCacheSupervisor(object):
                         LOGGER.warn('Removing {}'.format(path))
                         os.remove(path)
                     query.cache_fps_to_compute.add(cache_fp)
-            else:
-                assert False # pragma: no cover
+            else: # pragma: no cover
+                assert False
 
         if len(query.cache_fps_ensured) != 0:
             # Notify the production pipeline that those cache tiles are already ready

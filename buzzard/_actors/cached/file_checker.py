@@ -26,7 +26,7 @@ class ActorFileChecker(object):
                 self._same_address_space = True
             elif isinstance(io_pool, mp.pool.Pool):
                 self._same_address_space = False
-            else:
+            else: # pragma: no cover
                 assert False, 'Type should be checked in facade'
             self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
             self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
@@ -43,7 +43,7 @@ class ActorFileChecker(object):
         msgs = []
 
         if self._raster.io_pool is None:
-            work = Work(cache_fp, path)
+            work = Work(self, cache_fp, path)
             status = work.func()
             msgs += [Msg(
                 'CacheSupervisor', 'inferred_cache_file_status', cache_fp, path, status

@@ -26,7 +26,7 @@ class ActorReader(object):
                 self._same_address_space = True
             elif isinstance(io_pool, mp.pool.Pool):
                 self._same_address_space = False
-            else:
+            else: # pragma: no cover
                 assert False, 'Type should be checked in facade'
         self._waiting_jobs = set()
         self._working_jobs = set()

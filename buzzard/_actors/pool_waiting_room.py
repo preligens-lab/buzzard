@@ -231,7 +231,7 @@ class ActorPoolWaitingRoom(object):
                 cx, cy = job.fp.c
                 prio += (-cy, +cx, job.action_priority,)
 
-            else:
+            else: # pragma: no cover
                 assert False
 
             self._dict_of_prio_per_r1job[job] = prio
@@ -258,7 +258,7 @@ class ActorPoolWaitingRoom(object):
                 self._cache_jobs_of_cache_fp[key].remove(job)
                 if len(self._cache_jobs_of_cache_fp[key]) == 0:
                     del self._cache_jobs_of_cache_fp[key]
-            else:
+            else: # pragma: no cover
                 assert False
 
             prio = self._dict_of_prio_per_r1job.pop(job)

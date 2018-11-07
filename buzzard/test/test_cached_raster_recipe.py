@@ -17,9 +17,9 @@ def pytest_generate_tests(metafunc):
     if 'pools' in metafunc.fixturenames:
         argvalues = []
         for pval in [
-                # None,
+                None,
                 'lol', mp.pool.ThreadPool(2),
-                # mp.pool.Pool(2),
+                mp.pool.Pool(2),
         ]:
             argvalues.append(dict(
                 io={'io_pool': pval},
@@ -44,7 +44,7 @@ def test_(pools, test_prefix):
     def _open(**kwargs):
         d = dict(
             fp=fp, dtype='float32', band_count=2,
-            compute_array=_meshgrid_raster_in,
+            compute_array=functools.partial(_meshgrid_raster_in, reffp=fp),
             cache_dir=test_prefix,
             **pools['merge'],
             **pools['resample'],
@@ -158,8 +158,10 @@ def test_(pools, test_prefix):
 
 
 # Tools ***************************************************************************************** **
-def _meshgrid_raster_in(fp, primitive_fps, primtive_arrays, raster):
-    x, y = fp.meshgrid_raster_in(raster.fp)
+def _meshgrid_raster_in(fp, primitive_fps, primtive_arrays, raster, reffp):
+    if raster is not None:
+        assert raster.fp == reffp
+    x, y = fp.meshgrid_raster_in(reffp)
     return np.stack([x, y], axis=2).astype('float32')
 
 def _should_not_be_called(*args):
