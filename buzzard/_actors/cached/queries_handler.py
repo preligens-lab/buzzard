@@ -192,7 +192,7 @@ class ActorQueriesHandler(object):
             qi.produce_count,
         ))
         return [
-            Msg('/Global/GlobalPrioritiesWatcher', 'cancel_this_query', qi),
+            Msg('/Global/GlobalPrioritiesWatcher', 'cancel_this_query', self._raster.uid, qi),
 
             Msg('ProductionGate', 'cancel_this_query', qi),
             Msg('Producer', 'cancel_this_query', qi),

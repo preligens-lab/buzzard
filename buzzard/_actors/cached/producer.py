@@ -104,7 +104,8 @@ class ActorProducer(object):
         ----------
         qi: _actors.cached.query_infos.QueryInfos
         """
-        del self._produce_per_query[qi]
+        if qi in self._produce_per_query:
+            del self._produce_per_query[qi]
         return []
 
     def receive_die(self):

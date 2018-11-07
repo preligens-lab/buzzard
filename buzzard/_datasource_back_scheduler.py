@@ -7,7 +7,7 @@ from buzzard._actors.top_level import ActorTopLevel
 from buzzard._actors.message import Msg, DroppableMsg
 from buzzard._debug_observers_manager import DebugObserversManager
 
-VERBOSE = 0
+VERBOSE = 1
 
 class BackDataSourceSchedulerMixin(object):
 
@@ -143,7 +143,7 @@ class BackDataSourceSchedulerMixin(object):
                     for dst_actor in _find_actors(msg.address, src_actor):
                         if dst_actor is None:
                             # This message may be discarted
-                            assert isinstance(msg, DroppableMsg), '\n{}\n{}\n'.format(dst_actor, msg)
+                            assert isinstance(msg, DroppableMsg), '\ndst_actor: {}\n      msg: {}\n'.format(dst_actor, msg)
                         else:
                             a = datetime.datetime.now()
                             new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)

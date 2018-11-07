@@ -79,7 +79,7 @@ class ActorCacheExtractor(object):
         qi: _actors.cached.query_infos.QueryInfos
         """
         # Perform fine grain garbage collection
-        for cache_fp in self._reads_waiting_for_cache_fp.keys() & qi.cache_fps:
+        for cache_fp in self._reads_waiting_for_cache_fp.keys() & qi.list_of_cache_fp:
             if qi in self._reads_waiting_for_cache_fp[cache_fp]:
                 del self._reads_waiting_for_cache_fp[cache_fp][qi]
                 if len(self._reads_waiting_for_cache_fp[cache_fp]) == 0:

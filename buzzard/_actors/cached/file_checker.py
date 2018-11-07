@@ -19,6 +19,7 @@ class ActorFileChecker(object):
 
     def __init__(self, raster):
         self._raster = raster
+        self._back_ds = raster.back_ds
         self._alive = True
         io_pool = raster.io_pool
         if io_pool is not None:
@@ -80,6 +81,7 @@ class ActorFileChecker(object):
         self._waiting_jobs.clear()
         self._working_jobs.clear()
         self._raster = None
+        self._back_ds = None
         return msgs
 
     # ******************************************************************************************* **
@@ -98,7 +100,7 @@ class Work(PoolJobWorking):
             func = functools.partial(
                 _cache_file_check,
                 cache_fp, path, len(actor._raster), actor._raster.dtype,
-                actor._raster.back_ds
+                actor._back_ds
             )
         else:
             func = functools.partial(

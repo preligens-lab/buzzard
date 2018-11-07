@@ -91,7 +91,7 @@ class ActorCacheSupervisor(object):
                 else:
                     self._cache_fps_status[cache_fp] = _CacheTileStatus.absent
                     self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'absent')
-                    for path in path_candidates:
+                    for path in path_candidates: # pragma: no cover
                         # TODO: What if can't delete?
                         LOGGER.warn('Removing {}'.format(path))
                         os.remove(path)

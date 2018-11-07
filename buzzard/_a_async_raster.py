@@ -53,12 +53,6 @@ class ABackAsyncRaster(ABackProxyRaster):
 
         super().__init__(**kwargs)
 
-    def close(self):
-        self.back_ds.put_message(Msg(
-            '/Global/TopLevel', 'kill_raster', self,
-        ), check_scheduler_status=False)
-        return super().close()
-
     def queue_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
                    parent_uid, key_in_parent):
         q = queue.Queue(max_queue_size)
@@ -115,5 +109,10 @@ class ABackAsyncRaster(ABackProxyRaster):
 
         Should be called after scheduler's end
         """
+        print('==================== ABackAsyncRaster.close', self)
+        self.back_ds.put_message(Msg(
+            '/Global/TopLevel', 'kill_raster', self,
+        ), check_scheduler_status=False)
+        # TODO: just sending a kill_raster message may not be enough. Need synchro?
         self.back_ds.deactivate_many(self.async_dict_path_of_cache_fp.values())
         super().close()

@@ -17,6 +17,7 @@ class ActorReader(object):
 
     def __init__(self, raster):
         self._raster = raster
+        self._back_ds = raster.back_ds
         self._alive = True
         io_pool = raster.io_pool
         if io_pool is not None:
@@ -88,7 +89,7 @@ class ActorReader(object):
             for job in self._working_jobs
             if job.qi == qi
         ]
-        for job in self._working_jobs:
+        for job in jobs_to_kill:
             msgs += [Msg(self._working_room_address, 'cancel_job', job)]
             self._working_jobs.remove(job)
 
@@ -97,7 +98,7 @@ class ActorReader(object):
             del self._sample_array_per_prod_tile[qi]
             del self._missing_cache_fps_per_prod_tile[qi]
 
-        return []
+        return msgs
 
     def receive_die(self):
         """Receive message: The raster was killed"""
@@ -115,6 +116,7 @@ class ActorReader(object):
         self._sample_array_per_prod_tile.clear()
         self._missing_cache_fps_per_prod_tile.clear()
         self._raster = None
+        self._back_ds = None
         return msgs
 
     # ******************************************************************************************* **
@@ -190,7 +192,7 @@ class Work(PoolJobWorking):
             func = functools.partial(
                 _cache_file_read,
                 path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
-                actor._raster.back_ds,
+                actor._back_ds,
             )
         else:
             self.dst_array_slice = dst_array_slice

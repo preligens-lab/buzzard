@@ -83,7 +83,7 @@ class ActorMerger(object):
         self._working_jobs.clear()
         self._raster = None
 
-        return []
+        return msgs
 
     # ******************************************************************************************* **
     def _create_work_job(self, cache_fp, array_per_fp):

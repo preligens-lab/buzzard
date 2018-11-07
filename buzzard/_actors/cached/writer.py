@@ -92,7 +92,7 @@ class ActorWriter(object):
         self._working_jobs.clear()
         self._raster = None
 
-        return []
+        return msgs
 
     # ******************************************************************************************* **
 

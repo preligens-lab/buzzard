@@ -119,7 +119,6 @@ class ActorResampler(object):
 
     def receive_token_to_working_room(self, job, token):
         """Receive message: Waiting job can proceede to working room"""
-        msgs = []
         self._waiting_jobs.remove(job)
 
         work = self._create_work_job(
@@ -160,11 +159,11 @@ class ActorResampler(object):
             for job in self._working_jobs
             if job.qi == qi
         ]
-        for job in self._working_jobs:
+        for job in jobs_to_kill:
             msgs += [Msg(self._working_room_address, 'cancel_job', job)]
             self._working_jobs.remove(job)
 
-        return []
+        return msgs
 
     def receive_die(self):
         """Receive message: The raster was killed"""
@@ -179,8 +178,7 @@ class ActorResampler(object):
         self._waiting_jobs.clear()
         self._working_jobs.clear()
         self._raster = None
-
-        return []
+        return msgs
 
     # ******************************************************************************************* **
     def _create_work_job(self, qi, prod_idx, sample_fp, resample_fp, subsample_array):

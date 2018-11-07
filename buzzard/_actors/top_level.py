@@ -100,9 +100,14 @@ class ActorTopLevel(object):
         raster.debug_mngr.event('raster_stopped', raster.facade_proxy)
 
         # Deleting raster's actors *********************************************
+        # Deal with QueriesHandler first.
+        # TODO: Should the order of 'die' messages be enforced somewhere else?
         msgs += [
             Msg(address, 'die')
-            for address in self._actor_addresses_of_raster[raster]
+            for address in sorted(
+                    self._actor_addresses_of_raster[raster],
+                    key=lambda address: 'QueriesHandler' not in address,
+            )
         ]
         del self._actor_addresses_of_raster[raster]
 
@@ -128,10 +133,11 @@ class ActorTopLevel(object):
 
         return msgs
 
-    def ext_receive_die(self):
+    def ext_receive_die(self): # TODO: Remove this method since not called? The _stope flat is set...
         """Receive message sent by something else than an actor, still treated synchronously: The
         DataSource is closing
         """
+
         assert self._alive
         self._alive = False
 

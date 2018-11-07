@@ -91,7 +91,7 @@ class ActorComputer(object):
         for job in self._waiting_jobs_per_query[qi]:
             msgs += [Msg(self._waiting_room_address, 'unschedule_job', job)]
         del self._waiting_jobs_per_query[qi]
-        return []
+        return msgs
 
     def receive_die(self):
         """Receive message: The raster was killed"""
@@ -113,7 +113,7 @@ class ActorComputer(object):
         self._working_jobs.clear()
 
         self._raster = None
-        return []
+        return msgs
 
     # ******************************************************************************************* **
     def _create_work_job(self, qi, compute_idx):
@@ -163,7 +163,6 @@ class Work(PoolJobWorking):
         assert qicc.collected_count == compute_idx, (qicc.collected_count, compute_idx)
 
         compute_fp = qicc.list_of_compute_fp[compute_idx]
-        # prod_idx = qicc.dict_of_min_prod_idx_per_compute_fp[compute_fp]
 
         self.compute_fp = compute_fp
 

@@ -103,7 +103,6 @@ class ActorGlobalPrioritiesWatcher(object):
           - If this query started a collection phase, those cache tiles should be updated if
             necessary.
         """
-        msgs = []
         query_updates = set()
         cache_tile_updates = set()
 
@@ -156,8 +155,6 @@ class ActorGlobalPrioritiesWatcher(object):
         else:
             return []
 
-        return msgs
-
     def receive_die(self):
         """Receive message: The DataSource is closing"""
         assert self._alive
@@ -196,7 +193,6 @@ class ActorGlobalPrioritiesWatcher(object):
         return prio
 
     def _get_rid_of_query(self, raster_uid, qi):
-        msgs = []
         cache_tile_updates = set()
 
         # Data structures shortcuts
