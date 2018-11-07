@@ -150,6 +150,7 @@ class CachedQueryInfos(object):
         it = zip(list_of_prod_fp, list_of_prod_same_grid, list_of_prod_share_area)
         print('- CachedQueryInfos -------------------------------------', raster.fp.scale)
         print('', band_ids)
+        # TODO idea: What if i spawn a ProcessPoolExecutor if >100 prod. The same could be done for fp.tile. What about a global process pool executor in `buzz.env`?
         for prod_fp, same_grid, share_area in it:
             if not share_area:
                 print(f' {prod_fp.rsize!s:15} - Out')

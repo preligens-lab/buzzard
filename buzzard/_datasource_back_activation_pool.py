@@ -34,6 +34,7 @@ class BackDataSourceActivationPoolMixin(object):
             self._ap_idle.pop_all_occurrences(uid)
 
     def deactivate_many(self, uid_set):
+        # TODO idea: allow recursive uids to group activated rasters and allow group deactivation
         if len(uid_set) == 0:
             return
         with self._ap_lock:

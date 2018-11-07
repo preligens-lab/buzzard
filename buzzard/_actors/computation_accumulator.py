@@ -46,6 +46,7 @@ class ActorComputationAccumulator(object):
             # TODO Idea: Should cache_fp be dilated before the above intersection? This could be a
             #   parameters in facade constructor.
             #   This means also depending on computation_fp that only touch in the border.
+            #   On the other hand overlap is a `computation concern`, overlap may not be a `merge concern`
             slices = compute_fp_part.slice_in(compute_fp)
             assert compute_fp_part not in store['ready']
             store['ready'][compute_fp_part] = array[slices]
