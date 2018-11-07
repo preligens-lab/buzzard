@@ -43,7 +43,7 @@ All concrete 'facade' that directly or indirectly inherit from `AVectorProxy` (a
 
 ## `_actors` directory
 Contains all the code that runs on the `DataSource`'s dedicated thread (the scheduler) (except for the thread's main loop that lies in `_datasource_back_scheduler.py`). The mission of those files is to make the `AsyncRaster` instances work. It is implemented with a lightweight message passing design really close to the actor model, the main difference is that all actors run in a fully synchronous way, it allows a lot of freedom in the design:
-- No stale messages because messages are delivered in a `depth first` fashion.
+- Almost no stale messages because messages are delivered in a `depth first` fashion.
 - Ability to share some mutable states between actors. (This is used only a few time because it tends to make the code unpredictable)
 <br/>
 

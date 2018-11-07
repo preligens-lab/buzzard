@@ -20,8 +20,9 @@ def pytest_generate_tests(metafunc):
         argvalues = []
         for pval in [
                 None,
-                'lol', mp.pool.ThreadPool(2),
-                mp.pool.Pool(2),
+                # 'lol',
+                # mp.pool.ThreadPool(2),
+                # mp.pool.Pool(2),
         ]:
             # TODO: test with different pools
             argvalues.append(dict(
@@ -70,6 +71,11 @@ def test_(pools, test_prefix):
         arr = r.get_data(band=-1, fp=fp)
         ref = npr.get_data(band=-1, fp=fp)
         assert np.allclose(arr, ref)
+
+    def _corrupt_files(files):
+        for path in files:
+            with open(path, 'wb') as stream:
+                stream.write(b'42')
 
     print() # debug line
     fp = buzz.Footprint(
@@ -172,8 +178,7 @@ def test_(pools, test_prefix):
         files = glob.glob(os.path.join(test_prefix, '*.tif'))
         mtimes0 = {f: os.stat(f).st_mtime for f in files}
         corrupted_path = files[0]
-        with open(corrupted_path, 'wb') as stream:
-            stream.write(b'42')
+        _corrupt_files([corrupted_path])
         r = _open()
 
         r.get_data()
@@ -185,18 +190,81 @@ def test_(pools, test_prefix):
             else:
                 assert mtimes0[path] == mtimes1[path]
 
+    with buzz.DataSource(allow_interpolation=1).close as ds:
+        # In iter_data, the first one(s) don't need cache, the next ones need cache file checking and then recomputation
+        _corrupt_files(glob.glob(os.path.join(test_prefix, '*.tif')))
+        r = _open()
+
+        gc.collect()
+        time.sleep(1)
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+
+        arrs = list(r.iter_data(band=-1, fps=[
+            fp.move(fp.br + fp.diagvec), # Outside
+
+        ] + [fp] * 12))
+        assert len(arrs) == 13
+
+
+        gc.collect()
+        time.sleep(1)
+        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+
+
+        # Iter on cache files one by one and check file creation lazyness
+        # r.close()
+
+
+        # gc.collect()
+        # time.sleep(1)
+        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
+        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
+        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
+        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
+        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
+
+
+
+        # for path in glob.glob(os.path.join(test_prefix, '*.tif')):
+        #     os.remove(path)
+
+
 
 
 
         # gc.collect()
-        # time.sleep(1 / 4)
-        # print(r.__class__)
-        # print(r.__class__.mro())
-        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        # print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        # time.sleep(1)
+        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
 
+
+
+        # r = _open()
+
+
+        # gc.collect()
+        # time.sleep(1)
+        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
+        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
+        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
+        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
+
+        # for count, arr in enumerate(r.iter_data(r.cache_tiles.flatten(), band=-1), 1):
+        #     assert len(glob.glob(os.path.join(test_prefix, '*.tif'))) == count
+
+
+        # gc.collect()
         # time.sleep(1)
         # print('--------------------------------------------------------------------------------')
         # print('--------------------------------------------------------------------------------')
@@ -204,12 +272,12 @@ def test_(pools, test_prefix):
         # print('--------------------------------------------------------------------------------')
 
 
-        # Corrupted cache file
         # iter_data of several items, more than cache_max, test backpressure with time.sleep
         # derived raster
-        # in iter_data, the first one(s) don't need cache, the next ones need cache file checking
         # max resampling size
         # computation tiles
+
+        # cannot launch all computations at the same time because not needed by urgent query
 
 
 # Tools ***************************************************************************************** **
