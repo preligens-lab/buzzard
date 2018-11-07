@@ -99,17 +99,17 @@ class ActorMerger(object):
     def _normalize_user_result(self, cache_fp, res):
         try:
             res = np.atleast_3d(res)
-        except:
+        except: # pragma: no cover
             raise ValueError("Result of recipe's `merge_arrays` has type {}, it can't be converted to ndarray".format(
                 type(res)
             ))
         y, x, c = res.shape
-        if (y, x) != cache_fp.shape:
+        if (y, x) != cache_fp.shape: # pragma: no cover
             raise ValueError("Result of recipe's `merge_arrays` has shape `{}`, should start with {}".format(
                 res.shape,
                 cache_fp.shape,
             ))
-        if c != len(self._raster):
+        if c != len(self._raster): # pragma: no cover
             raise ValueError("Result of recipe's `merge_arrays` has shape `{}`, should have {} bands".format(
                 res.shape,
                 len(self._raster),

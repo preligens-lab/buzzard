@@ -225,18 +225,18 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
             gdal_ds = stack.enter_context(back_ds_opt.acquire_driver_object(path, allocator))
 
         # Check raster
-        if gdal_ds is None:
+        if gdal_ds is None: # pragma: no cover
             raise RuntimeError("Could not open {path}, what happend to it?".format(
                 path
             ))
-        if (gdal_ds.RasterXSize, gdal_ds.RasterYSize) != tuple(cache_fp.rsize):
+        if (gdal_ds.RasterXSize, gdal_ds.RasterYSize) != tuple(cache_fp.rsize): # pragma: no cover
             raise RuntimeError('{} was expected to have rsize {}, not {}'.format(
                 path,
                 tuple(cache_fp.rsize),
                 (gdal_ds.RasterXSize, gdal_ds.RasterYSize),
             ))
         stored_dtype = _tools.conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
-        if dtype != stored_dtype:
+        if dtype != stored_dtype: # pragma: no cover
             raise RuntimeError('{} was expected to have dtype {}, not {}'.format(
                 path,
                 dtype,
@@ -263,7 +263,7 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
                 buf_obj=dst[..., i],
             )
             del b
-            if a is None:
+            if a is None: # pragma: no cover
                 raise RuntimeError('Could not read band_id {}'.format(bi))
 
     del gdal_ds

@@ -125,18 +125,18 @@ class ActorComputer(object):
         return [Msg('ComputationAccumulator', 'combine_this_array', work_job.compute_fp, res)]
 
     def _normalize_user_result(self, compute_fp, res):
-        if not isinstance(res, np.ndarray):
+        if not isinstance(res, np.ndarray): # pragma: no cover
             raise ValueError("Result of recipe's `compute_array` have type {}, it should be ndarray".format(
                 type(res)
             ))
         res = np.atleast_3d(res)
         y, x, c = res.shape
-        if (y, x) != tuple(compute_fp.shape):
+        if (y, x) != tuple(compute_fp.shape): # pragma: no cover
             raise ValueError("Result of recipe's `compute_array` have shape `{}`, should start with {}".format(
                 res.shape,
                 compute_fp.shape,
             ))
-        if c != len(self._raster):
+        if c != len(self._raster): # pragma: no cover
             raise ValueError("Result of recipe's `compute_array` have shape `{}`, should have {} bands".format(
                 res.shape,
                 len(self._raster),

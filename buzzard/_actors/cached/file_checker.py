@@ -152,11 +152,11 @@ def _is_ok(cache_fp, path, band_count, dtype, back_ds_opt):
         )
         file_dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
         file_len = gdal_ds.RasterCount
-        if file_fp != cache_fp:
+        if file_fp != cache_fp: # pragma: no cover
             raise RuntimeError('invalid Footprint ({} instead of {})'.format(file_fp, cache_fp))
-        if file_dtype != dtype:
+        if file_dtype != dtype: # pragma: no cover
             raise RuntimeError('invalid dtype ({} instead of {})'.format(file_dtype, dtype))
-        if file_len != band_count:
+        if file_len != band_count: # pragma: no cover
             raise RuntimeError('invalid band_count ({} instead of {})'.format(file_len, band_count))
     del gdal_ds
 
@@ -164,6 +164,6 @@ def _is_ok(cache_fp, path, band_count, dtype, back_ds_opt):
     md5 = md5.split('.')[-2]
     md5 = md5.split('_')[-1]
     new_md5 = _md5(path)
-    if new_md5 != md5:
+    if new_md5 != md5: # pragma: no cover
         raise RuntimeError('invalid md5 ({} instead of {})'.format(new_md5, md5))
     return True

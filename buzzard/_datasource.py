@@ -978,6 +978,40 @@ class DataSource(DataSourceRegisterMixin):
         """
         pass
 
+
+    def acreate_cached_raster_recipe(
+            self,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=_concat,
+
+            # filesystem
+            cache_dir=None, o=False,
+
+            # primitives
+            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+
+            # misc
+            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
+            debug_observers=()
+    ):
+        return self.create_cached_raster_recipe(
+            _AnonymousSentry(),
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_arrays,
+            cache_dir, o,
+            queue_data_per_primitive, convert_footprint_per_primitive,
+            computation_pool, merge_pool, io_pool, resample_pool,
+            cache_tiles, computation_tiles, max_resampling_size,
+            debug_observers,
+        )
+
     def create_cached_raster_recipe(
             self, key,
 
@@ -1053,7 +1087,8 @@ class DataSource(DataSourceRegisterMixin):
         """
         # Parameter checking ***************************************************
         # Classic RasterProxy parameters *******************
-        self._validate_key(key)
+        if not isinstance(key, _AnonymousSentry):
+            self._validate_key(key)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
@@ -1176,7 +1211,10 @@ class DataSource(DataSourceRegisterMixin):
         )
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     # Proxy getters ********************************************************* **
@@ -1370,3 +1408,6 @@ def wrap_numpy_raster(*args, **kwargs):
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': DataSource.close.__doc__,
 })
+
+class _AnonymousSentry(object):
+    pass
