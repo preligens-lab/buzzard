@@ -134,7 +134,7 @@ def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
             back_ds_opt.deactivate(path)
         m = 'Removing {}'.format(path)
         m += ' because {}'.format(exn)
-        LOGGER.warn(m)
+        LOGGER.warning(m)
         os.remove(path)
 
     return valid

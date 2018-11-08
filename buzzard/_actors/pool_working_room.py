@@ -89,7 +89,7 @@ class ActorPoolWorkingRoom(object):
         assert self._alive
         self._alive = False
         if len(self._jobs) > 0:
-            LOGGER.warn('Killing an ActorPoolWorkingRoom with {} ongoing jobs'.format(
+            LOGGER.warning('Killing an ActorPoolWorkingRoom with {} ongoing jobs'.format(
                 len(self._jobs)
             ))
 

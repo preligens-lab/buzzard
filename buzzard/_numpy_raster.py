@@ -112,12 +112,12 @@ class BackNumpyRaster(ABackStoredRaster):
         del dstfp
 
         # Write ****************************************************************
-        slices = list(fp.slice_in(self.fp))
+        slices = fp.slice_in(self.fp)
         for i in self._indices_of_band_ids(band_ids):
             if mask is not None:
-                self._arr[slices + [i]][mask] = array[..., i][mask]
+                self._arr[slices + (i,)][mask] = array[..., i][mask]
             else:
-                self._arr[slices + [i]] = array[..., i]
+                self._arr[slices + (i,)] = array[..., i]
 
     def fill(self, value, band_ids):
         for i in self._indices_of_band_ids(band_ids):

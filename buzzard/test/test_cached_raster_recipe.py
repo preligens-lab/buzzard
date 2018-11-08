@@ -44,12 +44,21 @@ def test_prefix():
     yield path
     shutil.rmtree(path)
 
-def test_(pools, test_prefix):
+@pytest.fixture(params=[
+    (100, 100),
+    (99, 99),
+    (26, 26),
+])
+def cache_tiles(request):
+    return request.param
+
+def test_(pools, test_prefix, cache_tiles):
     def _open(**kwargs):
         d = dict(
             fp=fp, dtype='float32', band_count=2,
             compute_array=functools.partial(_meshgrid_raster_in, reffp=fp),
             cache_dir=test_prefix,
+            cache_tiles=cache_tiles,
             **pools['merge'],
             **pools['resample'],
             **pools['computation'],
@@ -89,6 +98,7 @@ def test_(pools, test_prefix):
 
         # Test lazyness of cache
         r = _open()
+        print(r.cache_tiles)
         files = glob.glob(os.path.join(test_prefix, '*.tif'))
         assert len(files) == 0
 

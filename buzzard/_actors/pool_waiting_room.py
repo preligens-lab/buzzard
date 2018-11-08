@@ -184,7 +184,7 @@ class ActorPoolWaitingRoom(object):
         assert self._alive
         self._alive = False
         if self._job_count:
-            LOGGER.warn('Killing an ActorPoolWaitingRoom with {} waiting jobs'.format(
+            LOGGER.warning('Killing an ActorPoolWaitingRoom with {} waiting jobs'.format(
                 self._job_count,
             ))
 
