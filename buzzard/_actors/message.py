@@ -64,6 +64,9 @@ class Msg(object):
 class DroppableMsg(Msg):
     pass
 
+class AgingMsg(Msg):
+    pass
+
 _COLOR_PER_CLASSNAME = {
     'TopLevel': '\033[37m',
     'GlobalPrioritiesWatcher': '\033[37m',

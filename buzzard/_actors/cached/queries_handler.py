@@ -1,6 +1,6 @@
 import logging
 
-from buzzard._actors.message import Msg, DroppableMsg
+from buzzard._actors.message import Msg, DroppableMsg, AgingMsg
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)
@@ -96,9 +96,9 @@ class ActorQueriesHandler(object):
                     q.queue_size = new_queue_size
                     args = qi, q.produced_count, q.queue_size
                     msgs += [
-                        Msg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
-                        Msg('ProductionGate', 'output_queue_update', *args),
-                        Msg('ComputationGate1', 'output_queue_update', *args),
+                        AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
+                        AgingMsg('ProductionGate', 'output_queue_update', *args),
+                        AgingMsg('ComputationGate1', 'output_queue_update', *args),
                     ]
             del q
 
@@ -152,9 +152,9 @@ class ActorQueriesHandler(object):
                 prod_idx  = q.produced_count
                 args = qi, q.produced_count, q.queue_size
                 msgs += [
-                    Msg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
-                    Msg('ProductionGate', 'output_queue_update', *args),
-                    Msg('ComputationGate1', 'output_queue_update', *args),
+                    AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
+                    AgingMsg('ProductionGate', 'output_queue_update', *args),
+                    AgingMsg('ComputationGate1', 'output_queue_update', *args),
                 ]
                 if qi.key_in_parent is not None:
                     # Notify the parent raster that a new array was put in the queue

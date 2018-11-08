@@ -4,10 +4,11 @@ import threading
 import datetime # debug
 
 from buzzard._actors.top_level import ActorTopLevel
-from buzzard._actors.message import Msg, DroppableMsg
+from buzzard._actors.message import Msg, DroppableMsg, AgingMsg
 from buzzard._debug_observers_manager import DebugObserversManager
 
-VERBOSE = 1
+VERBOSE = 0
+MONITOR_FAULTY_STALE_MESSAGES = 0
 
 class BackDataSourceSchedulerMixin(object):
 
@@ -69,6 +70,8 @@ class BackDataSourceSchedulerMixin(object):
     def _scheduler_loop_until_datasource_close(self):
         """This is the entry point of a DataSource's scheduler.
         The design of this method would be much better with recursive calls, but much slower too. (maybe)
+
+        TODO: Improve main loop perfs
         """
 
         def _register_actor(a):
@@ -126,6 +129,16 @@ class BackDataSourceSchedulerMixin(object):
         )
 
         while True:
+            # Step 0: Init stuctures that track stale messages
+            idx_per_msg = {}
+            msgidx_of_prev_methodcall = {}
+            for _, _, msgs in piles_of_msgs:
+                for msg in msgs:
+                    if MONITOR_FAULTY_STALE_MESSAGES and isinstance(msg, Msg):
+                        idx_per_msg[msg] = len(idx_per_msg)
+                    elif isinstance(msg, AgingMsg):
+                        idx_per_msg[msg] = len(idx_per_msg)
+
             # Step 1: Process all messages on flight
             while piles_of_msgs:
                 src_actor, title_prefix, msgs = piles_of_msgs[-1]
@@ -134,6 +147,7 @@ class BackDataSourceSchedulerMixin(object):
                     continue
                 msg = msgs.pop(0)
                 if isinstance(msg, Msg):
+                    is_aging = isinstance(msg, AgingMsg)
                     if VERBOSE:
                         print('{} {}'.format(
                             ' '.join(['|'] * (len(piles_of_msgs))),
@@ -142,11 +156,33 @@ class BackDataSourceSchedulerMixin(object):
 
                     for dst_actor in _find_actors(msg.address, src_actor):
                         if dst_actor is None:
-                            # This message may be discarted
+                            # This message may be discarted if DroppableMsg
                             assert isinstance(msg, DroppableMsg), '\ndst_actor: {}\n      msg: {}\n'.format(dst_actor, msg)
                         else:
                             a = datetime.datetime.now()
-                            new_msgs = getattr(dst_actor, title_prefix + msg.title)(*msg.args)
+                            met = getattr(dst_actor, title_prefix + msg.title)
+
+                            # Check if stale message
+                            if is_aging or MONITOR_FAULTY_STALE_MESSAGES:
+                                msg_idx = idx_per_msg[msg]
+                                if met in msgidx_of_prev_methodcall:
+                                    prev_msg_idx = msgidx_of_prev_methodcall[met]
+                                    if prev_msg_idx > msg_idx:
+                                        # This message may be discarted if AgingMsg
+                                        assert is_aging, (
+                                            'error:\n'
+                                            f'          Message: {msg}\n'
+                                            f'      with msg-id: {msg_idx}\n'
+                                            f'is arriving after: {next(m for m, i in idx_per_msg.items() if i == prev_msg_idx)}\n'
+                                            f'      with msg-id: {prev_msg_idx}'
+                                        )
+                                    if VERBOSE:
+                                        print('    Skipping stale message')
+                                    continue
+                                msgidx_of_prev_methodcall[met] = msg_idx
+
+                            # Dispatch message and retrieve new ones
+                            new_msgs = met(*msg.args)
                             b = datetime.datetime.now()
                             delta = (b - a).total_seconds()
                             self._debug_mngr.event('message_passed', dst_actor.__class__.__name__, msg.title, delta)
@@ -157,6 +193,13 @@ class BackDataSourceSchedulerMixin(object):
                                 # Actor is closing
                                 _unregister_actor(dst_actor)
                             if new_msgs:
+                                # Update stale messages index
+                                for new_msg in new_msgs:
+                                    if MONITOR_FAULTY_STALE_MESSAGES and isinstance(new_msg, Msg):
+                                        idx_per_msg[new_msg] = len(idx_per_msg)
+                                    elif isinstance(new_msg, AgingMsg):
+                                        idx_per_msg[new_msg] = len(idx_per_msg)
+
                                 # Message need to be sent
                                 piles_of_msgs.append((
                                     dst_actor, 'receive_', new_msgs
@@ -166,6 +209,7 @@ class BackDataSourceSchedulerMixin(object):
                 del msg
             src_actor = None
             msgs = None
+            # TODO: Update if needed
             msg = None
             dst_actor = None
             new_msgs = None

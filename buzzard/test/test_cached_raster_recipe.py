@@ -20,9 +20,9 @@ def pytest_generate_tests(metafunc):
         argvalues = []
         for pval in [
                 None,
-                # 'lol',
-                # mp.pool.ThreadPool(2),
-                # mp.pool.Pool(2),
+                'lol',
+                mp.pool.ThreadPool(2),
+                mp.pool.Pool(2),
         ]:
             # TODO: test with different pools
             argvalues.append(dict(
@@ -67,7 +67,6 @@ def test_(pools, test_prefix):
         assert np.all(y == yref)
 
     def _test_resampling(fp):
-        # print(fp)
         arr = r.get_data(band=-1, fp=fp)
         ref = npr.get_data(band=-1, fp=fp)
         assert np.allclose(arr, ref)
@@ -83,11 +82,9 @@ def test_(pools, test_prefix):
         size=(100,100),
         tl=(1000, 1100),
     )
-    print(fp)
 
     # Create a numpy array with the same data
     with buzz.DataSource(allow_interpolation=1).close as ds:
-
         npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
 
         # Test lazyness of cache
@@ -174,6 +171,8 @@ def test_(pools, test_prefix):
         # Close DataSource instead of Raster, because DataSource.close is currently blocking
 
     with buzz.DataSource(allow_interpolation=1).close as ds:
+        npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
+
         # Corrupted cache file
         files = glob.glob(os.path.join(test_prefix, '*.tif'))
         mtimes0 = {f: os.stat(f).st_mtime for f in files}
@@ -191,32 +190,36 @@ def test_(pools, test_prefix):
                 assert mtimes0[path] == mtimes1[path]
 
     with buzz.DataSource(allow_interpolation=1).close as ds:
+        npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
+
         # In iter_data, the first one(s) don't need cache, the next ones need cache file checking and then recomputation
         _corrupt_files(glob.glob(os.path.join(test_prefix, '*.tif')))
         r = _open()
 
-        gc.collect()
-        time.sleep(1)
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-
-        arrs = list(r.iter_data(band=-1, fps=[
+        fps = [
             fp.move(fp.br + fp.diagvec), # Outside
 
-        ] + [fp] * 12))
+        ] + [fp] * 12
+        arrs = list(r.iter_data(band=-1, fps=fps))
         assert len(arrs) == 13
+        for tile, arr in zip(fps, arrs):
+            assert np.all(arr == npr.get_data(band=-1, fp=tile))
 
+        # gc.collect()
+        # time.sleep(1)
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
 
-        gc.collect()
-        time.sleep(1)
-        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        # gc.collect()
+        # time.sleep(1)
+        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
 
 
         # Iter on cache files one by one and check file creation lazyness
