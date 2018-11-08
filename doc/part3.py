@@ -1,4 +1,4 @@
-"""
+
 # Part 3: *Mandelbrot* set computed on the fly
 
 ### Automatic remapping
@@ -6,18 +6,17 @@ When creating a recipe you give a _Footprint_ through the `fp` parameter. When c
 - If you request a *Footprint* on a different grid in a `get_data()` call, the scheduler __takes care of resampling__ the outputs of your `compute_array` function.
 - If you request a *Footprint* partially or fully outside of the raster's extent, the scheduler will call your `compute_array` function to get the interior pixels and then __pad the output with nodata__.
 
-This system can be deactivated by passing `automatic_remapping=False` to the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your `compute_array` function for any kind of _Footprint_, your function must be able to comply with any request. In `Part 2` the slopes could have been opened that way without changing the rest of the code, the resampling operations would have been deferred to the `elevation` raster.
+This system is flexible and can be deactivated by passing `automatic_remapping=False` to the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your `compute_array` function for any kind of _Footprint_; thus your function must be able to comply with any request. In `Part 2` the slopes could have been opened that way without changing the rest of the code, the resampling operations would have been deferred to the `elevation` raster.
 
 In the following example `mand_100px`, `mand_10kpx`, `mand_1mpx`, `mand_100mpx`, `mand_10gpx`, `mand_1tpx` are instanciated with automatic remapping, and `ds.mand` is instanciated without.
 
 ### Chunking computations
 In the following example the pixels are very long to compute, `max_computation_size=128` is passed to ask the _scheduler_ to call `compute_array` with _Footprints_ of at most 128x128 pixels. This option allows even more parallelism.
 
-Instead of using `max_computation_size` you can also use `computation_tiles` to chunk the computations. This parameter should contain a tiling of the raster's _Footprint_ (See `Footprint.tile*` methods), doing so will tell the scheduler to only call `compute_array` with _Footprints_ from `computation_tiles`, the computations will be **automatically stiched** to form the requested outputs. This constrain is essential if the `compute_array` function hides a call to a *convolutional neural network*.
+Instead of using `max_computation_size` you can also use `computation_tiles` to chunk the computations. This parameter should contain a tiling of the raster's _Footprint_ (See `Footprint.tile*` methods), doing so will tell the scheduler to only call `compute_array` with _Footprints_ from `computation_tiles`, the computations will be **automatically stiched** to form the requested outputs. This constrain is essential if the `compute_array` function hides a call to a *convolutional neural network*. This parameter is demoed in `part 5`.
 
-This parameter is demoed in `part 5`
-"""
 
+```py
 import buzzard as buzz
 import numpy as np
 from numba import jit
@@ -127,5 +126,8 @@ def mandelbrot_jit(array, tl, scale, maxit):
             array[j][i] = iteration
 
 if __name__ == '__main__':
+    # Using `allow_complex_footprint` because we are instanciating Footprints
+    # with `fp.scale[1] > 0`
     with buzz.Env(allow_complex_footprint=True, warnings=False):
         main()
+```
