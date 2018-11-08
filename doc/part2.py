@@ -1,5 +1,5 @@
 """
-# Part 2: Deriving the slopes from a dem using a _raster recipe_
+# Part 2: Deriving the _slopes_ from a _dem_ using a _raster recipe_
 In _buzzard_ there are 3 types of raster managed by the _DataSource_'s scheduler:
 - _AsyncStoredRaster_, seen in `Part 1`,
 - _NocacheRasterRecipe_, seen in this part,
@@ -10,7 +10,7 @@ All those rasters are called _async rasters_.
 ### A new type of raster: _recipes_
 A _recipe_ is an _async raster_ that __computes data on the fly__ by calling the `compute_array` function provided in the constructor. This function takes a _Footprint_ that defines a rectangle to compute, and it returns a _ndarray_ containing the pixels computed at this location. This function will be called in parallel given the `computation_pool` parameter provided in the constructor.
 
-A _recipe_ may __depend on some other *async rasters*__. In this example, `ds.slopes` is a _NocacheRasterRecipe_ that depends on `ds.elevation`, an _AsyncStoredRaster_. To declare the dependancy of `ds.slopes` on `ds.elevation`, in the constructor of `ds.slopes` you must provide `queue_data_per_primitive={'some_key': ds.elevation.queue_data}`, to allow the scheduler to issue queries to elevation when the slopes requires it. The `compute_array` function of `ds.slopes` will take as parameter the _ndarray_ of `ds.dem` previously extracted.
+A _recipe_ may __depend on some other *async rasters*__. In this example, `ds.slopes` is a _NocacheRasterRecipe_ that depends on `ds.elevation`, an _AsyncStoredRaster_. To declare the dependancy of `ds.slopes` on `ds.elevation`, in the constructor of `ds.slopes` you must provide `queue_data_per_primitive={'some_key': ds.elevation.queue_data}`, to allow the *scheduler* to issue queries to elevation when the slopes requires it. The `compute_array` function of `ds.slopes` will take as parameter the _ndarray_ of `ds.dem` automatically extracted.
 
 A _recipe_ may depend on more than one _async raster_, and a _recipe_ that depends on an _async raster_ may also be needed by another recipe. This means that recipes can be assembled to form __computation graphs__ of any width and any depth.
 
@@ -20,8 +20,8 @@ The computation intensive and io-bound steps of the scheduler are __defered to t
 - A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the [GIL](https://en.wikipedia.org/wiki/Global_interpreter_lock) or that leaks memory.
 - `None`, to request the scheduler thread to perform the tasks itself. Should be used when the computation is very light.
 - A _hashable_ (like a _string_), that will map to a pool registered in the _DataSource_. If that key is missing from the _DataSource_, a _ThreadPool_ with `multiprocessing.cpu_count()` workers will be automatically instanciated.
-
 """
+
 
 import os
 import time
@@ -67,9 +67,14 @@ def main():
     )
 
     # Test 1 - Perform basic tests ****************************************** **
+    # `test_raster` will request `slopes`'s' pixels. `elevation`'s' pixels will
+    # be requested in cascade and then used to compute the `slopes`.
     test_raster(ds.slopes)
 
     # Test 2 - Multiple iterations at the same time ************************* **
+    # Here the `elevation` raster is directly requested and also requested by
+    # the `slopes`, the DataSource's scheduler is made to handle simultaneous
+    # queries.
     tiles = ds.elevation.fp.tile_count(2, 2).flatten()
     dem_iterator = ds.elevation.iter_data(tiles)
     slopes_iterator = ds.slopes.iter_data(tiles)
@@ -89,8 +94,8 @@ def main():
           '`ds.slopes`')
     print('  At most 1 slopes array can be ready out of the slopes iterator')
 
-    print('Sleeping several seconds to let the scheduler create 6/9 dem '
-          'arrays, and 1/9 slopes arrays.')
+    print('Sleeping several seconds to let the scheduler create 6 of the 9 '
+          'dem arrays, and 1 of the 9 slopes arrays.')
     time.sleep(4)
 
     with example_tools.Timer() as t:
@@ -116,9 +121,6 @@ def main():
 
 def slopes_of_elevation(fp, primitive_fps, primitive_arrays, slopes):
     """A function to be fed to `compute_array` when constructing a recipe"""
-    print('slopes_of_elevation from shape {} to {}'.format(
-        primitive_fps['dem'].shape, fp.shape,
-    ))
     arr = primitive_arrays['dem']
     kernel = [
         [0, 1, 0],
