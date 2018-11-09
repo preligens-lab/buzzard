@@ -9,6 +9,7 @@ import os
 import glob
 import time
 import gc
+import threading
 
 import numpy as np
 import pytest
@@ -44,6 +45,8 @@ def test_prefix():
     yield path
     shutil.rmtree(path)
 
+test_prefix2 = test_prefix
+
 @pytest.fixture(params=[
     (100, 100),
     (99, 99),
@@ -52,7 +55,7 @@ def test_prefix():
 def cache_tiles(request):
     return request.param
 
-def test_(pools, test_prefix, cache_tiles):
+def test_(pools, test_prefix, cache_tiles, test_prefix2):
     def _open(**kwargs):
         d = dict(
             fp=fp, dtype='float32', band_count=2,
@@ -91,6 +94,10 @@ def test_(pools, test_prefix, cache_tiles):
         size=(100,100),
         tl=(1000, 1100),
     )
+    compute_same_address_space = (
+        type(pools['computation']['computation_pool']) in {str, mp.pool.ThreadPool, type(None)}
+    )
+    print('//////////////////////////////////////////////////', compute_same_address_space)
 
     # Create a numpy array with the same data
     with buzz.DataSource(allow_interpolation=1).close as ds:
@@ -215,6 +222,57 @@ def test_(pools, test_prefix, cache_tiles):
         for tile, arr in zip(fps, arrs):
             assert np.all(arr == npr.get_data(band=-1, fp=tile))
 
+    with buzz.DataSource(allow_interpolation=1).close as ds:
+        if compute_same_address_space:
+            # Derived rasters not computed
+            ac0 = _AreaCounter(fp)
+            r0 = _open(
+                compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
+                o=True,
+            )
+            ac1 = _AreaCounter(fp)
+            r1 = _open(
+                compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
+                queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+                cache_dir=test_prefix2,
+                o=True,
+            )
+            r1.get_data()
+            ac0.check_done()
+            ac1.check_done()
+
+            # Derived rasters not computed
+            ac0 = _AreaCounter(fp)
+            r0 = _open(
+                compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
+                o=False,
+            )
+            ac1 = _AreaCounter(fp)
+            r1 = _open(
+                compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
+                queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+                cache_dir=test_prefix2,
+                o=True,
+            )
+            r1.get_data()
+            ac0.check_not_done()
+            ac1.check_done()
+
+
+
+            # fp=fp, dtype='float32', band_count=2,
+            # compute_array=functools.partial(_meshgrid_raster_in, reffp=fp),
+            # cache_dir=test_prefix,
+            # cache_tiles=cache_tiles,
+            # **pools['merge'],
+            # **pools['resample'],
+            # **pools['computation'],
+            # **pools['io'],
+
+
+        #
+
+
         # gc.collect()
         # time.sleep(1)
         # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
@@ -294,6 +352,33 @@ def test_(pools, test_prefix, cache_tiles):
 
 
 # Tools ***************************************************************************************** **
+class _AreaCounter(object):
+    def __init__(self, fp):
+        self._lock = threading.Lock()
+        self._fp = fp
+        self._mask = np.zeros(fp.shape, 'uint8')
+
+    def increment(self, fp):
+        with self._lock:
+            self._mask[fp.slice_in(self._fp)] += 1
+
+    def check_not_done(self):
+        assert np.all(self._mask == 0)
+
+    def check_done(self):
+        assert np.all(self._mask == 1)
+
+def _base_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter):
+    area_counter.increment(fp)
+    x, y = fp.meshgrid_raster_in(reffp)
+    return np.stack([x, y], axis=2).astype('float32')
+
+def _derived_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter):
+    area_counter.increment(fp)
+    assert fp == primitive_fps['prim']
+    x, y = fp.meshgrid_raster_in(reffp)
+    return np.stack([x, y], axis=2).astype('float32') * primtive_arrays['prim']
+
 def _meshgrid_raster_in(fp, primitive_fps, primtive_arrays, raster, reffp):
     if raster is not None:
         assert raster.fp == reffp

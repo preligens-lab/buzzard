@@ -41,7 +41,7 @@ def _concat(fp, array_per_fp, raster):
     for tile, tile_arr in array_per_fp.items():
         assert tuple(tile.shape) == tile_arr.shape[:2]
         slices = tile.slice_in(fp)
-        assert np.all(debug_mask[slices] == False), debug_mask[slices].mean()
+        # assert np.all(debug_mask[slices] == False), debug_mask[slices].mean()
         # debug_mask[slices] = True
         arr[slices] = tile_arr
     # assert np.all(debug_mask), debug_mask.mean()

@@ -67,6 +67,7 @@ class BackNumpyRaster(ABackStoredRaster):
                 self.dtype
             )
         key = list(samplefp.slice_in(self.fp)) + [self._best_indexers_of_band_ids(band_ids)]
+        key = tuple(key)
         array = self._arr[key]
         if self._should_tranform:
             array = array * self.band_schema['scale'] + self.band_schema['offset']
