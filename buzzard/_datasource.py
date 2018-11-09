@@ -34,7 +34,8 @@ def _concat(fp, array_per_fp, raster):
     # Allocate
     for a in array_per_fp.values():
         band_count = a.shape[-1]
-    arr = np.empty(np.r_[fp.shape, band_count], raster.dtype)
+        dtype = a.dtype
+    arr = np.empty(np.r_[fp.shape, band_count], dtype)
     # debug_mask = np.zeros(fp.shape, 'bool')
 
     # Burn

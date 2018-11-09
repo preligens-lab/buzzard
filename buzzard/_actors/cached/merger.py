@@ -48,7 +48,7 @@ class ActorMerger(object):
         elif self._raster.merge_pool is None:
             work = self._create_work_job(cache_fp, array_per_fp)
             res = work.func()
-            res = self._normalize_user_result(res)
+            res = self._normalize_user_result(cache_fp, res)
             msgs += self._commit_work_result(work, res)
         else:
             wait = Wait(self, cache_fp, array_per_fp)
@@ -104,7 +104,7 @@ class ActorMerger(object):
                 type(res)
             ))
         y, x, c = res.shape
-        if (y, x) != cache_fp.shape: # pragma: no cover
+        if (y, x) != tuple(cache_fp.shape): # pragma: no cover
             raise ValueError("Result of recipe's `merge_arrays` has shape `{}`, should start with {}".format(
                 res.shape,
                 cache_fp.shape,

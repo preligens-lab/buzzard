@@ -1,4 +1,3 @@
-
 import multiprocessing as mp
 import multiprocessing
 import shutil
@@ -97,7 +96,6 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
     compute_same_address_space = (
         type(pools['computation']['computation_pool']) in {str, mp.pool.ThreadPool, type(None)}
     )
-    print('//////////////////////////////////////////////////', compute_same_address_space)
 
     # Create a numpy array with the same data
     with buzz.DataSource(allow_interpolation=1).close as ds:
@@ -105,7 +103,6 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
 
         # Test lazyness of cache
         r = _open()
-        print(r.cache_tiles)
         files = glob.glob(os.path.join(test_prefix, '*.tif'))
         assert len(files) == 0
 
@@ -153,6 +150,11 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
 
         # Test remapping #5 - No Interpolation - Both in and out
         _test_resampling(fp.move(fp.br - fp.pxvec * fp.rsemiminoraxis))
+
+        # Test remapping #6 - Interpolation - Fully Inside - Tiled
+        r.close()
+        r = _open(max_resampling_size=20)
+        _test_resampling(fp_within_upscaled)
 
         # Concurrent queries that need a cache file checksum
         r.close()
@@ -212,134 +214,107 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         # In iter_data, the first one(s) don't need cache, the next ones need cache file checking and then recomputation
         _corrupt_files(glob.glob(os.path.join(test_prefix, '*.tif')))
         r = _open()
-
         fps = [
             fp.move(fp.br + fp.diagvec), # Outside
-
         ] + [fp] * 12
-
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-
         arrs = list(r.iter_data(band=-1, fps=fps))
         assert len(arrs) == 13
         for tile, arr in zip(fps, arrs):
             assert np.all(arr == npr.get_data(band=-1, fp=tile))
 
     with buzz.DataSource(allow_interpolation=1).close as ds:
+        # Derived and primitive rasters not computed
         if compute_same_address_space:
-            # Derived rasters not computed
-            ac0 = _AreaCounter(fp)
-            r0 = _open(
-                compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
-                o=True,
-            )
-            ac1 = _AreaCounter(fp)
-            r1 = _open(
-                compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
-                queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
-                cache_dir=test_prefix2,
-                o=True,
-            )
-            r1.get_data()
+            ac0, ac1 = _AreaCounter(fp), _AreaCounter(fp)
+        else:
+            ac0, ac1 = None, None
+        r0 = _open(
+            compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
+            o=True,
+        )
+        r1 = _open(
+            compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
+            queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+            cache_dir=test_prefix2,
+            o=True,
+        )
+        r1.get_data()
+        if compute_same_address_space:
             ac0.check_done()
             ac1.check_done()
+        r0.close()
+        r1.close()
 
-            # Derived rasters not computed
-            ac0 = _AreaCounter(fp)
-            r0 = _open(
-                compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
-                o=False,
-            )
-            ac1 = _AreaCounter(fp)
-            r1 = _open(
-                compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
-                queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
-                cache_dir=test_prefix2,
-                o=True,
-            )
-            r1.get_data()
+        # Derived raster not computed
+        if compute_same_address_space:
+            ac0, ac1 = _AreaCounter(fp), _AreaCounter(fp)
+        else:
+            ac0, ac1 = None, None
+        r0 = _open(
+            compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
+            o=False,
+        )
+        r1 = _open(
+            compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
+            queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+            cache_dir=test_prefix2,
+            o=True,
+        )
+        r1.get_data()
+        if compute_same_address_space:
             ac0.check_not_done()
             ac1.check_done()
+        r0.close()
+        r1.close()
 
+        # Primitive raster not computed
+        if compute_same_address_space:
+            ac0, ac1 = _AreaCounter(fp), _AreaCounter(fp)
+        else:
+            ac0, ac1 = None, None
+        r0 = _open(
+            compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
+            o=True,
+        )
+        r1 = _open(
+            compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
+            queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+            cache_dir=test_prefix2,
+            o=False,
+        )
+        r1.get_data()
+        if compute_same_address_space:
+            ac0.check_not_done()
+            ac1.check_not_done()
+        r0.close()
+        r1.close()
 
+        # Test computation tiles
+        if compute_same_address_space:
+            ac0, ac1 = _AreaCounter(fp), _AreaCounter(fp)
+        else:
+            ac0, ac1 = None, None
+        r0 = _open(
+            compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
+            computation_tiles=(11, 11),
+            o=True,
+        )
+        r1 = _open(
+            compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
+            queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+            cache_dir=test_prefix2,
+            computation_tiles=(22, 22),
+            o=True,
+        )
+        r1.get_data()
+        if compute_same_address_space:
+            ac0.check_done()
+            ac1.check_done()
+        r0.close()
+        r1.close()
 
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-        # print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
-
-
-        # Iter on cache files one by one and check file creation lazyness
-        # r.close()
-
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
-        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
-        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
-        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
-        # print('ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ')
-
-
-
-        # for path in glob.glob(os.path.join(test_prefix, '*.tif')):
-        #     os.remove(path)
-
-
-
-
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        # print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-
-
-
-        # r = _open()
-
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
-        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
-        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
-        # print('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')
-
-        # for count, arr in enumerate(r.iter_data(r.cache_tiles.flatten(), band=-1), 1):
-        #     assert len(glob.glob(os.path.join(test_prefix, '*.tif'))) == count
-
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('--------------------------------------------------------------------------------')
-        # print('--------------------------------------------------------------------------------')
-        # print('--------------------------------------------------------------------------------')
-        # print('--------------------------------------------------------------------------------')
-
-
+        # TODO:
         # iter_data of several items, more than cache_max, test backpressure with time.sleep
-        # derived raster
-        # max resampling size
-        # computation tiles
-
-        # cannot launch all computations at the same time because not needed by urgent query
-
 
 # Tools ***************************************************************************************** **
 class _AreaCounter(object):
@@ -359,12 +334,14 @@ class _AreaCounter(object):
         assert np.all(self._mask == 1)
 
 def _base_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter):
-    area_counter.increment(fp)
+    if area_counter is not None:
+        area_counter.increment(fp)
     x, y = fp.meshgrid_raster_in(reffp)
     return np.stack([x, y], axis=2).astype('float32')
 
 def _derived_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter):
-    area_counter.increment(fp)
+    if area_counter is not None:
+        area_counter.increment(fp)
     assert fp == primitive_fps['prim']
     x, y = fp.meshgrid_raster_in(reffp)
     return np.stack([x, y], axis=2).astype('float32') * primtive_arrays['prim']
