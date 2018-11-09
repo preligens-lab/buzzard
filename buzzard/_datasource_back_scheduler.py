@@ -8,7 +8,7 @@ from buzzard._actors.message import Msg, DroppableMsg, AgingMsg
 from buzzard._debug_observers_manager import DebugObserversManager
 
 VERBOSE = 0
-MONITOR_FAULTY_STALE_MESSAGES = 0
+MONITOR_FAULTY_STALE_MESSAGES = 0 # Does it really makes sense
 
 class BackDataSourceSchedulerMixin(object):
 
@@ -176,9 +176,9 @@ class BackDataSourceSchedulerMixin(object):
                                             f'is arriving after: {next(m for m, i in idx_per_msg.items() if i == prev_msg_idx)}\n'
                                             f'      with msg-id: {prev_msg_idx}'
                                         )
-                                    if VERBOSE:
-                                        print('    Skipping stale message')
-                                    continue
+                                        if VERBOSE:
+                                            print('    Skipping stale message')
+                                        continue
                                 msgidx_of_prev_methodcall[met] = msg_idx
 
                             # Dispatch message and retrieve new ones

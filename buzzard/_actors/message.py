@@ -1,4 +1,5 @@
 import numpy as np
+import uuid
 
 class Msg(object):
     """Message exchanged:
@@ -34,7 +35,7 @@ class Msg(object):
 
             # if isinstance(a, str):
                 # return '"{}"'.format(a)
-            if isinstance(a, (int)):
+            if isinstance(a, (int, uuid.UUID)):
                 return str(a)
             elif isinstance(a, (np.ndarray)):
                 return '{}{}'.format(a.dtype, a.shape)

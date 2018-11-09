@@ -226,7 +226,12 @@ class ActorCacheSupervisor(object):
         assert qi.cache_computation is None
         qi.cache_computation = CacheComputationInfos(qi, self._raster, cache_fps)
         self._raster.debug_mngr.event('object_allocated', qi.cache_computation)
-        return [Msg('ComputationGate1', 'compute_those_cache_files', qi)]
+        return [
+            Msg('/Global/GlobalPrioritiesWatcher', 'a_query_need_those_cache_tiles',
+                self._raster.uid, qi, cache_fps
+            ),
+            Msg('ComputationGate1', 'compute_those_cache_files', qi),
+        ]
 
     # ******************************************************************************************* **
 

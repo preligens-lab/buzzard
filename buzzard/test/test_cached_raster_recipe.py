@@ -217,6 +217,16 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             fp.move(fp.br + fp.diagvec), # Outside
 
         ] + [fp] * 12
+
+
+        # gc.collect()
+        # time.sleep(1)
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+
         arrs = list(r.iter_data(band=-1, fps=fps))
         assert len(arrs) == 13
         for tile, arr in zip(fps, arrs):
@@ -260,26 +270,6 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
 
 
 
-            # fp=fp, dtype='float32', band_count=2,
-            # compute_array=functools.partial(_meshgrid_raster_in, reffp=fp),
-            # cache_dir=test_prefix,
-            # cache_tiles=cache_tiles,
-            # **pools['merge'],
-            # **pools['resample'],
-            # **pools['computation'],
-            # **pools['io'],
-
-
-        #
-
-
-        # gc.collect()
-        # time.sleep(1)
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-        # print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
 
         # gc.collect()
         # time.sleep(1)
