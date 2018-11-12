@@ -99,7 +99,7 @@ class ABackAsyncRaster(ABackProxyRaster):
         )
         return next(it)
 
-    def create_actors(self):
+    def create_actors(self): # pragma: no cover
         raise NotImplementedError('ABackAsyncRaster.create_actors is virtual pure')
 
     def close(self):

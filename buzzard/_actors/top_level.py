@@ -11,6 +11,10 @@ class ActorTopLevel(object):
 
     That is the only actor that is instanciated by the scheduler. All other actors are
     instanciated here.
+
+    This class does not implement a `die` method, since destroying this actor is the same event
+    as stopping the scheduler's loop. If a destruction is ever needed, call a die method from
+    the scheduler using the `top_level_actor` variable.
     """
     def __init__(self):
         self._rasters = set()
@@ -132,24 +136,5 @@ class ActorTopLevel(object):
                 del self._actor_addresses_of_pool[pool_id]
 
         return msgs
-
-    def ext_receive_die(self): # TODO: Remove this method since not called? The _stope flat is set...
-        """Receive message sent by something else than an actor, still treated synchronously: The
-        DataSource is closing
-        """
-
-        assert self._alive
-        self._alive = False
-
-        for raster in list(self._rasters):
-            self.ext_receive_kill_raster(raster)
-
-        # Clear attributes *****************************************************
-        assert not self._rasters
-        assert not self._rasters_per_pool
-        assert not self._actor_addresses_of_raster
-        assert not self._actor_addresses_of_pool
-
-        return []
 
     # ******************************************************************************************* **

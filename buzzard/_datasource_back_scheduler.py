@@ -8,7 +8,6 @@ from buzzard._actors.message import Msg, DroppableMsg, AgingMsg
 from buzzard._debug_observers_manager import DebugObserversManager
 
 VERBOSE = 0
-MONITOR_FAULTY_STALE_MESSAGES = 0 # Does it really makes sense
 
 class BackDataSourceSchedulerMixin(object):
 
@@ -98,7 +97,7 @@ class BackDataSourceSchedulerMixin(object):
             elif len(names) == 1:
                 grp_name = relative_actor.address.split('/')[1]
                 return [actors[grp_name].get(names[0])]
-            else:
+            else: # pragma: no cover
                 assert False
 
         def _unregister_actor(a):
@@ -134,9 +133,7 @@ class BackDataSourceSchedulerMixin(object):
             msgidx_of_prev_methodcall = {}
             for _, _, msgs in piles_of_msgs:
                 for msg in msgs:
-                    if MONITOR_FAULTY_STALE_MESSAGES and isinstance(msg, Msg):
-                        idx_per_msg[msg] = len(idx_per_msg)
-                    elif isinstance(msg, AgingMsg):
+                    if isinstance(msg, AgingMsg):
                         idx_per_msg[msg] = len(idx_per_msg)
 
             # Step 1: Process all messages on flight
@@ -163,21 +160,12 @@ class BackDataSourceSchedulerMixin(object):
                             met = getattr(dst_actor, title_prefix + msg.title)
 
                             # Check if stale message
-                            if is_aging or MONITOR_FAULTY_STALE_MESSAGES:
+                            if is_aging:
                                 msg_idx = idx_per_msg[msg]
                                 if met in msgidx_of_prev_methodcall:
                                     prev_msg_idx = msgidx_of_prev_methodcall[met]
-                                    if prev_msg_idx > msg_idx:
-                                        # This message may be discarted if AgingMsg
-                                        assert is_aging, (
-                                            'error:\n'
-                                            f'          Message: {msg}\n'
-                                            f'      with msg-id: {msg_idx}\n'
-                                            f'is arriving after: {next(m for m, i in idx_per_msg.items() if i == prev_msg_idx)}\n'
-                                            f'      with msg-id: {prev_msg_idx}'
-                                        )
-                                        if VERBOSE:
-                                            print('    Skipping stale message')
+                                    if prev_msg_idx > msg_idx and VERBOSE:
+                                        print('    Skipping stale message')
                                         continue
                                 msgidx_of_prev_methodcall[met] = msg_idx
 
@@ -195,9 +183,7 @@ class BackDataSourceSchedulerMixin(object):
                             if new_msgs:
                                 # Update stale messages index
                                 for new_msg in new_msgs:
-                                    if MONITOR_FAULTY_STALE_MESSAGES and isinstance(new_msg, Msg):
-                                        idx_per_msg[new_msg] = len(idx_per_msg)
-                                    elif isinstance(new_msg, AgingMsg):
+                                    if isinstance(new_msg, AgingMsg):
                                         idx_per_msg[new_msg] = len(idx_per_msg)
 
                                 # Message need to be sent

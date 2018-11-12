@@ -13,6 +13,9 @@ from buzzard._actors.message import Msg
 class ActorGlobalPrioritiesWatcher(object):
     """Actor that takes care of memorizing priority informations between all sub-tasks in all
     ongoing queries. Everytime a priority changes all `ActorPoolWaitingRoom` are notified.
+
+    This class does not implement a `die` method, since destroying this actor is the same event
+    as stopping the scheduler's loop. See top-level-actor.
     """
 
     def __init__(self):
@@ -20,7 +23,8 @@ class ActorGlobalPrioritiesWatcher(object):
         self._pulled_count_per_query = {}
         self.db_version = 0
 
-        self._sorted_prod_tiles_per_cache_tile = {} # type: Dict[Tuple[uuid.UUID, Footprint], sortedcontainers.SortedListWithKey]
+        self._sorted_prod_tiles_per_cache_tile = {
+        } # type: Dict[Tuple[uuid.UUID, Footprint], sortedcontainers.SortedListWithKey]
         self._pulled_count_per_query = {} # type: Dict[CachedQueryInfos, int]
         self._cache_fp_per_query = {} # type: Dict[CachedQueryInfos, Set[Footprint]]
         self.address = '/Global/GlobalPrioritiesWatcher'
@@ -182,17 +186,6 @@ class ActorGlobalPrioritiesWatcher(object):
         else:
             return []
 
-    def receive_die(self):
-        """Receive message: The DataSource is closing"""
-        assert self._alive
-        self._alive = False
-
-        self._sorted_prod_tiles_per_cache_tile.clear()
-        self._pulled_count_per_query.clear()
-        self._cache_fp_per_query.clear()
-
-        return []
-
     # ******************************************************************************************* **
     def prio_of_prod_tile(self, qi, prod_idx):
         # Data structures shortcuts
@@ -215,8 +208,10 @@ class ActorGlobalPrioritiesWatcher(object):
         ds0 = self._sorted_prod_tiles_per_cache_tile
 
         cache_tile_key = (raster_uid, cache_fp)
-        if cache_tile_key not in ds0:
-            return (np.inf,)
+        assert cache_tile_key in ds0, (
+            'Needing a priority for a cache_fp implies having it registed '
+            'in this class since a qicc object was created.'
+        )
         prod_tile_key = ds0[cache_tile_key][0]
         prio = self.prio_of_prod_tile(*prod_tile_key)
         return prio

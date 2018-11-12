@@ -97,8 +97,8 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         type(pools['computation']['computation_pool']) in {str, mp.pool.ThreadPool, type(None)}
     )
 
-    # Create a numpy array with the same data
     with buzz.DataSource(allow_interpolation=1).close as ds:
+        # Create a numpy raster with the same data, useful to compare resampling
         npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
 
         # Test lazyness of cache
@@ -313,8 +313,21 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         r0.close()
         r1.close()
 
+
+
+
         # TODO:
-        # iter_data of several items, more than cache_max, test backpressure with time.sleep
+        # iter_data of several items, more than cache_max, test backpressure with new debug callbacks
+
+        # scheduling order when 1 pool, (add debug_observers callbacks, (on job?))
+
+        # new qicc changes the priority of a cache_fp
+        # cancel query changes the priority of a cache_fp
+
+        # Several queries at the same time, one is dropped, the other still work
+
+        # Access the `primitives` dict
+        # Computation function crashes, we catch error in main thread
 
 # Tools ***************************************************************************************** **
 class _AreaCounter(object):
