@@ -324,10 +324,10 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             cache_dir=test_prefix2,
             o=True,
         )
-        cache_tiles = r1.cache_tiles.flatten()
-        fps0 = cache_tiles.tolist() * 2
+        t = r1.cache_tiles.flatten()
+        fps0 = t.tolist() * 2
         fps1 = fps0[::-1]
-        fps2 = np.roll(cache_tiles, cache_tiles.size // 2).tolist() * 2
+        fps2 = np.roll(t, t.size // 2).tolist() * 2
         fps3 = fps2[::-1]
 
         it0 = r1.iter_data(fps=fps0)
@@ -336,10 +336,17 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         it3 = r1.iter_data(fps=fps3)
         del it1
 
-        assert len(list(it3)) == cache_tiles.size * 2
-        assert len(list(it0)) == cache_tiles.size * 2
-        assert len(list(it2)) == cache_tiles.size * 2
+        assert len(list(it3)) == t.size * 2
+        assert len(list(it0)) == t.size * 2
+        assert len(list(it2)) == t.size * 2
 
+        r0.close()
+        r1.close()
+
+        # Computation function crashes, we catch error in main thread
+        r = _open(o=True, compute_array=_please_crash)
+        with pytest.raises(NecessaryCrash):
+            r.get_data()
 
         # TODO:
         # iter_data of several items, more than cache_max, test backpressure with new debug callbacks
@@ -347,7 +354,6 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         # scheduling order when 1 pool, (add debug_observers callbacks, (on job?))
 
         # Access the `primitives` dict
-        # Computation function crashes, we catch error in main thread
 
 # Tools ***************************************************************************************** **
 class _AreaCounter(object):
@@ -384,6 +390,12 @@ def _meshgrid_raster_in(fp, primitive_fps, primtive_arrays, raster, reffp):
         assert raster.fp == reffp
     x, y = fp.meshgrid_raster_in(reffp)
     return np.stack([x, y], axis=2).astype('float32')
+
+class NecessaryCrash(Exception):
+    pass
+
+def _please_crash(fp, primitive_fps, primtive_arrays, raster):
+    raise NecessaryCrash()
 
 def _should_not_be_called(*args):
     assert False, _should_not_be_called
