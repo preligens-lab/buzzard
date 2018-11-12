@@ -238,6 +238,10 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             cache_dir=test_prefix2,
             o=True,
         )
+        assert len(r0.primitives) == 0
+        assert len(r1.primitives) == 1
+        assert r1.primitives['prim'] is r0
+
         r1.get_data()
         if compute_same_address_space:
             ac0.check_done()
@@ -347,13 +351,6 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         r = _open(o=True, compute_array=_please_crash)
         with pytest.raises(NecessaryCrash):
             r.get_data()
-
-        # TODO:
-        # iter_data of several items, more than cache_max, test backpressure with new debug callbacks
-
-        # scheduling order when 1 pool, (add debug_observers callbacks, (on job?))
-
-        # Access the `primitives` dict
 
 # Tools ***************************************************************************************** **
 class _AreaCounter(object):
