@@ -114,6 +114,7 @@ class BackDataSourceSchedulerMixin(object):
 
         # List of actors that need to be kept alive with calls to `ext_receive_nothing`
         # `keep_alive_iterator` should never be iterated if `keep_alive_actors` is empty
+        # TODO Idea: Only check the actors related to Pools and exposed-queues
         keep_alive_actors = []
         keep_alive_iterator = _cycle_list(keep_alive_actors)
 
@@ -162,12 +163,13 @@ class BackDataSourceSchedulerMixin(object):
                             # Check if stale message
                             if is_aging:
                                 msg_idx = idx_per_msg[msg]
-                                if met in msgidx_of_prev_methodcall:
-                                    prev_msg_idx = msgidx_of_prev_methodcall[met]
-                                    if prev_msg_idx > msg_idx and VERBOSE:
-                                        print('    Skipping stale message')
+                                if (met, msg.id_args) in msgidx_of_prev_methodcall:
+                                    prev_msg_idx = msgidx_of_prev_methodcall[(met, msg.id_args)]
+                                    if prev_msg_idx > msg_idx:
+                                        if VERBOSE:
+                                            print('    Skipping stale message')
                                         continue
-                                msgidx_of_prev_methodcall[met] = msg_idx
+                                msgidx_of_prev_methodcall[(met, msg.id_args)] = msg_idx
 
                             # Dispatch message and retrieve new ones
                             new_msgs = met(*msg.args)

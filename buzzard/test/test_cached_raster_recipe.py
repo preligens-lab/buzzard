@@ -313,18 +313,38 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         r0.close()
         r1.close()
 
+        # Several queries, one is dropped, the rest is still working
+        r0 = _open(
+            compute_array=functools.partial(_base_computation, reffp=fp),
+            o=True,
+        )
+        r1 = _open(
+            compute_array=functools.partial(_derived_computation, reffp=fp),
+            queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
+            cache_dir=test_prefix2,
+            o=True,
+        )
+        cache_tiles = r1.cache_tiles.flatten()
+        fps0 = cache_tiles.tolist() * 2
+        fps1 = fps0[::-1]
+        fps2 = np.roll(cache_tiles, cache_tiles.size // 2).tolist() * 2
+        fps3 = fps2[::-1]
 
+        it0 = r1.iter_data(fps=fps0)
+        it1 = r1.iter_data(fps=fps1)
+        it2 = r1.iter_data(fps=fps2)
+        it3 = r1.iter_data(fps=fps3)
+        del it1
+
+        assert len(list(it3)) == cache_tiles.size * 2
+        assert len(list(it0)) == cache_tiles.size * 2
+        assert len(list(it2)) == cache_tiles.size * 2
 
 
         # TODO:
         # iter_data of several items, more than cache_max, test backpressure with new debug callbacks
 
         # scheduling order when 1 pool, (add debug_observers callbacks, (on job?))
-
-        # new qicc changes the priority of a cache_fp
-        # cancel query changes the priority of a cache_fp
-
-        # Several queries at the same time, one is dropped, the other still work
 
         # Access the `primitives` dict
         # Computation function crashes, we catch error in main thread
@@ -346,13 +366,13 @@ class _AreaCounter(object):
     def check_done(self):
         assert np.all(self._mask == 1)
 
-def _base_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter):
+def _base_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter=None):
     if area_counter is not None:
         area_counter.increment(fp)
     x, y = fp.meshgrid_raster_in(reffp)
     return np.stack([x, y], axis=2).astype('float32')
 
-def _derived_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter):
+def _derived_computation(fp, primitive_fps, primtive_arrays, raster, reffp, area_counter=None):
     if area_counter is not None:
         area_counter.increment(fp)
     assert fp == primitive_fps['prim']

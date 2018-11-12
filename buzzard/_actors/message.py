@@ -46,7 +46,7 @@ class Msg(object):
                 t = '[{}]'.format(', '.join(map(_dump_param, a)))
                 return min([t, s], key=len)
             elif type(a).__name__ == 'CachedQueryInfos':
-                return 'qi'
+                return 'qi:{:#x}'.format(id(a))
             else:
                 s = type(a).__name__
                 t = str(a)
@@ -66,7 +66,9 @@ class DroppableMsg(Msg):
     pass
 
 class AgingMsg(Msg):
-    pass
+    def __init__(self, address, title, id_args, other_args):
+        self.id_args = id_args
+        super().__init__(address, title, *id_args, *other_args)
 
 _COLOR_PER_CLASSNAME = {
     'TopLevel': '\033[37m',

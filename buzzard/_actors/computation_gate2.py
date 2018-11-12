@@ -88,9 +88,6 @@ class ActorComputationGate2(object):
             allowed_gate2_count = qicc.collected_count + min_qsize
             assert q.allowed_down_count <= allowed_gate2_count, (
                 'allowed more than ready count'
-                # 'Input qsizes:{}, collected_count:{}, max_compute_idx_ready:{}'.format(
-                    # qsizes, qicc.collected_count, max_compute_idx_ready,
-                # )
             )
         else:
             allowed_gate2_count = np.inf

@@ -55,11 +55,22 @@ class ActorComputationGate1(object):
         pulled_count = produced_count - queue_size
         qicc = qi.cache_computation
 
+        if qi in self._queries:
+            assert pulled_count >= self._queries[qi].pulled_count, (
+                'new pulled_count:{} '.format(pulled_count) +
+                'previous pulled_count:{}'.format(self._queries[qi].pulled_count)
+            )
+            assert produced_count >= self._queries[qi].produced_count, (
+                'new produced_count:{} '.format(produced_count) +
+                'previous produced_count:{}'.format(self._queries[qi].produced_count)
+            )
+
         if produced_count == qi.produce_count:
             # Query finished
             if qi in self._queries:
-                q = self._queries[qi]
-                assert (qicc is None) or (q.allowed_count == len(qicc.list_of_compute_fp))
+                # Either qicc is None (no computation needed)
+                #  or allowed count == produced_count (all computations allowed here)
+                #  or allowed count <  produced_count (some other query computed the arrays)
                 del self._queries[qi]
         else:
             if qicc is None:
@@ -75,6 +86,8 @@ class ActorComputationGate1(object):
                 q = self._queries[qi]
                 q.pulled_count = pulled_count
                 msgs += self._allow(qi, q)
+
+            q.produced_count = produced_count
 
         return msgs
 
@@ -129,3 +142,4 @@ class _Query(object):
     def __init__(self):
         self.pulled_count = 0
         self.allowed_count = 0
+        self.produced_count = 0

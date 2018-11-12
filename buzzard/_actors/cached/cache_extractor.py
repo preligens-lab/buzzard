@@ -32,6 +32,7 @@ class ActorCacheExtractor(object):
         cache_fps = qi.prod[prod_idx].cache_fps
         available_cache_fps = self._path_of_cache_files_ready.keys() & cache_fps
         missing_cache_fps = cache_fps - available_cache_fps
+
         for cache_fp in available_cache_fps:
             msgs += [Msg(
                 'Reader', 'sample_cache_file_to_unique_array',
@@ -62,6 +63,7 @@ class ActorCacheExtractor(object):
                         qi, prod_idx, cache_fp, self._path_of_cache_files_ready[cache_fp]
                     )]
             del self._reads_waiting_for_cache_fp[cache_fp]
+
 
         return msgs
 

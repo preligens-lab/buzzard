@@ -48,6 +48,9 @@ class ActorComputer(object):
                 self._raster.debug_mngr.event('object_allocated', res)
                 self._performed_computations.add(compute_fp)
                 msgs += self._commit_work_result(work, res)
+            else:
+                print('  dropping this computation')
+
         else:
             wait = Wait(self, qi, compute_idx)
             self._waiting_jobs_per_query[qi].add(wait)

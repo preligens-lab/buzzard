@@ -94,11 +94,13 @@ class ActorQueriesHandler(object):
                 assert new_queue_size <= q.queue_size, "Don't put data in that queue..."
                 if new_queue_size != q.queue_size:
                     q.queue_size = new_queue_size
-                    args = qi, q.produced_count, q.queue_size
                     msgs += [
-                        AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
-                        AgingMsg('ProductionGate', 'output_queue_update', *args),
-                        AgingMsg('ComputationGate1', 'output_queue_update', *args),
+                        AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update',
+                                 (self._raster.uid, qi), (q.produced_count, q.queue_size)),
+                        AgingMsg('ProductionGate', 'output_queue_update',
+                                 (qi,), (q.produced_count, q.queue_size)),
+                        AgingMsg('ComputationGate1', 'output_queue_update',
+                                 (qi,), (q.produced_count, q.queue_size)),
                     ]
             del q
 
@@ -149,21 +151,27 @@ class ActorQueriesHandler(object):
 
                 q.queue_size += 1
                 q.produced_count += 1
+
                 prod_idx  = q.produced_count
-                args = qi, q.produced_count, q.queue_size
                 msgs += [
-                    AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update', self._raster.uid, *args),
-                    AgingMsg('ProductionGate', 'output_queue_update', *args),
-                    AgingMsg('ComputationGate1', 'output_queue_update', *args),
+                    # TODO: Notify only once
+                    AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update',
+                             (self._raster.uid, qi), (q.produced_count, q.queue_size)),
+                    AgingMsg('ProductionGate', 'output_queue_update',
+                             (qi,), (q.produced_count, q.queue_size)),
+                    AgingMsg('ComputationGate1', 'output_queue_update',
+                             (qi,), (q.produced_count, q.queue_size)),
                 ]
                 if qi.key_in_parent is not None:
                     # Notify the parent raster that a new array was put in the queue
                     # If the parent raster was collected this message is discarded
                     msgs += [DroppableMsg(
+                        # TODO: Notify only once
                         '/Raster{}/ComputationGate2'.format(qi.parent_uid),
                         'input_queue_update',
                         qi.key_in_parent,
                     )]
+
             if q.produced_count == qi.produce_count:
                 del self._queries[qi]
         del queue
