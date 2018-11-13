@@ -297,7 +297,8 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
+        if not isinstance(key, _AnonymousSentry):
+            self._validate_key(key)
         path = str(path)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -315,7 +316,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
@@ -329,26 +333,7 @@ class DataSource(DataSourceRegisterMixin):
         >>> file_wkt = ds.ortho.wkt_stored
 
         """
-        # Parameter checking ***************************************************
-        path = str(path)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        _ = conv.of_of_mode(mode)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'mem': # pragma: no cover
-            raise ValueError("Can't open a MEM raster, user acreate_raster")
-        elif True:
-            allocator = lambda: BackGDALFileRaster.open_file(
-                path, driver, options, mode
-            )
-            prox = GDALFileRaster(self, allocator, options, mode)
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
+        return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
                       driver='GTiff', options=(), sr=None):
@@ -417,7 +402,8 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
+        if not isinstance(key, _AnonymousSentry):
+            self._validate_key(key)
         path = str(path)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
@@ -449,7 +435,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
@@ -471,40 +460,8 @@ class DataSource(DataSourceRegisterMixin):
         >>> band_interpretation = out.band_schema['interpretation']
 
         """
-        # Parameter checking ***************************************************
-        path = str(path)
-        if not isinstance(fp, Footprint): # pragma: no cover
-            raise TypeError('`fp` should be a Footprint')
-        dtype = np.dtype(dtype)
-        band_count = int(band_count)
-        if band_count <= 0:
-            raise ValueError('`band_count` should be >0')
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'mem':
-            # TODO: Check not concurrent
-            prox = GDALMemRaster(
-                self, fp, dtype, band_count, band_schema, options, sr
-            )
-        elif True:
-            allocator = lambda: BackGDALFileRaster.create_file(
-                path, fp, dtype, band_count, band_schema, driver, options, sr
-            )
-            prox = GDALFileRaster(self, allocator, options, 'w')
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
+        return self.create_raster(_AnonymousSentry(), path, fp, dtype, band_count, band_schema,
+                                  driver, options, sr)
 
     def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this DataSource.
@@ -553,7 +510,8 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
+        if not isinstance(key, _AnonymousSentry):
+            self._validate_key(key)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         array = np.asarray(array)
@@ -574,7 +532,10 @@ class DataSource(DataSourceRegisterMixin):
         prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
@@ -582,279 +543,7 @@ class DataSource(DataSourceRegisterMixin):
 
         See DataSource.wrap_numpy_raster
         """
-        # Parameter checking ***************************************************
-        if not isinstance(fp, Footprint): # pragma: no cover
-            raise TypeError('`fp` should be a Footprint')
-        array = np.asarray(array)
-        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
-            raise ValueError('Incompatible shape between `array` and `fp`')
-        if array.ndim not in [2, 3]: # pragma: no cover
-            raise ValueError('Array should have 2 or 3 dimensions')
-        band_count = 1 if array.ndim == 2 else array.shape[-1]
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-        _ = conv.of_of_mode(mode)
-
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
-
-        # Construction *********************************************************
-        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
-
-    # Vector entry points *********************************************************************** **
-    def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file in this DataSource under `key`. Only metadata are kept in memory.
-
-        Parameters
-        ----------
-        key: hashable (like a string)
-            File identifier within DataSource
-        path: string
-        layer: None or int or string
-        driver: string
-            ogr driver to use when opening the file
-            http://www.gdal.org/ogr_formats.html
-        options: sequence of str
-            options for ogr
-        mode: one of {'r', 'w'}
-
-        Returns
-        -------
-        GDALFileVector
-
-        Example
-        -------
-        >>> ds.open_vector('trees', '/path/to.shp')
-        >>> feature_count = len(ds.trees)
-
-        >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
-        >>> fields_list = ds.roofs.fields
-
-        """
-        # Parameter checking ***************************************************
-        self._validate_key(key)
-        path = str(path)
-        if layer is None:
-            layer = 0
-        elif isinstance(layer, numbers.Integral):
-            layer = int(layer)
-        else:
-            layer = str(layer)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        _ = conv.of_of_mode(mode)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'memory': # pragma: no cover
-            raise ValueError("Can't open a MEMORY vector, user create_vector")
-        elif True:
-            allocator = lambda: BackGDALFileVector.open_file(
-                path, layer, driver, options, mode
-            )
-            prox = GDALFileVector(self, allocator, options, mode)
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([key], prox)
-        return prox
-
-    def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
-
-        See DataSource.open_vector
-
-        Example
-        -------
-        >>> trees = ds.aopen_vector('/path/to.shp')
-        >>> features_bounds = trees.bounds
-
-        """
-        path = str(path)
-        if layer is None:
-            layer = 0
-        elif isinstance(layer, numbers.Integral):
-            layer = int(layer)
-        else:
-            layer = str(layer)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        _ = conv.of_of_mode(mode)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'memory': # pragma: no cover
-            raise ValueError("Can't open a MEMORY vector, user create_vector")
-        elif True:
-            allocator = lambda: BackGDALFileVector.open_file(
-                path, layer, driver, options, mode
-            )
-            prox = GDALFileVector(self, allocator, options, mode)
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
-
-    def create_vector(self, key, path, geometry, fields=(), layer=None,
-                      driver='ESRI Shapefile', options=(), sr=None):
-        """Create a vector file and register it under `key` in this DataSource. Only metadata are
-        kept in memory.
-
-        Parameters
-        ----------
-        key: hashable (like a string)
-            File identifier within DataSource
-        path: string
-        geometry: string
-            name of a wkb geometry type
-            http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
-            (see example below)
-        fields: sequence of dict
-            Attributes of fields, one dict per field. (see `Field attributes` below)
-        layer: None or string
-        driver: string
-            ogr driver to use when opening the file
-            http://www.gdal.org/ogr_formats.html
-        options: sequence of str
-            options for ogr
-        sr: string or None
-            Spatial reference of the new file
-
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
-
-        Returns
-        -------
-        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
-
-        Example
-        -------
-        >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
-        >>> geometry_type = ds.lines.type
-
-        >>> fields = [
-            {'name': 'name', 'type': str},
-            {'name': 'count', 'type': 'int32'},
-            {'name': 'area', 'type': np.float64, 'width': 5, precision: 18},
-            {'name': 'when', 'type': np.datetime64},
-        ]
-        >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
-        >>> field0_type = ds.zones.fields[0]['type']
-
-        Field attributes
-        ----------------
-        Attributes:
-            'name': string
-            'type': string (see `Field type` below)
-            'precision': int
-            'width': int
-            'nullable': bool
-            'default': same as `type`
-        An attribute missing or None is kept to default value.
-
-        Field types
-        -----------
-        Binary        key: 'binary', bytes, np.bytes_, aliases of np.bytes_
-        Date          key: 'date'
-        DateTime      key: 'datetime', datetime.datetime, np.datetime64, aliases of np.datetime64
-        Time          key: 'time'
-
-        Integer       key: 'integer' np.int32, aliases of np.int32
-        Integer64     key: 'integer64', int, np.int64, aliases of np.int64
-        Real          key: 'real', float, np.float64, aliases of np.float64
-        String        key: 'string', str, np.str_, aliases of np.str_
-
-        Integer64List key: 'integer64list', 'int list'
-        IntegerList   key: 'integerlist'
-        RealList      key: 'reallist', 'float list'
-        StringList    key: 'stringlist', 'str list'
-
-        """
-        # Parameter checking ***************************************************
-        self._validate_key(key)
-        path = str(path)
-        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
-        fields = _tools.normalize_fields_defn(fields)
-        if layer is None:
-            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
-        else:
-            layer = str(layer)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'memory':
-            # TODO: Check not concurrent
-            allocator = lambda: BackGDALFileVector.create_file(
-                '', geometry, fields, layer, 'Memory', options, sr
-            )
-            prox = GDALMemoryVector(self, allocator, options)
-        elif True:
-            allocator = lambda: BackGDALFileVector.create_file(
-                path, geometry, fields, layer, driver, options, sr
-            )
-            prox = GDALFileVector(self, allocator, options, 'w')
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([key], prox)
-        return prox
-
-    def acreate_vector(self, path, geometry, fields=(), layer=None,
-                       driver='ESRI Shapefile', options=(), sr=None):
-        """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
-
-        See DataSource.create_vector
-
-        Example
-        -------
-        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
-        >>> file_proj4 = lines.proj4_stored
-
-        """
-        # Parameter checking ***************************************************
-        path = str(path)
-        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
-        fields = _tools.normalize_fields_defn(fields)
-        if layer is None:
-            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
-        else:
-            layer = str(layer)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'memory':
-            # TODO: Check not concurrent
-            allocator = lambda: BackGDALFileVector.create_file(
-                '', geometry, fields, layer, 'Memory', options, sr
-            )
-            prox = GDALMemoryVector(self, allocator, options)
-        elif True:
-            allocator = lambda: BackGDALFileVector.create_file(
-                path, geometry, fields, layer, driver, options, sr
-            )
-            prox = GDALFileVector(self, allocator, options, 'w')
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
+        return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, band_schema, sr, mode)
 
     def create_raster_recipe(
             self, key,
@@ -946,40 +635,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         pass
-
-
-    def acreate_cached_raster_recipe(
-            self,
-
-            # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
-
-            # callbacks running on pool
-            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
-
-            # filesystem
-            cache_dir=None, o=False,
-
-            # primitives
-            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
-
-            # pools
-            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-
-            # misc
-            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
-            debug_observers=()
-    ):
-        return self.create_cached_raster_recipe(
-            _AnonymousSentry(),
-            fp, dtype, band_count, band_schema, sr,
-            compute_array, merge_arrays,
-            cache_dir, o,
-            queue_data_per_primitive, convert_footprint_per_primitive,
-            computation_pool, merge_pool, io_pool, resample_pool,
-            cache_tiles, computation_tiles, max_resampling_size,
-            debug_observers,
-        )
 
     def create_cached_raster_recipe(
             self, key,
@@ -1186,7 +841,237 @@ class DataSource(DataSourceRegisterMixin):
             self._register([], prox)
         return prox
 
-    # Proxy getters ********************************************************* **
+    def acreate_cached_raster_recipe(
+            self,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
+
+            # filesystem
+            cache_dir=None, o=False,
+
+            # primitives
+            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+
+            # misc
+            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
+            debug_observers=()
+    ):
+        return self.create_cached_raster_recipe(
+            _AnonymousSentry(),
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_arrays,
+            cache_dir, o,
+            queue_data_per_primitive, convert_footprint_per_primitive,
+            computation_pool, merge_pool, io_pool, resample_pool,
+            cache_tiles, computation_tiles, max_resampling_size,
+            debug_observers,
+        )
+
+    # Vector entry points *********************************************************************** **
+    def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
+        """Open a vector file in this DataSource under `key`. Only metadata are kept in memory.
+
+        Parameters
+        ----------
+        key: hashable (like a string)
+            File identifier within DataSource
+        path: string
+        layer: None or int or string
+        driver: string
+            ogr driver to use when opening the file
+            http://www.gdal.org/ogr_formats.html
+        options: sequence of str
+            options for ogr
+        mode: one of {'r', 'w'}
+
+        Returns
+        -------
+        GDALFileVector
+
+        Example
+        -------
+        >>> ds.open_vector('trees', '/path/to.shp')
+        >>> feature_count = len(ds.trees)
+
+        >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
+        >>> fields_list = ds.roofs.fields
+
+        """
+        # Parameter checking ***************************************************
+        self._validate_key(key)
+        path = str(path)
+        if layer is None:
+            layer = 0
+        elif isinstance(layer, numbers.Integral):
+            layer = int(layer)
+        else:
+            layer = str(layer)
+        driver = str(driver)
+        options = [str(arg) for arg in options]
+        _ = conv.of_of_mode(mode)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory': # pragma: no cover
+            raise ValueError("Can't open a MEMORY vector, user create_vector")
+        elif True:
+            allocator = lambda: BackGDALFileVector.open_file(
+                path, layer, driver, options, mode
+            )
+            prox = GDALFileVector(self, allocator, options, mode)
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
+        self._register([key], prox)
+        return prox
+
+    def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
+        """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
+
+        See DataSource.open_vector
+
+        Example
+        -------
+        >>> trees = ds.aopen_vector('/path/to.shp')
+        >>> features_bounds = trees.bounds
+
+        """
+        return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
+
+    def create_vector(self, key, path, geometry, fields=(), layer=None,
+                      driver='ESRI Shapefile', options=(), sr=None):
+        """Create a vector file and register it under `key` in this DataSource. Only metadata are
+        kept in memory.
+
+        Parameters
+        ----------
+        key: hashable (like a string)
+            File identifier within DataSource
+        path: string
+        geometry: string
+            name of a wkb geometry type
+            http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
+            (see example below)
+        fields: sequence of dict
+            Attributes of fields, one dict per field. (see `Field attributes` below)
+        layer: None or string
+        driver: string
+            ogr driver to use when opening the file
+            http://www.gdal.org/ogr_formats.html
+        options: sequence of str
+            options for ogr
+        sr: string or None
+            Spatial reference of the new file
+
+            if None: don't set a spatial reference
+            if string:
+                if path: Use same projection as file at `path`
+                if textual spatial reference:
+                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+        Returns
+        -------
+        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
+
+        Example
+        -------
+        >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
+        >>> geometry_type = ds.lines.type
+
+        >>> fields = [
+            {'name': 'name', 'type': str},
+            {'name': 'count', 'type': 'int32'},
+            {'name': 'area', 'type': np.float64, 'width': 5, precision: 18},
+            {'name': 'when', 'type': np.datetime64},
+        ]
+        >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
+        >>> field0_type = ds.zones.fields[0]['type']
+
+        Field attributes
+        ----------------
+        Attributes:
+            'name': string
+            'type': string (see `Field type` below)
+            'precision': int
+            'width': int
+            'nullable': bool
+            'default': same as `type`
+        An attribute missing or None is kept to default value.
+
+        Field types
+        -----------
+        Binary        key: 'binary', bytes, np.bytes_, aliases of np.bytes_
+        Date          key: 'date'
+        DateTime      key: 'datetime', datetime.datetime, np.datetime64, aliases of np.datetime64
+        Time          key: 'time'
+
+        Integer       key: 'integer' np.int32, aliases of np.int32
+        Integer64     key: 'integer64', int, np.int64, aliases of np.int64
+        Real          key: 'real', float, np.float64, aliases of np.float64
+        String        key: 'string', str, np.str_, aliases of np.str_
+
+        Integer64List key: 'integer64list', 'int list'
+        IntegerList   key: 'integerlist'
+        RealList      key: 'reallist', 'float list'
+        StringList    key: 'stringlist', 'str list'
+
+        """
+        # Parameter checking ***************************************************
+        self._validate_key(key)
+        path = str(path)
+        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
+        fields = _tools.normalize_fields_defn(fields)
+        if layer is None:
+            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
+        else:
+            layer = str(layer)
+        driver = str(driver)
+        options = [str(arg) for arg in options]
+        if sr is not None:
+            sr = osr.GetUserInputAsWKT(sr)
+
+        # Construction dispatch ************************************************
+        if driver.lower() == 'memory':
+            # TODO: Check not concurrent
+            allocator = lambda: BackGDALFileVector.create_file(
+                '', geometry, fields, layer, 'Memory', options, sr
+            )
+            prox = GDALMemoryVector(self, allocator, options)
+        elif True:
+            allocator = lambda: BackGDALFileVector.create_file(
+                path, geometry, fields, layer, driver, options, sr
+            )
+            prox = GDALFileVector(self, allocator, options, 'w')
+        else:
+            pass
+
+        # DataSource Registering ***********************************************
+        self._register([key], prox)
+        return prox
+
+    def acreate_vector(self, path, geometry, fields=(), layer=None,
+                       driver='ESRI Shapefile', options=(), sr=None):
+        """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
+
+        See DataSource.create_vector
+
+        Example
+        -------
+        >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
+        >>> file_proj4 = lines.proj4_stored
+
+        """
+        return self.create_vector(_AnonymousSentry(), path, geometry, fields, layer,
+                                  driver, options, sr)
+
+    # Proxy infos ******************************************************************************* **
     def __getitem__(self, key):
         """Retrieve a proxy from its key"""
         return self._proxy_of_key[key]
@@ -1197,10 +1082,21 @@ class DataSource(DataSourceRegisterMixin):
             return item in self._keys_of_proxy
         return item in self._proxy_of_key
 
+    def items(self):
+        """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
+        for proxy, keys in self._keys_of_proxy.items():
+            yield list(keys), proxy
+
+    def values(self):
+        """Generate all proxies"""
+        for proxy, _ in self._keys_of_proxy.items():
+            yield proxy
+
     def __len__(self):
         """Retrieve proxy count registered in this DataSource"""
         return len(self._keys_of_proxy)
 
+    # Cleanup *********************************************************************************** **
     def __del__(self):
         if not self._ds_closed:
             self.close()
@@ -1258,16 +1154,6 @@ class DataSource(DataSourceRegisterMixin):
                 proxy.close()
 
         return _CloseRoutine(self, _close)
-
-    def items(self):
-        """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
-        for proxy, keys in self._keys_of_proxy.items():
-            yield list(keys), proxy
-
-    def values(self):
-        """Generate all proxies"""
-        for proxy, _ in self._keys_of_proxy.items():
-            yield proxy
 
     # Spatial reference getters ********************************************* **
     @property
