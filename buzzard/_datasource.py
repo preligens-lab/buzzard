@@ -23,31 +23,7 @@ from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
 from buzzard._cached_raster_recipe import CachedRasterRecipe
 from buzzard._a_pooled_emissary import APooledEmissary
-
-def _concat(fp, array_per_fp, raster):
-    """TODO: move to buzz.algo?.concat_arrays
-    buzz.algo.concat_arrays
-    buzz.algo.slopes_recipe
-    buzz.algo.cascaded_resampled_recipes
-
-    """
-    # Allocate
-    for a in array_per_fp.values():
-        band_count = a.shape[-1]
-        dtype = a.dtype
-    arr = np.empty(np.r_[fp.shape, band_count], dtype)
-    # debug_mask = np.zeros(fp.shape, 'bool')
-
-    # Burn
-    for tile, tile_arr in array_per_fp.items():
-        assert tuple(tile.shape) == tile_arr.shape[:2]
-        slices = tile.slice_in(fp)
-        # assert np.all(debug_mask[slices] == False), debug_mask[slices].mean()
-        # debug_mask[slices] = True
-        arr[slices] = tile_arr
-    # assert np.all(debug_mask), debug_mask.mean()
-
-    return arr
+import buzzard.utils
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to sources. A source is either a raster, or a
@@ -887,7 +863,7 @@ class DataSource(DataSourceRegisterMixin):
             fp, dtype, band_count, band_schema=None, sr=None,
 
             # callbacks running on pool
-            compute_array=None, merge_arrays=_concat,
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
 
             # primitives
             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
@@ -979,7 +955,7 @@ class DataSource(DataSourceRegisterMixin):
             fp, dtype, band_count, band_schema=None, sr=None,
 
             # callbacks running on pool
-            compute_array=None, merge_arrays=_concat,
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
 
             # filesystem
             cache_dir=None, o=False,
@@ -1012,7 +988,7 @@ class DataSource(DataSourceRegisterMixin):
             fp, dtype, band_count, band_schema=None, sr=None,
 
             # callbacks running on pool
-            compute_array=None, merge_arrays=_concat,
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
 
             # filesystem
             cache_dir=None, o=False,
