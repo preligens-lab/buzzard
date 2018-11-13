@@ -10,6 +10,8 @@ Symbols export
 #### `_a_*.py`
 Almost all files follow the following semantic: a 'facade' class that starts with `A` and directly or indirectly inherits from `AProxy`, and a 'back' class that starts with `ABack` and directly or indirectly inherits from `ABackProxy`.
 
+> Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fairware%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-classes-doc.xml
+
 #### `_datasource*.py`
 Contains the definition of the `DataSource` and `BackDataSource` classes, as well as their mixins.
 
@@ -52,6 +54,8 @@ To get a quick taste of how it works you should look at those lines of code:
 - All the classes that inherit from `AsyncRaster` in `buzzard/*.py`.
 - The `buzzard/_actors/message.py` file
 - At least one actor, for example the `buzzard/_actors/cached/writer.py` that is pretty straightforward and well documented.
+
+> Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fairware%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-cache-actors.xml
 
 #### `_actors/*.py`
 Contains:
