@@ -1251,7 +1251,7 @@ class DataSource(DataSourceRegisterMixin):
 
         Caveat
         ------
-        Some memory leaks may still occur after closing. Possible origins:
+        When using a scheduler, some memory leaks may still occur after closing. Possible origins:
         - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
         - Gdal cache not flushed (not a leak)
         - https://stackoverflow.com/a/1316799 (not a leak)
