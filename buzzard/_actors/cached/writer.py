@@ -1,8 +1,6 @@
 import os
 import uuid
 import functools
-import multiprocessing as mp
-import multiprocessing.pool
 import hashlib
 
 from buzzard._actors.message import Msg
@@ -97,12 +95,14 @@ class ActorWriter(object):
     # ******************************************************************************************* **
 
 class Wait(CacheJobWaiting):
+    """Job to be fed to a PoolWaitingRoom actor"""
     def __init__(self, actor, cache_fp, array):
         self.cache_fp = cache_fp
         self.array = array
         super().__init__(actor.address, actor._raster.uid, self.cache_fp, 2, self.cache_fp)
 
 class Work(PoolJobWorking):
+    """Job to be fed to a PoolWorkingRoom actor"""
     def __init__(self, actor, cache_fp, array):
         self.cache_fp = cache_fp
 
@@ -141,16 +141,32 @@ def _cache_file_write(array,
 
     Parameters
     ----------
+    array: ndarray of shape (Y, X, C)
+        What to write in the cache file
+    dir_path: str
+        Directory where to create the file
+    filename_prefix: str
+        First third of the file name
+    filename_suffix: str
+        Last thirf of the file name
+    cache_fp: Footprint of shape (Y, X)
+        Footprint of the file
+    band_schema: dict
+        Band schema given by user when creating the cached recipe
+    sr: str or None
+        Spatial reference given by user when creating the cached recipe
     """
+    # Step 0. Lazily import buzzard to avoid circular dependencies
     global create_raster
     if create_raster is None:
         from buzzard import create_raster
 
-    # Step 1. Create/close file
+    # Step 1. Create/close file with a temporary name
     src_path = os.path.join(
         dir_path, 'tmp_' + filename_prefix + str(uuid.uuid4()) + filename_suffix
     )
 
+    # TODO: Allow the user to choose the type and options of cache files
     options = [
         "TILED=YES",
         "BLOCKXSIZE=256", "BLOCKYSIZE=256",
@@ -162,11 +178,14 @@ def _cache_file_write(array,
         r.set_data(array, band=-1)
 
     # Step 2. md5 hash file
+    # TODO: Is a checksum quicker?
     md5 = _md5(src_path)
 
-    # Step 3. move file
+    # Step 3. move file to its final location
     dst_path = os.path.join(dir_path, filename_prefix + '_' + md5 + filename_suffix)
+
     # TODO: Undefined if it exists, but it will most likely work
+    # TODO: chmod to remove write access?
     os.rename(src_path, dst_path)
 
     return dst_path
