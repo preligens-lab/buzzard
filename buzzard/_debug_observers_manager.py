@@ -1,14 +1,13 @@
 import collections
 
 class DebugObserversManager(object):
-    """Routes the callbacks to the observers provided by user in the `debug_observers` parameters.
+    """Delivers the callbacks to the observers provided by user in the `debug_observers` parameters.
     """
     def __init__(self, debug_observers):
         self._obs = debug_observers
         self._to_call_per_ename = _ToCallPerEventName(debug_observers)
 
     def event(self, ename, *args):
-        # print('event', ename, args)
         for method in self._to_call_per_ename[ename]:
             method(*args)
 

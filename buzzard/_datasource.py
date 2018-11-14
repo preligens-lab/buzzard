@@ -567,7 +567,7 @@ class DataSource(DataSourceRegisterMixin):
     ):
         """Create a raster recipe and register it under `key` in this DataSource.
 
-        TODO: Fill
+        TODO: docstring
 
         Parameters
         ----------
@@ -660,7 +660,7 @@ class DataSource(DataSourceRegisterMixin):
     ):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
-        TODO: Fill
+        TODO: docstring
 
         Parameters
         ----------
@@ -863,6 +863,7 @@ class DataSource(DataSourceRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
+        """TODO: docstring"""
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
             fp, dtype, band_count, band_schema, sr,

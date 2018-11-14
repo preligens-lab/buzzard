@@ -38,7 +38,7 @@ class AAsyncRaster(AProxyRaster):
         )
 
 class ABackAsyncRaster(ABackProxyRaster):
-    """TODO: docstring"""
+    """Implementation of AAsyncRaster's specifications"""
 
     def __init__(self, resample_pool, max_resampling_size, debug_observers, **kwargs):
         self.uid = uuid.uuid4()

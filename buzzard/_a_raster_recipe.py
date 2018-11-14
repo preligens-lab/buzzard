@@ -5,6 +5,7 @@ class ARasterRecipe(AAsyncRaster):
 
     @property
     def primitives(self):
+        """TODO: docstring"""
         # TODO: differenciate `_datasource_register` and `_datasource_back_register`
         # to lower the complexity of that method
         d = {}
@@ -18,7 +19,7 @@ class ARasterRecipe(AAsyncRaster):
         return d
 
 class ABackRasterRecipe(ABackAsyncRaster):
-    """TODO: docstring"""
+    """Implementation of ARasterRecipe's specifications"""
     def __init__(self,
                  band_schema,
                  band_count,

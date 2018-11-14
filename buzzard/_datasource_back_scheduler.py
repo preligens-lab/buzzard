@@ -1,7 +1,7 @@
 import collections
 import time
 import threading
-import datetime # debug
+import datetime
 
 from buzzard._actors.top_level import ActorTopLevel
 from buzzard._actors.message import Msg, DroppableMsg, AgingMsg
@@ -10,6 +10,7 @@ from buzzard._debug_observers_manager import DebugObserversManager
 VERBOSE = 0
 
 class BackDataSourceSchedulerMixin(object):
+    """TODO: docstring"""
 
     def __init__(self, ds_id, debug_observers, **kwargs):
         self._ext_message_to_scheduler_queue = []
@@ -265,7 +266,6 @@ class BackDataSourceSchedulerMixin(object):
             # Step 5: Check if DataSource was collected
             if self._stop:
                 return
-
 
 def _cycle_list(l):
     """Loop in a list forever, even if its size changes. Error if empty."""

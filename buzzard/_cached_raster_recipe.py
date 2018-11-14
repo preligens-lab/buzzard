@@ -56,14 +56,16 @@ class CachedRasterRecipe(ARasterRecipe):
 
     @property
     def cache_tiles(self):
+        """TODO: docstring"""
         return self._back.cache_fps.copy()
 
     @property
     def cache_dir(self):
+        """TODO: docstring"""
         return self._back.cache_dir
 
 class BackCachedRasterRecipe(ABackRasterRecipe):
-    """TODO: docstring"""
+    """Implementation of CachedRasterRecipe's specifications"""
 
     def __init__(
         self, back_ds, facade_proxy,
