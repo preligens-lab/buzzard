@@ -297,7 +297,7 @@ class CacheComputationInfos(object):
                 self.primitive_fps_per_primitive[name],
                 parent_uid=raster.uid,
                 key_in_parent=(qi, name),
-                **raster.primitives_kwargs[name],
+                **raster.primitives_kwargs[name]
             )
             for name, prim_back in raster.primitives_back.items()
         }

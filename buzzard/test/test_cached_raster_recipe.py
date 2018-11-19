@@ -9,6 +9,7 @@ import glob
 import time
 import gc
 import threading
+import itertools
 
 import numpy as np
 import pytest
@@ -61,10 +62,12 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             compute_array=functools.partial(_meshgrid_raster_in, reffp=fp),
             cache_dir=test_prefix,
             cache_tiles=cache_tiles,
-            **pools['merge'],
-            **pools['resample'],
-            **pools['computation'],
-            **pools['io'],
+            **dict(itertools.chain(
+                pools['merge'].items(),
+                pools['resample'].items(),
+                pools['computation'].items(),
+                pools['io'].items(),
+            )),
         )
         d.update(kwargs)
         return ds.acreate_cached_raster_recipe(**d)
