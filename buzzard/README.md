@@ -88,7 +88,11 @@ Mostly unstable stuff dealing with spatial reference, will be reorganized in the
 
 ## `algo/*.py` files
 Mostly unstable stuff, will be reorganized in the future
-TODO: will it contain the recipe tools ?
+
+---
+
+## `utils/*.py` files
+Contains utility code for buzzard's users. Like pre-built recipes.
 
 ---
 
