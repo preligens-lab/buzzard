@@ -68,7 +68,7 @@ class DroppableMsg(Msg):
 class AgingMsg(Msg):
     def __init__(self, address, title, id_args, other_args):
         self.id_args = id_args
-        super().__init__(address, title, *id_args, *other_args)
+        super().__init__(address, title, *(list(id_args) + list(other_args)))
 
 _COLOR_PER_CLASSNAME = {
     'TopLevel': '\033[37m',
