@@ -482,11 +482,11 @@ def is_tiling_covering_fp(tiling, fp, allow_outer_pixels, allow_overlapping_pixe
     rtls = np.asarray([
         fp.spatial_to_raster(tile.tl)
         for tile in tiling.flat
-    ]).reshape(*tiling.shape, 2)
+    ]).reshape(tiling.shape[0], tiling.shape[1], 2)
     rbrs = np.asarray([
         fp.spatial_to_raster(tile.br)
         for tile in tiling.flat
-    ]).reshape(*tiling.shape, 2)
+    ]).reshape(tiling.shape[0], tiling.shape[1], 2)
 
     # is tiling ********************************************
     # All line's tly equal
