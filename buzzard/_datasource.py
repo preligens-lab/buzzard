@@ -422,7 +422,7 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            # TODO: Check not concurrent
+            # TODO: Check not async (in 0.5.0)
             prox = GDALMemRaster(
                 self, fp, dtype, band_count, band_schema, options, sr
             )
@@ -569,70 +569,6 @@ class DataSource(DataSourceRegisterMixin):
 
         TODO: docstring
 
-        Parameters
-        ----------
-        key: hashable (like a string)
-            File identifier within DataSource
-        fp: Footprint
-            Description of the location and size of the raster to create.
-        dtype: numpy type (or any alias)
-        band_count: integer
-            number of bands
-        band_schema: dict or None
-            Band(s) metadata. (see `Band fields` below)
-        sr: string or None
-            Spatial reference of the new file
-
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
-
-        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
-            from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
-            from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
-        queue_data_per_primitive: dict of callable
-            should be the bound `queue_data` method of another AsyncRaster in the same DataSource.
-            can also be a functools.partial instance to that method
-        convert_footprint_per_primitive: function f(Footprint) -> dict
-            dict is key (same as above) and value: Footprint
-        computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        merge_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        max_computation_size: None or int or (int, int)
-        max_resampling_size: None or int or (int, int)
-        remap_in_primitives: bool
-            if True: defer the remap operations in the primitives
-            if False: does the remap when producing
-
-        Returns
-        -------
-        RasterRecipe with get_data, queue_data and iter_data entry points
-
-        Band fields
-        -----------
-        Fields:
-            'nodata': None or number
-            'interpretation': None or str
-            'offset': None or number
-            'scale': None or number
-            'mask': None or one of ('')
-        Interpretation values:
-            undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
-            saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
-        Mask values:
-            all_valid, per_dataset, alpha, nodata
-
-        A field missing or None is kept to default value.
-        A field can be passed as:
-            a value: All bands are set to this value
-            a sequence of length `band_count` of value: All bands will be set to respective state
-
         """
         pass
 
@@ -660,54 +596,117 @@ class DataSource(DataSourceRegisterMixin):
     ):
         """Create a raster cached recipe and register it under `key` in this DataSource.
 
-        TODO: docstring
+        TODO
 
         Parameters
         ----------
-        key: hashable (like a string)
-            File identifier within DataSource
-        fp: Footprint
-            Description of the location and size of the raster to create.
-        dtype: numpy type (or any alias)
-        band_count: integer
-            number of bands
-        band_schema: dict or None
-            Band(s) metadata. (see `Band fields` below)
-        sr: string or None
-            Spatial reference of the new file
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
-        compute_array: function with prototype f(Footprint, list(Footprint), list(np.ndarray), RasterRecipe) -> np.ndarray
-            from a footprint and a set of data (footprint + ndarray) returns a ndarray correspondig to footprint
-        merge_arrays: function with prototype f(Footprint, list(Footprint), list(np.ndarray)) -> np.ndarray
-            from a footprint and a set of data (footprint + ndarray) returns a merged ndarray correspondig to footprint
-        queue_data_per_primitive: dict of callable
-            should be the bound `queue_data` method of another AsyncRaster in the same DataSource
-            can also be a functools.partial instance to that method
-        convert_footprint_per_primitive: function f(Footprint) -> dict
-            dict is key (same as above) and value: Footprint
-        computation_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        merge_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        resample_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        io_pool: str or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-            if None, operation done on scheduler
-        cache_dir: str
-        cache_tiles:
-            if (int, int): Construct the tiling by calling Footprint.tile with this tile size
-        computation_tiles: None or np.ndarray of Footprint or shape (TY, TX) or (int, int)
-            if None: Use the same tiling as cache_tiles
-            if (int, int): Construct the tiling by calling Footprint.tile with this tile size
+        key:
+            see `create_raster` method
+        fp:
+            see `create_raster` method
+        dtype:
+            see `create_raster` method
+        band_count:
+            see `create_raster` method
+        band_schema:
+            see `create_raster` method
+        sr:
+            see `create_raster` method
+        compute_array: callable
+            see `Computation Function` below
+        merge_arrays: callable
+            see `Merge function` below
+        cache_dir: str or pathlib.Path
+            Path to the directory that holds the cache files associated with this raster. If cache
+            files are present, they will be reused (or erased if corrupted). If a cache file is
+            needed and missing, it will be computed.
+        o: bool
+            Wether or not to erase the old cache files contained in `cache_dir`.
+        queue_data_per_primitive: dict of hashable (like a string) to a `queue_data` method pointer
+            see `Primitives` below
+        convert_footprint_per_primitive: dict of hashable (like a string) to a callable
+            see `Primitives` below
+        computation_pool:
+            see `Pools` below
+        merge_pool:
+            see `Pools` below
+        io_pool:
+            see `Pools` below
+        resample_pool:
+            see `Pools` below
+        cache_tiles: int or (int, int) or numpy.ndarray of Footprint
+            A tiling of the `fp` parameter. Each tile will correspond to one cache file.
+            if int or (int, int): Construct the tiling by calling Footprint.tile with this parameter
+        computation_tiles: None or int or (int, int) or numpy.ndarray of Footprint
+            A tiling of the `fp` parameter.
+            The `compute_array` function will only be called with Footprints from this tiling.
+            if None: Use the same tiling as `cache_tiles`
+            if int or (int, int): Construct the tiling by calling Footprint.tile with this parameter
         max_resampling_size: None or int or (int, int)
+            Optionally define a maximum resampling size. If a larger resampling has to be performed,
+            it will be performed tile by tile in parallel.
+        debug_observers: sequence of object
+            Entry points to observe what is happening with this raster in the DataSource's sheduler.
 
         Returns
         -------
-        RasterCachedRecipe with get_data, queue_data and iter_data entry points
+        CachedRasterRecipe
+
+        Computation Function
+        --------------------
+        The function that will map a Footprint to a numpy.ndarray. If `queue_data_per_primitive`
+        is not empty, it will map a Footprint and primitive arrays to a numpy.ndarray.
+
+        It will be called in parallel according to the `computation_pool` parameter provided at
+        construction.
+
+        The function will be called with the following positional parameters:
+        - fp: Footprint of shape (Y, X)
+            The location at which the pixels should be computed
+        - primitive_fps: dict of hashable to Footprint
+            For each primitive defined through the `queue_data_per_primitive` parameter, the input
+            Footprint.
+        - primitive_arrays: dict of hashable to numpy.ndarray
+            For each primitive defined through the `queue_data_per_primitive` parameter, the input
+            numpy.ndarray that was automatically computed.
+        - raster: CachedRasterRecipe or None
+            The Raster object of the ongoing computation.
+
+        It should return a single ndarray of shape (Y, X) or (Y, X, C)
+
+        If `computation_pool` points to a process pool, the `compute_array` function must be
+        picklable and the `raster` parameter will be None.
+
+        Merge Function
+        --------------
+        The function that will map several pairs of Footprint/numpy.ndarray to a single
+        numpy.ndarray. If the `computation_tiles` is None, it will never be called.
+
+        It will be called in parallel according to the `merge_pool` parameter provided at
+        construction.
+
+        The function will be called with the following positional parameters:
+        - fp: Footprint of shape (Y, X)
+            The location at which the pixels should be computed.
+        - array_per_fp: dict of Footprint to numpy.ndarray
+            The pairs of Footprint/numpy.ndarray of each arrays that were computed by
+            `compute_array` and that overlap with `fp`.
+        - raster: CachedRasterRecipe or None
+            The Raster object of the ongoing computation.
+
+        It should return a single ndarray of shape (Y, X) or (Y, X, C)
+
+        If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
+        the `raster` parameter will be None.
+
+        Primitives
+        ----------
+        TODO
+
+        Pools
+        -----
+        hashable (like a string) or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
+        TODO
         """
         # Parameter checking ***************************************************
         # Classic RasterProxy parameters *******************
@@ -863,7 +862,10 @@ class DataSource(DataSourceRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """TODO: docstring"""
+        """Create a cached raster reciped anonymously in this DataSource.
+
+        See DataSource.create_cached_raster_recipe
+        """
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
             fp, dtype, band_count, band_schema, sr,
@@ -1040,7 +1042,7 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
-            # TODO: Check not concurrent
+            # TODO: Check not async (in 0.5.0)
             allocator = lambda: BackGDALFileVector.create_file(
                 '', geometry, fields, layer, 'Memory', options, sr
             )

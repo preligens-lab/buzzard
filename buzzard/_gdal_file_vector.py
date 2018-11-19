@@ -9,7 +9,12 @@ from buzzard._a_gdal_vector import ABackGDALVector
 from buzzard._tools import conv
 
 class GDALFileVector(APooledEmissaryVector):
-    """Concrete class defining the behavior of a GDAL vector using a file"""
+    """Concrete class defining the behavior of a GDAL vector using a file
+
+    Features Defined
+    ----------------
+    None
+    """
 
     def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileVector(

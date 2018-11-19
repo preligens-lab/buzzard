@@ -9,10 +9,58 @@ from buzzard._actors.message import Msg
 from buzzard._debug_observers_manager import DebugObserversManager
 
 class AAsyncRaster(AProxyRaster):
-    """TODO: docstring"""
+    """Base abstract class defining the common behavior of all rasters that are managed by the
+    DataSource's scheduler.
+
+    Features Defined
+    ----------------
+    - Has a `queue_data`, a low level method that can be used to query several arrays at once.
+    - Has an `iter_data`, a higher level wrapper of `queue_data`.
+    """
 
     def queue_data(self, fps, band=1, dst_nodata=None, interpolation='cv_area', max_queue_size=5):
-        """TODO: Docstring
+        """Read several rectangles of data on several channels from the source raster.
+
+        Using `queue_data` instead of multiple calls to `get_data` just allows more parallelism.
+        The `fps` parameter should contain a sequence of Footprint, the first ones will be computed
+        with a higher priority than the later one.
+
+        Calling this method sends an asynchronous message to the DataSource's scheduler with the
+        input parameters and a queue. On the input side of the queue, the scheduler will call the
+        `put` method with each array requested. On the output side of the queue, the `get` method
+        should be called to retrieve the arrays requested.
+
+        The output queue will be created with a max queue size of `max_queue_size`, the scheduler
+        will be careful to only prepare the arrays that can fit in the output queue. Thanks to this
+        feature: backpressure can be fully avoided throughout buzzard.
+
+        If you wish to cancel your request, loose the reference to the queue and the scheduler will
+        gracefuly cancel the query.
+
+        In general you should use the `iter_data` method instead of the `queue_data` one, it is much
+        safer to use. Though you will need to pass the `queue_data` method of a raster, to create
+        another raster (a recipe) that depends on the first raster.
+
+        see `get_data` documentation, it shares most of the concepts
+
+        Parameters
+        ----------
+        fps: sequence of Footprint
+            The Footprints at which the raster should be sampled.
+        band:
+            see `get_data` method
+        dst_nodata:
+            see `get_data` method
+        interpolation:
+            see `get_data` method
+        max_queue_size: int
+            Maximum number of arrays to prepare in advance in the underlying queue. This parameter
+            helps with the prevention of backpressure.
+
+        Returns
+        -------
+        queue.Queue of ndarray
+        The arrays are put into the queue in the same order as in the `fps` parameter.
         """
         for fp in fps:
             if not isinstance(fp, Footprint):
@@ -26,7 +74,36 @@ class AAsyncRaster(AProxyRaster):
         )
 
     def iter_data(self, fps, band=1, dst_nodata=None, interpolation='cv_area', max_queue_size=5):
-        """TODO: Docstring
+        """Read several rectangles of data on several channels from the source raster.
+
+        The `iter_data` method is a higher level wrapper around the `queue_data` method. It
+        returns a python generator and it periodically probes the DataSource's scheduler to reraise
+        an exception if it crashed.
+
+        If you wish to cancel your request, loose the reference to generator and the scheduler will
+        gracefuly cancel the query.
+
+        see `get_data` documentation, it shares most of the concepts
+        see `queue_data` documentation, it is called from within the `iter_data` method
+
+        Parameters
+        ----------
+        fps: sequence of Footprint
+            The Footprints at which the raster should be sampled.
+        band:
+            see `get_data` method
+        dst_nodata:
+            see `get_data` method
+        interpolation:
+            see `get_data` method
+        max_queue_size: int
+            Maximum number of arrays to prepare in advance in the underlying queue. This parameter
+            helps with the prevention of backpressure.
+
+        Returns
+        -------
+        generator of ndarray
+        The arrays are yielded into the generator in the same order as in the `fps` parameter.
         """
         for fp in fps:
             if not isinstance(fp, Footprint):

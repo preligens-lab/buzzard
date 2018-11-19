@@ -27,7 +27,9 @@ from buzzard._actors.production_gate import ActorProductionGate
 from buzzard._actors.resampler import ActorResampler
 
 class CachedRasterRecipe(ARasterRecipe):
-    """TODO: docstring"""
+    """Concrete class defining the behavior of a raster computed on the fly and fills a cache to
+    avoid subsequent computations.
+    """
     def __init__(
         self, ds,
         fp, dtype, band_count, band_schema, sr,
@@ -56,12 +58,12 @@ class CachedRasterRecipe(ARasterRecipe):
 
     @property
     def cache_tiles(self):
-        """TODO: docstring"""
+        """Cache tiles provided or created at construction"""
         return self._back.cache_fps.copy()
 
     @property
     def cache_dir(self):
-        """TODO: docstring"""
+        """Cache directory path provided at construction"""
         return self._back.cache_dir
 
 class BackCachedRasterRecipe(ABackRasterRecipe):

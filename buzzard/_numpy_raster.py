@@ -3,7 +3,12 @@ import numpy as np
 from buzzard._a_stored_raster import AStoredRaster, ABackStoredRaster
 
 class NumpyRaster(AStoredRaster):
-    """Concrete class defining the behavior of a wrapped numpy array"""
+    """Concrete class defining the behavior of a wrapped numpy array
+
+    Features Defined
+    ----------------
+    - Has an `array` property that points to the numpy array provided at construction.
+    """
 
     def __init__(self, ds, fp, array, band_schema, wkt, mode):
         self._arr_shape = array.shape

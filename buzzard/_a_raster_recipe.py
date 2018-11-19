@@ -1,11 +1,19 @@
 from buzzard._a_async_raster import ABackAsyncRaster, AAsyncRaster
 
 class ARasterRecipe(AAsyncRaster):
-    """TODO: docstring"""
+    """Base abstract class defining the common behavior of all rasters that compute data on the fly
+    DataSource's scheduler.
+
+    Features Defined
+    ----------------
+    - Has a `primitives` property, a dict that lists the primitive rasters declared at construction.
+    """
 
     @property
     def primitives(self):
-        """TODO: docstring"""
+        """dict of primitive name to Proxy, deduced from the `queue_data_per_primitive` provided at
+        construction.
+        """
         # TODO: differenciate `_datasource_register` and `_datasource_back_register`
         # to lower the complexity of that method
         d = {}
