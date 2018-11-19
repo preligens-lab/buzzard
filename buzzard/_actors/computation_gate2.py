@@ -105,7 +105,6 @@ class ActorComputationGate2(object):
     # ******************************************************************************************* **
 
 class _Query(object):
-
     def __init__(self):
         self.allowed_up_count = 0 # How many compute allowed by `ComputationGate1`
         self.allowed_down_count = 0 # How many allowed to `Computer`

@@ -168,7 +168,6 @@ class ActorReader(object):
     # ******************************************************************************************* **
 
 class Wait(ProductionJobWaiting):
-
     def __init__(self, actor, qi, prod_idx, cache_fp, path):
         self.qi = qi
         self.prod_idx = prod_idx
@@ -267,7 +266,6 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
             del b
             if a is None: # pragma: no cover
                 raise RuntimeError('Could not read band_id {}'.format(bi))
-
     del gdal_ds
 
     # Return

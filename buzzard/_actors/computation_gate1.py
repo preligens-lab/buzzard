@@ -138,7 +138,6 @@ class ActorComputationGate1(object):
     # ******************************************************************************************* **
 
 class _Query(object):
-
     def __init__(self):
         self.pulled_count = 0
         self.allowed_count = 0

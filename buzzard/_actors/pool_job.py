@@ -1,5 +1,11 @@
 # Waiting *************************************************************************************** **
 class PoolJobWaiting:
+    """Base class of all waiting jobs.
+
+    A waiting job has a priority, it waits for a token in a PoolWaitingRoom with other waiting jobs.
+    This token allows a waiting job to become a working job, and go to the PoolWorkingRoom to
+    get some computation done.
+    """
     def __init__(self, sender_address):
         self.sender_address = sender_address
 
@@ -24,6 +30,11 @@ class CacheJobWaiting(PoolJobWaiting):
 
 # Working *************************************************************************************** **
 class PoolJobWorking(object):
+    """Base class of all working jobs.
+
+    A working job paired with a token from a PoolWaitingRoom can be fed to a PoolWorkingRoom to
+    compute things on the wrapped thread/process pool.
+    """
     __slots__ = ['sender_address', 'func']
 
     def __init__(self, sender_address, func):
