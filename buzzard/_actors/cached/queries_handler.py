@@ -133,6 +133,8 @@ class ActorQueriesHandler(object):
             # `ext_receive_nothing` will be called soon
             pass
         else:
+            update = False
+
             # Put arrays in queue in the right order
             while True:
                 if prod_idx not in q.produce_arrays_dict:
@@ -153,8 +155,10 @@ class ActorQueriesHandler(object):
                 q.produced_count += 1
 
                 prod_idx  = q.produced_count
+                update = True
+
+            if update:
                 msgs += [
-                    # TODO: Notify only once
                     AgingMsg('/Global/GlobalPrioritiesWatcher', 'output_queue_update',
                              (self._raster.uid, qi), (q.produced_count, q.queue_size)),
                     AgingMsg('ProductionGate', 'output_queue_update',
@@ -166,7 +170,6 @@ class ActorQueriesHandler(object):
                     # Notify the parent raster that a new array was put in the queue
                     # If the parent raster was collected this message is discarded
                     msgs += [DroppableMsg(
-                        # TODO: Notify only once
                         '/Raster{}/ComputationGate2'.format(qi.parent_uid),
                         'input_queue_update',
                         qi.key_in_parent,

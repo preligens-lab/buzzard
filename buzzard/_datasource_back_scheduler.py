@@ -252,16 +252,8 @@ class BackDataSourceSchedulerMixin(object):
             #   Sleep
             if not piles_of_msgs:
                 self._debug_mngr.event('scheduler_activity_update', False)
-
-                # print('DataSource', id(self), 'loop', len(actors))
                 time.sleep(1 / 20)
-                # print('++++++++++++++++++++')
-                # for k, v in locals().items():
-                #     if v is not None:
-                #         print('   ', k, v)
-                # print('++++++++++++++++++++')
                 self._debug_mngr.event('scheduler_activity_update', True)
-
 
             # Step 5: Check if DataSource was collected
             if self._stop:

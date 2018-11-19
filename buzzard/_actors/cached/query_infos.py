@@ -145,15 +145,10 @@ class CachedQueryInfos(object):
         list_of_prod_resample_sample_dep_fp = [] # type: List[Mapping[ResampleFootprint, Union[None, SampleFootprint]]]
         to_zip.append(list_of_prod_resample_sample_dep_fp)
 
-        print = lambda *_: None # Disabling verbose
-
         it = zip(list_of_prod_fp, list_of_prod_same_grid, list_of_prod_share_area)
-        print('- CachedQueryInfos -------------------------------------', raster.fp.scale)
-        print('', band_ids)
         # TODO idea: What if i spawn a ProcessPoolExecutor if >100 prod. The same could be done for fp.tile. What about a global process pool executor in `buzz.env`?
         for prod_fp, same_grid, share_area in it:
             if not share_area:
-                print(f' {prod_fp.rsize!s:15} - Out')
                 # Resampling will be performed in one pass, on the scheduler
                 list_of_prod_sample_fp.append(None)
                 list_of_prod_cache_fps.append(frozenset())
@@ -163,7 +158,6 @@ class CachedQueryInfos(object):
                 list_of_prod_resample_sample_dep_fp.append(MappingProxyType({resample_fp: None}))
             else:
                 if same_grid:
-                    print(f' {prod_fp.rsize!s:15} - In - Aligned')
                     # Remapping will be performed in one pass, on the scheduler
                     sample_fp = raster.fp & prod_fp
                     resample_fps = [cast(ResampleFootprint, prod_fp)]
@@ -174,7 +168,6 @@ class CachedQueryInfos(object):
                     sample_fp = raster.build_sampling_footprint_to_remap_interpolate(prod_fp, interpolation)
 
                     if raster.max_resampling_size is None:
-                        print(f' {prod_fp.rsize!s:15} - In - Unaligned - 1step')
                         # Remapping will be performed in one pass, on a Pool
                         resample_fps = [cast(ResampleFootprint, prod_fp)]
                         sample_dep_fp = {
@@ -184,7 +177,6 @@ class CachedQueryInfos(object):
                         # Resampling will be performed in several passes, on a Pool
                         rsize = np.maximum(prod_fp.rsize, sample_fp.rsize)
                         countx, county = np.ceil(rsize / raster.max_resampling_size).astype(int)
-                        print(f' {prod_fp.rsize!s:15} - In - Unaligned - nstep({countx * county})')
                         resample_fps = prod_fp.tile_count(
                             countx, county, boundary_effect='shrink'
                         ).flatten().tolist()

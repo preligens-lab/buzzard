@@ -107,13 +107,18 @@ class ActorGlobalPrioritiesWatcher(object):
             for ks, vs in zip(sorted_prod_tiles._keys, sorted_prod_tiles._lists):
                 for k0, v in zip(ks, vs):
                     k1 = sorted_prod_tiles.key(v)
-                    assert k0 == k1, f"""
-                    cache_tile_key: {cache_tile_key}
-                    _keys:{sorted_prod_tiles._keys}
-                    _lists:{sorted_prod_tiles._lists}
-                    v:{v}
-                    k0:{k0}, k1:{k1}
-                    """
+                    assert k0 == k1, """
+                    cache_tile_key: {}
+                    _keys:{}
+                    _lists:{}
+                    v:{}
+                    k0:{}, k1:{}
+                    """.format(
+                        cache_tile_key,
+                        sorted_prod_tiles._keys,
+                        sorted_prod_tiles._lists,
+                        v, k0, k1,
+                    )
 
     def receive_output_queue_update(self, raster_uid, qi, produced_count, queue_size):
         """Receive message: The output queue of a query changed in size.
@@ -196,11 +201,9 @@ class ActorGlobalPrioritiesWatcher(object):
         else:
             query_pulled_count = ds1[qi]
 
-
         # Priority on `produced arrays` needed soon
         prio =  prod_idx - query_pulled_count
-        # TODO: What if prio is negative?
-        # assert prio >= 0, f'prod_idx:{prod_idx} - query_pulled_count:{query_pulled_count} = prio:{prio}'
+        # TODO: What if prio is negative? Is it a problem?
         return (prio,)
 
     def prio_of_cache_tile(self, raster_uid, cache_fp):
