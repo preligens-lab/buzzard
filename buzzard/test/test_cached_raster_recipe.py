@@ -67,7 +67,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
                 pools['resample'].items(),
                 pools['computation'].items(),
                 pools['io'].items(),
-            )),
+            ))
         )
         d.update(kwargs)
         return ds.acreate_cached_raster_recipe(**d)
