@@ -1,11 +1,9 @@
 import numpy as np
 
 def concat_arrays(fp, array_per_fp, _):
-    """TODO: move to buzz.algo?.concat_arrays
-    buzz.algo.concat_arrays
-    buzz.algo.slopes_recipe
-    buzz.algo.cascaded_resampled_recipes
+    """Concatenate arrays from `array_per_fp` to form `fp`.
 
+    This function is meant to be fed to the `merge_arrays` parameter when constructing a recipe.
     """
     # Allocate
     for a in array_per_fp.values():
