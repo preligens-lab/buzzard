@@ -21,9 +21,9 @@ class AAsyncRaster(AProxyRaster):
     def queue_data(self, fps, band=1, dst_nodata=None, interpolation='cv_area', max_queue_size=5):
         """Read several rectangles of data on several channels from the source raster.
 
-        Using `queue_data` instead of multiple calls to `get_data` just allows more parallelism.
-        The `fps` parameter should contain a sequence of Footprint, the first ones will be computed
-        with a higher priority than the later one.
+        Using `queue_data` instead of multiple calls to `get_data` allows more parallelism.
+        The `fps` parameter should contain a sequence of Footprint, that will be mapped to
+        numpy.ndarray. The first ones will be computed with a higher priority than the later one.
 
         Calling this method sends an asynchronous message to the DataSource's scheduler with the
         input parameters and a queue. On the input side of the queue, the scheduler will call the
@@ -54,8 +54,7 @@ class AAsyncRaster(AProxyRaster):
         interpolation:
             see `get_data` method
         max_queue_size: int
-            Maximum number of arrays to prepare in advance in the underlying queue. This parameter
-            helps with the prevention of backpressure.
+            Maximum number of arrays to prepare in advance in the underlying queue.
 
         Returns
         -------
@@ -77,8 +76,8 @@ class AAsyncRaster(AProxyRaster):
         """Read several rectangles of data on several channels from the source raster.
 
         The `iter_data` method is a higher level wrapper around the `queue_data` method. It
-        returns a python generator and it periodically probes the DataSource's scheduler to reraise
-        an exception if it crashed.
+        returns a python generator and while waiting for data, it periodically probes the
+        DataSource's scheduler to reraise an exception if it crashed.
 
         If you wish to cancel your request, loose the reference to generator and the scheduler will
         gracefuly cancel the query.
@@ -97,8 +96,7 @@ class AAsyncRaster(AProxyRaster):
         interpolation:
             see `get_data` method
         max_queue_size: int
-            Maximum number of arrays to prepare in advance in the underlying queue. This parameter
-            helps with the prevention of backpressure.
+            Maximum number of arrays to prepare in advance in the underlying queue.
 
         Returns
         -------

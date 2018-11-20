@@ -59,7 +59,8 @@ class DataSource(DataSourceRegisterMixin):
     max_active: nbr >= 1
         Maximum number of pooled sources active at the same time.
         (see `Sources activation / deactivation` below)
-    debug_observers: sequence
+    debug_observers: sequence of object
+        Entry points to observe what is happening in the DataSource's sheduler.
 
     Example
     -------
@@ -200,6 +201,13 @@ class DataSource(DataSourceRegisterMixin):
             sr_work='EPSG:32632',
             sr_forced='EPSG:27561',
         )
+
+    Scheduler
+    ---------
+    As soon as you create an *async raster*, a thread is spawned to manage requests made to the
+    *async rasters*. It will live until the DataSource is closed or collected. If one of your script
+    called by the scheduler raises an exception, the scheduler will stop and the exception will be
+    propagated to the main thread as soon as possible.
 
     """
 
@@ -567,36 +575,9 @@ class DataSource(DataSourceRegisterMixin):
     ):
         """Create a raster recipe and register it under `key` in this DataSource.
 
-        TODO: docstring
 
-        """
-        pass
-
-    def create_cached_raster_recipe(
-            self, key,
-
-            # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
-
-            # callbacks running on pool
-            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
-
-            # filesystem
-            cache_dir=None, o=False,
-
-            # primitives
-            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
-
-            # pools
-            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
-
-            # misc
-            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
-            debug_observers=()
-    ):
-        """Create a raster cached recipe and register it under `key` in this DataSource.
-
-        TODO
+        If you are familiar with `create_cached_raster_recipe` two parameters are new:
+        `automatic_remapping` and `max_computation_size`.
 
         Parameters
         ----------
@@ -615,42 +596,35 @@ class DataSource(DataSourceRegisterMixin):
         compute_array: callable
             see `Computation Function` below
         merge_arrays: callable
-            see `Merge function` below
-        cache_dir: str or pathlib.Path
-            Path to the directory that holds the cache files associated with this raster. If cache
-            files are present, they will be reused (or erased if corrupted). If a cache file is
-            needed and missing, it will be computed.
-        o: bool
-            Wether or not to erase the old cache files contained in `cache_dir`.
+            see `Merge Function` below
         queue_data_per_primitive: dict of hashable (like a string) to a `queue_data` method pointer
             see `Primitives` below
-        convert_footprint_per_primitive: dict of hashable (like a string) to a callable
+        convert_footprint_per_primitive: None or dict of hashable (like a string) to a callable
             see `Primitives` below
         computation_pool:
             see `Pools` below
         merge_pool:
             see `Pools` below
-        io_pool:
-            see `Pools` below
         resample_pool:
             see `Pools` below
-        cache_tiles: int or (int, int) or numpy.ndarray of Footprint
-            A tiling of the `fp` parameter. Each tile will correspond to one cache file.
-            if int or (int, int): Construct the tiling by calling Footprint.tile with this parameter
-        computation_tiles: None or int or (int, int) or numpy.ndarray of Footprint
+        computation_tiles: None or (int, int) or numpy.ndarray of Footprint
             A tiling of the `fp` parameter.
             The `compute_array` function will only be called with Footprints from this tiling.
             if None: Use the same tiling as `cache_tiles`
-            if int or (int, int): Construct the tiling by calling Footprint.tile with this parameter
+            if (int, int): Construct the tiling by calling Footprint.tile with this parameter
+        max_computation_size:  None or int or (int, int)
+            TODO
         max_resampling_size: None or int or (int, int)
             Optionally define a maximum resampling size. If a larger resampling has to be performed,
             it will be performed tile by tile in parallel.
+        automatic_remapping: bool
+            TODO
         debug_observers: sequence of object
             Entry points to observe what is happening with this raster in the DataSource's sheduler.
 
         Returns
         -------
-        CachedRasterRecipe
+        NocacheRasterRecipe
 
         Computation Function
         --------------------
@@ -701,12 +675,130 @@ class DataSource(DataSourceRegisterMixin):
 
         Primitives
         ----------
-        TODO
+        The `queue_data_per_primitive` and `convert_footprint_per_primitive` parameters can be used
+        to create dependencies between `dependee` *async rasters* and the *raster recipe* being
+        created. The dependee/dependent relation is called primitive/derived throughout buzzard.
+        A derived recipe can itself be the primitive of another raster. Pipelines of any depth and
+        width can be instanciated that way.
+
+        In `queue_data_per_primitive` you declare a `dependee` by giving it a key of your choice and
+        the pointer to the `queue_data` method of `dependee` raster. You can parameterize the
+        connection by *currying* the `band`, `dst_nodata`, `interpolation` and `max_queue_size`
+        parameters using `functools.partial`.
+
+        The `convert_footprint_per_primitive` dict should contain the same keys as
+        `queue_data_per_primitive`. A value in the dict should be a function that maps as Footprint
+        to another Footprint. It can be used for exemple to request larger rectangles of primitives
+        data to compute a derived array.
+
+        e.g. If the primitive raster is an `rgb` image, and the derived raster only need the green
+        band but with a context of 10 additional pixels on all 4 sides:
+        >>> derived = ds.create_raster_recipe(
+        ...     # other parameters
+        ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, band=2)},
+        ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
+        ... )
 
         Pools
         -----
-        hashable (like a string) or multiprocessing.pool.ThreadPool or multiprocessing.pool.Pool or None
-        TODO
+        The `*_pool` parameters can be used to select where certain computation occur. Those
+        parameters can be of the following types:
+        - A _multiprocessing.pool.ThreadPool_, should be the default choice.
+        - A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the
+          GIL or that leaks memory.
+        - `None`, to request the scheduler thread to perform the tasks itself. Should be used when
+          the computation is very light.
+        - A _hashable_ (like a _string_), that will map to a pool registered in the _DataSource_. If
+          that key is missing from the _DataSource_, a _ThreadPool_ with
+          `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
+          DataSource is closed, the pools instanciated that way will be joined.
+
+        """
+        assert False, 'To be implemented for 0.5.0'
+
+    def create_cached_raster_recipe(
+            self, key,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
+
+            # filesystem
+            cache_dir=None, o=False,
+
+            # primitives
+            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+
+            # misc
+            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
+            debug_observers=()
+    ):
+        """Create a *cached raster recipe* and register it under `key` in this DataSource.
+
+        Compared to a `NocacheRasterRecipe`, in a `CachedRasterRecipe` the pixels are never computed
+        twice. Cache files are used to store and reuse pixels from computations. The cache can even
+        be reused between python sessions.
+
+        If you are familiar with `create_raster_recipe` four parameters are new: `io_pool`,
+        `cache_tiles`, `cache_dir` and `o`. They are all related to file system operations.
+
+        see `create_raster_recipe` method, since it shares most of the features.
+
+        Parameters
+        ----------
+        key:
+            see `create_raster` method
+        fp:
+            see `create_raster` method
+        dtype:
+            see `create_raster` method
+        band_count:
+            see `create_raster` method
+        band_schema:
+            see `create_raster` method
+        sr:
+            see `create_raster` method
+        compute_array:
+            see `create_raster_recipe` method
+        merge_arrays:
+            see `create_raster_recipe` method
+        cache_dir: str or pathlib.Path
+            Path to the directory that holds the cache files associated with this raster. If cache
+            files are present, they will be reused (or erased if corrupted). If a cache file is
+            needed and missing, it will be computed.
+        o: bool
+            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`.
+        queue_data_per_primitive:
+            see `create_raster_recipe` method
+        convert_footprint_per_primitive:
+            see `create_raster_recipe` method
+        computation_pool:
+            see `create_raster_recipe` method
+        merge_pool:
+            see `create_raster_recipe` method
+        io_pool:
+            see `create_raster_recipe` method
+        resample_pool:
+            see `create_raster_recipe` method
+        cache_tiles: (int, int) or numpy.ndarray of Footprint
+            A tiling of the `fp` parameter. Each tile will correspond to one cache file.
+            if (int, int): Construct the tiling by calling Footprint.tile with this parameter
+        computation_tiles:
+            see `create_raster_recipe` method
+        max_resampling_size: None or int or (int, int)
+            see `create_raster_recipe` method
+        debug_observers: sequence of object
+            see `create_raster_recipe` method
+
+        Returns
+        -------
+        CachedRasterRecipe
+
         """
         # Parameter checking ***************************************************
         # Classic RasterProxy parameters *******************
