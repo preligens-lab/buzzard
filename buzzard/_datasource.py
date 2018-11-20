@@ -575,10 +575,15 @@ class DataSource(DataSourceRegisterMixin):
             max_resampling_size=None, automatic_remapping=True,
             debug_observers=()
     ):
-        """Create a raster recipe and register it under `key` in this DataSource.
+        """Create a *raster recipe* and register it under `key` in this DataSource.
 
+        A *raster recipe* implements the same interfaces as all other rasters, but internally it
+        computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
+        provide a boilerplate-free interface that automatize those cumbersome tasks: tiling,
+        parallelism, caching, file reads, resampling, lazy evaluation, backpressure prevention and
+        optimised task scheduling.
 
-        If you are familiar with `create_cached_raster_recipe` two parameters are new:
+        If you are familiar with `create_cached_raster_recipe` two parameters are new here:
         `automatic_remapping` and `max_computation_size`.
 
         Parameters
@@ -610,17 +615,14 @@ class DataSource(DataSourceRegisterMixin):
         resample_pool:
             see `Pools` below
         computation_tiles: None or (int, int) or numpy.ndarray of Footprint
-            A tiling of the `fp` parameter.
-            The `compute_array` function will only be called with Footprints from this tiling.
-            if None: Use the same tiling as `cache_tiles`
-            if (int, int): Construct the tiling by calling Footprint.tile with this parameter
+            see `Computation Tiling` below
         max_computation_size:  None or int or (int, int)
-            TODO
+            see `Computation Tiling` below
         max_resampling_size: None or int or (int, int)
             Optionally define a maximum resampling size. If a larger resampling has to be performed,
             it will be performed tile by tile in parallel.
         automatic_remapping: bool
-            TODO
+            see `Automatic Remapping` below
         debug_observers: sequence of object
             Entry points to observe what is happening with this raster in the DataSource's sheduler.
 
@@ -653,6 +655,29 @@ class DataSource(DataSourceRegisterMixin):
         If `computation_pool` points to a process pool, the `compute_array` function must be
         picklable and the `raster` parameter will be None.
 
+        Computation Tiling
+        ------------------
+        You may sometimes want to have control on the Footprints that are requested to the
+        `compute_array` function, for exemple:
+        - If pixels computed by `compute_array` are long to compute, you want to tile to increase
+          parallelism.
+        - If the `compute_array` function scales badly in term of memory or time, you want to tile
+          to reduce complexity.
+        - If `compute_array` can work only on certain Footprints, you want a hard constraint on the
+          set of Footprint that can be queried from `compute_array`. (This may happend with
+          *convolutional neural network*)
+
+        To do so use the `computation_tiles` or `max_computation_size` parameter (not both).
+
+        If `max_computation_size` is provided, a Footprint to be computed will be tiled given this
+        parameter.
+
+        If `computation_tiles` is a numpy.ndarray of Footprint, it should be a tiling of the `fp`
+        parameter, only the Footprints contained in this tiling will be asked to the
+        `computation_tiles`.
+        If `computation_tiles` is (int, int), a tiling will be constructed using Footprint.tile
+        using those two ints.
+
         Merge Function
         --------------
         The function that will map several pairs of Footprint/numpy.ndarray to a single
@@ -674,6 +699,22 @@ class DataSource(DataSourceRegisterMixin):
 
         If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
         the `raster` parameter will be None.
+
+        Automatic Remapping
+        -------------------
+        When creating a recipe you give a _Footprint_ through the `fp` parameter. When calling your
+        `compute_array` function the scheduler will only ask for slices of `fp`. This means that the
+        scheduler takes care of those boilerplate steps:
+        - If you request a *Footprint* on a different grid in a `get_data()` call, the scheduler
+          __takes care of resampling__ the outputs of your `compute_array` function.
+        - If you request a *Footprint* partially or fully outside of the raster's extent, the
+          scheduler will call your `compute_array` function to get the interior pixels and then
+          __pad the output with nodata__.
+
+        This system is flexible and can be deactivated by passing `automatic_remapping=False` to
+        the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your
+        `compute_array` function for any kind of _Footprint_; thus your function must be able to
+        comply with any request.
 
         Primitives
         ----------
@@ -714,7 +755,6 @@ class DataSource(DataSourceRegisterMixin):
           that key is missing from the _DataSource_, a _ThreadPool_ with
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
           DataSource is closed, the pools instanciated that way will be joined.
-
         """
         assert False, 'To be implemented for 0.5.0'
 
@@ -746,7 +786,7 @@ class DataSource(DataSourceRegisterMixin):
         twice. Cache files are used to store and reuse pixels from computations. The cache can even
         be reused between python sessions.
 
-        If you are familiar with `create_raster_recipe` four parameters are new: `io_pool`,
+        If you are familiar with `create_raster_recipe` four parameters are new here: `io_pool`,
         `cache_tiles`, `cache_dir` and `o`. They are all related to file system operations.
 
         see `create_raster_recipe` method, since it shares most of the features.
@@ -791,7 +831,8 @@ class DataSource(DataSourceRegisterMixin):
             A tiling of the `fp` parameter. Each tile will correspond to one cache file.
             if (int, int): Construct the tiling by calling Footprint.tile with this parameter
         computation_tiles:
-            see `create_raster_recipe` method
+            if None: Use the same tiling as `cache_tiles`
+            else: see `create_raster_recipe` method
         max_resampling_size: None or int or (int, int)
             see `create_raster_recipe` method
         debug_observers: sequence of object
