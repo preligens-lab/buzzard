@@ -52,7 +52,7 @@ from buzzard._gdal_memory_vector import GDALMemoryVector
 
 from buzzard._cached_raster_recipe import CachedRasterRecipe
 
-# TODO: Export the new concrete classes
+# TODO for 0.5.0: Export the new concrete classes
 
 # Public submodules
 import buzzard.utils

@@ -38,7 +38,7 @@ class DataSource(DataSourceRegisterMixin):
     - GDALMemRaster,
     - NumpyRaster,
     - CachedRasterRecipe,
-    TODO: Add others before v0.5.0
+    TODO for 0.5.0: Add others
     - GDALFileVector,
     - GDALMemoryVector.
 
@@ -432,7 +432,7 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            # TODO: Check not async (in 0.5.0)
+            # TODO for 0.5.0: Check async_ is False
             prox = GDALMemRaster(
                 self, fp, dtype, band_count, band_schema, options, sr
             )
@@ -756,7 +756,7 @@ class DataSource(DataSourceRegisterMixin):
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
           DataSource is closed, the pools instanciated that way will be joined.
         """
-        assert False, 'To be implemented for 0.5.0'
+        assert False, 'TODO for 0.5.0: implement'
 
     def create_cached_raster_recipe(
             self, key,
@@ -1177,7 +1177,7 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
-            # TODO: Check not async (in 0.5.0)
+            # TODO for 0.5.0: Check async_ is False
             allocator = lambda: BackGDALFileVector.create_file(
                 '', geometry, fields, layer, 'Memory', options, sr
             )
