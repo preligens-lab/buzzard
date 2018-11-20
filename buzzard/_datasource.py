@@ -37,6 +37,8 @@ class DataSource(DataSourceRegisterMixin):
     - GDALFileRaster,
     - GDALMemRaster,
     - NumpyRaster,
+    - CachedRasterRecipe,
+    TODO: Add others before v0.5.0
     - GDALFileVector,
     - GDALMemoryVector.
 
@@ -1250,7 +1252,7 @@ class DataSource(DataSourceRegisterMixin):
 
         return _CloseRoutine(self, _close)
 
-    # Spatial reference getters ********************************************* **
+    # Spatial reference getters ***************************************************************** **
     @property
     def proj4(self):
         """DataSource's work spatial reference in WKT proj4.
@@ -1290,7 +1292,7 @@ class DataSource(DataSourceRegisterMixin):
             ))
 
         # Hacky implementation to get the expected behavior
-        # TODO: Implement that routine in the back driver pool
+        # TODO: Implement that routine in the back driver pool. It is possible? We need to call `.activate`
         i = 0
         for prox in itertools.cycle(proxs):
             if i == total:
@@ -1306,7 +1308,6 @@ class DataSource(DataSourceRegisterMixin):
         for prox in self._keys_of_proxy.keys():
             if prox.active:
                 prox.deactivate()
-
 
     # Deprecation ******************************************************************************* **
     open_araster = deprecation_pool.wrap_method(
