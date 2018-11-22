@@ -14,6 +14,8 @@ reqs = [
 	'pint',
 	'six',
     'scikit-image',
+    'sortedcontainers',
+    'rtree',
 ]
 
 if sys.version_info < (3, 2):
