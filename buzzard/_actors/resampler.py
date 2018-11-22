@@ -107,7 +107,7 @@ class ActorResampler(object):
                     slices = sample_fp.slice_in(resample_fp)
                     arr[slices] = subsample_array
                     if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
-                        arr[slices][arr == self._raster.nodata] = qi.dst_nodata
+                        arr[slices][arr[slices] == self._raster.nodata] = qi.dst_nodata
                     arr = _reorder_channels(qi, arr)
 
                 self._raster.debug_mngr.event('object_allocated', arr)
@@ -194,7 +194,11 @@ class ActorResampler(object):
                 'object_allocated',
                 self._prod_array_of_prod_tile[qi][prod_idx],
             )
-            self._missing_resample_fps_per_prod_tile[qi][prod_idx] = set(pi.resample_fps)
+            self._missing_resample_fps_per_prod_tile[qi][prod_idx] = {
+                fp
+                for fp in pi.resample_fps
+                if pi.resample_sample_dep_fp[fp] is not None
+            }
         arr = self._prod_array_of_prod_tile[qi][prod_idx]
 
         return Work(

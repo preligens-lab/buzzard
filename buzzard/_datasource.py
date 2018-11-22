@@ -1268,6 +1268,7 @@ class DataSource(DataSourceRegisterMixin):
         When using a scheduler, some memory leaks may still occur after closing. Possible origins:
         - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
         - Gdal cache not flushed (not a leak)
+        - The gdal version
         - https://stackoverflow.com/a/1316799 (not a leak)
         - Some unknown leak in the python `threading` or `multiprocessing` standard library
         - Some unknown library leaking memory on the `C` side

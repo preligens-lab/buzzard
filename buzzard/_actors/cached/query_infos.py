@@ -181,7 +181,11 @@ class CachedQueryInfos(object):
                             countx, county, boundary_effect='shrink'
                         ).flatten().tolist()
                         sample_dep_fp = {
-                            resample_fp: raster.build_sampling_footprint_to_remap_interpolate(resample_fp, interpolation)
+                            resample_fp: (
+                                raster.build_sampling_footprint_to_remap_interpolate(resample_fp, interpolation)
+                                if resample_fp.share_area(raster.fp) else
+                                None
+                            )
                             for resample_fp in resample_fps
                         }
 
@@ -194,6 +198,7 @@ class CachedQueryInfos(object):
                     resample_fp: frozenset(raster.cache_fps_of_fp(sample_subfp))
                     for resample_fp in resample_fps
                     for sample_subfp in [sample_dep_fp[resample_fp]]
+                    if sample_subfp is not None
                 }))
                 list_of_prod_resample_sample_dep_fp.append(MappingProxyType(sample_dep_fp))
 
