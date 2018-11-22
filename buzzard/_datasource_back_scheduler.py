@@ -155,7 +155,7 @@ class BackDataSourceSchedulerMixin(object):
 
                     for dst_actor in _find_actors(msg.address, src_actor):
                         if dst_actor is None:
-                            # This message may be discarted if DroppableMsg
+                            # This message may be discadted if DroppableMsg
                             assert isinstance(msg, DroppableMsg), '\ndst_actor: {}\n      msg: {}\n'.format(dst_actor, msg)
                         else:
                             a = datetime.datetime.now()
@@ -252,7 +252,7 @@ class BackDataSourceSchedulerMixin(object):
             #   Sleep
             if not piles_of_msgs:
                 self._debug_mngr.event('scheduler_activity_update', False)
-                time.sleep(1 / 20)
+                time.sleep(1 / 20) # TODO: Set a better sleep time / make it parameterizable
                 self._debug_mngr.event('scheduler_activity_update', True)
 
             # Step 5: Check if DataSource was collected

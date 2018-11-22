@@ -482,7 +482,7 @@ class DataSource(DataSourceRegisterMixin):
             File identifier within DataSource
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
-        array: ndarray of shape (Y, X) or (Y, X, B)
+        array: ndarray of shape (Y, X) or (Y, X, C)
         band_schema: dict or None
             Band(s) metadata. (see `Band fields` below)
         sr: string or None
@@ -650,7 +650,9 @@ class DataSource(DataSourceRegisterMixin):
         - raster: CachedRasterRecipe or None
             The Raster object of the ongoing computation.
 
-        It should return a single ndarray of shape (Y, X) or (Y, X, C)
+        It should return either:
+        - a single ndarray of shape (Y, X) if only one band was computed
+        - a single ndarray of shape (Y, X, C) if one or more bands were computed
 
         If `computation_pool` points to a process pool, the `compute_array` function must be
         picklable and the `raster` parameter will be None.
@@ -664,8 +666,8 @@ class DataSource(DataSourceRegisterMixin):
         - If the `compute_array` function scales badly in term of memory or time, you want to tile
           to reduce complexity.
         - If `compute_array` can work only on certain Footprints, you want a hard constraint on the
-          set of Footprint that can be queried from `compute_array`. (This may happend with
-          *convolutional neural network*)
+          set of Footprint that can be queried from `compute_array`. (This may happen with
+          *convolutional neural networks*)
 
         To do so use the `computation_tiles` or `max_computation_size` parameter (not both).
 
@@ -695,7 +697,9 @@ class DataSource(DataSourceRegisterMixin):
         - raster: CachedRasterRecipe or None
             The Raster object of the ongoing computation.
 
-        It should return a single ndarray of shape (Y, X) or (Y, X, C)
+        It should return either:
+        - a single ndarray of shape (Y, X) if only one band was computed
+        - a single ndarray of shape (Y, X, C) if one or more bands were computed
 
         If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
         the `raster` parameter will be None.
