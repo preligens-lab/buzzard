@@ -128,7 +128,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         # Test overwrite parameter
         # Test get_data results
         r.close()
-        r = _open(o=True)
+        r = _open(ow=True)
         _test_get()
         files = glob.glob(os.path.join(test_prefix, '*.tif'))
         assert len(files) > 0
@@ -168,7 +168,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         # Concurrent queries that need a cache file missing, all but one computation aborted
         # because already launched
         r.close()
-        r = _open(o=True)
+        r = _open(ow=True)
         for it in [r.iter_data(fps=[fp], band=-1) for _ in range(10)]:
             next(it)
 
@@ -233,13 +233,13 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             ac0, ac1 = None, None
         r0 = _open(
             compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
-            o=True,
+            ow=True,
         )
         r1 = _open(
             compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
             queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
             cache_dir=test_prefix2,
-            o=True,
+            ow=True,
         )
         assert len(r0.primitives) == 0
         assert len(r1.primitives) == 1
@@ -259,13 +259,13 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             ac0, ac1 = None, None
         r0 = _open(
             compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
-            o=False,
+            ow=False,
         )
         r1 = _open(
             compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
             queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
             cache_dir=test_prefix2,
-            o=True,
+            ow=True,
         )
         r1.get_data()
         if compute_same_address_space:
@@ -281,13 +281,13 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             ac0, ac1 = None, None
         r0 = _open(
             compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
-            o=True,
+            ow=True,
         )
         r1 = _open(
             compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
             queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
             cache_dir=test_prefix2,
-            o=False,
+            ow=False,
         )
         r1.get_data()
         if compute_same_address_space:
@@ -304,14 +304,14 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         r0 = _open(
             compute_array=functools.partial(_base_computation, area_counter=ac0, reffp=fp),
             computation_tiles=(11, 11),
-            o=True,
+            ow=True,
         )
         r1 = _open(
             compute_array=functools.partial(_derived_computation, area_counter=ac1, reffp=fp),
             queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
             cache_dir=test_prefix2,
             computation_tiles=(22, 22),
-            o=True,
+            ow=True,
         )
         r1.get_data()
         if compute_same_address_space:
@@ -323,13 +323,13 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         # Several queries, one is dropped, the rest is still working
         r0 = _open(
             compute_array=functools.partial(_base_computation, reffp=fp),
-            o=True,
+            ow=True,
         )
         r1 = _open(
             compute_array=functools.partial(_derived_computation, reffp=fp),
             queue_data_per_primitive={'prim': functools.partial(r0.queue_data, band=-1)},
             cache_dir=test_prefix2,
-            o=True,
+            ow=True,
         )
         t = r1.cache_tiles.flatten()
         fps0 = t.tolist() * 2
@@ -351,7 +351,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         r1.close()
 
         # Computation function crashes, we catch error in main thread
-        r = _open(o=True, compute_array=_please_crash)
+        r = _open(ow=True, compute_array=_please_crash)
         with pytest.raises(NecessaryCrash):
             r.get_data()
 

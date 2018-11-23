@@ -772,7 +772,7 @@ class DataSource(DataSourceRegisterMixin):
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
 
             # filesystem
-            cache_dir=None, o=False,
+            cache_dir=None, ow=False,
 
             # primitives
             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
@@ -791,7 +791,7 @@ class DataSource(DataSourceRegisterMixin):
         be reused between python sessions.
 
         If you are familiar with `create_raster_recipe` four parameters are new here: `io_pool`,
-        `cache_tiles`, `cache_dir` and `o`. They are all related to file system operations.
+        `cache_tiles`, `cache_dir` and `ow`. They are all related to file system operations.
 
         see `create_raster_recipe` method, since it shares most of the features.
 
@@ -817,7 +817,7 @@ class DataSource(DataSourceRegisterMixin):
             Path to the directory that holds the cache files associated with this raster. If cache
             files are present, they will be reused (or erased if corrupted). If a cache file is
             needed and missing, it will be computed.
-        o: bool
+        ow: bool
             Overwrite. Whether or not to erase the old cache files contained in `cache_dir`.
         queue_data_per_primitive:
             see `create_raster_recipe` method
@@ -956,8 +956,8 @@ class DataSource(DataSourceRegisterMixin):
         if not isinstance(cache_dir, (str, pathlib.Path)):
             raise TypeError('cache_dir should be a string')
         cache_dir = str(cache_dir)
-        overwrite = bool(o)
-        del o
+        overwrite = bool(ow)
+        del ow
 
         # Construction *********************************************************
         prox = CachedRasterRecipe(
@@ -989,7 +989,7 @@ class DataSource(DataSourceRegisterMixin):
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
 
             # filesystem
-            cache_dir=None, o=False,
+            cache_dir=None, ow=False,
 
             # primitives
             queue_data_per_primitive={}, convert_footprint_per_primitive=None,
@@ -1009,7 +1009,7 @@ class DataSource(DataSourceRegisterMixin):
             _AnonymousSentry(),
             fp, dtype, band_count, band_schema, sr,
             compute_array, merge_arrays,
-            cache_dir, o,
+            cache_dir, ow,
             queue_data_per_primitive, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
             cache_tiles, computation_tiles, max_resampling_size,
