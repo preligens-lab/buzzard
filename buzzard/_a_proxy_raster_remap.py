@@ -50,7 +50,7 @@ class ABackProxyRasterRemapMixin(object):
             dilate_size = 2 * self.fp.pxsizex / fp.pxsizex # hyperparameter
         else:
             dilate_size = 4 * self.fp.pxsizex / fp.pxsizex # hyperparameter
-        dilate_size = max(2, np.ceil(dilate_size)) # hyperparameter too
+        dilate_size = max(2, np.around(dilate_size)) # hyperparameter too
         fp = fp.dilate(dilate_size)
         fp = self.fp & fp
         return fp

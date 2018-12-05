@@ -82,6 +82,74 @@ class ActorProducer(object):
             subsample_fp = pi.resample_sample_dep_fp[resample_fp]
             assert subsample_fp is not None
             subsample_array = array[subsample_fp.slice_in(pi.sample_fp)]
+
+            assert subsample_array.shape[:2] == tuple(subsample_fp.shape), f"""
+
+                                raster:
+               self._raster.fp: {self._raster.fp}
+               self._raster.fp: {repr(self._raster.fp)}
+                    primitives: {list(self._raster.primitives_back)}
+                           len: {len(self._raster)}
+                         dtype: {self._raster.dtype}
+                              : {self._raster.async_dict_path_of_cache_fp}
+
+                                produce:
+                         pi.fp: {pi.fp}
+                         pi.fp: {repr(pi.fp)}
+                  pi.sample_fp: {pi.sample_fp}
+                  pi.sample_fp: {repr(pi.sample_fp)}
+                   array.shape: {array.shape}
+
+                                resample-step:
+                   resample_fp: {resample_fp}
+                   resample_fp: {repr(resample_fp)}
+                  subsample_fp: {subsample_fp}
+                  subsample_fp: {repr(subsample_fp)}
+         subsample_array.shape: {subsample_array.shape}
+
+
+                                pi.sample_fp.poly.contains(subsample_fp.poly)
+                           res: {pi.sample_fp.poly.contains(subsample_fp.poly)}
+
+                                subsample_fp.poly.within(pi.sample_fp.poly)
+                           res: {subsample_fp.poly.within(pi.sample_fp.poly)}
+
+                                subsample_fp.same_grid(pi.sample_fp)
+                           res: {subsample_fp.same_grid(pi.sample_fp)}
+
+
+                                self._raster.fp.poly.contains(subsample_fp.poly)
+                           res: {self._raster.fp.poly.contains(subsample_fp.poly)}
+
+                                subsample_fp.poly.within(self._raster.fp.poly)
+                           res: {subsample_fp.poly.within(self._raster.fp.poly)}
+
+                                subsample_fp.same_grid(self._raster.fp)
+                           res: {subsample_fp.same_grid(self._raster.fp)}
+
+
+                                self._raster.fp.poly.contains(pi.sample_fp.poly)
+                           res: {self._raster.fp.poly.contains(pi.sample_fp.poly)}
+
+                                pi.sample_fp.poly.within(self._raster.fp.poly)
+                           res: {pi.sample_fp.poly.within(self._raster.fp.poly)}
+
+                                pi.sample_fp.same_grid(self._raster.fp)
+                           res: {pi.sample_fp.same_grid(self._raster.fp)}
+
+
+        pi.sample_fp.poly.area: {pi.sample_fp.poly.area}
+        subsample_fp.poly.area: {subsample_fp.poly.area}
+                         inter: {(pi.sample_fp.poly & subsample_fp.poly).area}
+                           a-b: {(pi.sample_fp.poly - subsample_fp.poly).area}
+                           b-a: {(subsample_fp.poly - pi.sample_fp.poly).area}
+
+                                subsample_fp.slice_in(pi.sample_fp)
+                             A: {subsample_fp}
+                             B: {pi.sample_fp}
+                        slices: {subsample_fp.slice_in(pi.sample_fp)}
+
+            """
             msgs += [Msg(
                 'Resampler', 'resample_and_accumulate',
                 qi, prod_idx, subsample_fp, resample_fp, subsample_array,
