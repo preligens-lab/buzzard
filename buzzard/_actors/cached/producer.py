@@ -2,6 +2,8 @@ from buzzard._actors.message import Msg
 
 import collections
 
+VERBOSE = False
+
 class ActorProducer(object):
     """Actor that takes care of waiting for cache tiles reads and launching resamplings"""
 
@@ -48,6 +50,8 @@ class ActorProducer(object):
                 qi, prod_idx, None, resample_fp, None,
             )]
 
+        if VERBOSE:
+            print(f'requesting arr {prod_idx} of ', qi)
         self._produce_per_query[qi][prod_idx] = pr
         return msgs
 
@@ -64,7 +68,19 @@ class ActorProducer(object):
             The array onto which the reader fills rectangles one by one
         """
         msgs = []
-        pr = self._produce_per_query[qi][prod_idx]
+        try:
+            pr = self._produce_per_query[qi][prod_idx]
+        except:
+            print()
+            print('//////////////////////////////////////////////////////////////////////')
+            print('error on', qi)
+            print(self._produce_per_query[qi])
+            print(qi.prod)
+            print('//////////////////////////////////////////////////////////////////////')
+            print()
+
+            raise
+
         pi = qi.prod[prod_idx]
 
         # The constraints on `cache_fp` are now satisfied
@@ -159,8 +175,12 @@ class ActorProducer(object):
 
     def receive_made_this_array(self, qi, prod_idx, array):
         """Receive message: Done creating an output array"""
+        if VERBOSE:
+            print(f'made {prod_idx} of ', qi)
         del self._produce_per_query[qi][prod_idx]
         if len(self._produce_per_query[qi]) == 0:
+            if VERBOSE:
+                print('del', qi)
             del self._produce_per_query[qi]
         return [Msg(
             'QueriesHandler', 'made_this_array', qi, prod_idx, array
@@ -174,6 +194,8 @@ class ActorProducer(object):
         qi: _actors.cached.query_infos.QueryInfos
         """
         if qi in self._produce_per_query:
+            if VERBOSE:
+                print('collect', qi)
             del self._produce_per_query[qi]
         return []
 
@@ -181,6 +203,8 @@ class ActorProducer(object):
         """Receive message: The raster was killed"""
         assert self._alive
         self._alive = False
+        if VERBOSE:
+            print('die !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
         self._produce_per_query.clear()
         self._raster = None
