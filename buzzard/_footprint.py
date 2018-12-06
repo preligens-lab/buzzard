@@ -272,8 +272,9 @@ class Footprint(TileMixin, IntersectionMixin):
         rsize = np.asarray(
             [endx - startx, endy - starty]
         )
-        tl = self.tl + [startx, starty] * self.pxvec
-        size = rsize * self.pxsize
+        tl = self.tl + startx * self.pxlrvec + starty * self.pxtbvec
+        # tl = self.tl + [startx, starty] * self.pxvec
+        # size = rsize * self.pxsize
         gt = self.gt
         gt[0] = tl[0]
         gt[3] = tl[1]
