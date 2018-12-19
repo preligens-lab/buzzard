@@ -907,16 +907,16 @@ class DataSource(DataSourceRegisterMixin):
                 ))
 
         # Pools ********************************************
-        computation_pool = self._back.normalize_pool_parameter(
+        computation_pool = self._back.pools_container._normalize_pool_parameter(
             computation_pool, 'computation_pool'
         )
-        merge_pool = self._back.normalize_pool_parameter(
+        merge_pool = self._back.pools_container._normalize_pool_parameter(
             merge_pool, 'merge_pool'
         )
-        io_pool = self._back.normalize_pool_parameter(
+        io_pool = self._back.pools_container._normalize_pool_parameter(
             io_pool, 'io_pool'
         )
-        resample_pool = self._back.normalize_pool_parameter(
+        resample_pool = self._back.pools_container._normalize_pool_parameter(
             resample_pool, 'resample_pool'
         )
 
@@ -1238,6 +1238,11 @@ class DataSource(DataSourceRegisterMixin):
         """Retrieve proxy count registered in this DataSource"""
         return len(self._keys_of_proxy)
 
+    # Pools infos ******************************************************************************* **
+    @property
+    def pools(self):
+        return self._back.pools_container
+
     # Cleanup *********************************************************************************** **
     def __del__(self):
         if not self._ds_closed:
@@ -1292,7 +1297,7 @@ class DataSource(DataSourceRegisterMixin):
             self._back.stop_scheduler()
 
             # Safely release all resources
-            self._back.join_all_pools()
+            self._back.pools_container._close()
             for proxy in list(self._keys_of_proxy.keys()):
                 proxy.close()
 

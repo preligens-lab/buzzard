@@ -9,7 +9,7 @@ __version__ = "0.5.0b1"
 import osgeo as _
 import cv2 as _
 
-# Main classes
+# Public classes
 from buzzard._footprint import Footprint
 from buzzard._datasource import (
     DataSource,
@@ -20,9 +20,10 @@ from buzzard._datasource import (
     wrap_numpy_raster
 )
 
-from buzzard._env import Env, env
+from buzzard._env import Env
 
 # Proxy's abstract classes
+# Public methods, but always instanciated by DataSource, never by user.
 from buzzard._a_proxy import AProxy
 from buzzard._a_proxy_raster import AProxyRaster
 from buzzard._a_proxy_vector import AProxyVector
@@ -43,6 +44,7 @@ from buzzard._a_async_raster import AAsyncRaster
 from buzzard._a_raster_recipe import ARasterRecipe
 
 # Proxy's concrete classes
+# Public methods, but always instanciated by DataSource, never by user.
 from buzzard._gdal_file_raster import GDALFileRaster
 from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._numpy_raster import NumpyRaster
@@ -51,6 +53,13 @@ from buzzard._gdal_file_vector import GDALFileVector
 from buzzard._gdal_memory_vector import GDALMemoryVector
 
 from buzzard._cached_raster_recipe import CachedRasterRecipe
+
+# Misc classes
+# Public methods, but always instanciated by DataSource, never by user.
+from buzzard._datasource_pools_container import PoolsContainer
+
+# Misc
+from buzzard._env import env
 
 # TODO for 0.5.0: Export the new concrete classes
 
