@@ -1,3 +1,4 @@
+import threading
 import collections
 import multiprocessing as mp
 import multiprocessing.pool
@@ -8,8 +9,7 @@ class PoolsContainer(object):
         self._aliases_per_pool = collections.defaultdict(set)
         self._aliases = {}
         self._managed_pools = set()
-
-        pass
+        self._lock = threading.Lock()
 
     def alias(self, key, pool_or_none):
         """Register the given pool under the given key in this DataSource. The key can then be
@@ -20,27 +20,30 @@ class PoolsContainer(object):
         key: hashable (like a string)
         pool_or_none: multiprocessing.pool.Pool or multiprocessing.pool.ThreadPool or None
         """
-        if key in self._aliases: # pragma: no cover
-            raise ValueError('Key `{}` is already bound to `{}`'.format(
-                key, self._aliases[key]
-            ))
-        self._aliases_per_pool[pool_or_none].add(key)
-        self._aliases[key] = pool_or_none
+        with self._lock:
+            if key in self._aliases: # pragma: no cover
+                raise ValueError('Key `{}` is already bound to `{}`'.format(
+                    key, self._aliases[key]
+                ))
+            self._aliases_per_pool[pool_or_none].add(key)
+            self._aliases[key] = pool_or_none
 
     def manage(self, pool):
         """Add the given pool to the list of pools that must be terminated upon DataSource closing.
         """
         if not isinstance(pool, (mp.pool.Pool, mp.pool.ThreadPool)): # pragma: no cover
             raise TypeError('Can only manage pools')
-        self._managed_pools.add(pool)
+        with self._lock:
+            self._managed_pools.add(pool)
 
     def __len__(self):
         """Number of pools registered in this DataSource"""
-        return len(
-            p
-            for p in self._aliases_per_pool.keys()
-            if p is not None
-        )
+        with self._lock:
+            return len(
+                p
+                for p in self._aliases_per_pool.keys()
+                if p is not None
+            )
 
     def __iter__(self):
         """Generator of pools registered in this DataSource"""
@@ -54,7 +57,8 @@ class PoolsContainer(object):
 
     def __contains__(self, key):
         """Is pool or alias registered in this DataSource"""
-        return key in self._aliases or key in self._aliases_per_pool
+        with self._lock:
+            return key in self._aliases or key in self._aliases_per_pool
 
     # Private interface with DataSource ********************************************************* **
     def _close(self):
@@ -80,9 +84,10 @@ class PoolsContainer(object):
             raise TypeError('`{}` parameter should be one of {}'.format(
                 param_name, ', '.join(types)
             ))
-        if pool_param not in self._aliases:
-            p = mp.pool.ThreadPool(mp.cpu_count())
-            self._aliases[pool_param] = p
-            self._aliases_per_pool[p] = [pool_param]
-            self._managed_pools.add(p)
+        with self._lock:
+            if pool_param not in self._aliases:
+                p = mp.pool.ThreadPool(mp.cpu_count())
+                self._aliases[pool_param] = p
+                self._aliases_per_pool[p] = [pool_param]
+                self._managed_pools.add(p)
         return self._aliases[pool_param]
