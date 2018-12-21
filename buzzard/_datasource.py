@@ -1047,7 +1047,8 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
+        if not isinstance(key, _AnonymousSentry):
+            self._validate_key(key)
         path = str(path)
         if layer is None:
             layer = 0
@@ -1071,7 +1072,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
@@ -1166,7 +1170,8 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
+        if not isinstance(key, _AnonymousSentry):
+            self._validate_key(key)
         path = str(path)
         geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
         fields = _tools.normalize_fields_defn(fields)
@@ -1195,7 +1200,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def acreate_vector(self, path, geometry, fields=(), layer=None,
