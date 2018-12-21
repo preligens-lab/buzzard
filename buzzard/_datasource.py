@@ -307,8 +307,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        if not isinstance(key, _AnonymousSentry):
-            self._validate_key(key)
         path = str(path)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -412,8 +410,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        if not isinstance(key, _AnonymousSentry):
-            self._validate_key(key)
         path = str(path)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
@@ -520,8 +516,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        if not isinstance(key, _AnonymousSentry):
-            self._validate_key(key)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         array = np.asarray(array)
@@ -849,8 +843,6 @@ class DataSource(DataSourceRegisterMixin):
         """
         # Parameter checking ***************************************************
         # Classic RasterProxy parameters *******************
-        if not isinstance(key, _AnonymousSentry):
-            self._validate_key(key)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
@@ -1047,8 +1039,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        if not isinstance(key, _AnonymousSentry):
-            self._validate_key(key)
         path = str(path)
         if layer is None:
             layer = 0
@@ -1170,8 +1160,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        if not isinstance(key, _AnonymousSentry):
-            self._validate_key(key)
         path = str(path)
         geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
         fields = _tools.normalize_fields_defn(fields)
