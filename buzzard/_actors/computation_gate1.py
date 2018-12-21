@@ -73,18 +73,13 @@ class ActorComputationGate1(object):
                 #  or allowed count <  produced_count (some other query computed the arrays)
                 del self._queries[qi]
         else:
-            if qicc is None:
-                # this call happened before `receive_compute_those_cache_files`
-                if qi in self._queries:
-                    # this call already happened
-                    q = self._queries[qi]
-                else:
-                    q = _Query()
-                    self._queries[qi] = q
-                q.pulled_count = pulled_count
-            else:
+            if qi in self._queries:
                 q = self._queries[qi]
-                q.pulled_count = pulled_count
+            else:
+                q = _Query()
+                self._queries[qi] = q
+            q.pulled_count = pulled_count
+            if qicc is not None:
                 msgs += self._allow(qi, q)
 
             q.produced_count = produced_count
