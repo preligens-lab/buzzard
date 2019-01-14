@@ -43,7 +43,7 @@ class ABackProxyRasterRemapMixin(object):
 
     def build_sampling_footprint_to_remap_interpolate(self, fp, interpolation):
         if interpolation is None: # pragma: no cover
-            raise ValueError(_EXN_FORMAT.format(
+            raise ValueError(_EXN_FORMAT0.format(
                 src=self.fp,
                 dst=fp,
                 tldiff=fp.tl - (
@@ -52,7 +52,7 @@ class ABackProxyRasterRemapMixin(object):
                 ) - self.fp.tl,
             ) + _EXN_FORMAT2)
         if not self.back_ds.allow_interpolation: # pragma: no cover
-            raise ValueError(_EXN_FORMAT.format(
+            raise ValueError(_EXN_FORMAT0.format(
                 src=self.fp,
                 dst=fp,
                 tldiff=fp.tl - (
