@@ -14,6 +14,12 @@ class ActorProducer(object):
         self._produce_per_query = collections.defaultdict(dict) # type: Mapping[CachedQueryInfos, Mapping[int, _ProdArray]]
         self.address = '/Raster{}/Producer'.format(self._raster.uid)
 
+        self._debug_stack = []
+
+    def _debug_push(self, *args):
+        self._debug_stack.append(args)
+        self._debug_stack = self._debug_stack[-1000:]
+
     @property
     def alive(self):
         return self._alive
@@ -29,6 +35,10 @@ class ActorProducer(object):
         """
         msgs = []
 
+        self._debug_push(
+            qi, prod_idx, 'receive_make_this_array',
+        )
+
         pi = qi.prod[prod_idx] # type: CacheProduceInfos
         pr = _ProdArray(pi)
 
@@ -39,6 +49,10 @@ class ActorProducer(object):
             msgs += [Msg(
                 'CacheExtractor', 'sample_those_cache_files_to_an_array', qi, prod_idx,
             )]
+
+            self._debug_push(
+                qi, prod_idx, 'receive_make_this_array', 'pi.share_area'
+            )
         else:
             # Start the 'resampling' step of the resample_fp fully outside of raster
             resample_fp = next(iter(pi.resample_fps))
@@ -49,6 +63,10 @@ class ActorProducer(object):
                 'Resampler', 'resample_and_accumulate',
                 qi, prod_idx, None, resample_fp, None,
             )]
+
+            self._debug_push(
+                qi, prod_idx, 'receive_make_this_array', 'no share area',
+            )
 
         if VERBOSE:
             print(f'requesting arr {prod_idx} of ', qi)
@@ -68,14 +86,33 @@ class ActorProducer(object):
             The array onto which the reader fills rectangles one by one
         """
         msgs = []
+
+
+        self._debug_push(
+            qi, prod_idx, 'receive_sampled_a_cache_file_to_the_array',
+        )
+
         try:
             pr = self._produce_per_query[qi][prod_idx]
         except:
             print()
             print('//////////////////////////////////////////////////////////////////////')
-            print('error on', qi)
-            print(self._produce_per_query[qi])
+            print('error on', qi, prod_idx)
+            print('len(self._produce_per_query):', len(self._produce_per_query))
+            print('self._produce_per_query[qi]:', self._produce_per_query[qi])
+            print('////////////////////')
             print(qi.prod)
+            print('////////////////////')
+
+            print('//////////////////////////////////////////////////////////////////////')
+            for a, b, *c in self._debug_stack:
+                if a is None:
+                    print('===>', a, b, *c)
+                elif a is qi:
+                    if b is None:
+                        print('===>', a, *c)
+                    elif b == prod_idx:
+                        print('===>', *c)
             print('//////////////////////////////////////////////////////////////////////')
             print()
 
@@ -98,6 +135,10 @@ class ActorProducer(object):
             subsample_fp = pi.resample_sample_dep_fp[resample_fp]
             assert subsample_fp is not None
             subsample_array = array[subsample_fp.slice_in(pi.sample_fp)]
+
+            self._debug_push(
+                qi, prod_idx, 'receive_sampled_a_cache_file_to_the_array', 'resample_ready', resample_fp,
+            )
 
             assert subsample_array.shape[:2] == tuple(subsample_fp.shape), f"""
 
@@ -175,6 +216,9 @@ class ActorProducer(object):
 
     def receive_made_this_array(self, qi, prod_idx, array):
         """Receive message: Done creating an output array"""
+        self._debug_push(
+            qi, prod_idx, 'receive_made_this_array',
+        )
         if VERBOSE:
             print(f'made {prod_idx} of ', qi)
         del self._produce_per_query[qi][prod_idx]
@@ -193,6 +237,9 @@ class ActorProducer(object):
         ----------
         qi: _actors.cached.query_infos.QueryInfos
         """
+        self._debug_push(
+            qi, None, 'receive_cancel_this_query'
+        )
         if qi in self._produce_per_query:
             if VERBOSE:
                 print('collect', qi)
@@ -201,6 +248,9 @@ class ActorProducer(object):
 
     def receive_die(self):
         """Receive message: The raster was killed"""
+        self._debug_push(
+            None, None, 'receive_die',
+        )
         assert self._alive
         self._alive = False
         if VERBOSE:

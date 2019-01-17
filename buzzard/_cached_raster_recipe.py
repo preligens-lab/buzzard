@@ -155,11 +155,12 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
     def list_cache_path_candidates(self, cache_fp=None):
         if cache_fp is not None:
             prefix = self.fname_prefix_of_cache_fp(cache_fp)
-            s = os.path.join(self.cache_dir, prefix + '_[0123456789abcdef]*.tif')
+            s = os.path.join(self.cache_dir, prefix + '_[0123456789abcdef]*.tif') # TODO: Use regex
             return glob.glob(s)
         else:
             s = os.path.join(
                 self.cache_dir,
+                 # TODO: Use regex
                 'buzz_x[0-9]*-y[0-9]*_x[0-9]*-y[0-9]*_[0123456789abcdef]*.tif',
             )
             return glob.glob(s)
