@@ -1,5 +1,7 @@
-import numpy as np
+import sys
 import uuid
+
+import numpy as np
 
 class Msg(object):
     """Message exchanged:
@@ -47,6 +49,8 @@ class Msg(object):
                 return min([t, s], key=len)
             elif type(a).__name__ == 'CachedQueryInfos':
                 return 'qi:{:#x}'.format(id(a))
+            elif type(a).__name__ == 'Footprint':
+                return 'Footprint{:#18x}'.format(hash(a) % ((sys.maxsize + 1) * 2))
             else:
                 s = type(a).__name__
                 t = str(a)

@@ -2,8 +2,6 @@ from buzzard._actors.message import Msg
 
 import collections
 
-VERBOSE = False
-
 class ActorProducer(object):
     """Actor that takes care of waiting for cache tiles reads and launching resamplings"""
 
@@ -40,8 +38,6 @@ class ActorProducer(object):
         )
 
         pi = qi.prod[prod_idx] # type: CacheProduceInfos
-        pr = _ProdArray(pi)
-
         assert pi.share_area is (len(pi.cache_fps) != 0)
 
         if pi.share_area:
@@ -51,26 +47,29 @@ class ActorProducer(object):
             )]
 
             self._debug_push(
-                qi, prod_idx, 'receive_make_this_array', 'pi.share_area'
+                qi, prod_idx, 'receive_make_this_array',
+                'sample_those_cache_files_to_an_array',
             )
-        else:
-            # Start the 'resampling' step of the resample_fp fully outside of raster
-            resample_fp = next(iter(pi.resample_fps))
-            del pr.resample_needs[resample_fp]
+
+        for resample_fp in pi.resample_fps:
             sample_fp = pi.resample_sample_dep_fp[resample_fp]
-            assert sample_fp is None, 'We are producing an array that does not require sampling'
-            msgs += [Msg(
-                'Resampler', 'resample_and_accumulate',
-                qi, prod_idx, None, resample_fp, None,
-            )]
+            if sample_fp is None:
+                # Start the 'resampling' step of the resample_fp fully outside of raster
+                assert (
+                    resample_fp not in pi.resample_cache_deps_fps or
+                    len(pi.resample_cache_deps_fps[resample_fp]) == 0
+                )
+                msgs += [Msg(
+                    'Resampler', 'resample_and_accumulate',
+                    qi, prod_idx, None, resample_fp, None,
+                )]
 
-            self._debug_push(
-                qi, prod_idx, 'receive_make_this_array', 'no share area',
-            )
+                self._debug_push(
+                    qi, prod_idx, 'receive_make_this_array',
+                    'resample_and_accumulate', 'no share area', resample_fp,
+                )
 
-        if VERBOSE:
-            print(f'requesting arr {prod_idx} of ', qi)
-        self._produce_per_query[qi][prod_idx] = pr
+        self._produce_per_query[qi][prod_idx] = _ProdArray(pi)
         return msgs
 
     def receive_sampled_a_cache_file_to_the_array(self, qi, prod_idx, cache_fp, array):
@@ -89,7 +88,7 @@ class ActorProducer(object):
 
 
         self._debug_push(
-            qi, prod_idx, 'receive_sampled_a_cache_file_to_the_array',
+            qi, prod_idx, 'receive_sampled_a_cache_file_to_the_array', cache_fp,
         )
 
         try:
@@ -217,14 +216,10 @@ class ActorProducer(object):
     def receive_made_this_array(self, qi, prod_idx, array):
         """Receive message: Done creating an output array"""
         self._debug_push(
-            qi, prod_idx, 'receive_made_this_array',
+            qi, prod_idx, 'receive_made_this_array', array.shape, array.dtype
         )
-        if VERBOSE:
-            print(f'made {prod_idx} of ', qi)
         del self._produce_per_query[qi][prod_idx]
         if len(self._produce_per_query[qi]) == 0:
-            if VERBOSE:
-                print('del', qi)
             del self._produce_per_query[qi]
         return [Msg(
             'QueriesHandler', 'made_this_array', qi, prod_idx, array
@@ -241,8 +236,6 @@ class ActorProducer(object):
             qi, None, 'receive_cancel_this_query'
         )
         if qi in self._produce_per_query:
-            if VERBOSE:
-                print('collect', qi)
             del self._produce_per_query[qi]
         return []
 
@@ -253,8 +246,6 @@ class ActorProducer(object):
         )
         assert self._alive
         self._alive = False
-        if VERBOSE:
-            print('die !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
         self._produce_per_query.clear()
         self._raster = None
@@ -263,7 +254,6 @@ class ActorProducer(object):
     # ******************************************************************************************* **
 
 class _ProdArray(object):
-
     def __init__(self, pi):
         self.resample_needs = {
             resample_fp: set(cache_fps)

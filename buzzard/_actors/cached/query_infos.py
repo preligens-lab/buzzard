@@ -4,6 +4,7 @@ from typing import (
 import collections
 import queue # Should be imported for `mypy`
 from types import MappingProxyType
+import itertools
 
 import numpy as np
 from buzzard._footprint import Footprint
@@ -189,17 +190,26 @@ class CachedQueryInfos(object):
                             for resample_fp in resample_fps
                         }
 
-                list_of_prod_sample_fp.append(sample_fp)
-                list_of_prod_cache_fps.append(
-                    frozenset(raster.cache_fps_of_fp(sample_fp))
-                )
-                list_of_prod_resample_fps.append(tuple(resample_fps))
-                list_of_prod_resample_cache_deps_fps.append(MappingProxyType({
+                resample_cache_deps_fps = MappingProxyType({
                     resample_fp: frozenset(raster.cache_fps_of_fp(sample_subfp))
                     for resample_fp in resample_fps
                     for sample_subfp in [sample_dep_fp[resample_fp]]
                     if sample_subfp is not None
-                }))
+                })
+                for s in resample_cache_deps_fps.items():
+                    assert len(s) > 0
+
+                # The `intersection of the cache_fps with sample_fp` might not be the same as the
+                # the `intersection of the cache_fps with resample_fps`!
+                cache_fps = frozenset(itertools.chain.from_iterable(
+                    resample_cache_deps_fps.values()
+                ))
+                assert len(cache_fps) > 0
+
+                list_of_prod_cache_fps.append(cache_fps)
+                list_of_prod_sample_fp.append(sample_fp)
+                list_of_prod_resample_fps.append(tuple(resample_fps))
+                list_of_prod_resample_cache_deps_fps.append(resample_cache_deps_fps)
                 list_of_prod_resample_sample_dep_fp.append(MappingProxyType(sample_dep_fp))
 
         self.prod = tuple([

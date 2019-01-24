@@ -30,12 +30,10 @@ class ActorResampler(object):
         self._waiting_jobs = set()
         self._working_jobs = set()
 
-        self._prod_array_of_prod_tile = (
+        self._prod_infos = (
             collections.defaultdict(dict)
-        ) # type: Mapping[CachedQueryInfos, Mapping[int, np.ndarray]]
-        self._missing_resample_fps_per_prod_tile = (
-            collections.defaultdict(dict)
-        ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]
+        ) # type: Mapping[CachedQueryInfos, Mapping[int, _ProdArray]]
+
         self.address = '/Raster{}/Resampler'.format(self._raster.uid)
 
     @property
@@ -57,63 +55,97 @@ class ActorResampler(object):
         msgs = []
 
         pi = qi.prod[prod_idx]
-        interpolation_needed = pi.share_area and not pi.same_grid
-        if self._raster.resample_pool is not None and interpolation_needed:
-            # Case 1: Need to externalize resampling on a pool
+
+        if prod_idx not in self._prod_infos[qi]:
+            self._prod_infos[qi][prod_idx] = _ProdArray(pi)
+        pr = self._prod_infos[qi][prod_idx]
+
+        is_tile_alone = len(pi.resample_fps) == 1
+        is_tile_outside = sample_fp is None
+        is_interpolation_needed = not is_tile_outside and not pi.same_grid
+        is_interpolation_defered = self._raster.resample_pool is not None
+        # print(
+        #     f"""
+        #     is_tile_alone = {is_tile_alone}
+        #     is_tile_outside = {is_tile_outside}
+        #     is_interpolation_needed = {is_interpolation_needed}
+        #     is_interpolation_defered = {is_interpolation_defered}
+        #     """
+        # )
+
+        if is_tile_alone:
+            assert pr.arr is None
+
+        if is_tile_alone and is_tile_outside:
+            # Case 1: production footprint is fully outside of raster
+            assert sample_fp is None
+            assert subsample_array is None
+            pr.arr = np.full(
+                np.r_[resample_fp.shape, len(qi.band_ids)],
+                qi.dst_nodata, self._raster.dtype,
+            )
+            pr.commit(resample_fp)
+            pr.is_post_processed = True
+
+        elif is_tile_alone and sample_fp.almost_equals(pi.fp):
+            # Case 2: production footprint is aligned and fully inside raster
+            assert subsample_array.shape[:2] == tuple(resample_fp.shape)
+            pr.arr = subsample_array
+            if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
+                pr.arr[pr.arr == self._raster.nodata] = qi.dst_nodata
+            pr.arr = pr.arr.astype(self._raster.dtype, copy=False)
+            pr.arr = _reorder_channels(qi, pr.arr)
+
+            pr.commit(resample_fp)
+            pr.is_post_processed = True
+
+        elif is_tile_alone and not is_interpolation_needed:
+            # Case 3: production footprint is aligned and is both inside and outside raster
+            pr.arr = np.full(
+                np.r_[resample_fp.shape, len(qi.unique_band_ids)],
+                qi.dst_nodata, self._raster.dtype,
+            )
+            slices = sample_fp.slice_in(resample_fp)
+            pr.arr[slices] = subsample_array
+            if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
+                pr.arr[slices][pr.arr[slices] == self._raster.nodata] = qi.dst_nodata
+            pr.arr = _reorder_channels(qi, pr.arr)
+            pr.commit(resample_fp)
+            pr.is_post_processed = True
+
+        elif not is_tile_alone and is_tile_outside:
+            # Case 4: production footprint is fully outside
+            pr.commit(resample_fp)
+
+        elif not is_tile_alone and not is_interpolation_needed:
+            assert False, 'Without interpolation, there should be only one tile'
+
+        elif is_interpolation_needed and not is_interpolation_defered:
+            # Case 5: production footprint not aligned, interpolation on scheduler
+            # print('Case 5')
+            job = self._create_interpolation_work_job(
+                qi, prod_idx, sample_fp, resample_fp, subsample_array,
+            )
+            job.func()
+            self._commit_interpolation_work_result(job, None)
+
+        elif is_interpolation_needed and is_interpolation_defered:
+            # Case 6: production footprint not aligned, interpolation on pool
             wait = Wait(self, qi, prod_idx, sample_fp, resample_fp, subsample_array)
             self._waiting_jobs.add(wait)
             msgs += [
                 Msg(self._waiting_room_address, 'schedule_job', wait)
             ]
+
         else:
-            # Case 2: Perform remapping right now on the scheduler
-            if interpolation_needed:
-                # Case 2.1: Remapping with interpolation
-                #   side effect: memory allocation is inevitable
-                #   side effect: since interpolation may imply tiling, the result will be
-                #      commited now and might be pushed now or later
-                job = self._create_work_job(
-                    qi, prod_idx, sample_fp, resample_fp, subsample_array,
-                )
-                job.func()
-                msgs += self._commit_work_result(job, None)
+            assert False, f"""
+            is_tile_alone = {is_tile_alone}
+            is_tile_outside = {is_tile_outside}
+            is_interpolation_needed = {is_interpolation_needed}
+            is_interpolation_defered = {is_interpolation_defered}
+            """
 
-            else:
-                # Case 2.2: Remapping without interpolation
-                #   side effect: memory reallocation is avoidable
-                #   side effect: no interpolation imply no tiling, the result will be pushed now
-                if not pi.share_area:
-                    # Case 2.2.1: production footprint is fully outside raster
-                    assert sample_fp is None
-                    assert subsample_array is None
-                    arr = np.full(
-                        np.r_[resample_fp.shape, len(qi.band_ids)],
-                        qi.dst_nodata, self._raster.dtype,
-                    )
-                elif sample_fp.almost_equals(pi.fp):
-                    # Case 2.2.2: production footprint is fully inside raster
-                    assert subsample_array.shape[:2] == tuple(resample_fp.shape)
-                    arr = subsample_array
-                    if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
-                        arr[arr == self._raster.nodata] = qi.dst_nodata
-                    arr = arr.astype(self._raster.dtype, copy=False)
-                    arr = _reorder_channels(qi, arr)
-                else:
-                    # Case 2.2.3: production footprint is both inside and outside raster
-                    arr = np.full(
-                        np.r_[resample_fp.shape, len(qi.unique_band_ids)],
-                        qi.dst_nodata, self._raster.dtype,
-                    )
-                    slices = sample_fp.slice_in(resample_fp)
-                    arr[slices] = subsample_array
-                    if self._raster.nodata is not None and self._raster.nodata != qi.dst_nodata:
-                        arr[slices][arr[slices] == self._raster.nodata] = qi.dst_nodata
-                    arr = _reorder_channels(qi, arr)
-
-                self._raster.debug_mngr.event('object_allocated', arr)
-                msgs += [Msg(
-                    'Producer', 'made_this_array', qi, prod_idx, arr
-                )]
+        msgs += self._push_if_done(qi, prod_idx)
 
         return msgs
 
@@ -121,7 +153,7 @@ class ActorResampler(object):
         """Receive message: Waiting job can proceede to working room"""
         self._waiting_jobs.remove(job)
 
-        work = self._create_work_job(
+        work = self._create_interpolation_work_job(
             job.qi, job.prod_idx, job.sample_fp, job.resample_fp, job.subsample_array,
         )
         self._working_jobs.add(work)
@@ -132,7 +164,8 @@ class ActorResampler(object):
 
     def receive_job_done(self, job, result):
         self._working_jobs.remove(job)
-        return self._commit_work_result(job, result)
+        self._commit_interpolation_work_result(job, result)
+        return self._push_if_done(job.qi, job.prod_idx)
 
     def receive_cancel_this_query(self, qi):
         """Receive message: One query was dropped
@@ -163,6 +196,9 @@ class ActorResampler(object):
             msgs += [Msg(self._working_room_address, 'cancel_job', job)]
             self._working_jobs.remove(job)
 
+        if qi in self._prod_infos:
+            del self._prod_infos[qi]
+
         return msgs
 
     def receive_die(self):
@@ -177,69 +213,74 @@ class ActorResampler(object):
             msgs += [Msg(self._working_room_address, 'cancel_job', job)]
         self._waiting_jobs.clear()
         self._working_jobs.clear()
+        self._prod_infos.clear()
         self._raster = None
         return msgs
 
     # ******************************************************************************************* **
-    def _create_work_job(self, qi, prod_idx, sample_fp, resample_fp, subsample_array):
+    def _create_interpolation_work_job(self, qi, prod_idx, sample_fp, resample_fp, subsample_array):
+        # print('_create_interpolation_work_job', resample_fp)
         pi = qi.prod[prod_idx]
+        pr = self._prod_infos[qi][prod_idx]
 
-        if (qi not in self._prod_array_of_prod_tile or
-            prod_idx not in self._prod_array_of_prod_tile[qi]):
-            self._prod_array_of_prod_tile[qi][prod_idx] = np.full(
+        if pr.arr is None:
+            pr.arr = np.full(
                 np.r_[pi.fp.shape, len(qi.band_ids)],
                 qi.dst_nodata, self._raster.dtype,
             )
-            self._raster.debug_mngr.event(
-                'object_allocated',
-                self._prod_array_of_prod_tile[qi][prod_idx],
-            )
-            self._missing_resample_fps_per_prod_tile[qi][prod_idx] = {
-                fp
-                for fp in pi.resample_fps
-                if pi.resample_sample_dep_fp[fp] is not None
-            }
-        arr = self._prod_array_of_prod_tile[qi][prod_idx]
 
         return Work(
             self, qi, prod_idx,
             sample_fp, resample_fp,
-            subsample_array, arr
+            subsample_array, pr.arr
         )
 
-    def _commit_work_result(self, work_job, res):
-        msgs = []
-
+    def _commit_interpolation_work_result(self, work_job, res):
         qi = work_job.qi
         prod_idx = work_job.prod_idx
         resample_fp = work_job.resample_fp
+        pr = self._prod_infos[qi][prod_idx]
 
-        self._missing_resample_fps_per_prod_tile[qi][prod_idx].remove(resample_fp)
+        pr.commit(resample_fp)
 
         if self._raster.resample_pool is not None and not self._same_address_space:
             work_job.dst_array_slice[:] = res
         else:
             assert res is None
 
-        if len(self._missing_resample_fps_per_prod_tile[qi][prod_idx]) == 0:
-            arr = self._prod_array_of_prod_tile[qi][prod_idx]
+    def _push_if_done(self, qi, prod_idx):
+        msgs = []
 
-            # Produce array
-            arr = _reorder_channels(qi, arr)
+        pr = self._prod_infos[qi][prod_idx]
+        if pr.done:
+            assert pr.arr is not None
+            if not pr.is_post_processed:
+                pr.arr = _reorder_channels(qi, pr.arr)
+                pr.is_post_processed
             msgs += [
-                Msg('Producer', 'made_this_array', qi, prod_idx, arr)
+                Msg('Producer', 'made_this_array', qi, prod_idx, pr.arr)
             ]
-
-            # Garbage collect
-            del self._missing_resample_fps_per_prod_tile[qi][prod_idx]
-            del self._prod_array_of_prod_tile[qi][prod_idx]
-            if len(self._missing_resample_fps_per_prod_tile[qi]) == 0:
-                del self._missing_resample_fps_per_prod_tile[qi]
-                del self._prod_array_of_prod_tile[qi]
+            del self._prod_infos[qi][prod_idx]
+            if len(self._prod_infos[qi]) == 0:
+                del self._prod_infos[qi]
 
         return msgs
 
     # ******************************************************************************************* **
+
+class _ProdArray(object):
+    def __init__(self, pi):
+        self.arr = None
+        self.is_post_processed = False
+        self._missing_resample_fps = set(pi.resample_fps)
+
+    def commit(self, resample_fp):
+        self._missing_resample_fps.remove(resample_fp)
+        # print('commit', resample_fp, len(self._missing_resample_fps), 'left', 'arr is None =', self.arr is None)
+
+    @property
+    def done(self):
+        return len(self._missing_resample_fps) == 0
 
 def _reorder_channels(qi, arr):
     if qi.band_ids != qi.unique_band_ids:
