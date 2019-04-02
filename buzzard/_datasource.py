@@ -576,7 +576,9 @@ class DataSource(DataSourceRegisterMixin):
             max_resampling_size=None, automatic_remapping=True,
             debug_observers=()
     ):
-        """Create a *raster recipe* and register it under `key` in this DataSource.
+        """/!\ This method is not yet implemented. It is here for documentation purposes.
+
+        Create a *raster recipe* and register it under `key` in this DataSource.
 
         A *raster recipe* implements the same interfaces as all other rasters, but internally it
         computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
@@ -761,7 +763,7 @@ class DataSource(DataSourceRegisterMixin):
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
           DataSource is closed, the pools instanciated that way will be joined.
         """
-        assert False, 'TODO for 0.5.0: implement'
+        raise NotImplementedError()
 
     def create_cached_raster_recipe(
             self, key,

@@ -1362,12 +1362,10 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Geometry / Raster conversions ************************************************************* **
     def find_lines(self, arr, output_offset='middle', merge=True):
-        """Experimental function!
+        """Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
+        when several disconnected components
 
         # TODO: Update doc about skimage.thin and 2x2 squares collapsing
-
-        Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
-        when several disconnected components
 
         See `shapely.ops.linemerge` for details concerning output connectivity
 
