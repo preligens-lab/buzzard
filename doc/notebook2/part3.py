@@ -1,4 +1,4 @@
-
+"""
 # Part 3: *Mandelbrot* set computed on the fly
 
 ### Automatic remapping
@@ -15,8 +15,8 @@ In the following example the pixels are very long to compute, `max_computation_s
 
 Instead of using `max_computation_size` you can also use `computation_tiles` to chunk the computations. This parameter should contain a tiling of the raster's _Footprint_ (See `Footprint.tile*` methods), doing so will tell the scheduler to only call `compute_array` with _Footprints_ from `computation_tiles`, the computations will be **automatically stiched** to form the requested outputs. This constrain is essential if the `compute_array` function hides a call to a *convolutional neural network*. This parameter is demoed in `part 5`.
 
+"""
 
-```py
 import buzzard as buzz
 import numpy as np
 from numba import jit
@@ -130,4 +130,3 @@ if __name__ == '__main__':
     # with `fp.scale[1] > 0`
     with buzz.Env(allow_complex_footprint=True, warnings=False):
         main()
-```

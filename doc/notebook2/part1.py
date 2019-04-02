@@ -48,7 +48,7 @@ def main():
 
 def test_raster(r):
     """Basic testing functions. It will be reused throughout those tests"""
-    print('| Test 1 - Print raster informations')
+    print('| Print raster informations')
     fp = r.fp
     if r.get_keys():
         print(f'|   key: {r.get_keys()[0]}')
@@ -86,7 +86,7 @@ def test_raster(r):
     with example_tools.Timer() as t:
         for tile, arr in zip(tiles, arr_iterator):
             time.sleep(1 / 9)
-    print(f'|   took {t}, {r.fp.rarea / float(t):_.0f} pixel/sec\n')
+    print(f'|   took {t}, {r.fp.rarea / float(t):_.0f} pixel/sec')
 
 if __name__ == '__main__':
     main()

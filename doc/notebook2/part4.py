@@ -60,6 +60,7 @@ def example():
     ds.create_cached_raster_recipe(**cached_recipe_params)
 
     # Test 1 - Timings before and after caching ***************************** **
+    print('Test 1 - Read mandelbrot 100mpx twice and compare timings')
     fp = ds.mand_100mpx.fp
     fp = fp & shapely.geometry.Point(-1.1172, -0.221103).buffer(fp.pxsizex * 300)
     print(f'Getting Footprint at {fp.c}...')
@@ -71,12 +72,14 @@ def example():
     with example_tools.Timer() as t:
         ds.mand_100mpx.get_data(fp=fp)
     print(f'  took {t}')
-    print('Tiles in `{}` directory:\n{}'.format(
+    print('Tiles in `{}` directory:\n- {}'.format(
         CACHE_DIR,
-        '\n'.join(example_tools.list_cache_files_path_in_dir(CACHE_DIR)),
+        '\n- '.join(example_tools.list_cache_files_path_in_dir(CACHE_DIR)),
     ))
+    print()
 
     # Test 2 - Corrupt one cache file and try to reuse the file ************* **
+    print('Test 2 - Corrupt one cache file and try to reuse the file')
     ds.mand_100mpx.close()
 
     # Pick one cache file and append one byte to it
@@ -88,25 +91,31 @@ def example():
 
     print(f'Getting Footprint at {fp.c}...')
     with example_tools.Timer() as t:
-        ds.mand_100mpx.get_data(fp=fp)
+        arr = ds.mand_100mpx.get_data(fp=fp)
     print(f'  took {t}')
 
-    # Test 3 - Colorize mandelbrot 100mpx ************************************ **
-    ds.create_raster_recipe(
-        'mand_red',
-        fp=fp,
-        dtype='uint8',
-        band_count=3,
-        compute_array=colorize_mandelbrot,
-        queue_data_per_primitive={'mand': ds.mand_100mpx.queue_data},
-        computation_tiles=computation_tiling,
-        automatic_remapping=False,
-    )
     example_tools.show_several_images((
-        'part of mandelbrot 10 mega pixels in red',
+        'part of mandelbrot 100 mega pixels',
         fp,
-        ds.mand_red.get_data(fp=fp),
+        arr,
     ))
+
+    # # Test 4 - Colorize mandelbrot 100mpx ************************************ **
+    # ds.create_raster_recipe(
+    #     'mand_red',
+    #     fp=fp,
+    #     dtype='uint8',
+    #     band_count=3,
+    #     compute_array=colorize_mandelbrot,
+    #     queue_data_per_primitive={'mand': ds.mand_100mpx.queue_data},
+    #     computation_tiles=computation_tiling,
+    #     automatic_remapping=False,
+    # )
+    # example_tools.show_several_images((
+    #     'part of mandelbrot 10 mega pixels in red',
+    #     fp,
+    #     ds.mand_red.get_data(fp=fp),
+    # ))
 
 if __name__ == '__main__':
     if os.path.isdir(CACHE_DIR):

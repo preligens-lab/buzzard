@@ -1,4 +1,7 @@
+
 """
+# Part 5 - Bonus
+
 TODO: Give credit to spacetelescope.org
 
 """
@@ -29,25 +32,32 @@ def main():
     open_zoomable_rasters(ds, 'andromeda', overwrite=True)
 
     # Test 1 - Perform basic tests ****************************************** **
+    print()
+    print('Test 1 - Show andromeda with 3 resolutions')
     test_raster(ds.andromeda_zoom0)
     example_tools.show_several_images((
         'andromeda_zoom0', ds.andromeda_zoom0.fp,
         ds.andromeda_zoom0.get_data(band=-1)
     ))
+    print()
 
     test_raster(ds.andromeda_zoom1)
     example_tools.show_several_images((
         'andromeda_zoom1', ds.andromeda_zoom1.fp,
         ds.andromeda_zoom1.get_data(band=-1)
     ))
+    print()
 
     test_raster(ds.andromeda_zoom2)
     example_tools.show_several_images((
         'andromeda_zoom2', ds.andromeda_zoom2.fp,
         ds.andromeda_zoom2.get_data(band=-1)
     ))
+    print()
 
     # Test 2 - Test `get_data` timings ************************************** **
+    print()
+    print('Test 2 - Read andromeda 4 times and compare timings')
     with example_tools.Timer() as t:
         ds.andromeda_zoom5.get_data(band=-1)
     print(f'Getting andromeda_zoom5 took {t}, download was performed')
@@ -57,13 +67,14 @@ def main():
     print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
 
     print('Closing and opening andromeda rasters again...')
-    # ds.close() # TODO: `uncomment` or `close/reopen only the one`
+    ds.close() # TODO: `uncomment` or `close/reopen only the one`
     ds = buzz.DataSource(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=False)
 
     with example_tools.Timer() as t:
         ds.andromeda_zoom5.get_data(band=-1)
-    print(f'Getting andromeda_zoom5 took {t}, cache files validity was checked')
+    print(f'Getting andromeda_zoom5 took {t}, cache files validity was checked'
+          ' and data was fetched from cache')
 
     with example_tools.Timer() as t:
         ds.andromeda_zoom5.get_data(band=-1)
@@ -75,6 +86,8 @@ def main():
     ))
 
     # Test 3 **************************************************************** **
+    print()
+    print('Test 2 - Show monocerotis')
     open_zoomable_rasters(ds, 'monocerotis', overwrite=False)
     example_tools.show_several_images((
         'monocerotis_zoom3', ds.monocerotis_zoom3.fp,
@@ -104,7 +117,7 @@ def open_zoomable_rasters(ds, name, overwrite):
 
             cache_tiles=tiles,
             cache_dir=f'{name}_zoom{zoom_level}',
-            o=overwrite,
+            ow=overwrite,
         )
 
 def download_tile(fp, *_, url_per_tile):

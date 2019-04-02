@@ -47,7 +47,11 @@ def list_cache_files_path_in_dir(cache_dir):
 
 def show_several_images(*args):
     for title, fp, arr in args:
-        plt.imshow(arr, extent=fp.extent)
+        # fig = plt.figure()
+        fig = plt.figure(figsize=(8 / fp.height * fp.width, 8))
+        ax = fig.add_subplot(111)
+        # plt.imshow(arr, extent=fp.extent)
+        ax.imshow(arr, extent=fp.extent)
         plt.show()
     plt.close('all')
     gc.collect() # Collect to avoid some rare problem
