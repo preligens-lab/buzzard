@@ -64,14 +64,6 @@ class ActorResampler(object):
         is_tile_outside = sample_fp is None
         is_interpolation_needed = not is_tile_outside and not pi.same_grid
         is_interpolation_defered = self._raster.resample_pool is not None
-        # print(
-        #     f"""
-        #     is_tile_alone = {is_tile_alone}
-        #     is_tile_outside = {is_tile_outside}
-        #     is_interpolation_needed = {is_interpolation_needed}
-        #     is_interpolation_defered = {is_interpolation_defered}
-        #     """
-        # )
 
         if is_tile_alone:
             assert pr.arr is None
@@ -122,7 +114,6 @@ class ActorResampler(object):
 
         elif is_interpolation_needed and not is_interpolation_defered:
             # Case 5: production footprint not aligned, interpolation on scheduler
-            # print('Case 5')
             job = self._create_interpolation_work_job(
                 qi, prod_idx, sample_fp, resample_fp, subsample_array,
             )
@@ -219,7 +210,6 @@ class ActorResampler(object):
 
     # ******************************************************************************************* **
     def _create_interpolation_work_job(self, qi, prod_idx, sample_fp, resample_fp, subsample_array):
-        # print('_create_interpolation_work_job', resample_fp)
         pi = qi.prod[prod_idx]
         pr = self._prod_infos[qi][prod_idx]
 
@@ -276,7 +266,6 @@ class _ProdArray(object):
 
     def commit(self, resample_fp):
         self._missing_resample_fps.remove(resample_fp)
-        # print('commit', resample_fp, len(self._missing_resample_fps), 'left', 'arr is None =', self.arr is None)
 
     @property
     def done(self):

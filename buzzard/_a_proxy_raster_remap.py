@@ -15,9 +15,9 @@ _EXN_FORMAT1 = """`allow_interpolation` was set to `False` in `DataSource` const
 2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`.
 """
 
-_EXN_FORMAT2 = """The interpolation is None. It means that either
+_EXN_FORMAT2 = """The `interpolation` parameter is None. It means that either
 1. there is a mistake in your code and you did not meant to perform this operation with an unaligned Footprint,
-2. or that you want to perform a resampling operation and that you need `interpolation` not to be a string.
+2. or that you want to perform a resampling operation and that you need `interpolation` to be a string.
 """
 
 class ABackProxyRasterRemapMixin(object):

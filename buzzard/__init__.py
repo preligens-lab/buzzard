@@ -3,7 +3,7 @@
 buzzard should always be imported the first time from the main thread
 """
 
-__version__ = "0.5.0b1"
+__version__ = "0.5.0"
 
 # Import osgeo before cv2
 import osgeo as _
@@ -60,8 +60,6 @@ from buzzard._datasource_pools_container import PoolsContainer
 
 # Misc
 from buzzard._env import env
-
-# TODO for 0.5.0: Export the new concrete classes
 
 # Public submodules
 import buzzard.utils
