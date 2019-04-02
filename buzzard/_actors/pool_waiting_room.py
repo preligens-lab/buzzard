@@ -155,7 +155,7 @@ class ActorPoolWaitingRoom(object):
         return []
 
     def receive_salvage_token(self, token):
-        """Receive message: A Job is done/cancelled, allow some other job
+        """Receive message: A Job is done/cancelled, allow some other jobs
 
         Parameters
         ----------
@@ -170,7 +170,7 @@ class ActorPoolWaitingRoom(object):
             return []
         else:
             token_count = len(self._tokens)
-            assert token_count == 1, """The way this class is designed, this point in code is only
+            assert token_count == 1, """The way this class is designed, this point in code should only
             reached if token_count == 1"""
 
             job = self._unstore_most_urgent_job()

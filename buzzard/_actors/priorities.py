@@ -1,7 +1,7 @@
 
 class Priorities(object):
-    """Small class that represent a single version of the priorities among tasks. A new one is
-    instanciated and broadcasted as soon as the priorities changes.
+    """Small class that represents a single version of the priorities among tasks. A new one is
+    instantiated and broadcasted as soon as the priorities change.
 
     """
     __slots__ = ['_prio_actor', '_db_version']

@@ -10,7 +10,7 @@ from buzzard._actors.cached.query_infos import CacheComputationInfos
 LOGGER = logging.getLogger(__name__)
 
 class ActorCacheSupervisor(object):
-    """Actor that takes care of tracking, checking and schedule computation of cache files"""
+    """Actor that takes care of tracking, checking and scheduling computation of cache files"""
 
     def __init__(self, raster):
         """

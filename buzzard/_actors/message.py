@@ -7,7 +7,7 @@ class Msg(object):
     """Message exchanged:
     - between two actors (receiver method prefixed by `receive_`)
     - from scheduler to actor (receiver method prefixed by `ext_receive_`)
-    - from user's thread to scheduler to actor (receiver method prefixed by `ext_receive_`)
+    - from user's thread to scheduler to actor (receiver method also prefixed by `ext_receive_`)
     """
     __slots__ = ['address', 'title', 'args']
 

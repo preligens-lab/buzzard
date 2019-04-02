@@ -49,7 +49,7 @@ class ActorPoolWorkingRoom(object):
         return [Msg('WaitingRoom', 'salvage_token', token)]
 
     def receive_cancel_job(self, job):
-        """Receive message: A Job you launched can be discarded. Loose the reference to the future
+        """Receive message: A Job you launched can be discarded. Lose the reference to the future
 
         Parameters
         ----------

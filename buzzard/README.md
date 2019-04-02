@@ -46,12 +46,12 @@ All concrete 'facade' that directly or indirectly inherit from `AVectorProxy` (a
 ## `_actors` directory
 Contains all the code that runs on the `DataSource`'s dedicated thread (the scheduler) (except for the thread's main loop that lies in `_datasource_back_scheduler.py`). The mission of those files is to make the `AsyncRaster` instances work. It is implemented with a lightweight message passing design really close to the actor model, the main difference is that all actors run in a fully synchronous way, it allows a lot of freedom in the design:
 - Almost no stale messages because messages are delivered in a `depth first` fashion.
-- Ability to share some mutable states between actors. (This is used only a few time because it tends to make the code unpredictable)
+- Ability to share some mutable states between actors. (This is used only a few times because it tends to make the code unpredictable)
 <br/>
 
 To get a quick taste of how it works you should look at those lines of code:
 - The full `buzzard/_datasource_back_scheduler.py` file
-- All the classes that inherit from `AsyncRaster` in `buzzard/*.py`.
+- All the classes that inherit from `AsyncRaster` in `buzzard/*.py`
 - The `buzzard/_actors/message.py` file
 - At least one actor, for example the `buzzard/_actors/cached/writer.py` that is pretty straightforward and well documented.
 
@@ -74,7 +74,7 @@ Contains the code specific to the `AsyncStoredRaster` (`DataSource.(open|create)
 ---
 
 ## `_tools` directory
-- All standalone tools that makes implementation easier
+- All standalone tools that make implementation easier.
 
 #### `_tools/conv/*.py`
 Conversions from gdal types and enums to pythonic ones
@@ -92,7 +92,7 @@ Mostly unstable stuff, will be reorganized in the future
 ---
 
 ## `utils/*.py` files
-Contains utility code for buzzard's users. Like pre-built recipes.
+Contains utility code for buzzard's users, like pre-built recipes.
 
 ---
 

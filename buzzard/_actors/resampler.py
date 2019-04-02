@@ -10,7 +10,7 @@ from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 from buzzard._a_proxy_raster_remap import ABackProxyRasterRemapMixin
 
 class ActorResampler(object):
-    """Actor that takes care of resamplig sample tiles, and wait for all
+    """Actor that takes care of resampling sample tiles, and wait for all
     resamplings to be performed for a production array.
     """
 
@@ -141,7 +141,7 @@ class ActorResampler(object):
         return msgs
 
     def receive_token_to_working_room(self, job, token):
-        """Receive message: Waiting job can proceede to working room"""
+        """Receive message: Waiting job can proceed to the working room"""
         self._waiting_jobs.remove(job)
 
         work = self._create_interpolation_work_job(

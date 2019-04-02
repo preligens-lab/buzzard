@@ -22,23 +22,23 @@ class AAsyncRaster(AProxyRaster):
         """Read several rectangles of data on several channels from the source raster.
 
         Using `queue_data` instead of multiple calls to `get_data` allows more parallelism.
-        The `fps` parameter should contain a sequence of Footprint, that will be mapped to
-        numpy.ndarray. The first ones will be computed with a higher priority than the later one.
+        The `fps` parameter should contain a sequence of `Footprint` that will be mapped to
+        `numpy.ndarray`. The first one will be computed with a higher priority than the later one.
 
         Calling this method sends an asynchronous message to the DataSource's scheduler with the
         input parameters and a queue. On the input side of the queue, the scheduler will call the
         `put` method with each array requested. On the output side of the queue, the `get` method
-        should be called to retrieve the arrays requested.
+        should be called to retrieve the requested arrays.
 
         The output queue will be created with a max queue size of `max_queue_size`, the scheduler
-        will be careful to only prepare the arrays that can fit in the output queue. Thanks to this
-        feature: backpressure can be fully avoided throughout buzzard.
+        will be careful to prepare only the arrays that can fit in the output queue. Thanks to this
+        feature: backpressure can be entirely avoided.
 
         If you wish to cancel your request, loose the reference to the queue and the scheduler will
         gracefuly cancel the query.
 
         In general you should use the `iter_data` method instead of the `queue_data` one, it is much
-        safer to use. Though you will need to pass the `queue_data` method of a raster, to create
+        safer to use. However you will need to pass the `queue_data` method of a raster, to create
         another raster (a recipe) that depends on the first raster.
 
         see `get_data` documentation, it shares most of the concepts
@@ -80,7 +80,7 @@ class AAsyncRaster(AProxyRaster):
         DataSource's scheduler to reraise an exception if it crashed.
 
         If you wish to cancel your request, loose the reference to generator and the scheduler will
-        gracefuly cancel the query.
+         gracefully cancel the query.
 
         see `get_data` documentation, it shares most of the concepts
         see `queue_data` documentation, it is called from within the `iter_data` method

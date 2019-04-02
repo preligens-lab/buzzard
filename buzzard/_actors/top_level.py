@@ -9,8 +9,8 @@ from buzzard._actors.global_priorities_watcher import ActorGlobalPrioritiesWatch
 class ActorTopLevel(object):
     """Actor that takes care of the lifetime of all other actors.
 
-    That is the only actor that is instanciated by the scheduler. All other actors are
-    instanciated here.
+    This is the only actor that is instantiated by the scheduler. All other actors are
+    instantiated from here.
 
     This class does not implement a `die` method, since destroying this actor is the same event
     as stopping the scheduler's loop. If a destruction is ever needed, call a die method from
@@ -55,7 +55,7 @@ class ActorTopLevel(object):
         self._rasters.add(raster)
         raster.debug_mngr.event('raster_started', raster.facade_proxy)
 
-        # Instanciate raster's actors ******************************************
+        # Instantiate raster's actors ******************************************
         actors = raster.create_actors()
         msgs += actors
         self._actor_addresses_of_raster[raster] = [
@@ -64,7 +64,7 @@ class ActorTopLevel(object):
         ]
         del actors
 
-        # Instanciate pools' actors ********************************************
+        # Instantiate pools' actors ********************************************
         pools = {
             id(pool): pool
             for attr in [
@@ -125,7 +125,7 @@ class ActorTopLevel(object):
             for pool in [getattr(raster, attr)]
             if pool is not None
         }
-        for pool_id, pool in pools.items():
+        for pool_id in pools.keys():
             self._rasters_per_pool[pool_id].remove(raster)
             if len(self._rasters_per_pool[pool_id]) == 0:
                 del self._rasters_per_pool[pool_id]

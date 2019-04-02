@@ -122,7 +122,7 @@ class BackDataSourceSchedulerMixin(object):
         # Stack of pending messages
         piles_of_msgs = [] # type: List[Tuple[Actor, List[Union[Msg, Actor]]]]
 
-        # Instanciate and register the top level actor
+        # Instantiate and register the top level actor
         top_level_actor = ActorTopLevel()
         _register_actor(top_level_actor)
         piles_of_msgs.append(

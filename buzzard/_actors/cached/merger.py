@@ -9,7 +9,7 @@ from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 
 class ActorMerger(object):
-    """Actor that takes care of merging several array into one fp"""
+    """Actor that takes care of merging several arrays into one fp"""
 
     def __init__(self, raster):
         self._raster = raster

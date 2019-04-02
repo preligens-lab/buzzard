@@ -6,7 +6,7 @@ from buzzard._actors.cached.query_infos import CachedQueryInfos
 LOGGER = logging.getLogger(__name__)
 
 class ActorQueriesHandler(object):
-    """Actor that takes care of the lifetime of a raster's queries"""
+    """Actor that takes care of a raster's queries lifetime"""
 
     def __init__(self, raster):
         """
@@ -111,7 +111,7 @@ class ActorQueriesHandler(object):
 
     def receive_made_this_array(self, qi, prod_idx, array):
         """Receive message: This array is ready to be sent to the output queue. Just do it in the
-        righ order.
+        right order.
 
         Parameters
         ----------

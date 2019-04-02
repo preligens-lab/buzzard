@@ -11,7 +11,7 @@ from buzzard._actors.priorities import Priorities
 from buzzard._actors.message import Msg
 
 class ActorGlobalPrioritiesWatcher(object):
-    """Actor that takes care of memorizing priority informations between all sub-tasks in all
+    """Actor that takes care of memorizing priority information between all sub-tasks in all
     ongoing queries. Everytime a priority changes all `ActorPoolWaitingRoom` are notified.
 
     This class does not implement a `die` method, since destroying this actor is the same event
@@ -85,7 +85,7 @@ class ActorGlobalPrioritiesWatcher(object):
         return msgs
 
     def receive_cancel_this_query(self, raster_uid, qi):
-        """Receive message: A query was cancelled, update
+        """Receive message: A query was cancelled, updated
 
         If this query started a collection phase, those cache tiles should be updated if necessary.
         """
@@ -123,7 +123,7 @@ class ActorGlobalPrioritiesWatcher(object):
     def receive_output_queue_update(self, raster_uid, qi, produced_count, queue_size):
         """Receive message: The output queue of a query changed in size.
 
-        If the number of array pulled from this queue changed:
+        If the number of arrays pulled from this queue changed:
           - Update the query priority
           - If this query started a collection phase, those cache tiles should be updated if
             necessary.
@@ -202,7 +202,7 @@ class ActorGlobalPrioritiesWatcher(object):
             query_pulled_count = ds1[qi]
 
         # Priority on `produced arrays` needed soon
-        prio =  prod_idx - query_pulled_count
+        prio = prod_idx - query_pulled_count
         # TODO: What if prio is negative? Is it a problem?
         return (prio,)
 

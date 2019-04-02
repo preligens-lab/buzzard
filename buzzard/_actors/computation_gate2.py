@@ -50,7 +50,7 @@ class ActorComputationGate2(object):
         """
         msgs = []
 
-        qi, prim_name = queue_key
+        qi, _ = queue_key
         if qi in self._queries:
             q = self._queries[qi]
             msgs += self._allow(qi, q)

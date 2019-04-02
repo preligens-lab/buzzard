@@ -9,7 +9,7 @@ class ActorComputationAccumulator(object):
     when slicing the numpy array of A into chunks (a, b, c, d), no copy is performed,
     the 4 arrays internally point to A.
     The pointer to A is only released when all 4 cache footprints have been merged.
-    In some cases it would be a good choice to duplicate the slices of A to release
+    In some cases, it might be a good choice to duplicate the slices of A to release
     memory.
 
     """

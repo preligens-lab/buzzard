@@ -2,7 +2,7 @@ from buzzard._a_async_raster import ABackAsyncRaster, AAsyncRaster
 
 class ARasterRecipe(AAsyncRaster):
     """Base abstract class defining the common behavior of all rasters that compute data on the fly
-    DataSource's scheduler.
+    through the DataSource's scheduler.
 
     Features Defined
     ----------------

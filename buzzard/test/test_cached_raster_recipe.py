@@ -92,8 +92,8 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
 
     print() # debug line
     fp = buzz.Footprint(
-        rsize=(100,100),
-        size=(100,100),
+        rsize=(100, 100),
+        size=(100, 100),
         tl=(1000, 1100),
     )
     compute_same_address_space = (

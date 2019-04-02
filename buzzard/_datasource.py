@@ -207,7 +207,7 @@ class DataSource(DataSourceRegisterMixin):
     Scheduler
     ---------
     As soon as you create an *async raster*, a thread is spawned to manage requests made to the
-    *async rasters*. It will live until the DataSource is closed or collected. If one of your script
+    *async rasters*. It will live until the DataSource is closed or collected. If one of your scripts
     called by the scheduler raises an exception, the scheduler will stop and the exception will be
     propagated to the main thread as soon as possible.
 
@@ -618,7 +618,7 @@ class DataSource(DataSourceRegisterMixin):
         automatic_remapping: bool
             see `Automatic Remapping` below
         debug_observers: sequence of object
-            Entry points to observe what is happening with this raster in the DataSource's sheduler.
+            Entry points that observe what is happening with this raster in the DataSource's scheduler.
 
         Returns
         -------
@@ -669,7 +669,7 @@ class DataSource(DataSourceRegisterMixin):
         parameter.
 
         If `computation_tiles` is a numpy.ndarray of Footprint, it should be a tiling of the `fp`
-        parameter, only the Footprints contained in this tiling will be asked to the
+        parameter. Only the Footprints contained in this tiling will be asked to the
         `computation_tiles`.
         If `computation_tiles` is (int, int), a tiling will be constructed using Footprint.tile
         using those two ints.
@@ -728,21 +728,21 @@ class DataSource(DataSourceRegisterMixin):
         parameters using `functools.partial`.
 
         The `convert_footprint_per_primitive` dict should contain the same keys as
-        `queue_data_per_primitive`. A value in the dict should be a function that maps as Footprint
-        to another Footprint. It can be used for exemple to request larger rectangles of primitives
+        `queue_data_per_primitive`. A value in the dict should be a function that maps a Footprint
+        to another Footprint. It can be used for example to request larger rectangles of primitives
         data to compute a derived array.
 
-        e.g. If the primitive raster is an `rgb` image, and the derived raster only need the green
+        e.g. If the primitive raster is an `rgb` image, and the derived raster only needs the green
         band but with a context of 10 additional pixels on all 4 sides:
         >>> derived = ds.create_raster_recipe(
-        ...     # other parameters
+        ...     # <other parameters>
         ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, band=2)},
         ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
         ... )
 
         Pools
         -----
-        The `*_pool` parameters can be used to select where certain computation occur. Those
+        The `*_pool` parameters can be used to select where certain computations occur. Those
         parameters can be of the following types:
         - A _multiprocessing.pool.ThreadPool_, should be the default choice.
         - A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the
@@ -812,7 +812,7 @@ class DataSource(DataSourceRegisterMixin):
             files are present, they will be reused (or erased if corrupted). If a cache file is
             needed and missing, it will be computed.
         ow: bool
-            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`.
+            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`. Warning: not only the tiles needed (hence computed) but all cached files in `cache_dir` will be deleted.
         queue_data_per_primitive:
             see `create_raster_recipe` method
         convert_footprint_per_primitive:
@@ -959,7 +959,7 @@ class DataSource(DataSourceRegisterMixin):
             cache_dir, overwrite,
             primitives_back, primitives_kwargs, convert_footprint_per_primitive,
             computation_pool, merge_pool, io_pool, resample_pool,
-            cache_tiles,computation_tiles,
+            cache_tiles, computation_tiles,
             max_resampling_size,
             debug_observers,
         )
@@ -1276,7 +1276,7 @@ class DataSource(DataSourceRegisterMixin):
         - Some unknown library storing data in global variables
 
         You can use a `debug_observer` with an `on_object_allocated` method to track large objects
-        allocated in the scheduler. It will most likely not be the source of the problem. If you
+        allocated in the scheduler. It will likely not be the source of the problem. If you
         even find a source of leaks please contact the buzzard team.
         https://github.com/airware/buzzard/issues
 
@@ -1339,7 +1339,7 @@ class DataSource(DataSourceRegisterMixin):
             ))
 
         # Hacky implementation to get the expected behavior
-        # TODO: Implement that routine in the back driver pool. It is possible? We need to call `.activate`
+        # TODO: Implement that routine in the back driver pool. Is it possible? We need to call `.activate`
         i = 0
         for prox in itertools.cycle(proxs):
             if i == total:

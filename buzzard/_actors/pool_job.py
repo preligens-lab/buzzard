@@ -4,7 +4,7 @@ class PoolJobWaiting:
 
     A waiting job has a priority, it waits for a token in a PoolWaitingRoom with other waiting jobs.
     This token allows a waiting job to become a working job, and go to the PoolWorkingRoom to
-    get some computation done.
+    get some computations done.
     """
     def __init__(self, sender_address):
         self.sender_address = sender_address

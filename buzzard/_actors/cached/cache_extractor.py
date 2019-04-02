@@ -25,7 +25,7 @@ class ActorCacheExtractor(object):
 
     # ******************************************************************************************* **
     def receive_sample_those_cache_files_to_an_array(self, qi, prod_idx):
-        """Receive message: An array is needed soon at it requires one or more read operations.
+        """Receive message: An array is needed soon as it requires one or more read operations.
         Please perform those reads when the cache files are ready.
         """
         msgs = []
@@ -45,7 +45,7 @@ class ActorCacheExtractor(object):
         return msgs
 
     def receive_cache_files_ready(self, path_of_cache_files_ready):
-        """Receive message: A cache file is ready, you might already known it.
+        """Receive message: A cache file is ready, you might already know it.
 
         Parameters:
         path_of_cache_files_ready: dict from Footprint to str
