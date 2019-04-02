@@ -1,7 +1,8 @@
 import os
 import uuid
 import functools
-import hashlib
+
+import numpy as np
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
@@ -120,13 +121,30 @@ class Work(PoolJobWorking):
 
         super().__init__(actor.address, func)
 
-def _md5(fname):
-    """https://stackoverflow.com/a/3431838/4952173"""
-    hash_md5 = hashlib.md5()
+def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
+    # https://github.com/airware/buzzard/pull/39/#discussion_r239071556
+    dtype = np.dtype(dtype)
+    dtypesize = dtype.itemsize
+    assert buffer_size % dtypesize == 0
+    assert np.issubdtype(dtype, np.unsignedinteger)
+
+    acc = dtype.type(0)
     with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+        with np.warnings.catch_warnings():
+            np.warnings.filterwarnings('ignore', r'overflow encountered')
+
+            for chunk in iter(lambda: f.read(buffer_size), b""):
+                head = np.frombuffer(chunk, dtype, count=len(chunk) // dtypesize)
+                head = np.add.reduce(head, dtype=dtype, initial=acc)
+                acc += head
+
+                tailsize = len(chunk) % dtypesize
+                if tailsize > 0:
+                    # This should only be needed for file's tail
+                    tail = chunk[-tailsize:] + b'\0' * (dtypesize - tailsize)
+                    tail = np.frombuffer(tail, dtype)
+                    acc += tail
+        return '{:016x}'.format(np.asscalar(acc))
 
 def _cache_file_write(array,
                       dir_path, filename_prefix, filename_suffix,
@@ -136,7 +154,7 @@ def _cache_file_write(array,
     It can't use the datasource's activation pool because the file must be closed after
     writing to:
     1. flush to disk
-    2. md5hash
+    2. checksum
     3. be renamed
 
     Parameters
@@ -178,12 +196,11 @@ def _cache_file_write(array,
                        sr=sr, options=options).close as r:
         r.set_data(array, band=-1)
 
-    # Step 2. md5 hash file
-    # TODO: Is a checksum quicker?
-    md5 = _md5(src_path)
+    # Step 2. checksum hash file
+    checksum = _checksum(src_path)
 
     # Step 3. move file to its final location
-    dst_path = os.path.join(dir_path, filename_prefix + '_' + md5 + filename_suffix)
+    dst_path = os.path.join(dir_path, filename_prefix + '_' + checksum + filename_suffix)
 
     # TODO: Undefined if it exists, but it will most likely work
     # TODO: chmod to remove write access?

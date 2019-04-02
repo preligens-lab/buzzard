@@ -1,10 +1,11 @@
 import logging
 import functools
 import os
-import hashlib
 import contextlib
 import multiprocessing as mp
 import multiprocessing.pool
+
+import numpy as np
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import MaxPrioJobWaiting, PoolJobWorking
@@ -111,13 +112,30 @@ class Work(PoolJobWorking):
         actor._raster.debug_mngr.event('object_allocated', func)
         super().__init__(actor.address, func)
 
-def _md5(fname):
-    """https://stackoverflow.com/a/3431838/4952173"""
-    hash_md5 = hashlib.md5()
+def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
+    # https://github.com/airware/buzzard/pull/39/#discussion_r239071556
+    dtype = np.dtype(dtype)
+    dtypesize = dtype.itemsize
+    assert buffer_size % dtypesize == 0
+    assert np.issubdtype(dtype, np.unsignedinteger)
+
+    acc = dtype.type(0)
     with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+        with np.warnings.catch_warnings():
+            np.warnings.filterwarnings('ignore', r'overflow encountered')
+
+            for chunk in iter(lambda: f.read(buffer_size), b""):
+                head = np.frombuffer(chunk, dtype, count=len(chunk) // dtypesize)
+                head = np.add.reduce(head, dtype=dtype, initial=acc)
+                acc += head
+
+                tailsize = len(chunk) % dtypesize
+                if tailsize > 0:
+                    # This should only be needed for file's tail
+                    tail = chunk[-tailsize:] + b'\0' * (dtypesize - tailsize)
+                    tail = np.frombuffer(tail, dtype)
+                    acc += tail
+        return '{:016x}'.format(np.asscalar(acc))
 
 def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
     exn = None
@@ -161,10 +179,10 @@ def _is_ok(cache_fp, path, band_count, dtype, back_ds_opt):
             raise RuntimeError('invalid band_count ({} instead of {})'.format(file_len, band_count))
     del gdal_ds
 
-    md5 = path
-    md5 = md5.split('.')[-2]
-    md5 = md5.split('_')[-1]
-    new_md5 = _md5(path)
-    if new_md5 != md5: # pragma: no cover
-        raise RuntimeError('invalid md5 ({} instead of {})'.format(new_md5, md5))
+    checksum = path
+    checksum = checksum.split('.')[-2]
+    checksum = checksum.split('_')[-1]
+    new_checksum = _checksum(path)
+    if new_checksum != checksum: # pragma: no cover
+        raise RuntimeError('invalid checksum ({} instead of {})'.format(new_checksum, checksum))
     return True
