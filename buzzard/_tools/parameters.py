@@ -1,6 +1,5 @@
 """Private tools to normalize functions parameters"""
 
-import numbers
 import collections
 import logging
 import functools
