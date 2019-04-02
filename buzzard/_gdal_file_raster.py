@@ -89,6 +89,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             [driver],
             options,
         )
+
         if gdal_ds is None: # pragma: no cover
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
                 path, driver, str(gdal.GetLastErrorMsg()).strip('\n')

@@ -26,6 +26,7 @@ def pytest_generate_tests(metafunc):
                 mp.pool.Pool(2),
         ]:
             # TODO: test with different pools
+            # TODO: test with spawn/forks
             argvalues.append(dict(
                 io={'io_pool': pval},
                 computation={'computation_pool': pval},
