@@ -11,6 +11,9 @@ from buzzard._tools import conv
 class GDALFileVector(APooledEmissaryVector):
     """Concrete class defining the behavior of a GDAL vector using a file
 
+    >>> help(DataSource.open_vector)
+    >>> help(DataSource.create_vector)
+
     Features Defined
     ----------------
     None

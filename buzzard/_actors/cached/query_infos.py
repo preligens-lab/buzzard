@@ -24,8 +24,8 @@ class CacheFootprint(Footprint):
     """
 
 class SampleFootprint(Footprint):
-    """A Footprint that has to be sampled from cache files. This Footprint is on the same grid and
-    contained in the raster. It spans on 1 or more cache files.
+    """A Footprint that has to be sampled from one or more cache files. This Footprint is aligned
+    and contained in the raster.
 
     A `sample array` is allocated uninitiallized and cache files are read to this array.
     """

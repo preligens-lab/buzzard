@@ -5,6 +5,8 @@ from buzzard._a_stored_raster import AStoredRaster, ABackStoredRaster
 class NumpyRaster(AStoredRaster):
     """Concrete class defining the behavior of a wrapped numpy array
 
+    >>> help(DataSource.wrap_numpy_raster)
+
     Features Defined
     ----------------
     - Has an `array` property that points to the numpy array provided at construction.

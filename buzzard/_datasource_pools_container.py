@@ -4,6 +4,7 @@ import multiprocessing as mp
 import multiprocessing.pool
 
 class PoolsContainer(object):
+    """Manages thread/process pools and aliases for a DataSource"""
 
     def __init__(self):
         self._aliases_per_pool = collections.defaultdict(set)

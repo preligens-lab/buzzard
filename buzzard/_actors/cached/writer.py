@@ -167,6 +167,7 @@ def _cache_file_write(array,
     )
 
     # TODO: Allow the user to choose the type and options of cache files
+    # TODO: Use driver-object allocator
     options = [
         "TILED=YES",
         "BLOCKXSIZE=256", "BLOCKYSIZE=256",

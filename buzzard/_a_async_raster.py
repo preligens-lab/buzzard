@@ -8,6 +8,8 @@ from buzzard import _tools
 from buzzard._actors.message import Msg
 from buzzard._debug_observers_manager import DebugObserversManager
 
+QUEUE_POLL_DISTANCE = 0.1
+
 class AAsyncRaster(AProxyRaster):
     """Base abstract class defining the common behavior of all rasters that are managed by the
     DataSource's scheduler.
@@ -41,7 +43,7 @@ class AAsyncRaster(AProxyRaster):
         safer to use. However you will need to pass the `queue_data` method of a raster, to create
         another raster (a recipe) that depends on the first raster.
 
-        see `get_data` documentation, it shares most of the concepts
+        see rasters' `get_data` documentation, it shares most of the concepts
 
         Parameters
         ----------
@@ -82,7 +84,7 @@ class AAsyncRaster(AProxyRaster):
         If you wish to cancel your request, loose the reference to generator and the scheduler will
          gracefully cancel the query.
 
-        see `get_data` documentation, it shares most of the concepts
+        see rasters' `get_data` documentation, it shares most of the concepts
         see `queue_data` documentation, it is called from within the `iter_data` method
 
         Parameters
@@ -151,11 +153,10 @@ class ABackAsyncRaster(ABackProxyRaster):
                             None, None)
         def _iter_data_generator():
             i = 0
-            n = len(fps)
             while True:
                 try:
                     while i < len(fps):
-                        arr = q.get(True, 1 / 10)
+                        arr = q.get(True, timeout=QUEUE_POLL_DISTANCE)
                         yield arr
                         i += 1
                     return

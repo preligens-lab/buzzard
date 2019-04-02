@@ -9,7 +9,10 @@ from buzzard._tools import conv
 from buzzard._footprint import Footprint
 
 class GDALFileRaster(APooledEmissaryRaster):
-    """Concrete class defining the behavior of a GDAL raster using a file
+    """Concrete class defining the behavior of a GDAL raster using a file.
+
+    >>> help(DataSource.open_raster)
+    >>> help(DataSource.create_raster)
 
     Features Defined
     ----------------

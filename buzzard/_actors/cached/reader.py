@@ -5,7 +5,6 @@ import multiprocessing.pool
 import contextlib
 
 import numpy as np
-from osgeo import gdal
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking

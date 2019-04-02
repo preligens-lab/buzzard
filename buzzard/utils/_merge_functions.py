@@ -9,6 +9,7 @@ def concat_arrays(fp, array_per_fp, _):
     for a in array_per_fp.values():
         band_count = a.shape[-1]
         dtype = a.dtype
+        break
     arr = np.empty(np.r_[fp.shape, band_count], dtype)
 
     # Burn

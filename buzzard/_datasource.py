@@ -1,11 +1,11 @@
 """>>> help(buzz.DataSource)"""
 
 # pylint: disable=too-many-lines
-import ntpath
 import numbers
 import sys
 import pathlib
 import itertools
+from types import MappingProxyType
 
 from osgeo import osr
 import numpy as np
@@ -281,6 +281,8 @@ class DataSource(DataSourceRegisterMixin):
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
         """Open a raster file in this DataSource under `key`. Only metadata are kept in memory.
 
+        >>> help(GDALFileRaster)
+
         Parameters
         ----------
         key: hashable (like a string)
@@ -347,6 +349,9 @@ class DataSource(DataSourceRegisterMixin):
                       driver='GTiff', options=(), sr=None):
         """Create a raster file and register it under `key` in this DataSource. Only metadata are
         kept in memory.
+
+        >>> help(GDALFileRaster)
+        >>> help(GDALMemRaster)
 
         Parameters
         ----------
@@ -472,6 +477,8 @@ class DataSource(DataSourceRegisterMixin):
     def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this DataSource.
 
+        >>> help(NumpyRaster)
+
         Parameters
         ----------
         key: hashable (like a string)
@@ -559,7 +566,7 @@ class DataSource(DataSourceRegisterMixin):
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
 
             # primitives
-            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+            queue_data_per_primitive=MappingProxyType({}), convert_footprint_per_primitive=None,
 
             # pools
             computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
@@ -769,7 +776,7 @@ class DataSource(DataSourceRegisterMixin):
             cache_dir=None, ow=False,
 
             # primitives
-            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+            queue_data_per_primitive=MappingProxyType({}), convert_footprint_per_primitive=None,
 
             # pools
             computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
@@ -788,6 +795,8 @@ class DataSource(DataSourceRegisterMixin):
         `cache_tiles`, `cache_dir` and `ow`. They are all related to file system operations.
 
         see `create_raster_recipe` method, since it shares most of the features.
+
+        >>> help(CachedRasterRecipe)
 
         Parameters
         ----------
@@ -940,7 +949,7 @@ class DataSource(DataSourceRegisterMixin):
         # Misc *********************************************
         if max_resampling_size is not None:
             max_resampling_size = int(max_resampling_size)
-            if max_resampling_size <= 1:
+            if max_resampling_size <= 0:
                 raise ValueError('`max_resampling_size` should be >0')
 
         if cache_dir is None:
@@ -984,7 +993,7 @@ class DataSource(DataSourceRegisterMixin):
             cache_dir=None, ow=False,
 
             # primitives
-            queue_data_per_primitive={}, convert_footprint_per_primitive=None,
+            queue_data_per_primitive=MappingProxyType({}), convert_footprint_per_primitive=None,
 
             # pools
             computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
@@ -1011,6 +1020,8 @@ class DataSource(DataSourceRegisterMixin):
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
         """Open a vector file in this DataSource under `key`. Only metadata are kept in memory.
+
+        >>> help(GDALFileVector)
 
         Parameters
         ----------
@@ -1085,6 +1096,9 @@ class DataSource(DataSourceRegisterMixin):
                       driver='ESRI Shapefile', options=(), sr=None):
         """Create a vector file and register it under `key` in this DataSource. Only metadata are
         kept in memory.
+
+        >>> help(GDALFileVector)
+        >>> help(GDALMemoryVector)
 
         Parameters
         ----------
@@ -1164,7 +1178,7 @@ class DataSource(DataSourceRegisterMixin):
         geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
         fields = _tools.normalize_fields_defn(fields)
         if layer is None:
-            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
+            layer = '.'.join(os.path.basename(path).split('.')[:-1])
         else:
             layer = str(layer)
         driver = str(driver)
@@ -1225,6 +1239,12 @@ class DataSource(DataSourceRegisterMixin):
         for proxy, keys in self._keys_of_proxy.items():
             yield list(keys), proxy
 
+    def keys(self):
+        """Generate all proxy keys"""
+        for proxy, keys in self._keys_of_proxy.items():
+            for key in keys:
+                yield key
+
     def values(self):
         """Generate all proxies"""
         for proxy, _ in self._keys_of_proxy.items():
@@ -1237,6 +1257,11 @@ class DataSource(DataSourceRegisterMixin):
     # Pools infos ******************************************************************************* **
     @property
     def pools(self):
+        """Get the Pool Container.
+
+        >>> help(PoolsContainer)
+
+        """
         return self._back.pools_container
 
     # Cleanup *********************************************************************************** **
@@ -1384,23 +1409,38 @@ if sys.version_info < (3, 6):
             v.__set_name__(DataSource, k)
 
 def open_raster(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_raster`"""
+    """Shortcut for `DataSource().aopen_raster`
+
+    >>> help(DataSource.open_raster)
+    """
     return DataSource().aopen_raster(*args, **kwargs)
 
 def open_vector(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_vector`"""
+    """Shortcut for `DataSource().aopen_vector`
+
+    >>> help(DataSource.open_vector)
+    """
     return DataSource().aopen_vector(*args, **kwargs)
 
 def create_raster(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_raster`"""
+    """Shortcut for `DataSource().acreate_raster`
+
+    >>> help(DataSource.create_raster)
+    """
     return DataSource().acreate_raster(*args, **kwargs)
 
 def create_vector(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_vector`"""
+    """Shortcut for `DataSource().acreate_vector`
+
+    >>> help(DataSource.create_vector)
+    """
     return DataSource().acreate_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
-    """Shortcut for `DataSource().awrap_numpy_raster`"""
+    """Shortcut for `DataSource().awrap_numpy_raster`
+
+    >>> help(DataSource.wrap_numpy_raster)
+    """
     return DataSource().awrap_numpy_raster(*args, **kwargs)
 
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
@@ -1408,4 +1448,4 @@ _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
 })
 
 class _AnonymousSentry(object):
-    pass
+    """Sentry object used to instanciate anonymous proxies"""

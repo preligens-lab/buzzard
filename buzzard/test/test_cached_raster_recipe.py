@@ -1,5 +1,5 @@
 import multiprocessing as mp
-import multiprocessing
+import multiprocessing.pool
 import shutil
 import uuid
 import tempfile

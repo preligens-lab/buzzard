@@ -7,8 +7,6 @@ import numpy as np
 import rtree.index
 
 from buzzard._actors.message import Msg
-from buzzard import _tools
-from buzzard._footprint import Footprint
 from buzzard._a_raster_recipe import ARasterRecipe, ABackRasterRecipe
 
 from buzzard._actors.cached.cache_extractor import ActorCacheExtractor
@@ -29,6 +27,9 @@ from buzzard._actors.resampler import ActorResampler
 class CachedRasterRecipe(ARasterRecipe):
     """Concrete class defining the behavior of a raster computed on the fly and fills a cache to
     avoid subsequent computations.
+
+    >>> help(DataSource.create_cached_raster_recipe)
+
     """
     def __init__(
         self, ds,
@@ -39,8 +40,7 @@ class CachedRasterRecipe(ARasterRecipe):
         computation_pool, merge_pool, io_pool, resample_pool,
         cache_tiles, computation_tiles,
         max_resampling_size,
-
-            debug_observers,
+        debug_observers,
     ):
         back = BackCachedRasterRecipe(
             ds._back,
