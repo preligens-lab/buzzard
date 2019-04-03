@@ -6,6 +6,7 @@ import sys
 import pathlib
 import itertools
 from types import MappingProxyType
+import os
 
 from osgeo import osr
 import numpy as np
@@ -146,8 +147,10 @@ class DataSource(DataSourceRegisterMixin):
 
     If `analyse_transformation` is set to `True` (default), all coordinates conversions are
     tested against `buzz.env.significant` on file opening to ensure their feasibility or
-    raise an exception otherwise. This system is naive and very restrictive, a smarter
-    version is planned. Use with caution.
+    raise an exception otherwise. This system is naive and very restrictive, use with caution.
+    Although, disabling those tests is not recommended, ignoring floating point precision errors
+    can create unpredictable behaviors at the pixel level deep in your code. Those bugs can be
+    witnessed when zooming to infinity with tools like `qgis` or `matplotlib`.
 
     ### Terminology
     `sr`: Spatial reference
@@ -205,10 +208,11 @@ class DataSource(DataSourceRegisterMixin):
 
     Scheduler
     ---------
-    As soon as you create an *async raster*, a thread is spawned to manage requests made to the
-    *async rasters*. It will live until the DataSource is closed or collected. If one of your scripts
-    called by the scheduler raises an exception, the scheduler will stop and the exception will be
-    propagated to the main thread as soon as possible.
+    To handle *async rasters* living in a DataSource, a thread is to manage requests made to those
+    rasters. It will start as soon as you create an *async raster* and stop when the DataSource is
+    closed or collected. If one of your callbacks to be called by the scheduler raises an exception,
+    the scheduler will stop and the exception will be propagated to the main thread as soon as
+    possible.
 
     """
 

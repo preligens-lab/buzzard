@@ -100,7 +100,7 @@ _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
 _OPTIONS = {
     'significant': _EnvOption(_sanitize_significant, None, 8.0),
     'default_index_dtype': _EnvOption(_sanitize_index_dtype, None, 'int32'),
-    'warnings': _EnvOption(bool, None, True),
+    'warnings': _EnvOption(bool, None, True), # TODO: Remove
     'allow_complex_footprint': _EnvOption(bool, None, False),
 
     '_osgeo_use_exceptions': _EnvOption(bool, _set_up_osgeo_use_exception, gdal.GetUseExceptions()),

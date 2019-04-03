@@ -63,16 +63,35 @@ class BackDataSourceConversionsMixin(object):
                 pass
             elif isinstance(rect, Footprint):
                 if not an.ratio_valid:
-                    raise ValueError('Bad coord transformation for raster proxy: {}'.format(
-                        an.messages
-                    ))
+                    s = ('Error while checking if on-the-fly reprojection could be performed '
+                         'between between DataSource\'s `sr_work` and raster\'s `sr_virtual`. '
+                         'Cause: {} (The reprojection is too lossy).\n'
+                         'Solutions:\n'
+                         '- Pass those tests by reducing `buzz.env.significant`.\n'
+                         '- First reproject the raster (using `gdalwarp` for example).\n'
+                         '- Bypass those tests by passing `analyse_transformation=False` to the '
+                         'DataSource\'s constructor.\n'
+                         '- Use smaller coordinates.\n'
+                         '- Use different spatial references.\n'
+                         '- Avoid reprojections at all.\n'
+                         '>>> help(DataSource) # for more informations.').format(an.messages)
+                    raise ValueError(s)
             else:
                 minx, maxx, miny, maxy = rect
-                if minx != maxx and miny != maxy:
-                    if not an.inverse_valid:
-                        raise ValueError(
-                            'Bad coord transformation for vector proxy: {}'.format(an.messages)
-                        )
+                if minx != maxx and miny != maxy and not an.inverse_valid:
+                    s = ('Error while checking if on-the-fly reprojection could be performed '
+                         'between between DataSource\'s `sr_work` and vector\'s `sr_virtual`. '
+                         'Cause: {} (The reprojection is too lossy).\n'
+                         'Cause: The reprojection is too lossy and {}.\n'
+                         'Solutions:\n'
+                         '- Pass those tests by reducing `buzz.env.significant`.\n'
+                         '- Bypass those tests by passing `analyse_transformation=False` to the '
+                         'DataSource\'s constructor.\n'
+                         '- Use smaller coordinates.\n'
+                         '- Use different spatial references.\n'
+                         '- Avoid reprojections at all.\n'
+                         '>>> help(DataSource) # for more informations.').format(an.messages)
+                    raise ValueError(s)
 
         return to_work, to_virtual
 

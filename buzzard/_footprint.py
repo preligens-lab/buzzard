@@ -154,19 +154,11 @@ class Footprint(TileMixin, IntersectionMixin):
             if not env.allow_complex_footprint:
                 arr = np.asarray([[a, b, c], [d, e, f]])
                 arr = np.array2string(arr, precision=17).replace('\n', ' ')
-                raise ValueError((
-                    'Creating a non north-up/west-left footprint, '
-                    'env.allow_complex_footprint is False, '
-                    'affine matrix:{}'
-                ).format(arr))
-            if env.warnings:
-                arr = np.asarray([[a, b, c], [d, e, f]])
-                arr = np.array2string(arr, precision=17).replace('\n', ' ')
-                LOGGER.warning((
-                    'Creating a non north-up/west-left footprint, '
-                    'this feature has not been fully tests, '
-                    'affine matrix:{}'
-                ).format(arr))
+                s = ('Creating a non north-up/west-left Footprint. Buzzard is designed to handle '
+                     'those Footprints too, but no unit tests are there yet. '
+                     'Use buzz.Env(allow_complex_footprint=True) in a `with statement` to '
+                     'deactivate this error.affine matrix:\n{}').format(arr)
+                raise ValueError(s)
 
         rsizex, rsizey = rsize
         aff = affine.Affine(a, b, c, d, e, f)
@@ -237,9 +229,12 @@ class Footprint(TileMixin, IntersectionMixin):
         pxsize = np.abs(scale)
         significant_min = rect.significant_min(pxsize.min())
         if env.significant <= significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(significant_min, env.significant)
+            raise RuntimeError(s)
 
         abstract_grid_density = rect.abstract_grid_density(pxsize.min())
         rsize = np.around(rect.size / pxsize * abstract_grid_density, 0) / abstract_grid_density
@@ -472,9 +467,12 @@ class Footprint(TileMixin, IntersectionMixin):
 
             significant_min = rect.significant_min(np.abs(scale).min())
             if env.significant <= significant_min:
-                raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                    env.significant, significant_min,
-                ))
+                s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                     'significant digits are necessary to perform this operation, but '
+                     '`buzz.env.significant` is set to {}. Increase this value by using '
+                     'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+                ).format(significant_min, env.significant)
+                raise RuntimeError(s)
 
             slack_angles = rect.tr_slack_angles
             assert slack_angles[0] < slack_angles[1]
@@ -1096,13 +1094,19 @@ class Footprint(TileMixin, IntersectionMixin):
         bool
         """
         if env.significant <= self._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, self._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(self._significant_min, env.significant)
+            raise RuntimeError(s)
         if env.significant <= other._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, other._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(other._significant_min, env.significant)
+            raise RuntimeError(s)
         if (self.rsize != other.rsize).any():
             return False
 
@@ -1122,13 +1126,19 @@ class Footprint(TileMixin, IntersectionMixin):
         bool
         """
         if env.significant <= self._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, self._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(self._significant_min, env.significant)
+            raise RuntimeError(s)
         if env.significant <= other._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, other._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(other._significant_min, env.significant)
+            raise RuntimeError(s)
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
 
@@ -1305,11 +1315,13 @@ class Footprint(TileMixin, IntersectionMixin):
         if not isinstance(np.zeros(1, dtype=dtype)[0], numbers.Integral):
             op = None
 
-
         if env.significant <= self._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, self._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(self._significant_min, env.significant)
+            raise RuntimeError(s)
         largest_coord = np.abs(self.coords).max()
         spatial_precision = largest_coord * 10 ** -env.significant
         smallest_reso = self.pxsize.min()
@@ -1390,7 +1402,7 @@ class Footprint(TileMixin, IntersectionMixin):
         >>> import numpy as np
         >>> import networkx as nx
 
-        >>> with buzz.Env(warnings=0, allow_complex_footprint=1):
+        >>> with buzz.Env(allow_complex_footprint=1):
         ...     a = np.asarray([
         ...         [0, 1, 1, 1, 0],
         ...         [0, 1, 0, 0, 0],
