@@ -1,14 +1,3 @@
-
-"""
-# Part 5 - Caching downloads
-
-Any kind of operations can be performed in a computation function, including downloading.
-
-# Credits
-All images shown here belong to ESA/Hubble. See spacetelescope.org.
-
-"""
-
 import functools
 import os
 import multiprocessing as mp
@@ -71,7 +60,7 @@ def main():
     print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
 
     print('Closing and opening andromeda rasters again...')
-    ds.close() # TODO: `uncomment` or `close/reopen only the one`
+    ds.close()
     ds = buzz.DataSource(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=False)
 
