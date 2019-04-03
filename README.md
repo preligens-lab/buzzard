@@ -101,20 +101,22 @@ Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
 
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
 
-| Library       | Version  | Last     | Mandatory | License                                                                        | Comment                                                       |
-|---------------|----------|----------|-----------|--------------------------------------------------------------------------------|---------------------------------------------------------------|
-| gdal          | >=2.1.3  | 2.2.2    | Yes       | [MIT/X](https://github.com/OSGeo/gdal/blob/trunk/gdal/LICENSE.TXT)             | Hard to install. Will be included in `buzzard` wheels         |
-| opencv-python | >=3.1.0  | 3.3.0.10 | Yes       | [3-clause BSD](http://opencv.org/license.html)                                 | Easy to install with `opencv-python` wheels. Will be optional |
-| shapely       | >=1.6.1  | 1.6.1    | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)   |                                                               |
-| affine        | >=2.0.0  | 2.1.0    | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)     |                                                               |
-| numpy         | >=1.13.0 | 1.13.1   | Yes       | [numpy](https://docs.scipy.org/doc/numpy-1.10.0/license.html)                  |                                                               |
-| scipy         | >=0.19.1 | 0.19.1   | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                           |                                                               |
-| pint          | >=0.8.1  | 0.8.1    | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)            |                                                               |
-| six           | >=1.11.0 | 1.11.0   | Yes       | [MIT](https://github.com/benjaminp/six/blob/master/LICENSE)                    |                                                               |
-| chainmap      | >=1.0.2  | 1.0.2    | Yes       | [Python 2.7 license](https://bitbucket.org/jeunice/chainmap)                   | Only for python <3.2                                          |
-| pytest        | >=3.2.2  | 3.2.2    | No        | [MIT](https://docs.pytest.org/en/latest/license.html)                          | Only for tests                                                |
-| attrdict      | >=2.0.0  | 2.0.0    | Yes       | [MIT](https://github.com/bcj/AttrDict/blob/master/LICENSE.txt)                 |                                                               |
-| geopandas     |          | 0.3.0    | No        | [3-clause BSD](https://github.com/geopandas/geopandas/blob/master/LICENSE.txt) | Future dependency. Will be optional                           |
+| Library          | Version  | Mandatory | License                                                                              | Comment                                                       |
+|------------------|----------|-----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| gdal             | >=2.1.3  | Yes       | [MIT/X](https://github.com/OSGeo/gdal/blob/trunk/gdal/LICENSE.TXT)                   | Hard to install. Will be included in `buzzard` wheels         |
+| opencv-python    | >=3.1.0  | Yes       | [3-clause BSD](http://opencv.org/license.html)                                       | Easy to install with `opencv-python` wheels. Will be optional |
+| shapely          | >=1.6.1  | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)         |                                                               |
+| affine           | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
+| numpy            | >=1.13.0 | Yes       | [numpy](https://docs.scipy.org/doc/numpy-1.10.0/license.html)                        |                                                               |
+| scipy            | >=0.19.1 | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                                 |                                                               |
+| pint             | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               |
+| six              | >=1.11.0 | Yes       | [MIT](https://github.com/benjaminp/six/blob/master/LICENSE)                          |                                                               |
+| sortedcontainers | >=1.5.9  | Yes       | [apache](https://github.com/grantjenks/python-sortedcontainers/blob/master/LICENSE)  |                                                               |
+| Rtree            | >=0.8.3  | Yes       | [MIT](https://github.com/Toblerity/rtree/blob/master/LICENSE.txt)                    |                                                               |
+| scikit-image     | >=0.14.0 | Yes       | [scikit-image](https://github.com/scikit-image/scikit-image/blob/master/LICENSE.txt) |                                                               |
+| chainmap         | >=1.0.2  | Yes       | [Python 2.7 license](https://bitbucket.org/jeunice/chainmap)                         | Only for python <3.2                                          |
+| pytest           | >=3.2.2  | No        | [MIT](https://docs.pytest.org/en/latest/license.html)                                | Only for tests                                                |
+| attrdict         | >=2.0.0  | No        | [MIT](https://github.com/bcj/AttrDict/blob/master/LICENSE.txt)                       | Only for tests                                                |
 
 ## How to install
 
