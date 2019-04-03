@@ -28,7 +28,8 @@ from buzzard._footprint_intersection import IntersectionMixin
 LOGGER = logging.getLogger('buzzard')
 
 class Footprint(TileMixin, IntersectionMixin):
-    """Constant object representing the location and size of a spatially localized raster.
+    """Immutable object representing the location and size of a spatially localized raster. All
+    methods are thread-safe.
 
     The Footprint
     - is a toolbox class designed to locate a rectangle in both image space and geometry space

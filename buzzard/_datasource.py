@@ -214,6 +214,14 @@ class DataSource(DataSourceRegisterMixin):
     the scheduler will stop and the exception will be propagated to the main thread as soon as
     possible.
 
+    Thread-safety
+    -------------
+    Thread safety is one of the main concern of buzzard. Everything is thread-safe except:
+    - The raster write methods
+    - The vector write methods
+    - The raster read methods when using the GDAL::MEM driver
+    - The vector read methods when using the GDAL::Memory driver
+
     """
 
     def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
