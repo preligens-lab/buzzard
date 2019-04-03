@@ -1,5 +1,6 @@
 """
 # Part 2: Deriving the _slopes_ from a _dem_ using a _raster recipe_
+
 In _buzzard_ there are 3 types of raster managed by the _DataSource_'s scheduler:
 - _AsyncStoredRaster_, seen in `Part 1`,
 - _NocacheRasterRecipe_, seen in this part,
@@ -36,6 +37,7 @@ import example_tools
 from part1 import test_raster
 
 def main():
+    return # None of the features shown here are implemented yet
     path = example_tools.create_random_elevation_gtiff()
     ds = buzz.DataSource()
 

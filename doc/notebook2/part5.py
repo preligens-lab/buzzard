@@ -1,8 +1,11 @@
 
 """
-# Part 5 - Bonus
+# Part 5 - Caching downloads
 
-TODO: Give credit to spacetelescope.org
+Any kind of operations can be performed in a computation function, including downloading.
+
+# Credits
+All images shown here belong to ESA/Hubble. See spacetelescope.org.
 
 """
 
@@ -21,13 +24,14 @@ from part1 import test_raster
 
 ZOOMABLE_URLS = {
     'andromeda': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic1502a/',
-    # 'andromeda': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic1501a/', # Shape problem
     'monocerotis': 'https://cdn.spacetelescope.org/archives/images/zoomable/heic0503a/',
 
 }
 DOWNLOAD_POOL = mp.pool.ThreadPool(5)
 
 def main():
+    print("All images shown here belong to ESA/Hubble. See spacetelescope.org.\n")
+
     ds = buzz.DataSource(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=True)
 
@@ -93,7 +97,6 @@ def main():
         'monocerotis_zoom3', ds.monocerotis_zoom3.fp,
         ds.monocerotis_zoom3.get_data(band=-1)
     ))
-
 
 def open_zoomable_rasters(ds, name, overwrite):
     infos = example_tools.infos_of_zoomable_url(

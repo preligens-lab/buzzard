@@ -28,6 +28,8 @@ def main():
     with ds.aopen_raster(path).close as r:
         test_raster(r)
 
+    return # The NEXT features are not yet implemented
+
     print('Opening within scheduler')
     # Features:
     # - Disk reads are automatically tiled and parallelized

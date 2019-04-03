@@ -26,6 +26,7 @@ import example_tools
 from part1 import test_raster
 
 def main():
+    return # None of the features shown here are implemented yet
     ds = buzz.DataSource(allow_interpolation=True)
     pixel_per_line = {
         'mand_100px': 10,

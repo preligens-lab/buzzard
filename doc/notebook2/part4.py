@@ -1,6 +1,7 @@
 
 """
 # Part 4: Mandelbrot 10 mega pixels computed on the fly and cached on disk
+
 By using the DataSource.create_cached_raster_recipe factory you can create a recipe that caches the results tile by tile in a directory.
 
 The CachedRasterRecipe takes two tilings of the raster's Footprint as parameter, those tilings can be computed by using the `tile*` methods of the Footprint class:
@@ -100,22 +101,24 @@ def example():
         arr,
     ))
 
-    # # Test 4 - Colorize mandelbrot 100mpx ************************************ **
-    # ds.create_raster_recipe(
-    #     'mand_red',
-    #     fp=fp,
-    #     dtype='uint8',
-    #     band_count=3,
-    #     compute_array=colorize_mandelbrot,
-    #     queue_data_per_primitive={'mand': ds.mand_100mpx.queue_data},
-    #     computation_tiles=computation_tiling,
-    #     automatic_remapping=False,
-    # )
-    # example_tools.show_several_images((
-    #     'part of mandelbrot 10 mega pixels in red',
-    #     fp,
-    #     ds.mand_red.get_data(fp=fp),
-    # ))
+    return # The NEXT features are not yet implemented
+
+    # Test 4 - Colorize mandelbrot 100mpx ************************************ **
+    ds.create_raster_recipe(
+        'mand_red',
+        fp=fp,
+        dtype='uint8',
+        band_count=3,
+        compute_array=colorize_mandelbrot,
+        queue_data_per_primitive={'mand': ds.mand_100mpx.queue_data},
+        computation_tiles=computation_tiling,
+        automatic_remapping=False,
+    )
+    example_tools.show_several_images((
+        'part of mandelbrot 10 mega pixels in red',
+        fp,
+        ds.mand_red.get_data(fp=fp),
+    ))
 
 if __name__ == '__main__':
     if os.path.isdir(CACHE_DIR):
