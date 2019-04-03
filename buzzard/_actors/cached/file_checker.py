@@ -138,51 +138,52 @@ def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
         return '{:016x}'.format(np.asscalar(acc))
 
 def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
-    exn = None
-    try:
-        _is_ok(cache_fp, path, band_count, dtype, back_ds_opt)
-    except Exception as e:
-        valid = False
-        exn = e
-    else:
-        valid = True
-
-    if not valid:
-        if back_ds_opt is not None:
-            back_ds_opt.deactivate(path)
-        m = 'Removing {}'.format(path)
-        m += ' because {}'.format(exn)
-        LOGGER.warning(m)
-        os.remove(path)
-
-    return valid
-
-def _is_ok(cache_fp, path, band_count, dtype, back_ds_opt):
-    allocator = lambda: BackGDALFileRaster.open_file(path, 'GTiff', [], 'r')
-    with contextlib.ExitStack() as stack:
-        if back_ds_opt is None:
-            gdal_ds = allocator()
-        else:
-            gdal_ds = stack.enter_context(back_ds_opt.acquire_driver_object(path, allocator))
-
-        file_fp = Footprint(
-            gt=gdal_ds.GetGeoTransform(),
-            rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
-        )
-        file_dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
-        file_len = gdal_ds.RasterCount
-        if file_fp != cache_fp: # pragma: no cover
-            raise RuntimeError('invalid Footprint ({} instead of {})'.format(file_fp, cache_fp))
-        if file_dtype != dtype: # pragma: no cover
-            raise RuntimeError('invalid dtype ({} instead of {})'.format(file_dtype, dtype))
-        if file_len != band_count: # pragma: no cover
-            raise RuntimeError('invalid band_count ({} instead of {})'.format(file_len, band_count))
-    del gdal_ds
-
     checksum = path
     checksum = checksum.split('.')[-2]
     checksum = checksum.split('_')[-1]
     new_checksum = _checksum(path)
-    if new_checksum != checksum: # pragma: no cover
-        raise RuntimeError('invalid checksum ({} instead of {})'.format(new_checksum, checksum))
+    if new_checksum != checksum:
+        if back_ds_opt is not None:
+            back_ds_opt.deactivate(path)
+        LOGGER.warning('Removing {} because invalid checksum ({} instead of {})'.format(
+            path, new_checksum, checksum,
+        ))
+        os.remove(path)
+        return False
+
+    allocator = lambda: BackGDALFileRaster.open_file(path, 'GTiff', [], 'r') # This may raise
+    with contextlib.ExitStack() as stack:
+        try:
+            if back_ds_opt is None:
+                gdal_ds = allocator()
+            else:
+                gdal_ds = stack.enter_context(back_ds_opt.acquire_driver_object(path, allocator))
+
+            file_fp = Footprint(
+                gt=gdal_ds.GetGeoTransform(),
+                rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
+            )
+            file_dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
+            file_len = gdal_ds.RasterCount
+            if file_fp != cache_fp: # pragma: no cover
+                raise RuntimeError('invalid Footprint of {}({} instead of {})'.format(
+                    path, file_fp, cache_fp
+                ))
+            if file_dtype != dtype: # pragma: no cover
+                raise RuntimeError('invalid dtype of {}({} instead of {})'.format(
+                    path, file_dtype, dtype
+                ))
+            if file_len != band_count: # pragma: no cover
+                raise RuntimeError('invalid band_count of {}({} instead of {})'.format(
+                    path, file_len, band_count
+                ))
+            del gdal_ds
+        except Exception:
+            # Those exceptions should not trigger a cache file removal, because it might originate
+            # from a mistake in the code that does not mean that those files are corrupted. For exemple:
+            # - Maximum number of file descriptors reach
+            # - Mismatch in cache directories path
+            back_ds_opt.deactivate(path)
+            raise
+
     return True
