@@ -59,10 +59,10 @@ class CacheProduceInfos(NamedTuple(
         ('resample_sample_dep_fp', Mapping[ResampleFootprint, Union[None, SampleFootprint]]),
     ],
 )):
-    """Object that stores a lot of information about an array to produce"""
+    """Object that stores many informations about an array to produce"""
 
 class CachedQueryInfos(object):
-    """Object that stores a lot of information about a query. Most attributes are immutable.
+    """Object that stores many informations about a query. Most attributes are immutable.
     An instance of this class identifies a query among the actors, hence the
     `__hash__` implementation.
 
@@ -102,7 +102,7 @@ class CachedQueryInfos(object):
         # Build CacheProduceInfos objects **************************************
         to_zip = []
 
-        # The list of requested Footprints
+        # The list of Footprints requested
         list_of_prod_fp = list_of_prod_fp # type: List[ProductionFootprint]
         to_zip.append(list_of_prod_fp)
 
@@ -147,7 +147,10 @@ class CachedQueryInfos(object):
         to_zip.append(list_of_prod_resample_sample_dep_fp)
 
         it = zip(list_of_prod_fp, list_of_prod_same_grid, list_of_prod_share_area)
-        # TODO idea: What if i spawn a ProcessPoolExecutor if >100 prod. The same could be done for fp.tile. What about a global process pool executor in `buzz.env`?
+        # TODO: Speed up that piece of code
+        # - Code footprint with lower level code
+        # - Spawn a ProcessPoolExecutor when >100 prod. (The same could be done for fp.tile).
+        # - What about a global process pool executor in `buzz.env`?
         for prod_fp, same_grid, share_area in it:
             if not share_area:
                 # Resampling will be performed in one pass, on the scheduler
@@ -254,14 +257,14 @@ class CachedQueryInfos(object):
         return self is other
 
 class CacheComputationInfos(object):
-    """Object that stores information about a query's computation phase.
-    Instantiating this object also starts the primitive collection from the list of the missing cache
-    footprints. Primitive collection consists of creating new raster queries to
+    """Object that store informations about a computation phase of a query.
+    Instanciating this object also starts the primitives collection from the list of the cache
+    footprints missing. Primitive collection consists of creating new raster queries to
     primitive rasters.
     (e.g. to compute all the missing `slopes` cache files required by a query, a
     single query to `dsm` will be opened)
 
-    This object is instantiated for each query that requires missing cache file
+    This object is instanciated for each query that requires missing cache file
     """
 
     def __init__(self, qi, raster, list_of_cache_fp):
@@ -300,7 +303,7 @@ class CacheComputationInfos(object):
         self.to_collect_count = len(self.list_of_compute_fp) # type: int
         del l, seen
 
-        # Step 2 - List primitive Footprints
+        # Step 2 - List primtive Footprints
         self.primitive_fps_per_primitive = {
             name: tuple([func(fp) for fp in self.list_of_compute_fp])
             for name, func in raster.convert_footprint_per_primitive.items()

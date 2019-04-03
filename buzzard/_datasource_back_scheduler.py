@@ -115,7 +115,6 @@ class BackDataSourceSchedulerMixin(object):
 
         # List of actors that need to be kept alive with calls to `ext_receive_nothing`
         # `keep_alive_iterator` should never be iterated if `keep_alive_actors` is empty
-        # TODO Idea: Only check the actors related to Pools and exposed-queues
         keep_alive_actors = []
         keep_alive_iterator = _cycle_list(keep_alive_actors)
 
@@ -198,7 +197,6 @@ class BackDataSourceSchedulerMixin(object):
                 del msg
             src_actor = None
             msgs = None
-            # TODO: Update if needed
             msg = None
             dst_actor = None
             new_msgs = None

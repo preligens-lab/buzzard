@@ -38,7 +38,6 @@ class DataSource(DataSourceRegisterMixin):
     - GDALMemRaster,
     - NumpyRaster,
     - CachedRasterRecipe,
-    TODO for 0.5.0: Add others
     - GDALFileVector,
     - GDALMemoryVector.
 
