@@ -38,7 +38,6 @@ Table of Contents
 
 ## `buzzard` contains
 - a class to open/read/write/create GIS files: [`DataSource`](./buzzard/_datasource.py)
-- classes to interact with opened files: [`RasterPhysical`](./buzzard/_raster_physical.py) [`Vector`](./buzzard/_vector.py)
 - a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
 
 ## Simple example
@@ -78,7 +77,7 @@ for poly in ds.polygons.iter_data(None):
 ```
 
 ## Advanced (and fun 😊) examples
-Additional examples can be found here: [jupyter notebook](./doc/examples.ipynb).
+Additional examples can be found here: [basic examples](https://github.com/airware/buzzard/blob/master/doc/examples.ipynb), [async rasters](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
 
 ## Features
 - Raster and vector files opening
@@ -107,7 +106,7 @@ The following table lists dependencies along with the minimum version, their sta
 | opencv-python    | >=3.1.0  | Yes       | [3-clause BSD](http://opencv.org/license.html)                                       | Easy to install with `opencv-python` wheels. Will be optional |
 | shapely          | >=1.6.1  | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)         |                                                               |
 | affine           | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
-| numpy            | >=1.13.0 | Yes       | [numpy](https://docs.scipy.org/doc/numpy-1.10.0/license.html)                        |                                                               |
+| numpy            | >=1.15.0 | Yes       | [numpy](https://docs.scipy.org/doc/numpy-1.10.0/license.html)                        |                                                               |
 | scipy            | >=0.19.1 | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                                 |                                                               |
 | pint             | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               |
 | six              | >=1.11.0 | Yes       | [MIT](https://github.com/benjaminp/six/blob/master/LICENSE)                          |                                                               |
