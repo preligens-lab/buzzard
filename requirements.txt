@@ -9,6 +9,12 @@ six>=1.11.0
 Rtree>=0.8.3
 sortedcontainers>=1.5.9
 
+chainmap>=1.0.2 ; python_version <= '3.2'
+
 scikit-image>=0.14.0 ; python_version < '3.4'
 scikit-image>=0.14.0 ; python_version >= '3.5'
 scikit-image<=0.14.1 ; python_version == '3.4'
+
+numpy>=1.15 ; python_version < '3.4'
+numpy>=1.15 ; python_version >= '3.5'
+numpy<1.16 ; python_version == '3.4'
