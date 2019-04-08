@@ -6,6 +6,9 @@ affine>=2.0.0
 scipy>=0.19.1
 pint>=0.8.1
 six>=1.11.0
-scikit-image>=0.14.0
 Rtree>=0.8.3
 sortedcontainers>=1.5.9
+
+scikit-image>=0.14.0 ; python_version < '3.4'
+scikit-image>=0.14.0 ; python_version >= '3.5'
+scikit-image<=0.14.1 ; python_version == '3.4'

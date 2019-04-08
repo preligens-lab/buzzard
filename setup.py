@@ -18,7 +18,6 @@ reqs = [
 ]
 
 
-
 if sys.version_info < (3, 5) and sys.version_info >= (3, 4):
     reqs += ['scikit-image<=0.14.1'] # https://github.com/scikit-image/scikit-image/issues/3820
 else:
