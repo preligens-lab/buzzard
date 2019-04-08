@@ -3,6 +3,7 @@ import contextlib
 import numpy as np
 from osgeo import gdal, ogr, osr
 import shapely
+import shapely.ops
 import shapely.geometry as sg
 
 from buzzard._a_stored_vector import ABackStoredVector
@@ -173,7 +174,7 @@ class ABackGDALVector(ABackStoredVector):
             geom = geom
         elif self.to_virtual:
             if geom_type == 'coordinates':
-                geom = sg.asShape({
+                geom = sg.shape({
                     'type': self.type,
                     'coordinates': geom,
                 })

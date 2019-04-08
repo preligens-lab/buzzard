@@ -3,7 +3,14 @@ import numpy as np
 from buzzard._a_stored_raster import AStoredRaster, ABackStoredRaster
 
 class NumpyRaster(AStoredRaster):
-    """Concrete class defining the behavior of a wrapped numpy array"""
+    """Concrete class defining the behavior of a wrapped numpy array
+
+    >>> help(DataSource.wrap_numpy_raster)
+
+    Features Defined
+    ----------------
+    - Has an `array` property that points to the numpy array provided at construction.
+    """
 
     def __init__(self, ds, fp, array, band_schema, wkt, mode):
         self._arr_shape = array.shape
@@ -67,6 +74,7 @@ class BackNumpyRaster(ABackStoredRaster):
                 self.dtype
             )
         key = list(samplefp.slice_in(self.fp)) + [self._best_indexers_of_band_ids(band_ids)]
+        key = tuple(key)
         array = self._arr[key]
         if self._should_tranform:
             array = array * self.band_schema['scale'] + self.band_schema['offset']
@@ -112,19 +120,16 @@ class BackNumpyRaster(ABackStoredRaster):
         del dstfp
 
         # Write ****************************************************************
-        slices = list(fp.slice_in(self.fp))
+        slices = fp.slice_in(self.fp)
         for i in self._indices_of_band_ids(band_ids):
             if mask is not None:
-                self._arr[slices + [i]][mask] = array[..., i][mask]
+                self._arr[slices + (i,)][mask] = array[..., i][mask]
             else:
-                self._arr[slices + [i]] = array[..., i]
+                self._arr[slices + (i,)] = array[..., i]
 
     def fill(self, value, band_ids):
         for i in self._indices_of_band_ids(band_ids):
             self._arr[..., i] = value
-
-    def delete(self): # pragma: no cover
-        raise NotImplementedError('Numpy Raster does no allow deletion, use `close`')
 
     def close(self):
         super(BackNumpyRaster, self).close()

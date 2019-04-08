@@ -33,6 +33,20 @@ class BackDataSourceActivationPoolMixin(object):
                 raise ValueError('Attempting to deactivate a proxy currently used')
             self._ap_idle.pop_all_occurrences(uid)
 
+    def deactivate_many(self, uid_set):
+        # TODO idea: allow recursive uids to group activated rasters and allow group deactivation
+        if len(uid_set) == 0:
+            return
+        with self._ap_lock:
+            being_used = uid_set & self._ap_used.keys()
+            if being_used:
+                raise ValueError('Attempting to deactivate {} proxy currently used'.format(
+                    len(being_used)
+                ))
+            idle = self._ap_idle & uid_set
+            for uid in idle:
+                self._ap_idle.pop_all_occurrences(uid)
+
     def used_count(self, uid=None):
         """Count how many driver objects exist for uid"""
         with self._ap_lock:
@@ -91,6 +105,8 @@ class BackDataSourceActivationPoolMixin(object):
                     self._ap_used[uid] -= 1
                     assert self._ap_used[uid] >= 0
                     self._ap_idle.push_front(uid, obj)
+                    if self._ap_used[uid] == 0:
+                        del self._ap_used[uid]
 
         return _acquire()
 

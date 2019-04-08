@@ -153,6 +153,7 @@ jobs:
             mkdir -p venvs/27
             virtualenv venvs/27
             . venvs/27/bin/activate
+            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
@@ -187,6 +188,7 @@ jobs:
             mkdir -p venvs/34
             python -m venv ./venvs/34
             . venvs/34/bin/activate
+            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .
@@ -218,6 +220,7 @@ jobs:
             mkdir -p venvs/36
             python -m venv ./venvs/36
             . venvs/36/bin/activate
+            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .
@@ -252,6 +255,7 @@ jobs:
             # Workaround from https://github.com/PyWavelets/pywt/issues/375
             pip install Cython
             pip install numpy>=1.13
+            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
             pip install .

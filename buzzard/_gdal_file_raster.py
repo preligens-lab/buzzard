@@ -9,7 +9,15 @@ from buzzard._tools import conv
 from buzzard._footprint import Footprint
 
 class GDALFileRaster(APooledEmissaryRaster):
-    """Concrete class defining the behavior of a GDAL raster using a file"""
+    """Concrete class defining the behavior of a GDAL raster using a file.
+
+    >>> help(DataSource.open_raster)
+    >>> help(DataSource.create_raster)
+
+    Features Defined
+    ----------------
+    None
+    """
 
     def __init__(self, ds, allocator, open_options, mode):
         back = BackGDALFileRaster(
@@ -81,6 +89,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             [driver],
             options,
         )
+
         if gdal_ds is None: # pragma: no cover
             raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
                 path, driver, str(gdal.GetLastErrorMsg()).strip('\n')

@@ -1,10 +1,12 @@
 """>>> help(buzz.DataSource)"""
 
 # pylint: disable=too-many-lines
-import ntpath
 import numbers
 import sys
+import pathlib
 import itertools
+from types import MappingProxyType
+import os
 
 from osgeo import osr
 import numpy as np
@@ -20,7 +22,9 @@ from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
 from buzzard._datasource_register import DataSourceRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
+from buzzard._cached_raster_recipe import CachedRasterRecipe
 from buzzard._a_pooled_emissary import APooledEmissary
+import buzzard.utils
 
 class DataSource(DataSourceRegisterMixin):
     """DataSource is a class that stores references to sources. A source is either a raster, or a
@@ -34,6 +38,7 @@ class DataSource(DataSourceRegisterMixin):
     - GDALFileRaster,
     - GDALMemRaster,
     - NumpyRaster,
+    - CachedRasterRecipe,
     - GDALFileVector,
     - GDALMemoryVector.
 
@@ -56,6 +61,8 @@ class DataSource(DataSourceRegisterMixin):
     max_active: nbr >= 1
         Maximum number of pooled sources active at the same time.
         (see `Sources activation / deactivation` below)
+    debug_observers: sequence of object
+        Entry points to observe what is happening in the DataSource's sheduler.
 
     Example
     -------
@@ -140,8 +147,10 @@ class DataSource(DataSourceRegisterMixin):
 
     If `analyse_transformation` is set to `True` (default), all coordinates conversions are
     tested against `buzz.env.significant` on file opening to ensure their feasibility or
-    raise an exception otherwise. This system is naive and very restrictive, a smarter
-    version is planned. Use with caution.
+    raise an exception otherwise. This system is naive and very restrictive, use with caution.
+    Although, disabling those tests is not recommended, ignoring floating point precision errors
+    can create unpredictable behaviors at the pixel level deep in your code. Those bugs can be
+    witnessed when zooming to infinity with tools like `qgis` or `matplotlib`.
 
     ### Terminology
     `sr`: Spatial reference
@@ -197,6 +206,22 @@ class DataSource(DataSourceRegisterMixin):
             sr_forced='EPSG:27561',
         )
 
+    Scheduler
+    ---------
+    To handle *async rasters* living in a DataSource, a thread is to manage requests made to those
+    rasters. It will start as soon as you create an *async raster* and stop when the DataSource is
+    closed or collected. If one of your callbacks to be called by the scheduler raises an exception,
+    the scheduler will stop and the exception will be propagated to the main thread as soon as
+    possible.
+
+    Thread-safety
+    -------------
+    Thread safety is one of the main concern of buzzard. Everything is thread-safe except:
+    - The raster write methods
+    - The vector write methods
+    - The raster read methods when using the GDAL::MEM driver
+    - The vector read methods when using the GDAL::Memory driver
+
     """
 
     def __init__(self, sr_work=None, sr_fallback=None, sr_forced=None,
@@ -204,6 +229,7 @@ class DataSource(DataSourceRegisterMixin):
                  allow_none_geometry=False,
                  allow_interpolation=False,
                  max_active=np.inf,
+                 debug_observers=(),
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
             new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
@@ -248,7 +274,7 @@ class DataSource(DataSourceRegisterMixin):
         allow_interpolation = bool(allow_interpolation)
         allow_none_geometry = bool(allow_none_geometry)
         analyse_transformation = bool(analyse_transformation)
-
+        self._ds_closed = False
         self._back = BackDataSource(
             wkt_work=sr_work,
             wkt_fallback=sr_fallback,
@@ -257,12 +283,16 @@ class DataSource(DataSourceRegisterMixin):
             allow_none_geometry=allow_none_geometry,
             allow_interpolation=allow_interpolation,
             max_active=max_active,
+            ds_id=id(self),
+            debug_observers=debug_observers,
         )
         super(DataSource, self).__init__()
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
         """Open a raster file in this DataSource under `key`. Only metadata are kept in memory.
+
+        >>> help(GDALFileRaster)
 
         Parameters
         ----------
@@ -290,7 +320,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
         path = str(path)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -308,7 +337,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
@@ -322,31 +354,15 @@ class DataSource(DataSourceRegisterMixin):
         >>> file_wkt = ds.ortho.wkt_stored
 
         """
-        # Parameter checking ***************************************************
-        path = str(path)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        _ = conv.of_of_mode(mode)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'mem': # pragma: no cover
-            raise ValueError("Can't open a MEM raster, user acreate_raster")
-        elif True:
-            allocator = lambda: BackGDALFileRaster.open_file(
-                path, driver, options, mode
-            )
-            prox = GDALFileRaster(self, allocator, options, mode)
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
+        return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
                       driver='GTiff', options=(), sr=None):
         """Create a raster file and register it under `key` in this DataSource. Only metadata are
         kept in memory.
+
+        >>> help(GDALFileRaster)
+        >>> help(GDALMemRaster)
 
         Parameters
         ----------
@@ -410,12 +426,13 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
         path = str(path)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
         band_count = int(band_count)
+        if band_count <= 0:
+            raise ValueError('`band_count` should be >0')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
@@ -427,7 +444,7 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
-            # TODO: Check not concurrent
+            # TODO for 0.5.0: Check async_ is False
             prox = GDALMemRaster(
                 self, fp, dtype, band_count, band_schema, options, sr
             )
@@ -440,7 +457,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
@@ -462,41 +482,13 @@ class DataSource(DataSourceRegisterMixin):
         >>> band_interpretation = out.band_schema['interpretation']
 
         """
-        # Parameter checking ***************************************************
-        path = str(path)
-        if not isinstance(fp, Footprint): # pragma: no cover
-            raise TypeError('`fp` should be a Footprint')
-        dtype = np.dtype(dtype)
-        band_count = int(band_count)
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'mem':
-            # TODO: Check not concurrent
-            prox = GDALMemRaster(
-                self, fp, dtype, band_count, band_schema, options, sr
-            )
-        elif True:
-            allocator = lambda: BackGDALFileRaster.create_file(
-                path, fp, dtype, band_count, band_schema, driver, options, sr
-            )
-            prox = GDALFileRaster(self, allocator, options, 'w')
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
+        return self.create_raster(_AnonymousSentry(), path, fp, dtype, band_count, band_schema,
+                                  driver, options, sr)
 
     def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this DataSource.
+
+        >>> help(NumpyRaster)
 
         Parameters
         ----------
@@ -504,7 +496,7 @@ class DataSource(DataSourceRegisterMixin):
             File identifier within DataSource
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
-        array: ndarray of shape (Y, X) or (Y, X, B)
+        array: ndarray of shape (Y, X) or (Y, X, C)
         band_schema: dict or None
             Band(s) metadata. (see `Band fields` below)
         sr: string or None
@@ -542,7 +534,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         array = np.asarray(array)
@@ -563,7 +554,10 @@ class DataSource(DataSourceRegisterMixin):
         prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
@@ -571,33 +565,476 @@ class DataSource(DataSourceRegisterMixin):
 
         See DataSource.wrap_numpy_raster
         """
+        return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, band_schema, sr, mode)
+
+    def create_raster_recipe(
+            self, key,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
+
+            # primitives
+            queue_data_per_primitive=MappingProxyType({}), convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', resample_pool='cpu',
+
+            # misc
+            computation_tiles=None, max_computation_size=None,
+            max_resampling_size=None, automatic_remapping=True,
+            debug_observers=()
+    ):
+        """/!\ This method is not yet implemented. It is here for documentation purposes.
+
+        Create a *raster recipe* and register it under `key` in this DataSource.
+
+        A *raster recipe* implements the same interfaces as all other rasters, but internally it
+        computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
+        provide a boilerplate-free interface that automatize those cumbersome tasks: tiling,
+        parallelism, caching, file reads, resampling, lazy evaluation, backpressure prevention and
+        optimised task scheduling.
+
+        If you are familiar with `create_cached_raster_recipe` two parameters are new here:
+        `automatic_remapping` and `max_computation_size`.
+
+        Parameters
+        ----------
+        key:
+            see `create_raster` method
+        fp:
+            see `create_raster` method
+        dtype:
+            see `create_raster` method
+        band_count:
+            see `create_raster` method
+        band_schema:
+            see `create_raster` method
+        sr:
+            see `create_raster` method
+        compute_array: callable
+            see `Computation Function` below
+        merge_arrays: callable
+            see `Merge Function` below
+        queue_data_per_primitive: dict of hashable (like a string) to a `queue_data` method pointer
+            see `Primitives` below
+        convert_footprint_per_primitive: None or dict of hashable (like a string) to a callable
+            see `Primitives` below
+        computation_pool:
+            see `Pools` below
+        merge_pool:
+            see `Pools` below
+        resample_pool:
+            see `Pools` below
+        computation_tiles: None or (int, int) or numpy.ndarray of Footprint
+            see `Computation Tiling` below
+        max_computation_size:  None or int or (int, int)
+            see `Computation Tiling` below
+        max_resampling_size: None or int or (int, int)
+            Optionally define a maximum resampling size. If a larger resampling has to be performed,
+            it will be performed tile by tile in parallel.
+        automatic_remapping: bool
+            see `Automatic Remapping` below
+        debug_observers: sequence of object
+            Entry points that observe what is happening with this raster in the DataSource's scheduler.
+
+        Returns
+        -------
+        NocacheRasterRecipe
+
+        Computation Function
+        --------------------
+        The function that will map a Footprint to a numpy.ndarray. If `queue_data_per_primitive`
+        is not empty, it will map a Footprint and primitive arrays to a numpy.ndarray.
+
+        It will be called in parallel according to the `computation_pool` parameter provided at
+        construction.
+
+        The function will be called with the following positional parameters:
+        - fp: Footprint of shape (Y, X)
+            The location at which the pixels should be computed
+        - primitive_fps: dict of hashable to Footprint
+            For each primitive defined through the `queue_data_per_primitive` parameter, the input
+            Footprint.
+        - primitive_arrays: dict of hashable to numpy.ndarray
+            For each primitive defined through the `queue_data_per_primitive` parameter, the input
+            numpy.ndarray that was automatically computed.
+        - raster: CachedRasterRecipe or None
+            The Raster object of the ongoing computation.
+
+        It should return either:
+        - a single ndarray of shape (Y, X) if only one band was computed
+        - a single ndarray of shape (Y, X, C) if one or more bands were computed
+
+        If `computation_pool` points to a process pool, the `compute_array` function must be
+        picklable and the `raster` parameter will be None.
+
+        Computation Tiling
+        ------------------
+        You may sometimes want to have control on the Footprints that are requested to the
+        `compute_array` function, for exemple:
+        - If pixels computed by `compute_array` are long to compute, you want to tile to increase
+          parallelism.
+        - If the `compute_array` function scales badly in term of memory or time, you want to tile
+          to reduce complexity.
+        - If `compute_array` can work only on certain Footprints, you want a hard constraint on the
+          set of Footprint that can be queried from `compute_array`. (This may happen with
+          *convolutional neural networks*)
+
+        To do so use the `computation_tiles` or `max_computation_size` parameter (not both).
+
+        If `max_computation_size` is provided, a Footprint to be computed will be tiled given this
+        parameter.
+
+        If `computation_tiles` is a numpy.ndarray of Footprint, it should be a tiling of the `fp`
+        parameter. Only the Footprints contained in this tiling will be asked to the
+        `computation_tiles`.
+        If `computation_tiles` is (int, int), a tiling will be constructed using Footprint.tile
+        using those two ints.
+
+        Merge Function
+        --------------
+        The function that will map several pairs of Footprint/numpy.ndarray to a single
+        numpy.ndarray. If the `computation_tiles` is None, it will never be called.
+
+        It will be called in parallel according to the `merge_pool` parameter provided at
+        construction.
+
+        The function will be called with the following positional parameters:
+        - fp: Footprint of shape (Y, X)
+            The location at which the pixels should be computed.
+        - array_per_fp: dict of Footprint to numpy.ndarray
+            The pairs of Footprint/numpy.ndarray of each arrays that were computed by
+            `compute_array` and that overlap with `fp`.
+        - raster: CachedRasterRecipe or None
+            The Raster object of the ongoing computation.
+
+        It should return either:
+        - a single ndarray of shape (Y, X) if only one band was computed
+        - a single ndarray of shape (Y, X, C) if one or more bands were computed
+
+        If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
+        the `raster` parameter will be None.
+
+        Automatic Remapping
+        -------------------
+        When creating a recipe you give a _Footprint_ through the `fp` parameter. When calling your
+        `compute_array` function the scheduler will only ask for slices of `fp`. This means that the
+        scheduler takes care of those boilerplate steps:
+        - If you request a *Footprint* on a different grid in a `get_data()` call, the scheduler
+          __takes care of resampling__ the outputs of your `compute_array` function.
+        - If you request a *Footprint* partially or fully outside of the raster's extent, the
+          scheduler will call your `compute_array` function to get the interior pixels and then
+          __pad the output with nodata__.
+
+        This system is flexible and can be deactivated by passing `automatic_remapping=False` to
+        the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your
+        `compute_array` function for any kind of _Footprint_; thus your function must be able to
+        comply with any request.
+
+        Primitives
+        ----------
+        The `queue_data_per_primitive` and `convert_footprint_per_primitive` parameters can be used
+        to create dependencies between `dependee` *async rasters* and the *raster recipe* being
+        created. The dependee/dependent relation is called primitive/derived throughout buzzard.
+        A derived recipe can itself be the primitive of another raster. Pipelines of any depth and
+        width can be instanciated that way.
+
+        In `queue_data_per_primitive` you declare a `dependee` by giving it a key of your choice and
+        the pointer to the `queue_data` method of `dependee` raster. You can parameterize the
+        connection by *currying* the `band`, `dst_nodata`, `interpolation` and `max_queue_size`
+        parameters using `functools.partial`.
+
+        The `convert_footprint_per_primitive` dict should contain the same keys as
+        `queue_data_per_primitive`. A value in the dict should be a function that maps a Footprint
+        to another Footprint. It can be used for example to request larger rectangles of primitives
+        data to compute a derived array.
+
+        e.g. If the primitive raster is an `rgb` image, and the derived raster only needs the green
+        band but with a context of 10 additional pixels on all 4 sides:
+        >>> derived = ds.create_raster_recipe(
+        ...     # <other parameters>
+        ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, band=2)},
+        ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
+        ... )
+
+        Pools
+        -----
+        The `*_pool` parameters can be used to select where certain computations occur. Those
+        parameters can be of the following types:
+        - A _multiprocessing.pool.ThreadPool_, should be the default choice.
+        - A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the
+          GIL or that leaks memory.
+        - `None`, to request the scheduler thread to perform the tasks itself. Should be used when
+          the computation is very light.
+        - A _hashable_ (like a _string_), that will map to a pool registered in the _DataSource_. If
+          that key is missing from the _DataSource_, a _ThreadPool_ with
+          `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
+          DataSource is closed, the pools instanciated that way will be joined.
+        """
+        raise NotImplementedError()
+
+    def create_cached_raster_recipe(
+            self, key,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
+
+            # filesystem
+            cache_dir=None, ow=False,
+
+            # primitives
+            queue_data_per_primitive=MappingProxyType({}), convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+
+            # misc
+            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
+            debug_observers=()
+    ):
+        """Create a *cached raster recipe* and register it under `key` in this DataSource.
+
+        Compared to a `NocacheRasterRecipe`, in a `CachedRasterRecipe` the pixels are never computed
+        twice. Cache files are used to store and reuse pixels from computations. The cache can even
+        be reused between python sessions.
+
+        If you are familiar with `create_raster_recipe` four parameters are new here: `io_pool`,
+        `cache_tiles`, `cache_dir` and `ow`. They are all related to file system operations.
+
+        see `create_raster_recipe` method, since it shares most of the features.
+
+        >>> help(CachedRasterRecipe)
+
+        Parameters
+        ----------
+        key:
+            see `create_raster` method
+        fp:
+            see `create_raster` method
+        dtype:
+            see `create_raster` method
+        band_count:
+            see `create_raster` method
+        band_schema:
+            see `create_raster` method
+        sr:
+            see `create_raster` method
+        compute_array:
+            see `create_raster_recipe` method
+        merge_arrays:
+            see `create_raster_recipe` method
+        cache_dir: str or pathlib.Path
+            Path to the directory that holds the cache files associated with this raster. If cache
+            files are present, they will be reused (or erased if corrupted). If a cache file is
+            needed and missing, it will be computed.
+        ow: bool
+            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`. Warning: not only the tiles needed (hence computed) but all cached files in `cache_dir` will be deleted.
+        queue_data_per_primitive:
+            see `create_raster_recipe` method
+        convert_footprint_per_primitive:
+            see `create_raster_recipe` method
+        computation_pool:
+            see `create_raster_recipe` method
+        merge_pool:
+            see `create_raster_recipe` method
+        io_pool:
+            see `create_raster_recipe` method
+        resample_pool:
+            see `create_raster_recipe` method
+        cache_tiles: (int, int) or numpy.ndarray of Footprint
+            A tiling of the `fp` parameter. Each tile will correspond to one cache file.
+            if (int, int): Construct the tiling by calling Footprint.tile with this parameter
+        computation_tiles:
+            if None: Use the same tiling as `cache_tiles`
+            else: see `create_raster_recipe` method
+        max_resampling_size: None or int or (int, int)
+            see `create_raster_recipe` method
+        debug_observers: sequence of object
+            see `create_raster_recipe` method
+
+        Returns
+        -------
+        CachedRasterRecipe
+
+        """
         # Parameter checking ***************************************************
+        # Classic RasterProxy parameters *******************
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
-        array = np.asarray(array)
-        if array.shape[:2] != tuple(fp.shape): # pragma: no cover
-            raise ValueError('Incompatible shape between `array` and `fp`')
-        if array.ndim not in [2, 3]: # pragma: no cover
-            raise ValueError('Array should have 2 or 3 dimensions')
-        band_count = 1 if array.ndim == 2 else array.shape[-1]
+        dtype = np.dtype(dtype)
+        band_count = int(band_count)
+        if band_count <= 0:
+            raise ValueError('`band_count` should be >0')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
             sr = osr.GetUserInputAsWKT(sr)
-        _ = conv.of_of_mode(mode)
-
         if sr is not None:
             fp = self._back.convert_footprint(fp, sr)
 
+        # Callables ****************************************
+        if compute_array is None:
+            raise ValueError('Missing `compute_array` parameter')
+        if not callable(compute_array):
+            raise TypeError('`compute_array` should be callable')
+        if not callable(merge_arrays):
+            raise TypeError('`merge_arrays` should be callable')
+
+        # Primitives ***************************************
+        if convert_footprint_per_primitive is None:
+            convert_footprint_per_primitive = {
+                name: (lambda fp: fp)
+                for name in queue_data_per_primitive.keys()
+            }
+
+        if queue_data_per_primitive.keys() != convert_footprint_per_primitive.keys():
+            err = 'There should be the same keys in `queue_data_per_primitive` and '
+            err += '`convert_footprint_per_primitive`.'
+            if queue_data_per_primitive.keys() - convert_footprint_per_primitive.keys():
+                err += '\n{} are missing from `convert_footprint_per_primitive`.'.format(
+                    queue_data_per_primitive.keys() - convert_footprint_per_primitive.keys()
+                )
+            if convert_footprint_per_primitive.keys() - queue_data_per_primitive.keys():
+                err += '\n{} are missing from `queue_data_per_primitive`.'.format(
+                    convert_footprint_per_primitive.keys() - queue_data_per_primitive.keys()
+                )
+            raise ValueError(err)
+
+        primitives_back = {}
+        primitives_kwargs = {}
+        for name, met in queue_data_per_primitive.items():
+            primitives_back[name], primitives_kwargs[name] = _tools.shatter_queue_data_method(met, name)
+            if primitives_back[name].back_ds is not self._back:
+                raise ValueError('The `{}` primitive comes from another DataSource'.format(
+                    name
+                ))
+
+        for name, func in convert_footprint_per_primitive.items():
+            if not callable(func):
+                raise TypeError('convert_footprint_per_primitive[{}] should be callable'.format(
+                    name
+                ))
+
+        # Pools ********************************************
+        computation_pool = self._back.pools_container._normalize_pool_parameter(
+            computation_pool, 'computation_pool'
+        )
+        merge_pool = self._back.pools_container._normalize_pool_parameter(
+            merge_pool, 'merge_pool'
+        )
+        io_pool = self._back.pools_container._normalize_pool_parameter(
+            io_pool, 'io_pool'
+        )
+        resample_pool = self._back.pools_container._normalize_pool_parameter(
+            resample_pool, 'resample_pool'
+        )
+
+        # Tilings ******************************************
+        if isinstance(cache_tiles, np.ndarray) and cache_tiles.dtype == np.object:
+            if not _tools.is_tiling_covering_fp(
+                    cache_tiles, fp,
+                    allow_outer_pixels=False, allow_overlapping_pixels=False,
+            ):
+                raise ValueError("`cache_tiles` should be a tiling of raster's Footprint, " +\
+                                "without overlap, with `boundary_effect='shrink'`"
+                )
+        else:
+            # Defer the parameter checking to fp.tile
+            cache_tiles = fp.tile(cache_tiles, 0, 0, boundary_effect='shrink')
+
+        if computation_tiles is None:
+            computation_tiles = cache_tiles
+        elif isinstance(computation_tiles, np.ndarray) and computation_tiles.dtype == np.object:
+            if not _tools.is_tiling_covering_fp(
+                    cache_tiles, fp,
+                    allow_outer_pixels=True, allow_overlapping_pixels=True,
+            ):
+                raise ValueError("`computation_tiles` should be a tiling covering raster's Footprint")
+        else:
+            # Defer the parameter checking to fp.tile
+            computation_tiles = fp.tile(computation_tiles, 0, 0, boundary_effect='shrink')
+
+        # Misc *********************************************
+        if max_resampling_size is not None:
+            max_resampling_size = int(max_resampling_size)
+            if max_resampling_size <= 0:
+                raise ValueError('`max_resampling_size` should be >0')
+
+        if cache_dir is None:
+            raise ValueError('Missing `cache_dir` parameter')
+        if not isinstance(cache_dir, (str, pathlib.Path)):
+            raise TypeError('cache_dir should be a string')
+        cache_dir = str(cache_dir)
+        overwrite = bool(ow)
+        del ow
+
         # Construction *********************************************************
-        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
+        prox = CachedRasterRecipe(
+            self,
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_arrays,
+            cache_dir, overwrite,
+            primitives_back, primitives_kwargs, convert_footprint_per_primitive,
+            computation_pool, merge_pool, io_pool, resample_pool,
+            cache_tiles, computation_tiles,
+            max_resampling_size,
+            debug_observers,
+        )
 
         # DataSource Registering ***********************************************
-        self._register([], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
+
+    def acreate_cached_raster_recipe(
+            self,
+
+            # raster attributes
+            fp, dtype, band_count, band_schema=None, sr=None,
+
+            # callbacks running on pool
+            compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
+
+            # filesystem
+            cache_dir=None, ow=False,
+
+            # primitives
+            queue_data_per_primitive=MappingProxyType({}), convert_footprint_per_primitive=None,
+
+            # pools
+            computation_pool='cpu', merge_pool='cpu', io_pool='io', resample_pool='cpu',
+
+            # misc
+            cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
+            debug_observers=()
+    ):
+        """Create a cached raster reciped anonymously in this DataSource.
+
+        See DataSource.create_cached_raster_recipe
+        """
+        return self.create_cached_raster_recipe(
+            _AnonymousSentry(),
+            fp, dtype, band_count, band_schema, sr,
+            compute_array, merge_arrays,
+            cache_dir, ow,
+            queue_data_per_primitive, convert_footprint_per_primitive,
+            computation_pool, merge_pool, io_pool, resample_pool,
+            cache_tiles, computation_tiles, max_resampling_size,
+            debug_observers,
+        )
 
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
         """Open a vector file in this DataSource under `key`. Only metadata are kept in memory.
+
+        >>> help(GDALFileVector)
 
         Parameters
         ----------
@@ -626,7 +1063,6 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
         path = str(path)
         if layer is None:
             layer = 0
@@ -650,7 +1086,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
@@ -664,36 +1103,15 @@ class DataSource(DataSourceRegisterMixin):
         >>> features_bounds = trees.bounds
 
         """
-        path = str(path)
-        if layer is None:
-            layer = 0
-        elif isinstance(layer, numbers.Integral):
-            layer = int(layer)
-        else:
-            layer = str(layer)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        _ = conv.of_of_mode(mode)
-
-        # Construction dispatch ************************************************
-        if driver.lower() == 'memory': # pragma: no cover
-            raise ValueError("Can't open a MEMORY vector, user create_vector")
-        elif True:
-            allocator = lambda: BackGDALFileVector.open_file(
-                path, layer, driver, options, mode
-            )
-            prox = GDALFileVector(self, allocator, options, mode)
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
+        return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
     def create_vector(self, key, path, geometry, fields=(), layer=None,
                       driver='ESRI Shapefile', options=(), sr=None):
         """Create a vector file and register it under `key` in this DataSource. Only metadata are
         kept in memory.
+
+        >>> help(GDALFileVector)
+        >>> help(GDALMemoryVector)
 
         Parameters
         ----------
@@ -769,12 +1187,11 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        self._validate_key(key)
         path = str(path)
         geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
         fields = _tools.normalize_fields_defn(fields)
         if layer is None:
-            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
+            layer = '.'.join(os.path.basename(path).split('.')[:-1])
         else:
             layer = str(layer)
         driver = str(driver)
@@ -784,7 +1201,7 @@ class DataSource(DataSourceRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
-            # TODO: Check not concurrent
+            # TODO for 0.5.0: Check async_ is False
             allocator = lambda: BackGDALFileVector.create_file(
                 '', geometry, fields, layer, 'Memory', options, sr
             )
@@ -798,7 +1215,10 @@ class DataSource(DataSourceRegisterMixin):
             pass
 
         # DataSource Registering ***********************************************
-        self._register([key], prox)
+        if not isinstance(key, _AnonymousSentry):
+            self._register([key], prox)
+        else:
+            self._register([], prox)
         return prox
 
     def acreate_vector(self, path, geometry, fields=(), layer=None,
@@ -813,39 +1233,10 @@ class DataSource(DataSourceRegisterMixin):
         >>> file_proj4 = lines.proj4_stored
 
         """
-        # Parameter checking ***************************************************
-        path = str(path)
-        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
-        fields = _tools.normalize_fields_defn(fields)
-        if layer is None:
-            layer = '.'.join(ntpath.basename(path).split('.')[:-1])
-        else:
-            layer = str(layer)
-        driver = str(driver)
-        options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
+        return self.create_vector(_AnonymousSentry(), path, geometry, fields, layer,
+                                  driver, options, sr)
 
-        # Construction dispatch ************************************************
-        if driver.lower() == 'memory':
-            # TODO: Check not concurrent
-            allocator = lambda: BackGDALFileVector.create_file(
-                '', geometry, fields, layer, 'Memory', options, sr
-            )
-            prox = GDALMemoryVector(self, allocator, options)
-        elif True:
-            allocator = lambda: BackGDALFileVector.create_file(
-                path, geometry, fields, layer, driver, options, sr
-            )
-            prox = GDALFileVector(self, allocator, options, 'w')
-        else:
-            pass
-
-        # DataSource Registering ***********************************************
-        self._register([], prox)
-        return prox
-
-    # Proxy getters ********************************************************* **
+    # Proxy infos ******************************************************************************* **
     def __getitem__(self, key):
         """Retrieve a proxy from its key"""
         return self._proxy_of_key[key]
@@ -856,11 +1247,98 @@ class DataSource(DataSourceRegisterMixin):
             return item in self._keys_of_proxy
         return item in self._proxy_of_key
 
+    def items(self):
+        """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
+        for proxy, keys in self._keys_of_proxy.items():
+            yield list(keys), proxy
+
+    def keys(self):
+        """Generate all proxy keys"""
+        for proxy, keys in self._keys_of_proxy.items():
+            for key in keys:
+                yield key
+
+    def values(self):
+        """Generate all proxies"""
+        for proxy, _ in self._keys_of_proxy.items():
+            yield proxy
+
     def __len__(self):
         """Retrieve proxy count registered in this DataSource"""
         return len(self._keys_of_proxy)
 
-    # Spatial reference getters ********************************************* **
+    # Pools infos ******************************************************************************* **
+    @property
+    def pools(self):
+        """Get the Pool Container.
+
+        >>> help(PoolsContainer)
+
+        """
+        return self._back.pools_container
+
+    # Cleanup *********************************************************************************** **
+    def __del__(self):
+        if not self._ds_closed:
+            self.close()
+
+    @property
+    def close(self):
+        """Close the DataSource with a call or a context management.
+        The `close` attribute returns an object that can be both called and used in a with statement
+
+        The DataSource can be closed manually or automatically when garbage collected, it is safer
+        to do it manually. The steps are:
+        - Stopping the scheduler
+        - Joining the mp.Pool that have been automatically allocated
+        - Close all sources
+
+        Examples
+        --------
+        >>> ds = buzz.DataSource()
+        ... # code...
+        ... ds.close()
+
+        >>> with buzz.DataSource().close as ds
+        ...     # code...
+
+        Caveat
+        ------
+        When using a scheduler, some memory leaks may still occur after closing a DataSource.
+        Possible origins:
+        - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
+        - Gdal cache not flushed (not a leak)
+        - The gdal version
+        - https://stackoverflow.com/a/1316799 (not a leak)
+        - Some unknown leak in the python `threading` or `multiprocessing` standard library
+        - Some unknown library leaking memory on the `C` side
+        - Some unknown library storing data in global variables
+
+        You can use a `debug_observer` with an `on_object_allocated` method to track large objects
+        allocated in the scheduler. It will likely not be the source of the problem. If you
+        even find a source of leaks please contact the buzzard team.
+        https://github.com/airware/buzzard/issues
+
+        """
+        if self._ds_closed:
+            raise RuntimeError("DataSource already closed")
+
+        def _close():
+            if self._ds_closed:
+                raise RuntimeError("DataSource already closed")
+            self._ds_closed = True
+
+            # Tell scheduler to stop, wait until it is done
+            self._back.stop_scheduler()
+
+            # Safely release all resources
+            self._back.pools_container._close()
+            for proxy in list(self._keys_of_proxy.keys()):
+                proxy.close()
+
+        return _CloseRoutine(self, _close)
+
+    # Spatial reference getters ***************************************************************** **
     @property
     def proj4(self):
         """DataSource's work spatial reference in WKT proj4.
@@ -900,7 +1378,7 @@ class DataSource(DataSourceRegisterMixin):
             ))
 
         # Hacky implementation to get the expected behavior
-        # TODO: Implement that routine in the back driver pool
+        # TODO: Implement that routine in the back driver pool. Is it possible? We need to call `.activate`
         i = 0
         for prox in itertools.cycle(proxs):
             if i == total:
@@ -916,7 +1394,6 @@ class DataSource(DataSourceRegisterMixin):
         for prox in self._keys_of_proxy.keys():
             if prox.active:
                 prox.deactivate()
-
 
     # Deprecation ******************************************************************************* **
     open_araster = deprecation_pool.wrap_method(
@@ -946,21 +1423,43 @@ if sys.version_info < (3, 6):
             v.__set_name__(DataSource, k)
 
 def open_raster(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_raster`"""
+    """Shortcut for `DataSource().aopen_raster`
+
+    >>> help(DataSource.open_raster)
+    """
     return DataSource().aopen_raster(*args, **kwargs)
 
 def open_vector(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_vector`"""
+    """Shortcut for `DataSource().aopen_vector`
+
+    >>> help(DataSource.open_vector)
+    """
     return DataSource().aopen_vector(*args, **kwargs)
 
 def create_raster(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_raster`"""
+    """Shortcut for `DataSource().acreate_raster`
+
+    >>> help(DataSource.create_raster)
+    """
     return DataSource().acreate_raster(*args, **kwargs)
 
 def create_vector(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_vector`"""
+    """Shortcut for `DataSource().acreate_vector`
+
+    >>> help(DataSource.create_vector)
+    """
     return DataSource().acreate_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
-    """Shortcut for `DataSource().awrap_numpy_raster`"""
+    """Shortcut for `DataSource().awrap_numpy_raster`
+
+    >>> help(DataSource.wrap_numpy_raster)
+    """
     return DataSource().awrap_numpy_raster(*args, **kwargs)
+
+_CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
+    '__doc__': DataSource.close.__doc__,
+})
+
+class _AnonymousSentry(object):
+    """Sentry object used to instanciate anonymous proxies"""

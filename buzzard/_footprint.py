@@ -28,7 +28,8 @@ from buzzard._footprint_intersection import IntersectionMixin
 LOGGER = logging.getLogger('buzzard')
 
 class Footprint(TileMixin, IntersectionMixin):
-    """Constant object representing the location and size of a spatially localized raster.
+    """Immutable object representing the location and size of a spatially localized raster. All
+    methods are thread-safe.
 
     The Footprint
     - is a toolbox class designed to locate a rectangle in both image space and geometry space
@@ -154,19 +155,11 @@ class Footprint(TileMixin, IntersectionMixin):
             if not env.allow_complex_footprint:
                 arr = np.asarray([[a, b, c], [d, e, f]])
                 arr = np.array2string(arr, precision=17).replace('\n', ' ')
-                raise ValueError((
-                    'Creating a non north-up/west-left footprint, '
-                    'env.allow_complex_footprint is False, '
-                    'affine matrix:{}'
-                ).format(arr))
-            if env.warnings:
-                arr = np.asarray([[a, b, c], [d, e, f]])
-                arr = np.array2string(arr, precision=17).replace('\n', ' ')
-                LOGGER.warning((
-                    'Creating a non north-up/west-left footprint, '
-                    'this feature has not been fully tests, '
-                    'affine matrix:{}'
-                ).format(arr))
+                s = ('Creating a non north-up/west-left Footprint. Buzzard is designed to handle '
+                     'those Footprints too, but no unit tests are there yet. '
+                     'Use buzz.Env(allow_complex_footprint=True) in a `with statement` to '
+                     'deactivate this error.affine matrix:\n{}').format(arr)
+                raise ValueError(s)
 
         rsizex, rsizey = rsize
         aff = affine.Affine(a, b, c, d, e, f)
@@ -237,9 +230,12 @@ class Footprint(TileMixin, IntersectionMixin):
         pxsize = np.abs(scale)
         significant_min = rect.significant_min(pxsize.min())
         if env.significant <= significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(significant_min, env.significant)
+            raise RuntimeError(s)
 
         abstract_grid_density = rect.abstract_grid_density(pxsize.min())
         rsize = np.around(rect.size / pxsize * abstract_grid_density, 0) / abstract_grid_density
@@ -272,8 +268,7 @@ class Footprint(TileMixin, IntersectionMixin):
         rsize = np.asarray(
             [endx - startx, endy - starty]
         )
-        tl = self.tl + [startx, starty] * self.pxvec
-        size = rsize * self.pxsize
+        tl = self.tl + startx * self.pxlrvec + starty * self.pxtbvec
         gt = self.gt
         gt[0] = tl[0]
         gt[3] = tl[1]
@@ -473,9 +468,12 @@ class Footprint(TileMixin, IntersectionMixin):
 
             significant_min = rect.significant_min(np.abs(scale).min())
             if env.significant <= significant_min:
-                raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                    env.significant, significant_min,
-                ))
+                s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                     'significant digits are necessary to perform this operation, but '
+                     '`buzz.env.significant` is set to {}. Increase this value by using '
+                     'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+                ).format(significant_min, env.significant)
+                raise RuntimeError(s)
 
             slack_angles = rect.tr_slack_angles
             assert slack_angles[0] < slack_angles[1]
@@ -618,7 +616,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def tl(self):
         """Spatial coordinates: raster top left (x, y)"""
-        return self._tl
+        return self._tl.copy()
 
     @property
     def tlx(self):
@@ -633,7 +631,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def bl(self):
         """Spatial coordinates: raster bottom left (x, y)"""
-        return self._bl
+        return self._bl.copy()
 
     @property
     def blx(self):
@@ -648,7 +646,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def br(self):
         """Spatial coordinates: raster bottom right (x, y)"""
-        return self._br
+        return self._br.copy()
 
     @property
     def brx(self):
@@ -663,7 +661,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def tr(self):
         """Spatial coordinates: raster top right (x, y)"""
-        return self._tr
+        return self._tr.copy()
 
     @property
     def trx(self):
@@ -672,7 +670,9 @@ class Footprint(TileMixin, IntersectionMixin):
 
     @property
     def try_(self):
-        """Spatial coordinate: raster top right (y)"""
+        """Spatial coordinate: raster top right (y)
+        Don't forget the trailing underscore
+        """
         return float(self._tr[1])
 
     @property
@@ -775,7 +775,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def rsize(self):
         """Pixel quantities: (pixel per line, pixel per column)"""
-        return self._rsize
+        return self._rsize.copy()
 
     @property
     def rsizex(self):
@@ -957,12 +957,16 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def rarea(self):
         """Pixel quantity: pixel count"""
-        return int(np.prod(self.rsize))
+        rx, ry = self.rsize
+        # Convert to int before multiplication to avoid overflow
+        return int(rx) * int(ry)
 
     @property
     def rlength(self):
         """Pixel quantity: pixel count in the outer ring"""
-        inner_area = max(0, self.rsizex - 2) * max(0, self.rsizey - 2)
+        rx, ry = self.rsize
+        # Convert to int before multiplication to avoid overflow
+        inner_area = max(0, int(rx) - 2) * max(0, int(ry) - 2)
         return self.rarea - inner_area
 
     # Accessors - Affine transformations ******************************************************** **
@@ -989,6 +993,7 @@ class Footprint(TileMixin, IntersectionMixin):
     @property
     def affine(self):
         """Underlying affine object"""
+        # TODO: Check if _aff is mutable
         return self._aff
 
     @property
@@ -1061,7 +1066,25 @@ class Footprint(TileMixin, IntersectionMixin):
         return not a.disjoint(b) and not a.touches(b)
 
     def equals(self, other):
-        """Binary predicate: Is other Footprint equal to self
+        """Binary predicate: Is other Footprint exactly equal to self
+
+        Parameters
+        ----------
+        other: Footprint
+
+        Returns
+        -------
+        bool
+        """
+        if (self.gt != other.gt).any():
+            return False
+        if (self.rsize != other.rsize).any():
+            return False
+        return True
+
+    def almost_equals(self, other):
+        """Binary predicate: Is other Footprint almost equal to self with regard to
+        buzz.env.significant.
 
         Parameters
         ----------
@@ -1072,13 +1095,19 @@ class Footprint(TileMixin, IntersectionMixin):
         bool
         """
         if env.significant <= self._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, self._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(self._significant_min, env.significant)
+            raise RuntimeError(s)
         if env.significant <= other._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, other._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(other._significant_min, env.significant)
+            raise RuntimeError(s)
         if (self.rsize != other.rsize).any():
             return False
 
@@ -1098,13 +1127,19 @@ class Footprint(TileMixin, IntersectionMixin):
         bool
         """
         if env.significant <= self._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, self._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(self._significant_min, env.significant)
+            raise RuntimeError(s)
         if env.significant <= other._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, other._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(other._significant_min, env.significant)
+            raise RuntimeError(s)
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
 
@@ -1163,8 +1198,8 @@ class Footprint(TileMixin, IntersectionMixin):
         """
         x, y = self.meshgrid_raster
         return (
-            (x * self._aff.a + y * self._aff.b + self._aff.c).astype(np.float64),
-            (x * self._aff.d + y * self._aff.e + self._aff.f).astype(np.float64),
+            (x * self._aff.a + y * self._aff.b + self._aff.c).astype(np.float64, copy=False),
+            (x * self._aff.d + y * self._aff.e + self._aff.f).astype(np.float64, copy=False),
         )
 
     def meshgrid_raster_in(self, other, dtype=None, op=np.floor):
@@ -1281,11 +1316,13 @@ class Footprint(TileMixin, IntersectionMixin):
         if not isinstance(np.zeros(1, dtype=dtype)[0], numbers.Integral):
             op = None
 
-
         if env.significant <= self._significant_min:
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, self._significant_min,
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(self._significant_min, env.significant)
+            raise RuntimeError(s)
         largest_coord = np.abs(self.coords).max()
         spatial_precision = largest_coord * 10 ** -env.significant
         smallest_reso = self.pxsize.min()
@@ -1303,7 +1340,7 @@ class Footprint(TileMixin, IntersectionMixin):
         xy2 = np.around(xy2 * abstract_grid_density, 0) / abstract_grid_density # Should move this line in if?
         if op is not None:
             xy2 = op(xy2)
-        return xy2.astype(dtype).reshape(xy.shape)
+        return xy2.astype(dtype, copy=False).reshape(xy.shape)
 
     def raster_to_spatial(self, xy):
         """Convert xy raster coordinates to spatial coordinates
@@ -1338,13 +1375,10 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Geometry / Raster conversions ************************************************************* **
     def find_lines(self, arr, output_offset='middle', merge=True):
-        """Experimental function!
+        """Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
+        when several disconnected components
 
         # TODO: Update doc about skimage.thin and 2x2 squares collapsing
-        # TODO: Add skimage requirements?
-
-        Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
-        when several disconnected components
 
         See `shapely.ops.linemerge` for details concerning output connectivity
 
@@ -1369,7 +1403,7 @@ class Footprint(TileMixin, IntersectionMixin):
         >>> import numpy as np
         >>> import networkx as nx
 
-        >>> with buzz.Env(warnings=0, allow_complex_footprint=1):
+        >>> with buzz.Env(allow_complex_footprint=1):
         ...     a = np.asarray([
         ...         [0, 1, 1, 1, 0],
         ...         [0, 1, 0, 0, 0],
@@ -1438,9 +1472,9 @@ class Footprint(TileMixin, IntersectionMixin):
                 ) # pragma: no cover
 
         # Step 2: Array normalization *********************************************************** **
-        arr = arr.astype(bool)
+        arr = arr.astype(bool, copy=False)
         arr = skm.thin(arr)
-        arr = arr.astype('uint8')
+        arr = arr.astype('uint8', copy=False)
 
         # Step 3: Prepare to collapse 2x2 squares to single points ****************************** **
         squares2x2_topleft_mask = ndi.convolve(
@@ -1473,8 +1507,8 @@ class Footprint(TileMixin, IntersectionMixin):
         has_left = convolve(arr, [[0, 0, 0], [0, 0, 1], [0, 0, 0]]) * arr
         has_topright = convolve(arr, [[0, 0, 0], [0, 0, 0], [1, 0, 0]]) * arr
         has_topleft = convolve(arr, [[0, 0, 0], [0, 0, 0], [0, 0, 1]]) * arr
-        has_topright = (has_topright.astype('i1') - has_right - has_top).clip(0, 1).astype('u1')
-        has_topleft = (has_topleft.astype('i1') - has_left - has_top).clip(0, 1).astype('u1')
+        has_topright = (has_topright.astype('i1', copy=False) - has_right - has_top).clip(0, 1).astype('u1', copy=False)
+        has_topleft = (has_topleft.astype('i1', copy=False) - has_left - has_top).clip(0, 1).astype('u1', copy=False)
 
         def _build_neighbors_in_direction(mask, yx_vector):
             has_indices = mask[yx_lst[:, 0], yx_lst[:, 1]].nonzero()[0]
@@ -1601,7 +1635,7 @@ class Footprint(TileMixin, IntersectionMixin):
                 'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=False)
 
     def find_polygons(self, mask):
         """Creates a list of polygons from a mask.
@@ -1630,7 +1664,7 @@ class Footprint(TileMixin, IntersectionMixin):
             raise ValueError('Mask shape%s incompatible with self shape%s' % (
                 mask.shape, tuple(self.shape)
             )) # pragma: no cover
-        mask = mask.astype('uint8').clip(0, 1)
+        mask = mask.astype('uint8', copy=False).clip(0, 1)
         sr_wkt = 'LOCAL_CS["arbitrary"]'
         sr = osr.SpatialReference(sr_wkt)
 
@@ -1734,7 +1768,7 @@ class Footprint(TileMixin, IntersectionMixin):
                 'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
             )
         arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=False)
 
     # Tiling ************************************************************************************ **
     def tile(self, size, overlapx=0, overlapy=0,
@@ -2063,7 +2097,7 @@ class Footprint(TileMixin, IntersectionMixin):
             ))
 
         occurrence = np.asarray([pixel_occurrencex, pixel_occurrencey], dtype=int)
-        stride = (size / occurrence).astype(int)
+        stride = (size / occurrence).astype(int, copy=False)
         overlap = size - stride
         big_tl = self.tl - self.pxvec * overlap
         big_rsize = self.rsize + np.asarray(overlap) * 2
@@ -2092,6 +2126,16 @@ class Footprint(TileMixin, IntersectionMixin):
 
     def __reduce__(self):
         return (_restore, (self.gt, self.rsize))
+
+    def __hash__(self):
+        """Should be optimized with respect with the current implementation of the Footprint
+        class.
+        """
+        # TODO: Speed test and optimize
+        return hash((
+            self._aff.to_gdal(),
+            tuple(self._rsize.tolist()),
+        ))
 
     # The end *********************************************************************************** **
     # ******************************************************************************************* **

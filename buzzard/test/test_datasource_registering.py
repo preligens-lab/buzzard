@@ -95,7 +95,7 @@ def test_raster(fps, random_path_tif):
 
     test = ds.open_raster('test', random_path_tif, mode='w')
     _asserts(True, True)
-    test.delete()
+    test.remove()
     _asserts(False, False)
 
     # Raster test 2 - context/close
@@ -193,7 +193,7 @@ def test_vector(fps, random_path_shp):
 
     test = ds.open_vector('test', random_path_shp, mode='w')
     _asserts(True, True)
-    test.delete()
+    test.remove()
     _asserts(False, False)
 
     # Vector test 2 - context/close

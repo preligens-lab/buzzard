@@ -6,7 +6,14 @@ from buzzard._tools import conv
 from buzzard._footprint import Footprint
 
 class GDALMemRaster(AEmissaryRaster):
-    """Concrete class defining the behavior of a GDAL raster using the "MEM" driver"""
+    """Concrete class defining the behavior of a GDAL raster using the "MEM" driver.
+
+    >>> help(DataSource.create_raster)
+
+    Features Defined
+    ----------------
+    None
+    """
 
     def __init__(self, ds, fp, dtype, band_count, band_schema, open_options, sr):
         back = BackGDALMemRaster(

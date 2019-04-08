@@ -1,6 +1,5 @@
 """Private tools to normalize functions parameters"""
 
-import numbers
 import collections
 import logging
 import functools
@@ -11,6 +10,8 @@ import numpy as np
 
 from .helper_classes import Singleton
 from . import conv
+
+Footprint, AAsyncRaster = None, None # Lazy import
 
 BAND_SCHEMA_PARAMS = frozenset({
     'nodata', 'interpretation', 'offset', 'scale', 'mask',
@@ -326,6 +327,8 @@ class _DeprecationPool(Singleton):
         del user_kwargs[n]
         return v, user_kwargs
 
+deprecation_pool = _DeprecationPool()
+
 def normalize_fields_defn(fields):
     """Used on file creation"""
     if not isinstance(fields, collections.Iterable): # pragma: no cover
@@ -354,4 +357,177 @@ def normalize_fields_defn(fields):
         )
     return [_sanitize_dict(dic) for dic in fields]
 
-deprecation_pool = _DeprecationPool()
+# Async rasters ***************************************************************************** **
+def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='cv_area',
+                                max_queue_size=5):
+    """Check and transform the last parameters of a `queue_data` method.
+    Default values are duplicated in the CachedRasterRecipe.queue_data method
+    """
+
+    # Normalize and check band parameter
+    band_ids, is_flat = normalize_band_parameter(band, len(raster), raster.shared_band_id)
+    del band
+
+    # Normalize and check dst_nodata parameter
+    if dst_nodata is not None:
+        dst_nodata = raster.dtype.type(dst_nodata)
+    elif raster.nodata is not None:
+        dst_nodata = raster.nodata
+    else:
+        dst_nodata = raster.dtype.type(0)
+
+    # Check interpolation parameter here
+    if not (interpolation is None or interpolation in raster._back.REMAP_INTERPOLATIONS): # pragma: no cover
+        raise ValueError('`interpolation` should be None or one of {}'.format(
+            set(raster._back.REMAP_INTERPOLATIONS.keys())
+        ))
+
+    # Check max_queue_size
+    max_queue_size = int(max_queue_size)
+    if max_queue_size <= 0:
+        raise ValueError('`max_queue_size` should be >0')
+
+    return dict(
+        band_ids=band_ids,
+        dst_nodata=dst_nodata,
+        interpolation=interpolation,
+        max_queue_size=max_queue_size,
+        is_flat=is_flat,
+    )
+
+def shatter_queue_data_method(met, name):
+    """Check and transform a `met = queue_data_per_primitive[name]` given by user
+
+    Parameters
+    ----------
+    met: object
+        user's parameter
+    name: hashable
+        name given to primitive by user
+
+    Returns
+    -------
+    (ABackAsyncRaster, dict of str->object)
+    """
+    global AAsyncRaster
+    if AAsyncRaster is None:
+        from buzzard._a_async_raster import AAsyncRaster
+
+
+    # Unwrap function.partial instances ****************************************
+    kwargs = {}
+    while isinstance(met, functools.partial):
+        if met.args:
+            raise ValueError("Can't handle positional arguments in functools.partial " +
+                             "of `queue_data_per_primitive` element")
+        kwargs.update(met.keywords)
+        met = met.func
+
+    # Check method *************************************************************
+    if not callable(met):
+        raise TypeError('`queue_data_per_primitive[{}]` should be callable'.format(
+            name
+        ))
+    if not hasattr(met, '__self__') or not isinstance(met.__self__, AAsyncRaster):
+        fmt = '`queue_data_per_primitive[{}]` should be the `.queue_data` method ' +\
+              'of a scheduler raster'
+        raise TypeError(fmt.format(name))
+
+    kwargs = parse_queue_data_parameters(met.__self__, **kwargs)
+    return met.__self__._back, kwargs
+
+# Tiling checks ********************************************************************************* **
+def is_tiling_covering_fp(tiling, fp, allow_outer_pixels, allow_overlapping_pixels):
+    """Is the `tiling` object, an output of `fp.tile` or `fp.tile.count`?
+
+    if `allow_outer_pixels`
+        Some pixels of `tiling` may be outside of `fp`
+    else
+        All pixels of `tiling` should be inside `fp`
+
+    if `allow_overlapping_pixels`
+        All pixels of `fp` should be covered at least once.
+    else
+        All pixels of `fp` should be covered exactly once.
+
+    Parameters
+    ----------
+    tiling: object
+        An object provided by user
+    fp: Footprint
+    allow_outer_pixels: bool
+    allow_overlapping_pixels: bool
+
+    Returns
+    -------
+    bool
+    """
+    global Footprint
+    if Footprint is None:
+        from buzzard._footprint import Footprint
+
+    # Type checking ****************************************
+    if not isinstance(tiling, np.ndarray):
+        return False
+    if tiling.ndim != 2:
+        return False
+    for tile in tiling.flat:
+        if not isinstance(tile, Footprint):
+            return False
+        if not fp.same_grid(tile):
+            return False
+
+    # Pixel indices extraction *****************************
+    rtls = np.asarray([
+        fp.spatial_to_raster(tile.tl)
+        for tile in tiling.flat
+    ]).reshape(tiling.shape[0], tiling.shape[1], 2)
+    rbrs = np.asarray([
+        fp.spatial_to_raster(tile.br)
+        for tile in tiling.flat
+    ]).reshape(tiling.shape[0], tiling.shape[1], 2)
+
+    # is tiling ********************************************
+    # All line's tly equal
+    if not np.all(rtls[:, :1, 1] == rtls[:, :, 1]):
+        return False
+    # All line's bry equal
+    if not np.all(rbrs[:, :1, 1] == rbrs[:, :, 1]):
+        return False
+
+    # All column's tlx equal
+    if not np.all(rtls[:1, :, 0] == rtls[:, :, 0]):
+        return False
+    # All column's brx equal
+    if not np.all(rbrs[:1, :, 0] == rbrs[:, :, 0]):
+        return False
+
+    # bounds ***********************************************
+    if not allow_outer_pixels:
+        if not np.all(rtls[0, 0] <= 0):
+            return False
+        if not np.all(rbrs[-1, -1] >= fp.rsize):
+            return False
+    else:
+        if not np.all(rtls[0, 0] == [0, 0]):
+            return False
+        if not np.all(rbrs[-1, -1] == fp.rsize):
+            return False
+
+    # overlap **********************************************
+    if allow_overlapping_pixels:
+        # All line's consecutive tlx vs brx
+        if not np.all(rbrs[:, :-1, 0] >= rtls[:, 1:, 0]):
+            return False
+        # All columns's consecutive tly vs bry
+        if not np.all(rbrs[:-1, :, 1] >= rtls[1:, :, 1]):
+            return False
+    else:
+        # All line's consecutive tlx vs brx
+        if not np.all(rbrs[:, :-1, 0] == rtls[:, 1:, 0]):
+            return False
+        # All columns's consecutive tly vs bry
+        if not np.all(rbrs[:-1, :, 1] == rtls[1:, :, 1]):
+            return False
+
+    return True
