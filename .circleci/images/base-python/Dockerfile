@@ -19,7 +19,7 @@ FROM circleci/python:$PYTHON_VERSION-stretch
 ##############################################
 
 ARG NUMPY_VERSION=1.14.5
-ARG GDAL_VERSION=2.3.1
+ARG GDAL_VERSION=2.4.0
 ARG PROJ4_VERSION=4.9.3
 ARG GRID_VERSION=1.6
 ARG GEOS_VERSION=3.6.2
