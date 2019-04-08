@@ -129,12 +129,14 @@ class ActorResampler(object):
             ]
 
         else:
-            assert False, f"""
-            is_tile_alone = {is_tile_alone}
-            is_tile_outside = {is_tile_outside}
-            is_interpolation_needed = {is_interpolation_needed}
-            is_interpolation_defered = {is_interpolation_defered}
-            """
+            assert False, """
+            is_tile_alone = {}
+            is_tile_outside = {}
+            is_interpolation_needed = {}
+            is_interpolation_defered = {}
+            """.format(
+                is_tile_alone, is_tile_outside, is_interpolation_needed, is_interpolation_defered
+            )
 
         msgs += self._push_if_done(qi, prod_idx)
 
