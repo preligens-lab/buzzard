@@ -67,7 +67,7 @@ class AProxyVector(AProxy):
         """Return the number of features in vector"""
         return len(self._back)
 
-    def iter_data(self, fields=-1, geom_type='shapely',
+    def iter_data(self, fields=None, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over vector's features
 
@@ -76,7 +76,7 @@ class AProxyVector(AProxy):
         fields: None or string or -1 or sequence of string/int
             Which fields to include in iteration
 
-            if None or empty sequence: No fields included
+            if None, empty sequence or empty string: No fields included
             if -1: All fields included
             if string: Name of fields to include (separated by comma or space)
             if sequence: List of indices / names to include
@@ -103,25 +103,33 @@ class AProxyVector(AProxy):
         slicing: slice
             Slice of the iteration to return. It is applied after spatial filtering
 
-        Returns
-        -------
-        iterable of value:
+        Yields
+        ------
+        feature: geometry or (geometry,) or (geometry, *fields)
+            If `geom_type` is 'shapely', geometry is a `shapely geometry`.
+            If `geom_type` is `coordinates`, geometry is a `nested lists of numpy arrays`.
 
-        | geom_type     | fields | value type                            |
-        |---------------|--------|---------------------------------------|
-        | 'shapely'     | None   | shapely object                        |
-        | 'coordinates' | None   | nested list / numpy arrays            |
-        | 'shapely'     | Some   | (shapely object, *fields)             |
-        | 'coordinates' | Some   | (nested list / numpy arrays, *fields) |
+            If `fields` is not a sequence, `feature` is `geometry` or `(geometry, *fields)`,
+                 depending on the number of fields to yield.
+            If `fields` is a sequence or a string, `feature` is `(geometry,)` or
+                `(geometry, *fields)`. Use `fields=[-1]` to get a monad containing all fields.
 
-        Example
-        -------
+        Examples
+        --------
         >>> for polygon, volume, stock_type in ds.stocks.iter_data('volume,type'):
                 print('area:{}m**2, volume:{}m**3'.format(polygon.area, volume))
 
+        >>> for polygon, in ds.stocks.iter_data([]):
+                print('area:{}m**2'.format(polygon.area))
+
+        >>> for polygon in ds.stocks.iter_data():
+                print('area:{}m**2'.format(polygon.area))
+
         """
         # Normalize and check fields parameter
-        field_indices = list(self._iter_user_intput_field_keys(fields))
+        field_indices, is_flat = _tools.normalize_fields_parameter(
+            fields, self._back.index_of_field_name
+        )
         del fields
 
         # Normalize and check geom_type parameter
@@ -146,7 +154,8 @@ class AProxyVector(AProxy):
 
         for data in self._back.iter_data(geom_type, field_indices, slicing,
                                          mask_poly, mask_rect, clip):
-            if len(field_indices) == 0:
+            if is_flat:
+                assert len(data) == 1, len(data)
                 yield data[0]
             else:
                 yield data
@@ -238,31 +247,6 @@ class AProxyVector(AProxy):
             return val
         else: # pragma: no cover
             raise IndexError('Feature `{}` not found'.format(index))
-
-    def _iter_user_intput_field_keys(self, keys):
-        """Used on features reading"""
-        if keys == -1:
-            for i in range(len(self._back.fields)):
-                yield i
-        elif isinstance(keys, str):
-            for str_ in keys.replace(' ', ',').split(','):
-                if str_ != '':
-                    yield self._back.index_of_field_name[str_]
-        elif keys is None:
-            return
-        elif isinstance(keys, collections.Iterable):
-            for val in keys:
-                if isinstance(val, numbers.Number):
-                    val = int(val)
-                    if val >= len(self._back.fields): # pragma: no cover
-                        raise ValueError('Out of bound %d' % val)
-                    yield val
-                elif isinstance(val, str):
-                    yield self._back.index_of_field_name[val]
-                else: # pragma: no cover
-                    raise TypeError('bad type in `fields`')
-        else: # pragma: no cover
-            raise TypeError('bad `fields` type')
 
     @staticmethod
     def _normalize_mask_parameter(mask):

@@ -83,8 +83,11 @@ class AProxyRaster(AProxy):
 
         Returns
         -------
-        numpy.ndarray
-            of shape (Y, X) or (Y, X, B)
+        array: numpy.ndarray
+            If the `band` parameter is a band id, the returned array is of shape (Y, X) when `B=1`,
+               (Y, X, B) otherwise.
+            If the `band` parameter is a sequence, the returned array is always of shape (Y, X, B),
+               no matter the size of `B`. Use `band=[-1]` to get a monad containing all channels.
 
         Band Identifiers
         ------------

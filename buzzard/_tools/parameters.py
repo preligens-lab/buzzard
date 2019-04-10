@@ -37,17 +37,60 @@ def _coro_parameter_0or1dim(val, clean_fn, name):
         yield True
         yield attempt
         return
-    if isinstance(val, str) or not isinstance(val, collections.Iterable):
+    if isinstance(val, str) or not isinstance(val, collections.Iterable): # pragma: no cover
         raise TypeError(
             'Expecting a `{}` or an `sequence of `{}`, found a `{}`'.format(name, name, type(val))
         )
     yield False
     for elt in val:
         attempt = clean_fn(elt)
-        if attempt is None:
+        if attempt is None: # pragma: no cover
             fmt = 'Expecting a `{}` or an `sequence of `{}`, found an `sequence of {}`'
             raise TypeError(fmt.format(name, name, type(elt)))
         yield attempt
+
+def normalize_fields_parameter(fields, index_of_field_name):
+    count = len(index_of_field_name)
+
+    def _normalize_value(val):
+        if isinstance(val, numbers.Real):
+            val = int(val)
+            if not (val == -1 or 0 <= val < count): # pragma: no cover
+                raise ValueError('field index should be -1 or between 0 and {}'.format(count - 1))
+            return val
+        elif isinstance(val, str): # pragma: no cover
+            if val not in index_of_field_name:
+                raise ValueError('Unknown field name')
+            return val
+        return None
+
+    def _index_generator(clean_indices_generator):
+        for index in clean_indices_generator:
+            if isinstance(index, str):
+                yield index_of_field_name[index]
+            elif isinstance(index, int):
+                if index == -1:
+                    for i in range(len(index_of_field_name)):
+                        yield i
+                else:
+                    yield index
+            else: # pragma: no cover
+                assert False, index
+
+    if fields is None:
+        return [], True
+    if isinstance(fields, str):
+        fields = [
+            f
+            for f in fields.replace(' ', ',').split(',')
+            if f
+        ]
+    gen = _coro_parameter_0or1dim(fields, _normalize_value, 'field index')
+    is_flat = next(gen)
+    indices = list(_index_generator(gen))
+    if len(indices) > 0:
+        is_flat = False
+    return indices, is_flat
 
 def normalize_band_parameter(band, band_count, shared_mask_index):
     """
