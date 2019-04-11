@@ -7,7 +7,7 @@ import numpy as np
 
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
-from buzzard._a_proxy_raster_remap import ABackProxyRasterRemapMixin
+from buzzard._a_source_raster_remap import ABackSourceRasterRemapMixin
 
 class ActorResampler(object):
     """Actor that takes care of resampling sample tiles, and wait for all
@@ -341,7 +341,7 @@ def _resample_subsample_array(sample_fp, resample_fp, subsample_array, src_nodat
     None or np.ndarray of shape (Y', X')
     """
     # TODO: Inplace remap
-    res = ABackProxyRasterRemapMixin.remap(
+    res = ABackSourceRasterRemapMixin.remap(
         src_fp=sample_fp, dst_fp=resample_fp,
         array=subsample_array, mask=None,
         src_nodata=src_nodata, dst_nodata=dst_nodata,

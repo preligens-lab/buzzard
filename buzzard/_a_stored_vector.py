@@ -3,9 +3,9 @@ import collections
 import shapely.geometry as sg
 
 from buzzard._a_stored import AStored, ABackStored
-from buzzard._a_proxy_vector import AProxyVector, ABackProxyVector
+from buzzard._a_source_vector import ASourceVector, ABackSourceVector
 
-class AStoredVector(AStored, AProxyVector):
+class AStoredVector(AStored, ASourceVector):
     """Base abstract class defining the common behavior of all vectors that are stored somewhere
     (like RAM or disk).
 
@@ -89,7 +89,7 @@ class AStoredVector(AStored, AProxyVector):
         else: # pragma: no cover
             raise TypeError('Bad fields type')
 
-class ABackStoredVector(ABackStored, ABackProxyVector):
+class ABackStoredVector(ABackStored, ABackSourceVector):
     """Implementation of AStoredRaster's specifications"""
 
     def __init__(self, **kwargs):

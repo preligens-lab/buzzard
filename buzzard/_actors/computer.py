@@ -181,7 +181,7 @@ class Work(PoolJobWorking):
                 compute_fp,
                 primitive_footprints,
                 primitive_arrays,
-                actor._raster.facade_proxy
+                actor._raster.facade_source
             )
         else:
             func = functools.partial(

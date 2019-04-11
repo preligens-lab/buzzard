@@ -11,14 +11,14 @@ class ARasterRecipe(AAsyncRaster):
 
     @property
     def primitives(self):
-        """dict of primitive name to Proxy, deduced from the `queue_data_per_primitive` provided at
+        """dict of primitive name to Source, deduced from the `queue_data_per_primitive` provided at
         construction.
         """
         # TODO: differenciate `_dataset_register` and `_dataset_back_register`
         # to lower the complexity of that method
         d = {}
         for key, back in self._back.primitives_back.items():
-            for facade in self._ds._keys_of_proxy.keys():
+            for facade in self._ds._keys_of_source.keys():
                 if facade._back is back:
                     d[key] = facade
                     break
@@ -31,7 +31,7 @@ class ABackRasterRecipe(ABackAsyncRaster):
     def __init__(self,
                  band_schema,
                  band_count,
-                 facade_proxy,
+                 facade_source,
                  computation_pool,
                  merge_pool,
                  compute_array,
@@ -40,7 +40,7 @@ class ABackRasterRecipe(ABackAsyncRaster):
                  primitives_kwargs,
                  convert_footprint_per_primitive,
                  **kwargs):
-        self.facade_proxy = facade_proxy
+        self.facade_source = facade_source
         self.computation_pool = computation_pool
         self.merge_pool = merge_pool
         self.compute_array = compute_array

@@ -25,12 +25,12 @@ class AEmissary(AStored):
 
     @property
     def path(self):
-        """Get the file system path of this proxy, may be the empty string if not applicable"""
+        """Get the file system path of this source, may be the empty string if not applicable"""
         return self._back.path
 
     @property
     def delete(self):
-        """Delete a proxy with a call or a context management. May raise an exception if not
+        """Delete a source with a call or a context management. May raise an exception if not
         applicable or if `mode` = 'r'
         The `delete` attribute returns an object that can be both called and used in a with statement
 

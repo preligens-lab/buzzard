@@ -5,12 +5,12 @@ import sys
 import shapely.geometry as sg
 import numpy as np
 
-from buzzard._a_proxy import AProxy, ABackProxy
+from buzzard._a_source import ASource, ABackSource
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._tools import conv
 
-class AProxyVector(AProxy):
+class ASourceVector(ASource):
     """Base abstract class defining the common behavior of all vectors.
 
     Features Defined
@@ -161,7 +161,7 @@ class AProxyVector(AProxy):
                 yield data
 
     def get_data(self, index, fields=-1, geom_type='shapely', mask=None, clip=False):
-        """Fetch a single feature in vector. See AProxyVector.iter_data"""
+        """Fetch a single feature in vector. See ASourceVector.iter_data"""
         index = int(index)
         for val in self.iter_data(fields, geom_type, mask, clip, slice(index, index + 1, 1)):
             return val
@@ -241,7 +241,7 @@ class AProxyVector(AProxy):
             }
 
     def get_geojson(self, index, mask=None, clip=False):
-        """Fetch a single feature in vector. See AProxyVector.iter_geojson"""
+        """Fetch a single feature in vector. See ASourceVector.iter_geojson"""
         index = int(index)
         for val in self.iter_geojson(mask, clip, slice(index, index + 1, 1)):
             return val
@@ -270,11 +270,11 @@ class AProxyVector(AProxy):
         '0.4.4'
     )
 
-class ABackProxyVector(ABackProxy):
-    """Implementation of AProxyVector's specifications"""
+class ABackSourceVector(ABackSource):
+    """Implementation of ASourceVector's specifications"""
 
     def __init__(self, type, fields, **kwargs):
-        super(ABackProxyVector, self).__init__(**kwargs)
+        super(ABackSourceVector, self).__init__(**kwargs)
         self.type = type
         self.fields = fields
         self.index_of_field_name = {
@@ -289,11 +289,11 @@ class ABackProxyVector(ABackProxy):
 
     @property
     def extent(self): # pragma: no cover
-        raise NotImplementedError('ABackProxyVector.extent is virtual pure')
+        raise NotImplementedError('ABackSourceVector.extent is virtual pure')
 
     @property # pragma: no cover
     def extent_stored(self):
-        raise NotImplementedError('ABackProxyVector.extent_stored is virtual pure')
+        raise NotImplementedError('ABackSourceVector.extent_stored is virtual pure')
 
     @property
     def bounds(self):
@@ -306,13 +306,13 @@ class ABackProxyVector(ABackProxy):
         return np.asarray([extent[0], extent[2], extent[1], extent[3]])
 
     def __len__(self): # pragma: no cover
-        raise NotImplementedError('ABackProxyVector.__len__ is virtual pure')
+        raise NotImplementedError('ABackSourceVector.__len__ is virtual pure')
 
     def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip): # pragma: no cover
-        raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')
+        raise NotImplementedError('ABackSourceVector.iter_data is virtual pure')
 
 if sys.version_info < (3, 6):
     # https://www.python.org/dev/peps/pep-0487/
-    for k, v in AProxyVector.__dict__.items():
+    for k, v in ASourceVector.__dict__.items():
         if hasattr(v, '__set_name__'):
-            v.__set_name__(AProxyVector, k)
+            v.__set_name__(ASourceVector, k)

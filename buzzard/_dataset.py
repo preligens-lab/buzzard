@@ -15,7 +15,7 @@ from buzzard._tools import conv, deprecation_pool
 from buzzard._footprint import Footprint
 from buzzard import _tools
 from buzzard._dataset_back import BackDataset
-from buzzard._a_proxy import AProxy
+from buzzard._a_source import ASource
 from buzzard._gdal_file_raster import GDALFileRaster, BackGDALFileRaster
 from buzzard._gdal_file_vector import GDALFileVector, BackGDALFileVector
 from buzzard._gdal_mem_raster import GDALMemRaster
@@ -866,7 +866,7 @@ class Dataset(DatasetRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        # Classic RasterProxy parameters *******************
+        # Classic RasterSource parameters *******************
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
@@ -1253,36 +1253,36 @@ class Dataset(DatasetRegisterMixin):
         return self.create_vector(_AnonymousSentry(), path, geometry, fields, layer,
                                   driver, options, sr)
 
-    # Proxy infos ******************************************************************************* **
+    # Source infos ******************************************************************************* **
     def __getitem__(self, key):
-        """Retrieve a proxy from its key"""
-        return self._proxy_of_key[key]
+        """Retrieve a source from its key"""
+        return self._source_of_key[key]
 
     def __contains__(self, item):
-        """Is key or proxy registered in Dataset"""
-        if isinstance(item, AProxy):
-            return item in self._keys_of_proxy
-        return item in self._proxy_of_key
+        """Is key or source registered in Dataset"""
+        if isinstance(item, ASource):
+            return item in self._keys_of_source
+        return item in self._source_of_key
 
     def items(self):
-        """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
-        for proxy, keys in self._keys_of_proxy.items():
-            yield list(keys), proxy
+        """Generate the pair of (keys_of_source, source) for all proxies"""
+        for source, keys in self._keys_of_source.items():
+            yield list(keys), source
 
     def keys(self):
-        """Generate all proxy keys"""
-        for proxy, keys in self._keys_of_proxy.items():
+        """Generate all source keys"""
+        for source, keys in self._keys_of_source.items():
             for key in keys:
                 yield key
 
     def values(self):
         """Generate all proxies"""
-        for proxy, _ in self._keys_of_proxy.items():
-            yield proxy
+        for source, _ in self._keys_of_source.items():
+            yield source
 
     def __len__(self):
-        """Retrieve proxy count registered in this Dataset"""
-        return len(self._keys_of_proxy)
+        """Retrieve source count registered in this Dataset"""
+        return len(self._keys_of_source)
 
     # Pools infos ******************************************************************************* **
     @property
@@ -1350,8 +1350,8 @@ class Dataset(DatasetRegisterMixin):
 
             # Safely release all resources
             self._back.pools_container._close()
-            for proxy in list(self._keys_of_proxy.keys()):
-                proxy.close()
+            for source in list(self._keys_of_source.keys()):
+                source.close()
 
         return _CloseRoutine(self, _close)
 
@@ -1384,7 +1384,7 @@ class Dataset(DatasetRegisterMixin):
         """
         proxs = [
             prox
-            for prox in self._keys_of_proxy.keys()
+            for prox in self._keys_of_source.keys()
             if isinstance(prox, APooledEmissary)
         ]
         total = len(proxs)
@@ -1408,7 +1408,7 @@ class Dataset(DatasetRegisterMixin):
 
     def deactivate_all(self):
         """Deactivate all deactivable proxies. Useful to flush all files to disk"""
-        for prox in self._keys_of_proxy.keys():
+        for prox in self._keys_of_source.keys():
             if prox.active:
                 prox.deactivate()
 

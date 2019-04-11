@@ -25,11 +25,11 @@ from buzzard._dataset import (
 
 from buzzard._env import Env
 
-# Proxy's abstract classes
+# Source's abstract classes
 # Public methods, but always instanciated by Dataset, never by user.
-from buzzard._a_proxy import AProxy
-from buzzard._a_proxy_raster import AProxyRaster
-from buzzard._a_proxy_vector import AProxyVector
+from buzzard._a_source import ASource
+from buzzard._a_source_raster import ASourceRaster
+from buzzard._a_source_vector import ASourceVector
 
 from buzzard._a_stored import AStored
 from buzzard._a_stored_raster import AStoredRaster
@@ -46,7 +46,7 @@ from buzzard._a_pooled_emissary_vector import APooledEmissaryVector
 from buzzard._a_async_raster import AAsyncRaster
 from buzzard._a_raster_recipe import ARasterRecipe
 
-# Proxy's concrete classes
+# Source's concrete classes
 # Public methods, but always instanciated by Dataset, never by user.
 from buzzard._gdal_file_raster import GDALFileRaster
 from buzzard._gdal_mem_raster import GDALMemRaster

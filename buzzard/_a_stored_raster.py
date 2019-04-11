@@ -3,9 +3,9 @@ import numpy as np
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._a_stored import AStored, ABackStored
-from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
+from buzzard._a_source_raster import ASourceRaster, ABackSourceRaster
 
-class AStoredRaster(AStored, AProxyRaster):
+class AStoredRaster(AStored, ASourceRaster):
     """Base abstract class defining the common behavior of all rasters that are stored somewhere
     (like RAM or disk).
 
@@ -144,7 +144,7 @@ class AStoredRaster(AStored, AProxyRaster):
             band_ids=band_ids,
         )
 
-class ABackStoredRaster(ABackStored, ABackProxyRaster):
+class ABackStoredRaster(ABackStored, ABackSourceRaster):
     """Implementation of AStoredRaster's specifications"""
 
     def set_data(self, array, fp, band_ids, interpolation, mask): # pragma: no cover

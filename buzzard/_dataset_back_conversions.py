@@ -153,7 +153,7 @@ class BackDatasetConversionsMixin(object):
 
         # Mode 2: If stored missing and `ds` does not provide a fallback
         if virtual is None and work is not None:
-            raise ValueError("Missing proxy's spatial reference while using a `mode 2` Dataset")
+            raise ValueError("Missing source's spatial reference while using a `mode 2` Dataset")
 
         # Mode 1:
         if work is None:

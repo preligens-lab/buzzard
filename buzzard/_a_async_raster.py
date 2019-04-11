@@ -2,7 +2,7 @@ import uuid
 import queue
 import weakref
 
-from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
+from buzzard._a_source_raster import ASourceRaster, ABackSourceRaster
 from buzzard._footprint import Footprint
 from buzzard import _tools
 from buzzard._actors.message import Msg
@@ -10,7 +10,7 @@ from buzzard._debug_observers_manager import DebugObserversManager
 
 QUEUE_POLL_DISTANCE = 0.1
 
-class AAsyncRaster(AProxyRaster):
+class AAsyncRaster(ASourceRaster):
     """Base abstract class defining the common behavior of all rasters that are managed by the
     Dataset's scheduler.
 
@@ -114,7 +114,7 @@ class AAsyncRaster(AProxyRaster):
             **_tools.parse_queue_data_parameters(self, band, dst_nodata, interpolation, max_queue_size)
         )
 
-class ABackAsyncRaster(ABackProxyRaster):
+class ABackAsyncRaster(ABackSourceRaster):
     """Implementation of AAsyncRaster's specifications"""
 
     def __init__(self, resample_pool, max_resampling_size, debug_observers, **kwargs):

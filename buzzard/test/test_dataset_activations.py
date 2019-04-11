@@ -72,7 +72,7 @@ def test_vector():
         del it
         assert (ds._back.idle_count(r1._back.uid), ds._back.used_count(r1._back.uid), r1.active_count, r1.active) == (1, 0, 1, True)
 
-        # Iteration 4 - try proxy.close
+        # Iteration 4 - try source.close
         it = r1.iter_data()
         next(it)
         assert (ds._back.idle_count(), ds._back.used_count(), ds.active_count) == (0, 1, 1)

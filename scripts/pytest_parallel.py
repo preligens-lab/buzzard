@@ -20,7 +20,7 @@ import datetime
 
 TOCHUNK = [
     'test_cached_raster_recipe',
-    'test_vectorproxy_getsetdata_general',
+    'test_vectorsource_getsetdata_general',
 ]
 
 def group(n, iterable):

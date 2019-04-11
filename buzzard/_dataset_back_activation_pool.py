@@ -30,7 +30,7 @@ class BackDatasetActivationPoolMixin(object):
         """
         with self._ap_lock:
             if self._ap_used[uid] > 0:
-                raise ValueError('Attempting to deactivate a proxy currently used')
+                raise ValueError('Attempting to deactivate a source currently used')
             self._ap_idle.pop_all_occurrences(uid)
 
     def deactivate_many(self, uid_set):
@@ -40,7 +40,7 @@ class BackDatasetActivationPoolMixin(object):
         with self._ap_lock:
             being_used = uid_set & self._ap_used.keys()
             if being_used:
-                raise ValueError('Attempting to deactivate {} proxy currently used'.format(
+                raise ValueError('Attempting to deactivate {} source currently used'.format(
                     len(being_used)
                 ))
             idle = self._ap_idle & uid_set

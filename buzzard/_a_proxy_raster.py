@@ -1,11 +1,11 @@
 import sys
 
-from buzzard._a_proxy import AProxy, ABackProxy
-from buzzard._a_proxy_raster_remap import ABackProxyRasterRemapMixin
+from buzzard._a_source import ASource, ABackSource
+from buzzard._a_source_raster_remap import ABackSourceRasterRemapMixin
 from buzzard._footprint import Footprint
 from buzzard import _tools
 
-class AProxyRaster(AProxy):
+class ASourceRaster(ASource):
     """Base abstract class defining the common behavior of all rasters.
 
     Features Defined
@@ -101,7 +101,7 @@ class AProxyRaster(AProxy):
 
         """
         dst_nodata, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='dst_nodata', old_names={'nodata': '0.5.0'}, context='AProxyRaster.get_data',
+            new_name='dst_nodata', old_names={'nodata': '0.5.0'}, context='ASourceRaster.get_data',
             new_name_value=dst_nodata,
             new_name_is_provided=dst_nodata != None,
             user_kwargs=kwargs,
@@ -152,11 +152,11 @@ class AProxyRaster(AProxy):
         '0.4.4'
     )
 
-class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
-    """Implementation of AProxyRaster's specifications"""
+class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
+    """Implementation of ASourceRaster's specifications"""
 
     def __init__(self, band_schema, dtype, fp_stored, **kwargs):
-        super(ABackProxyRaster, self).__init__(rect=fp_stored, **kwargs)
+        super(ABackSourceRaster, self).__init__(rect=fp_stored, **kwargs)
 
         if self.to_work is not None:
             fp = fp_stored.move(*self.to_work([
@@ -188,10 +188,10 @@ class ABackProxyRaster(ABackProxy, ABackProxyRasterRemapMixin):
         return len(self.band_schema['nodata'])
 
     def get_data(self, fp, band_ids, dst_nodata, interpolation): # pragma: no cover
-        raise NotImplementedError('ABackProxyRaster.get_data is virtual pure')
+        raise NotImplementedError('ABackSourceRaster.get_data is virtual pure')
 
 if sys.version_info < (3, 6):
     # https://www.python.org/dev/peps/pep-0487/
-    for k, v in AProxyRaster.__dict__.items():
+    for k, v in ASourceRaster.__dict__.items():
         if hasattr(v, '__set_name__'):
-            v.__set_name__(AProxyRaster, k)
+            v.__set_name__(ASourceRaster, k)

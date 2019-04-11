@@ -70,7 +70,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
     """Implementation of CachedRasterRecipe's specifications"""
 
     def __init__(
-        self, back_ds, facade_proxy,
+        self, back_ds, facade_source,
         fp, dtype, band_count, band_schema, sr,
         compute_array, merge_arrays,
         cache_dir, overwrite,
@@ -81,18 +81,18 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         debug_observers,
     ):
         super().__init__(
-            # Proxy
+            # Source
             back_ds=back_ds,
             wkt_stored=sr,
 
-            # RasterProxy
+            # RasterSource
             band_schema=band_schema,
             dtype=dtype,
             fp_stored=fp,
             band_count=band_count,
 
             # Recipe
-            facade_proxy=facade_proxy,
+            facade_source=facade_source,
             computation_pool=computation_pool,
             merge_pool=merge_pool,
             compute_array=compute_array,
