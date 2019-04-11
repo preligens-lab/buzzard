@@ -242,7 +242,7 @@ class ABackGDALVector(ABackStoredVector):
             #     err = dr.DeleteDataset(path)
             #     if err:
             #         raise Exception('Could not delete %s' % path)
-            #     gdal_ds = dr.CreateDataset(path, options)
+            #     gdal_ds = dr.CreateDataSource(path, options)
 
             if gdal_ds is None: # pragma: no cover
                 raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))

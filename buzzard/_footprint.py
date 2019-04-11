@@ -1614,7 +1614,7 @@ class Footprint(TileMixin, IntersectionMixin):
         target_ds.SetGeoTransform(self.gt)
         target_ds.SetProjection(sr_wkt)
 
-        rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataset('wrk')
+        rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
         rast_mem_lyr = rast_ogr_ds.CreateLayer('line', srs=sr)
         val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
         rast_mem_lyr.CreateField(val_field)
@@ -1675,7 +1675,7 @@ class Footprint(TileMixin, IntersectionMixin):
         source_ds.SetProjection(sr_wkt)
         source_ds.GetRasterBand(1).WriteArray(mask, 0, 0)
 
-        ogr_ds = ogr.GetDriverByName('Memory').CreateDataset('wrk')
+        ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
         ogr_lyr = ogr_ds.CreateLayer('poly', srs=sr)
         field_defn = ogr.FieldDefn('elev', ogr.OFTReal)
         ogr_lyr.CreateField(field_defn)
@@ -1745,7 +1745,7 @@ class Footprint(TileMixin, IntersectionMixin):
         target_ds.SetGeoTransform(self.gt)
         target_ds.SetProjection(sr_wkt)
 
-        rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataset('wrk')
+        rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
         rast_mem_lyr = rast_ogr_ds.CreateLayer('polygon', srs=sr)
         val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
         rast_mem_lyr.CreateField(val_field)
