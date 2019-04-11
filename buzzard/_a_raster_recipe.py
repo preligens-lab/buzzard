@@ -2,7 +2,7 @@ from buzzard._a_async_raster import ABackAsyncRaster, AAsyncRaster
 
 class ARasterRecipe(AAsyncRaster):
     """Base abstract class defining the common behavior of all rasters that compute data on the fly
-    through the DataSource's scheduler.
+    through the Dataset's scheduler.
 
     Features Defined
     ----------------
@@ -14,7 +14,7 @@ class ARasterRecipe(AAsyncRaster):
         """dict of primitive name to Proxy, deduced from the `queue_data_per_primitive` provided at
         construction.
         """
-        # TODO: differenciate `_datasource_register` and `_datasource_back_register`
+        # TODO: differenciate `_dataset_register` and `_dataset_back_register`
         # to lower the complexity of that method
         d = {}
         for key, back in self._back.primitives_back.items():

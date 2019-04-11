@@ -5,12 +5,12 @@ from osgeo import osr
 from buzzard import _tools
 
 class AProxy(object):
-    """Base abstract class defining the common behavior of all sources opened in the DataSource.
+    """Base abstract class defining the common behavior of all sources opened in the Dataset.
 
     Features Defined
     ----------------
     - Has a `stored` spatial reference
-    - Has a `virtual` spatial reference that is influenced by the DataSource's opening mode
+    - Has a `virtual` spatial reference that is influenced by the Dataset's opening mode
     - Can be closed
     """
 
@@ -53,7 +53,7 @@ class AProxy(object):
         return self._back.proj4_virtual
 
     def get_keys(self):
-        """Get the list of keys under which this proxy is registered to in the DataSource"""
+        """Get the list of keys under which this proxy is registered to in the Dataset"""
         return list(self._ds._keys_of_proxy[self])
 
     @property

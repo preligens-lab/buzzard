@@ -67,7 +67,7 @@ class ABackGDALVector(ABackStoredVector):
                     if not self.back_ds.allow_none_geometry: # pragma: no cover
                         raise Exception(
                             'None geometry in feature '
-                            '(allow None geometry in DataSource constructor to silence)'
+                            '(allow None geometry in Dataset constructor to silence)'
                         )
                 else:
                     if clip:
@@ -143,7 +143,7 @@ class ABackGDALVector(ABackStoredVector):
                 if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None: # pragma: no cover
                     raise ValueError(
                         'Invalid geometry inserted '
-                        '(allow None geometry in DataSource constructor to silence)'
+                        '(allow None geometry in Dataset constructor to silence)'
                     )
 
             if index >= 0:
@@ -218,7 +218,7 @@ class ABackGDALVector(ABackStoredVector):
 
     @classmethod
     def create_file(cls, path, geometry, fields, layer, driver, options, sr):
-        """Create a vector datasource"""
+        """Create a vector dataset"""
 
         with Env(_osgeo_use_exceptions=False):
             dr = gdal.GetDriverByName(driver)
@@ -239,10 +239,10 @@ class ABackGDALVector(ABackStoredVector):
             # See TODO on deletion of existing file
             # if gdal_ds.GetLayerCount() == 0:
             #     del gdal_ds
-            #     err = dr.DeleteDataSource(path)
+            #     err = dr.DeleteDataset(path)
             #     if err:
             #         raise Exception('Could not delete %s' % path)
-            #     gdal_ds = dr.CreateDataSource(path, options)
+            #     gdal_ds = dr.CreateDataset(path, options)
 
             if gdal_ds is None: # pragma: no cover
                 raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))

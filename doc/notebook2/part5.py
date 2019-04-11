@@ -21,7 +21,7 @@ DOWNLOAD_POOL = mp.pool.ThreadPool(5)
 def main():
     print("All images shown here belong to ESA/Hubble. See spacetelescope.org.\n")
 
-    ds = buzz.DataSource(allow_interpolation=True)
+    ds = buzz.Dataset(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=True)
 
     # Test 1 - Perform basic tests ****************************************** **
@@ -61,7 +61,7 @@ def main():
 
     print('Closing and opening andromeda rasters again...')
     ds.close()
-    ds = buzz.DataSource(allow_interpolation=True)
+    ds = buzz.Dataset(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=False)
 
     with example_tools.Timer() as t:

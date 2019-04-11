@@ -26,7 +26,7 @@ def colorize_mandelbrot(fp, primitive_fps, primitive_arrays, raster):
     return res
 
 def example():
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     # Create a Footprint that ranges from -2 to 2 on both x and y axes
     fp = buzz.Footprint(

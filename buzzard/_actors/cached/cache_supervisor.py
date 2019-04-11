@@ -28,7 +28,7 @@ class ActorCacheSupervisor(object):
         self.address = '/Raster{}/CacheSupervisor'.format(self._raster.uid)
         self._directory_primed = False
 
-        # Should contain the path to all files that will be opened using the DataSource's activation
+        # Should contain the path to all files that will be opened using the Dataset's activation
         # pool. It means all cache files in those status:
         # - _CacheTileStatus.checking
         # - _CacheTileStatus.ready

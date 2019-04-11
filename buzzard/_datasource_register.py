@@ -1,13 +1,13 @@
 import threading
 
-class DataSourceRegisterMixin(object):
-    """Private mixin for the DataSource class containing subroutines for proxies registration"""
+class DatasetRegisterMixin(object):
+    """Private mixin for the Dataset class containing subroutines for proxies registration"""
 
     def __init__(self, **kwargs):
         self._keys_of_proxy = {}
         self._proxy_of_key = {}
         self._register_lock = threading.Lock()
-        super(DataSourceRegisterMixin, self).__init__(**kwargs)
+        super(DatasetRegisterMixin, self).__init__(**kwargs)
 
     def _register(self, keys, prox):
         with self._register_lock:

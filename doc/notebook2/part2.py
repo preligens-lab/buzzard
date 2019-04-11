@@ -13,7 +13,7 @@ from part1 import test_raster
 def main():
     return # None of the features shown here are implemented yet
     path = example_tools.create_random_elevation_gtiff()
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     # Pool to parallelize:
     # - `ds.slopes` computations
@@ -49,7 +49,7 @@ def main():
 
     # Test 2 - Multiple iterations at the same time ************************* **
     # Here the `elevation` raster is directly requested and also requested by
-    # the `slopes`, the DataSource's scheduler is made to handle simultaneous
+    # the `slopes`, the Dataset's scheduler is made to handle simultaneous
     # queries.
     tiles = ds.elevation.fp.tile_count(2, 2).flatten()
     dem_iterator = ds.elevation.iter_data(tiles)

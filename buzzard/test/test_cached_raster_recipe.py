@@ -101,7 +101,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         type(pools['computation']['computation_pool']) in {str, mp.pool.ThreadPool, type(None)}
     )
 
-    with buzz.DataSource(allow_interpolation=1).close as ds:
+    with buzz.Dataset(allow_interpolation=1).close as ds:
         # Create a numpy raster with the same data, useful to compare resampling
         npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
 
@@ -191,9 +191,9 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         it3 = r.iter_data(fps=[fp] * 2, max_queue_size=1) # 1/2 ready, 0/2 sinked
         next(it1)
         time.sleep(1/2)
-        # Close DataSource instead of Raster, because DataSource.close is currently blocking
+        # Close Dataset instead of Raster, because Dataset.close is currently blocking
 
-    with buzz.DataSource(allow_interpolation=1).close as ds:
+    with buzz.Dataset(allow_interpolation=1).close as ds:
         npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
 
         # Corrupted cache file
@@ -212,7 +212,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             else:
                 assert mtimes0[path] == mtimes1[path]
 
-    with buzz.DataSource(allow_interpolation=1).close as ds:
+    with buzz.Dataset(allow_interpolation=1).close as ds:
         npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
 
         # In iter_data, the first one(s) don't need cache, the next ones need cache file checking and then recomputation
@@ -226,7 +226,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         for tile, arr in zip(fps, arrs):
             assert np.all(arr == npr.get_data(band=-1, fp=tile))
 
-    with buzz.DataSource(allow_interpolation=1).close as ds:
+    with buzz.Dataset(allow_interpolation=1).close as ds:
         # Derived and primitive rasters not computed
         if compute_same_address_space:
             ac0, ac1 = _AreaCounter(fp), _AreaCounter(fp)

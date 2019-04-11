@@ -151,7 +151,7 @@ def _cache_file_write(array,
                       cache_fp, band_schema, sr):
     """Write this ndarray to disk.
 
-    It can't use the datasource's activation pool because the file must be closed after
+    It can't use the dataset's activation pool because the file must be closed after
     writing to:
     1. flush to disk
     2. checksum

@@ -17,7 +17,7 @@ from buzzard.test.tools import fpeq
 
 
 def test_vector():
-    ds = buzz.DataSource(max_active=2)
+    ds = buzz.Dataset(max_active=2)
     meta = dict(
         geometry='point',
     )
@@ -120,7 +120,7 @@ def test_vector_concurrent():
         point, = r1.iter_data(None)
         return point
 
-    ds = buzz.DataSource(max_active=4)
+    ds = buzz.Dataset(max_active=4)
     meta = dict(
         geometry='point',
     )
@@ -139,7 +139,7 @@ def test_vector_concurrent():
     p.terminate()
 
 def test_raster():
-    ds = buzz.DataSource(max_activated=2)
+    ds = buzz.Dataset(max_activated=2)
     meta = dict(
         fp = buzz.Footprint(
             tl=(1, 1),

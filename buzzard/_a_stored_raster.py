@@ -21,7 +21,7 @@ class AStoredRaster(AStored, AProxyRaster):
         written.
         If `fp` is not on the same grid as the destination raster, remapping is performed using
         `interpolation` algorithm. (It fails if the `allow_interpolation` parameter is set to
-        False in `DataSource` (default)). When remapping:
+        False in `Dataset` (default)). When remapping:
         - The nodata values are not interpolated, they are correctly spread to the output.
         - At most one pixel may be lost at edges due to interpolation. Provide more context in
           `array` to compensate this loss.

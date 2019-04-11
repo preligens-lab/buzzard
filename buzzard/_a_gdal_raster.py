@@ -115,7 +115,7 @@ class ABackGDALRaster(ABackStoredRaster):
 
     @classmethod
     def create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):
-        """Create a raster datasource"""
+        """Create a raster dataset"""
         dr = gdal.GetDriverByName(driver)
         if os.path.isfile(path):
             err = dr.Delete(path)

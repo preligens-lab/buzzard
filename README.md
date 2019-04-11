@@ -37,7 +37,7 @@ Table of Contents
 - tested with `pytest` with python 3.4 and python 3.7
 
 ## `buzzard` contains
-- a class to open/read/write/create GIS files: [`DataSource`](./buzzard/_datasource.py)
+- a class to open/read/write/create GIS files: [`Dataset`](./buzzard/_dataset.py)
 - a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
 
 ## Simple example
@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 rgb_path = 'path/to/raster.file'
 polygons_path = 'path/to/vector.file'
 
-ds = buzz.DataSource()
+ds = buzz.Dataset()
 ds.open_raster('rgb', rgb_path)
 ds.open_vector('polygons', polygons_path)
 

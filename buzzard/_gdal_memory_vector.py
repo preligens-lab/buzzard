@@ -7,7 +7,7 @@ from buzzard._tools import conv
 class GDALMemoryVector(AEmissaryVector):
     """Concrete class defining the behavior of a GDAL raster using the "Memory" driver
 
-    >>> help(DataSource.create_vector)
+    >>> help(Dataset.create_vector)
 
     Features Defined
     ----------------

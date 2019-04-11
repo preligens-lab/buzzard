@@ -11,7 +11,7 @@ class AProxyRaster(AProxy):
     Features Defined
     ----------------
     - Has a `stored` Footprint that defines the location of the raster
-    - Has a Footprint that is influenced by the DataSource's opening mode
+    - Has a Footprint that is influenced by the Dataset's opening mode
     - Has a lenght that defines how many bands are available
     - Has a `band_schema` that defines per band attributes (like nodata)
     - Has a `dtype` (like np.float32)
@@ -58,7 +58,7 @@ class AProxyRaster(AProxy):
         nodata is missing, 0 is used.
         If `fp` is not on the same grid as the source raster, remapping is performed using
         `interpolation` algorithm. (It fails if the `allow_interpolation` parameter is set to
-        False in `DataSource` (default)). When remapping, the nodata values are not interpolated,
+        False in `Dataset` (default)). When remapping, the nodata values are not interpolated,
         they are correctly spread to the output.
 
         If `dst_nodata` is provided, nodata pixels are set to `dst_nodata`.

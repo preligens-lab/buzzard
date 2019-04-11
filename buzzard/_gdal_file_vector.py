@@ -11,8 +11,8 @@ from buzzard._tools import conv
 class GDALFileVector(APooledEmissaryVector):
     """Concrete class defining the behavior of a GDAL vector using a file
 
-    >>> help(DataSource.open_vector)
-    >>> help(DataSource.create_vector)
+    >>> help(Dataset.open_vector)
+    >>> help(Dataset.create_vector)
 
     Features Defined
     ----------------
@@ -71,7 +71,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
 
     @staticmethod
     def open_file(path, layer, driver, options, mode):
-        """Open a vector datasource"""
+        """Open a vector dataset"""
         options = [str(arg) for arg in options] if len(options) else []
         gdal_ds = gdal.OpenEx(
             path,

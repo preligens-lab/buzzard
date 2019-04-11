@@ -15,7 +15,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from buzzard import Footprint, DataSource
+from buzzard import Footprint, Dataset
 
 # CONSTANTS - INTERPOLATIONS ******************************************************************** **
 INTERPOLATIONS = [
@@ -87,7 +87,7 @@ SCENARIOS = [DATA_FULL_LOADING, ZONES_EDGES_TESTS]
 # FIXTURES ************************************************************************************** **
 @pytest.fixture(scope='module')
 def ds():
-    return DataSource(allow_interpolation=1)
+    return Dataset(allow_interpolation=1)
 
 @pytest.fixture(
     scope='module',
@@ -101,7 +101,7 @@ def ds():
     ],
 )
 def rast(request, ds):
-    """Fixture for the datasource creation"""
+    """Fixture for the dataset creation"""
     fp = TIF_FP
     driver, band_count, dtype, nodata = request.param
     if driver == 'numpy':

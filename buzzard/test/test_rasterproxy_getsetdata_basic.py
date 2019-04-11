@@ -11,11 +11,11 @@ import tempfile
 import numpy as np
 import pytest
 
-from buzzard import Footprint, DataSource
+from buzzard import Footprint, Dataset
 
 @pytest.fixture(scope='module')
 def ds():
-    return DataSource(allow_interpolation=0)
+    return Dataset(allow_interpolation=0)
 
 @pytest.fixture(scope='module', params=['GTiff', 'MEM', 'numpy'])
 def driver(request):
@@ -39,7 +39,7 @@ def dst_nodata(request):
 
 @pytest.fixture(scope='module')
 def rast(ds, driver, band_count, dtype, src_nodata):
-    """Fixture for the datasource creation"""
+    """Fixture for the dataset creation"""
     fp = Footprint(
         tl=(100, 110), size=(10, 10), rsize=(10, 10)
     )

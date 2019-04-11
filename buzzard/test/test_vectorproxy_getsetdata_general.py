@@ -69,7 +69,7 @@ def path(suffix, driver):
 
 def test_run(path, driver, fps, test_fields, test_coords_insertion):
     # Step 1 - Build file according to fixture parameters **********************
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     if test_fields:
         fields = FIELDS
@@ -209,7 +209,7 @@ def _test_fields_read(v, data):
         [[0, 1, 2], -1, ['rarea', 'fpname', 'sqrtarea'], [0, 'fpname', 'sqrtarea'], ['rarea', 1, 2]],
     ]
 
-    # ds = buzz.DataSource()
+    # ds = buzz.Dataset()
     # v = ds.open_vector('v', path, driver=driver)
 
     for query_ways in query_waysssss:
@@ -239,7 +239,7 @@ def _test_fields_read(v, data):
 
 def _test_geom_read(v, fps, data, test_fields):
     """Test many combinations of parameters for iter/get_data/geojson. Only check geometry"""
-    # ds = buzz.DataSource()
+    # ds = buzz.Dataset()
     # v = ds.open_vector('v', path, driver=driver)
 
     queries = _build_geom_read_queries(v, fps, test_fields)
@@ -373,7 +373,7 @@ def _assert_all_list_of_fields_same(llf):
         assert all(val == lf[i] for lf in llf)
 
 def test_value_error(path):
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     v = ds.acreate_vector(path, 'polygon')
 
     with pytest.raises(ValueError, match='geom_type'):

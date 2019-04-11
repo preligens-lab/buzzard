@@ -18,7 +18,7 @@ import pytest
 from osgeo import gdal
 
 from .tools import  get_srs_by_name
-from buzzard import Footprint, DataSource
+from buzzard import Footprint, Dataset
 
 SR1 = get_srs_by_name('EPSG:2154')
 
@@ -281,7 +281,7 @@ def test_file(meta_file, path):
     meta = meta_file
     fp = meta['fp']
 
-    ds = DataSource()
+    ds = Dataset()
     arr = np.add(*fp.meshgrid_raster)
     arr = np.repeat(arr[..., np.newaxis], meta['band_count'], -1)
 
@@ -339,7 +339,7 @@ def test_mem(meta_mem):
     meta = meta_mem
     fp = meta['fp']
 
-    ds = DataSource()
+    ds = Dataset()
     arr = np.add(*fp.meshgrid_raster)
     arr = np.repeat(arr[..., np.newaxis], meta['band_count'], -1)
 
@@ -367,7 +367,7 @@ def test_numpy(meta_numpy):
 
     fp = meta['fp']
 
-    ds = DataSource()
+    ds = Dataset()
     arr = np.add(*fp.meshgrid_raster)
     arr = np.repeat(arr[..., np.newaxis], meta['array'].shape[-1], -1)
 

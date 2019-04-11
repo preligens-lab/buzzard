@@ -1,4 +1,4 @@
-""">>> help(buzz.DataSource)"""
+""">>> help(buzz.Dataset)"""
 
 # pylint: disable=too-many-lines
 import numbers
@@ -14,20 +14,20 @@ import numpy as np
 from buzzard._tools import conv, deprecation_pool
 from buzzard._footprint import Footprint
 from buzzard import _tools
-from buzzard._datasource_back import BackDataSource
+from buzzard._dataset_back import BackDataset
 from buzzard._a_proxy import AProxy
 from buzzard._gdal_file_raster import GDALFileRaster, BackGDALFileRaster
 from buzzard._gdal_file_vector import GDALFileVector, BackGDALFileVector
 from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
-from buzzard._datasource_register import DataSourceRegisterMixin
+from buzzard._dataset_register import DatasetRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
 from buzzard._cached_raster_recipe import CachedRasterRecipe
 from buzzard._a_pooled_emissary import APooledEmissary
 import buzzard.utils
 
-class DataSource(DataSourceRegisterMixin):
-    """DataSource is a class that stores references to sources. A source is either a raster, or a
+class Dataset(DatasetRegisterMixin):
+    """Dataset is a class that stores references to sources. A source is either a raster, or a
     vector. It allows quick manipulations by assigning a key to each registered source. It also
     allows inter-sources operations, like:
     - spatial reference harmonization (see `On the fly re-projections in buzzard` below)
@@ -62,14 +62,14 @@ class DataSource(DataSourceRegisterMixin):
         Maximum number of pooled sources active at the same time.
         (see `Sources activation / deactivation` below)
     debug_observers: sequence of object
-        Entry points to observe what is happening in the DataSource's sheduler.
+        Entry points to observe what is happening in the Dataset's sheduler.
 
     Example
     -------
     >>> import buzzard as buzz
 
-    Creating a DataSource
-    >>> ds = buzz.DataSource()
+    Creating a Dataset
+    >>> ds = buzz.Dataset()
 
     Opening two files
     >>> ds.open_vector('roofs', 'path/to/roofs.shp')
@@ -113,8 +113,8 @@ class DataSource(DataSourceRegisterMixin):
     by user. Each key identify one source and should thus be unique. There are then three ways to
     access that source:
     - from the object returned by the method that created the source,
-    - from the DataSource with the attribute syntax: `ds.my_source_name`,
-    - from the DataSource with the item syntax: ds["my_source_name"].
+    - from the Dataset with the attribute syntax: `ds.my_source_name`,
+    - from the Dataset with the item syntax: ds["my_source_name"].
     All keys should be unique.
 
     When creating a source anonymously you don't have to provide a key, but the only way to access
@@ -128,13 +128,13 @@ class DataSource(DataSourceRegisterMixin):
     same time (useful to perfom concurrent reads).
 
     Those sources are automatically activated and deactivated given the current needs and
-    constraints. Setting a `max_activated` lower than `np.inf` in the DataSource constructor, will
+    constraints. Setting a `max_activated` lower than `np.inf` in the Dataset constructor, will
     ensure that no more than `max_activated` driver objects are active at the same time, by
     deactivating the LRU ones.
 
     On the fly re-projections in buzzard
     ------------------------------------
-    A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
+    A Dataset may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
     read operations and write operations, all are performed by the OSR library.
 
@@ -154,7 +154,7 @@ class DataSource(DataSourceRegisterMixin):
 
     ### Terminology
     `sr`: Spatial reference
-    `sr_work`: The sr of all interactions with a DataSource (i.e. Footprints, extents, Polygons...),
+    `sr_work`: The sr of all interactions with a Dataset (i.e. Footprints, extents, Polygons...),
         may be None.
     `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None.
     `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
@@ -166,10 +166,10 @@ class DataSource(DataSourceRegisterMixin):
     `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
         for example useful when an input file can't store a `sr` (e.g. DFX).
 
-    ### DataSource parameters and modes
+    ### Dataset parameters and modes
     | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a source determined                                  |
     |------|---------|-------------|-----------|---------------------------------------------------------------------------------|
-    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this DataSource |
+    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this Dataset |
     | 2    | string  | None        | None      | Use `sr_stored`, if None raises an exception                                    |
     | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                   |
     | 4    | string  | None        | string    | Use `sr_forced`                                                                 |
@@ -187,29 +187,29 @@ class DataSource(DataSourceRegisterMixin):
 
     ### Examples
     mode 1 - No conversions at all
-    >>> ds = buzz.DataSource()
+    >>> ds = buzz.Dataset()
 
     mode 2 - Working with WGS84 coordinates
-    >>> ds = buzz.DataSource(
+    >>> ds = buzz.Dataset(
             sr_work='WGS84',
         )
 
     mode 3 - Working in UTM with DXF files in WGS84 coordinates
-    >>> ds = buzz.DataSource(
+    >>> ds = buzz.Dataset(
             sr_work='EPSG:32632',
             sr_fallback='WGS84',
         )
 
     mode 4 - Working in UTM with unreliable LCC input files
-    >>> ds = buzz.DataSource(
+    >>> ds = buzz.Dataset(
             sr_work='EPSG:32632',
             sr_forced='EPSG:27561',
         )
 
     Scheduler
     ---------
-    To handle *async rasters* living in a DataSource, a thread is to manage requests made to those
-    rasters. It will start as soon as you create an *async raster* and stop when the DataSource is
+    To handle *async rasters* living in a Dataset, a thread is to manage requests made to those
+    rasters. It will start as soon as you create an *async raster* and stop when the Dataset is
     closed or collected. If one of your callbacks to be called by the scheduler raises an exception,
     the scheduler will stop and the exception will be propagated to the main thread as soon as
     possible.
@@ -232,19 +232,19 @@ class DataSource(DataSourceRegisterMixin):
                  debug_observers=(),
                  **kwargs):
         sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
+            new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='Dataset.__init__',
             new_name_value=sr_fallback,
             new_name_is_provided=sr_fallback is not None,
             user_kwargs=kwargs,
         )
         sr_forced, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='DataSource.__init__',
+            new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='Dataset.__init__',
             new_name_value=sr_forced,
             new_name_is_provided=sr_forced is not None,
             user_kwargs=kwargs,
         )
         max_active, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='max_active', old_names={'max_activated': '0.5.0'}, context='DataSource.__init__',
+            new_name='max_active', old_names={'max_activated': '0.5.0'}, context='Dataset.__init__',
             new_name_value=max_active,
             new_name_is_provided=max_active != np.inf,
             user_kwargs=kwargs,
@@ -275,7 +275,7 @@ class DataSource(DataSourceRegisterMixin):
         allow_none_geometry = bool(allow_none_geometry)
         analyse_transformation = bool(analyse_transformation)
         self._ds_closed = False
-        self._back = BackDataSource(
+        self._back = BackDataset(
             wkt_work=sr_work,
             wkt_fallback=sr_fallback,
             wkt_forced=sr_forced,
@@ -286,18 +286,18 @@ class DataSource(DataSourceRegisterMixin):
             ds_id=id(self),
             debug_observers=debug_observers,
         )
-        super(DataSource, self).__init__()
+        super(Dataset, self).__init__()
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file in this DataSource under `key`. Only metadata are kept in memory.
+        """Open a raster file in this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileRaster)
 
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         driver: string
             gdal driver to use when opening the file
@@ -336,7 +336,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -344,9 +344,9 @@ class DataSource(DataSourceRegisterMixin):
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file anonymously in this DataSource. Only metadata are kept in memory.
+        """Open a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.open_raster
+        See Dataset.open_raster
 
         Example
         ------
@@ -358,7 +358,7 @@ class DataSource(DataSourceRegisterMixin):
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
                       driver='GTiff', options=(), sr=None):
-        """Create a raster file and register it under `key` in this DataSource. Only metadata are
+        """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
         >>> help(GDALFileRaster)
@@ -367,7 +367,7 @@ class DataSource(DataSourceRegisterMixin):
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         fp: Footprint
             Description of the location and size of the raster to create.
@@ -456,7 +456,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -465,9 +465,9 @@ class DataSource(DataSourceRegisterMixin):
 
     def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
                        driver='GTiff', options=(), sr=None):
-        """Create a raster file anonymously in this DataSource. Only metadata are kept in memory.
+        """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.create_raster
+        See Dataset.create_raster
 
         Example
         -------
@@ -486,14 +486,14 @@ class DataSource(DataSourceRegisterMixin):
                                   driver, options, sr)
 
     def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
-        """Register a numpy array as a raster under `key` in this DataSource.
+        """Register a numpy array as a raster under `key` in this Dataset.
 
         >>> help(NumpyRaster)
 
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
         array: ndarray of shape (Y, X) or (Y, X, C)
@@ -553,7 +553,7 @@ class DataSource(DataSourceRegisterMixin):
         # Construction *********************************************************
         prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -561,9 +561,9 @@ class DataSource(DataSourceRegisterMixin):
         return prox
 
     def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
-        """Register a numpy array as a raster anonymously in this DataSource.
+        """Register a numpy array as a raster anonymously in this Dataset.
 
-        See DataSource.wrap_numpy_raster
+        See Dataset.wrap_numpy_raster
         """
         return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, band_schema, sr, mode)
 
@@ -589,7 +589,7 @@ class DataSource(DataSourceRegisterMixin):
     ):
         """/!\ This method is not yet implemented. It is here for documentation purposes.
 
-        Create a *raster recipe* and register it under `key` in this DataSource.
+        Create a *raster recipe* and register it under `key` in this Dataset.
 
         A *raster recipe* implements the same interfaces as all other rasters, but internally it
         computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
@@ -638,7 +638,7 @@ class DataSource(DataSourceRegisterMixin):
         automatic_remapping: bool
             see `Automatic Remapping` below
         debug_observers: sequence of object
-            Entry points that observe what is happening with this raster in the DataSource's scheduler.
+            Entry points that observe what is happening with this raster in the Dataset's scheduler.
 
         Returns
         -------
@@ -769,10 +769,10 @@ class DataSource(DataSourceRegisterMixin):
           GIL or that leaks memory.
         - `None`, to request the scheduler thread to perform the tasks itself. Should be used when
           the computation is very light.
-        - A _hashable_ (like a _string_), that will map to a pool registered in the _DataSource_. If
-          that key is missing from the _DataSource_, a _ThreadPool_ with
+        - A _hashable_ (like a _string_), that will map to a pool registered in the _Dataset_. If
+          that key is missing from the _Dataset_, a _ThreadPool_ with
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
-          DataSource is closed, the pools instanciated that way will be joined.
+          Dataset is closed, the pools instanciated that way will be joined.
         """
         raise NotImplementedError()
 
@@ -798,7 +798,7 @@ class DataSource(DataSourceRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a *cached raster recipe* and register it under `key` in this DataSource.
+        """Create a *cached raster recipe* and register it under `key` in this Dataset.
 
         Compared to a `NocacheRasterRecipe`, in a `CachedRasterRecipe` the pixels are never computed
         twice. Cache files are used to store and reuse pixels from computations. The cache can even
@@ -910,7 +910,7 @@ class DataSource(DataSourceRegisterMixin):
         for name, met in queue_data_per_primitive.items():
             primitives_back[name], primitives_kwargs[name] = _tools.shatter_queue_data_method(met, name)
             if primitives_back[name].back_ds is not self._back:
-                raise ValueError('The `{}` primitive comes from another DataSource'.format(
+                raise ValueError('The `{}` primitive comes from another Dataset'.format(
                     name
                 ))
 
@@ -986,7 +986,7 @@ class DataSource(DataSourceRegisterMixin):
             debug_observers,
         )
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -1015,9 +1015,9 @@ class DataSource(DataSourceRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a cached raster reciped anonymously in this DataSource.
+        """Create a cached raster reciped anonymously in this Dataset.
 
-        See DataSource.create_cached_raster_recipe
+        See Dataset.create_cached_raster_recipe
         """
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
@@ -1032,14 +1032,14 @@ class DataSource(DataSourceRegisterMixin):
 
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file in this DataSource under `key`. Only metadata are kept in memory.
+        """Open a vector file in this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileVector)
 
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         layer: None or int or string
         driver: string
@@ -1085,7 +1085,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -1093,9 +1093,9 @@ class DataSource(DataSourceRegisterMixin):
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
+        """Open a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.open_vector
+        See Dataset.open_vector
 
         Example
         -------
@@ -1107,7 +1107,7 @@ class DataSource(DataSourceRegisterMixin):
 
     def create_vector(self, key, path, geometry, fields=(), layer=None,
                       driver='ESRI Shapefile', options=(), sr=None):
-        """Create a vector file and register it under `key` in this DataSource. Only metadata are
+        """Create a vector file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
         >>> help(GDALFileVector)
@@ -1116,7 +1116,7 @@ class DataSource(DataSourceRegisterMixin):
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         geometry: string
             name of a wkb geometry type
@@ -1214,7 +1214,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -1223,9 +1223,9 @@ class DataSource(DataSourceRegisterMixin):
 
     def acreate_vector(self, path, geometry, fields=(), layer=None,
                        driver='ESRI Shapefile', options=(), sr=None):
-        """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
+        """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.create_vector
+        See Dataset.create_vector
 
         Example
         -------
@@ -1242,7 +1242,7 @@ class DataSource(DataSourceRegisterMixin):
         return self._proxy_of_key[key]
 
     def __contains__(self, item):
-        """Is key or proxy registered in DataSource"""
+        """Is key or proxy registered in Dataset"""
         if isinstance(item, AProxy):
             return item in self._keys_of_proxy
         return item in self._proxy_of_key
@@ -1264,7 +1264,7 @@ class DataSource(DataSourceRegisterMixin):
             yield proxy
 
     def __len__(self):
-        """Retrieve proxy count registered in this DataSource"""
+        """Retrieve proxy count registered in this Dataset"""
         return len(self._keys_of_proxy)
 
     # Pools infos ******************************************************************************* **
@@ -1284,10 +1284,10 @@ class DataSource(DataSourceRegisterMixin):
 
     @property
     def close(self):
-        """Close the DataSource with a call or a context management.
+        """Close the Dataset with a call or a context management.
         The `close` attribute returns an object that can be both called and used in a with statement
 
-        The DataSource can be closed manually or automatically when garbage collected, it is safer
+        The Dataset can be closed manually or automatically when garbage collected, it is safer
         to do it manually. The steps are:
         - Stopping the scheduler
         - Joining the mp.Pool that have been automatically allocated
@@ -1295,16 +1295,16 @@ class DataSource(DataSourceRegisterMixin):
 
         Examples
         --------
-        >>> ds = buzz.DataSource()
+        >>> ds = buzz.Dataset()
         ... # code...
         ... ds.close()
 
-        >>> with buzz.DataSource().close as ds
+        >>> with buzz.Dataset().close as ds
         ...     # code...
 
         Caveat
         ------
-        When using a scheduler, some memory leaks may still occur after closing a DataSource.
+        When using a scheduler, some memory leaks may still occur after closing a Dataset.
         Possible origins:
         - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
         - Gdal cache not flushed (not a leak)
@@ -1321,11 +1321,11 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         if self._ds_closed:
-            raise RuntimeError("DataSource already closed")
+            raise RuntimeError("Dataset already closed")
 
         def _close():
             if self._ds_closed:
-                raise RuntimeError("DataSource already closed")
+                raise RuntimeError("Dataset already closed")
             self._ds_closed = True
 
             # Tell scheduler to stop, wait until it is done
@@ -1341,7 +1341,7 @@ class DataSource(DataSourceRegisterMixin):
     # Spatial reference getters ***************************************************************** **
     @property
     def proj4(self):
-        """DataSource's work spatial reference in WKT proj4.
+        """Dataset's work spatial reference in WKT proj4.
         Returns None if `mode 1`.
         """
         if self._back.wkt_work is None:
@@ -1350,7 +1350,7 @@ class DataSource(DataSourceRegisterMixin):
 
     @property
     def wkt(self):
-        """DataSource's work spatial reference in WKT format.
+        """Dataset's work spatial reference in WKT format.
         Returns None if `mode 1`.
         """
         return self._back.wkt_work
@@ -1418,47 +1418,47 @@ class DataSource(DataSourceRegisterMixin):
 
 if sys.version_info < (3, 6):
     # https://www.python.org/dev/peps/pep-0487/
-    for k, v in DataSource.__dict__.items():
+    for k, v in Dataset.__dict__.items():
         if hasattr(v, '__set_name__'):
-            v.__set_name__(DataSource, k)
+            v.__set_name__(Dataset, k)
 
 def open_raster(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_raster`
+    """Shortcut for `Dataset().aopen_raster`
 
-    >>> help(DataSource.open_raster)
+    >>> help(Dataset.open_raster)
     """
-    return DataSource().aopen_raster(*args, **kwargs)
+    return Dataset().aopen_raster(*args, **kwargs)
 
 def open_vector(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_vector`
+    """Shortcut for `Dataset().aopen_vector`
 
-    >>> help(DataSource.open_vector)
+    >>> help(Dataset.open_vector)
     """
-    return DataSource().aopen_vector(*args, **kwargs)
+    return Dataset().aopen_vector(*args, **kwargs)
 
 def create_raster(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_raster`
+    """Shortcut for `Dataset().acreate_raster`
 
-    >>> help(DataSource.create_raster)
+    >>> help(Dataset.create_raster)
     """
-    return DataSource().acreate_raster(*args, **kwargs)
+    return Dataset().acreate_raster(*args, **kwargs)
 
 def create_vector(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_vector`
+    """Shortcut for `Dataset().acreate_vector`
 
-    >>> help(DataSource.create_vector)
+    >>> help(Dataset.create_vector)
     """
-    return DataSource().acreate_vector(*args, **kwargs)
+    return Dataset().acreate_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
-    """Shortcut for `DataSource().awrap_numpy_raster`
+    """Shortcut for `Dataset().awrap_numpy_raster`
 
-    >>> help(DataSource.wrap_numpy_raster)
+    >>> help(Dataset.wrap_numpy_raster)
     """
-    return DataSource().awrap_numpy_raster(*args, **kwargs)
+    return Dataset().awrap_numpy_raster(*args, **kwargs)
 
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
-    '__doc__': DataSource.close.__doc__,
+    '__doc__': Dataset.close.__doc__,
 })
 
 class _AnonymousSentry(object):

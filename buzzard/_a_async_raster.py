@@ -12,7 +12,7 @@ QUEUE_POLL_DISTANCE = 0.1
 
 class AAsyncRaster(AProxyRaster):
     """Base abstract class defining the common behavior of all rasters that are managed by the
-    DataSource's scheduler.
+    Dataset's scheduler.
 
     Features Defined
     ----------------
@@ -27,7 +27,7 @@ class AAsyncRaster(AProxyRaster):
         The `fps` parameter should contain a sequence of `Footprint` that will be mapped to
         `numpy.ndarray`. The first one will be computed with a higher priority than the later one.
 
-        Calling this method sends an asynchronous message to the DataSource's scheduler with the
+        Calling this method sends an asynchronous message to the Dataset's scheduler with the
         input parameters and a queue. On the input side of the queue, the scheduler will call the
         `put` method with each array requested. On the output side of the queue, the `get` method
         should be called to retrieve the requested arrays.
@@ -79,7 +79,7 @@ class AAsyncRaster(AProxyRaster):
 
         The `iter_data` method is a higher level wrapper around the `queue_data` method. It
         returns a python generator and while waiting for data, it periodically probes the
-        DataSource's scheduler to reraise an exception if it crashed.
+        Dataset's scheduler to reraise an exception if it crashed.
 
         If you wish to cancel your request, loose the reference to generator and the scheduler will
          gracefully cancel the query.

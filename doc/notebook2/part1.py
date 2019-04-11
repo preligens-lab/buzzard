@@ -7,7 +7,7 @@ import example_tools
 
 def main():
     path = example_tools.create_random_elevation_gtiff()
-    ds = buzz.DataSource(allow_interpolation=True)
+    ds = buzz.Dataset(allow_interpolation=True)
 
     print('Classic opening')
     # Features:
@@ -29,8 +29,8 @@ def main():
         # `async_={io_pool='io', resample_pool='cpu', max_resampling_size=512, max_read_size=512}`
         test_raster(r)
 
-    # `DataSource.close()` closes all rasters, the scheduler, and the pools.
-    # If you let the garbage collector collect the `DataSource`, the rasters and
+    # `Dataset.close()` closes all rasters, the scheduler, and the pools.
+    # If you let the garbage collector collect the `Dataset`, the rasters and
     # the scheduler will be correctly closed, but the pools will leak memory.
     ds.close()
 

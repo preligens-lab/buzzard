@@ -49,7 +49,7 @@ class AStoredVector(AStored, AProxyVector):
             if not self._back.back_ds.allow_none_geometry:
                 raise TypeError(
                     'Inserting None geometry not allowed '
-                    '(allow None geometry in DataSource constructor to proceed)'
+                    '(allow None geometry in Dataset constructor to proceed)'
                 )
         elif isinstance(geom, sg.base.BaseGeometry):
             geom_type = 'shapely'

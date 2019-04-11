@@ -43,7 +43,7 @@ def shp1_path(fps):
     """Create a shapefile in SR1 containing all single letter polygons from `fps` fixture"""
     path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     ds.create_vector('poly', path, 'polygon', sr=SR1['wkt'])
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
@@ -57,7 +57,7 @@ def tif1_path(fps):
     """Create a tif in SR1 with all single letter footprints from `fps` fixture burnt in it"""
     path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     ds.create_raster('rast', path, fps.AI, 'int32', 1, sr=SR1['wkt'])
     for letter in string.ascii_uppercase[:9]:
         fp = fps[letter]
@@ -73,7 +73,7 @@ def shp2_path(fps):
     """Create a shapefile in SR2 containing all single letter polygons from `fps` fixture"""
     path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     ds.create_vector('poly', path, 'polygon', sr=SR2['wkt'])
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
@@ -87,7 +87,7 @@ def tif2_path(fps):
     """Create a tif in SR2 with all single letter footprints from `fps` fixture burnt in it"""
     path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=SR2['wkt']).close as r:
         for letter in string.ascii_uppercase[:9]:
             fp = fps[letter]
@@ -102,7 +102,7 @@ def shp3_path(fps):
     """Create a shapefile without SR containing all single letter polygons from `fps` fixture"""
     path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     ds.create_vector('poly', path, 'polygon', sr=None)
     for letter in string.ascii_uppercase[:9]:
         ds.poly.insert_data(fps[letter].poly)
@@ -116,7 +116,7 @@ def tif3_path(fps):
     """Create a tif witwhout SR with all single letter footprints from `fps` fixture burnt in it"""
     path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=None).close as r:
         for letter in string.ascii_uppercase[:9]:
             fp = fps[letter]
@@ -149,7 +149,7 @@ def random_path_tif():
 
 # TESTS ***************************************************************************************** **
 def test_mode1(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path):
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
     ds.open_raster('tif1', tif1_path)
     ds.open_vector('shp1', shp1_path)
     ds.open_raster('tif2', tif2_path)
@@ -246,7 +246,7 @@ def test_mode1(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
 
 def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path,
                random_path_shp, random_path_tif, env):
-    ds = buzz.DataSource(sr_work=SR1['wkt'])
+    ds = buzz.Dataset(sr_work=SR1['wkt'])
     ds.open_raster('tif1', tif1_path)
     ds.open_vector('shp1', shp1_path)
     ds.open_raster('tif2', tif2_path)
@@ -359,7 +359,7 @@ def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
 
 def test_mode3(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path,
                random_path_shp, random_path_tif, env):
-    ds = buzz.DataSource(sr_work=SR1['wkt'], sr_fallback=SR2['wkt'])
+    ds = buzz.Dataset(sr_work=SR1['wkt'], sr_fallback=SR2['wkt'])
     ds.open_raster('tif1', tif1_path)
     ds.open_vector('shp1', shp1_path)
     ds.open_raster('tif2', tif2_path)
@@ -492,7 +492,7 @@ def test_mode3(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
 
 def test_mode4(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_path,
                random_path_shp, random_path_tif, env):
-    ds = buzz.DataSource(sr_work=SR1['wkt'], sr_forced=SR2['wkt'])
+    ds = buzz.Dataset(sr_work=SR1['wkt'], sr_forced=SR2['wkt'])
     ds.open_raster('tif1', tif1_path)
     ds.open_vector('shp1', shp1_path)
     ds.open_raster('tif2', tif2_path)

@@ -28,7 +28,7 @@ class CachedRasterRecipe(ARasterRecipe):
     """Concrete class defining the behavior of a raster computed on the fly and fills a cache to
     avoid subsequent computations.
 
-    >>> help(DataSource.create_cached_raster_recipe)
+    >>> help(Dataset.create_cached_raster_recipe)
 
     """
     def __init__(

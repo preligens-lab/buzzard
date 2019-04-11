@@ -57,7 +57,7 @@ def generate_dsm(rsize=(16000, 16000),
     tly = np.random.uniform(32, 111)
     fp = buzz.Footprint(tl=(tlx, tly), size=(w * resolution, l * resolution), rsize=(w, l))
 
-    ds = buzz.DataSource(allow_interpolation=False)
+    ds = buzz.Dataset(allow_interpolation=False)
     filename = f'{uuid.uuid4()}.tif'
     if verbose:
         print(f'  {fp}')
