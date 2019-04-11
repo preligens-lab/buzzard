@@ -1105,8 +1105,8 @@ class Dataset(DatasetRegisterMixin):
         """
         return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
-    def create_vector(self, key, path, geometry, fields=(), layer=None,
-                      driver='ESRI Shapefile', options=(), sr=None):
+    def create_vector(self, key, path, type, fields=(), layer=None,
+                      driver='ESRI Shapefile', options=(), sr=None, **kwargs):
         """Create a vector file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
@@ -1118,7 +1118,7 @@ class Dataset(DatasetRegisterMixin):
         key: hashable (like a string)
             File identifier within Dataset
         path: string
-        geometry: string
+        type: string
             name of a wkb geometry type
             http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
             (see example below)
@@ -1186,9 +1186,24 @@ class Dataset(DatasetRegisterMixin):
         StringList    key: 'stringlist', 'str list'
 
         """
+        type_ = type
+        del type
+
+        # Deprecated parameter checking ****************************************
+        type_, kwargs = deprecation_pool.streamline_with_kwargs(
+            new_name='type', old_names={'geometry': '0.5.1'}, context='Dataset.create_vector',
+            new_name_value=type_,
+            new_name_is_provided=True,
+            user_kwargs=kwargs,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("create_vector() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
         # Parameter checking ***************************************************
         path = str(path)
-        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
+        type_ = conv.str_of_wkbgeom(conv.wkbgeom_of_str(type_))
         fields = _tools.normalize_fields_defn(fields)
         if layer is None:
             layer = '.'.join(os.path.basename(path).split('.')[:-1])
@@ -1203,12 +1218,12 @@ class Dataset(DatasetRegisterMixin):
         if driver.lower() == 'memory':
             # TODO for 0.5.0: Check async_ is False
             allocator = lambda: BackGDALFileVector.create_file(
-                '', geometry, fields, layer, 'Memory', options, sr
+                '', type_, fields, layer, 'Memory', options, sr
             )
             prox = GDALMemoryVector(self, allocator, options)
         elif True:
             allocator = lambda: BackGDALFileVector.create_file(
-                path, geometry, fields, layer, driver, options, sr
+                path, type_, fields, layer, driver, options, sr
             )
             prox = GDALFileVector(self, allocator, options, 'w')
         else:

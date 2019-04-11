@@ -1,3 +1,13 @@
+"""
+Run buzzard's tests in parallel. Pass the same arguments as you would pass to `pytest`.
+Gets the tests down to 2min from 7.5min. One test takes 2min, it would be a good idea to split it.
+
+```sh
+$ python buzzard/test/pytest_parallel.py -x .
+```
+
+"""
+
 import sys
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
@@ -6,6 +16,7 @@ import uuid
 import os
 import tempfile
 import collections
+import datetime
 
 TOCHUNK = [
     'test_cached_raster_recipe',
@@ -23,8 +34,13 @@ def group(n, iterable):
     if l:
         yield l
 
+def print_cmd(s):
+    print(f'\033[33m$ {s}\033[0m')
+
 def gen_tests():
-    res = subprocess.check_output(['pytest', '--collect-only'] + args_phase0)
+    cmd = ['pytest', '--collect-only'] + args_phase0
+    print_cmd(' '.join(cmd))
+    res = subprocess.check_output(cmd)
     res = res.decode('utf8')
     d = collections.defaultdict(list)
 
@@ -67,30 +83,34 @@ def test(batch):
     ])
     cmd = f'bash -c "{cmd}"'
     try:
-        print(cmd)
+        print_cmd(cmd)
+        a = datetime.datetime.now()
         code = os.system(cmd)
-        print(cmd, 'DONE!')
+        b = datetime.datetime.now()
     finally:
         res = ''
         if os.path.isfile(path):
             with open(path) as stream:
                 res = stream.read()
             os.remove(path)
+    dt = (b - a).total_seconds()
+    print(' ', cmd, f'(took {dt:.1f}sec)')
     if code != 0:
         raise Exception(
             f'{cmd} failed with code {code}\n============= output:\n{res}\n=============\n'
         )
 
-args_phase0 = list(sys.argv[1:])
-args_phase1 = [
-    s
-    for s in sys.argv[1:]
-    if s[0] == '-'
-]
+if __name__ == '__main__':
+    args_phase0 = list(sys.argv[1:])
+    args_phase1 = [
+        s
+        for s in sys.argv[1:]
+        if s[0] == '-'
+    ]
 
-tests = list(gen_tests())
-tests = sorted(tests)[::-1]
+    tests = list(gen_tests())
+    tests = sorted(tests)[::-1]
 
-tests = group(1, tests)
-with ThreadPoolExecutor(mp.cpu_count()) as ex:
-    list(ex.map(test, tests))
+    tests = group(1, tests)
+    with ThreadPoolExecutor(mp.cpu_count()) as ex:
+        list(ex.map(test, tests))
