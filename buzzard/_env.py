@@ -161,7 +161,7 @@ class Env(object):
     ----------
     significant: int
         Number of significant digits for floating point comparisons
-        Initialized to `8.0`
+        Initialized to `9.0`
         see: https://github.com/airware/buzzard/wiki/Precision-system
         see: https://github.com/airware/buzzard/wiki/Floating-Point-Considerations
     default_index_dtype: convertible to np.dtype
