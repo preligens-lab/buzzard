@@ -19,6 +19,9 @@ from buzzard._dataset import (
     create_vector,
     wrap_numpy_raster
 )
+from buzzard._dataset import (
+    DataSource, # Deprecated
+)
 
 from buzzard._env import Env
 

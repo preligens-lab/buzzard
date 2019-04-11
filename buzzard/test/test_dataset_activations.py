@@ -139,7 +139,7 @@ def test_vector_concurrent():
     p.terminate()
 
 def test_raster():
-    ds = buzz.Dataset(max_activated=2)
+    ds = buzz.DataSource(max_activated=2) # Test deprecated name
     meta = dict(
         fp = buzz.Footprint(
             tl=(1, 1),

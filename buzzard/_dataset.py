@@ -1461,5 +1461,7 @@ _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Dataset.close.__doc__,
 })
 
+DataSource = deprecation_pool.wrap_class(Dataset, 'DataSource', '0.5.1')
+
 class _AnonymousSentry(object):
     """Sentry object used to instanciate anonymous proxies"""

@@ -309,6 +309,18 @@ class _DeprecationPool(Singleton):
     def wrap_property(self, new_property, deprecation_version):
         return self._PropertyWrapper(new_property, deprecation_version, self._seen)
 
+    def wrap_class(self, cls, old_name, deprecation_version):
+        key = (cls, old_name)
+        @functools.wraps(cls.__init__)
+        def _f(*args, **kwargs):
+            if key not in self._seen:
+                self._seen.add(key)
+                logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
+                    old_name, deprecation_version, cls.__name__,
+                ))
+            return cls.__init__(*args, **kwargs)
+        return type(old_name, (cls,), {'__init__': _f})
+
     def streamline_with_kwargs(self, new_name, old_names, context,
                                new_name_value, new_name_is_provided, user_kwargs):
         """Look for errors with a particular parameter in an invocation
