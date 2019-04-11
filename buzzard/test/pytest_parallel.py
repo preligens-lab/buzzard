@@ -34,12 +34,12 @@ def group(n, iterable):
     if l:
         yield l
 
-def print_cmd(s):
+def _print_cmd(s):
     print(f'\033[33m$ {s}\033[0m')
 
-def gen_tests():
+def _gen_tests():
     cmd = ['pytest', '--collect-only'] + args_phase0
-    print_cmd(' '.join(cmd))
+    _print_cmd(' '.join(cmd))
     res = subprocess.check_output(cmd)
     res = res.decode('utf8')
     d = collections.defaultdict(list)
@@ -71,7 +71,7 @@ def gen_tests():
             print(f'  {m} -> (1 call of {len(fs)} tests)')
             yield m
 
-def test(batch):
+def _run_test(batch):
     path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
     cmd = ' '.join([
         'pytest',
@@ -83,7 +83,7 @@ def test(batch):
     ])
     cmd = f'bash -c "{cmd}"'
     try:
-        print_cmd(cmd)
+        _print_cmd(cmd)
         a = datetime.datetime.now()
         code = os.system(cmd)
         b = datetime.datetime.now()
@@ -108,9 +108,9 @@ if __name__ == '__main__':
         if s[0] == '-'
     ]
 
-    tests = list(gen_tests())
+    tests = list(_gen_tests())
     tests = sorted(tests)[::-1]
 
     tests = group(1, tests)
     with ThreadPoolExecutor(mp.cpu_count()) as ex:
-        list(ex.map(test, tests))
+        list(ex.map(_run_test, tests))
