@@ -32,7 +32,7 @@ ARG LIBSPATIALINDEX_VERSION=1.8.5
 #                                      #
 ########################################
 
-LABEL maintainer="Airware Corporation <devs@airware.com>"
+LABEL maintainer="Delair <nicolas.goguey@delair.aero>"
 
 ##############################################
 #                                            #

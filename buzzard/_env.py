@@ -98,7 +98,7 @@ def _set_up_osgeo_use_exception(new, _):
 # Options declaration *************************************************************************** **
 _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
 _OPTIONS = {
-    'significant': _EnvOption(_sanitize_significant, None, 8.0),
+    'significant': _EnvOption(_sanitize_significant, None, 9.0),
     'default_index_dtype': _EnvOption(_sanitize_index_dtype, None, 'int32'),
     'warnings': _EnvOption(bool, None, True), # TODO: Remove
     'allow_complex_footprint': _EnvOption(bool, None, False),
