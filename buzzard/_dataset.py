@@ -31,16 +31,18 @@ class Dataset(DatasetRegisterMixin):
     vector. It allows quick manipulations by assigning a key to each registered source. It also
     allows inter-sources operations, like:
     - spatial reference harmonization (see `On the fly re-projections in buzzard` below)
-    - workload scheduling on pools (buzzard v0.5)
+    - workload scheduling on pools when using async rasters (see `Scheduler` below)
     - other features in the future (like data visualization)
 
     For actions specific to opened sources, see those classes:
-    - GDALFileRaster,
-    - GDALMemRaster,
-    - NumpyRaster,
-    - CachedRasterRecipe,
-    - GDALFileVector,
-    - GDALMemoryVector.
+    - GDALFileRaster
+    - GDALMemRaster
+    - NumpyRaster
+    - CachedRasterRecipe
+    - GDALFileVector
+    - GDALMemoryVector
+
+    /!\ This class is not equivalent to the `gdal.Dataset` class.
 
     Parameters
     ----------
