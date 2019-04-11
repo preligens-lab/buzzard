@@ -5,6 +5,12 @@ import multiprocessing as mp
 import uuid
 import os
 import tempfile
+import collections
+
+TOCHUNK = [
+    'test_cached_raster_recipe',
+    'test_vectorproxy_getsetdata_general',
+]
 
 def group(n, iterable):
     stop = False
@@ -20,16 +26,34 @@ def group(n, iterable):
 def gen_tests():
     res = subprocess.check_output(['pytest', '--collect-only'] + args_phase0)
     res = res.decode('utf8')
+    d = collections.defaultdict(list)
 
     m = None
     for l in res.split('\n'):
         if l.startswith("<Module '"):
             m = l.replace("<Module '", '')[:-2]
-            yield m
         elif l.startswith("  <Function '"):
-            pass
+            assert m is not None, l
+            f = l.replace("  <Function '", '')[:-2]
+            d[m].append(f)
         else:
             pass
+
+    print('Found {} tests scattered on {} files'.format(
+        sum(map(len, d.values())),
+        len(d),
+    ))
+    for m, fs in d.items():
+        if any(
+                n in m
+                for n in TOCHUNK
+        ):
+            print(f'  {m} -> ({len(fs)} calls of 1 test)')
+            for f in fs:
+                yield f'{m}::{f}'
+        else:
+            print(f'  {m} -> (1 call of {len(fs)} tests)')
+            yield m
 
 def test(batch):
     path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
@@ -45,6 +69,7 @@ def test(batch):
     try:
         print(cmd)
         code = os.system(cmd)
+        print(cmd, 'DONE!')
     finally:
         res = ''
         if os.path.isfile(path):
