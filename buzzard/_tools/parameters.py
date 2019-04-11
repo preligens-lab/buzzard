@@ -321,14 +321,14 @@ class _DeprecationPool(Singleton):
             return cls.__init__(*args, **kwargs)
         return type(old_name, (cls,), {'__init__': _f})
 
-    def streamline_with_kwargs(self, new_name, old_names, context,
+    def handle_param_renaming_with_kwargs(self, new_name, old_names, context,
                                new_name_value, new_name_is_provided, user_kwargs):
         """Look for errors with a particular parameter in an invocation
 
         Exemple
         -------
         >>> def fn(newname='default', **kwargs):
-        ...     newname, kwargs = deprecation_pool.streamline_with_kwargs(
+        ...     newname, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
         ...         new_name='newname', old_names={'oldname': '0.2.3'},
         ...         new_name_value=newname, context='the fn function',
         ...         new_name_is_provided=newname != 'default',
@@ -375,12 +375,28 @@ class _DeprecationPool(Singleton):
         key = (context, new_name, n)
         if key not in self._seen:
             self._seen.add(key)
-            logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
-                n, old_names[n], new_name,
-            ))
+            logging.warning(
+                '`{}` parameter in `{}` is deprecated since v{}, use `{}` instead'.format(
+                    n, context, old_names[n], new_name,
+                )
+            )
         v = user_kwargs[n]
         del user_kwargs[n]
         return v, user_kwargs
+
+    def handle_param_removal_with_kwargs(self, old_names, context, user_kwargs):
+        deprecated_names_used = six.viewkeys(old_names) & six.viewkeys(user_kwargs)
+        if len(deprecated_names_used) == 0:
+            return user_kwargs
+        n = deprecated_names_used.pop()
+        key = (context, n)
+        if key not in self._seen:
+            self._seen.add(key)
+            logging.warning('`{}` parameter in `{}` was removed in v{}'.format(
+                n, context, old_names[n],
+            ))
+        del user_kwargs[n]
+        return user_kwargs
 
 deprecation_pool = _DeprecationPool()
 

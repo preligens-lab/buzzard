@@ -110,5 +110,5 @@ def mandelbrot_jit(array, tl, scale, maxit):
 if __name__ == '__main__':
     # Using `allow_complex_footprint` because we are instanciating Footprints
     # with `fp.scale[1] > 0`
-    with buzz.Env(allow_complex_footprint=True, warnings=False):
+    with buzz.Env(allow_complex_footprint=True):
         main()

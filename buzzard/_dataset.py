@@ -233,19 +233,19 @@ class Dataset(DatasetRegisterMixin):
                  max_active=np.inf,
                  debug_observers=(),
                  **kwargs):
-        sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
+        sr_fallback, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='Dataset.__init__',
             new_name_value=sr_fallback,
             new_name_is_provided=sr_fallback is not None,
             user_kwargs=kwargs,
         )
-        sr_forced, kwargs = deprecation_pool.streamline_with_kwargs(
+        sr_forced, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='Dataset.__init__',
             new_name_value=sr_forced,
             new_name_is_provided=sr_forced is not None,
             user_kwargs=kwargs,
         )
-        max_active, kwargs = deprecation_pool.streamline_with_kwargs(
+        max_active, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='max_active', old_names={'max_activated': '0.5.0'}, context='Dataset.__init__',
             new_name_value=max_active,
             new_name_is_provided=max_active != np.inf,
@@ -1192,7 +1192,7 @@ class Dataset(DatasetRegisterMixin):
         del type
 
         # Deprecated parameter checking ****************************************
-        type_, kwargs = deprecation_pool.streamline_with_kwargs(
+        type_, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='type', old_names={'geometry': '0.5.1'}, context='Dataset.create_vector',
             new_name_value=type_,
             new_name_is_provided=True,

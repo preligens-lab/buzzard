@@ -119,5 +119,5 @@ def download_tile(fp, *_, url_per_tile):
     return arr
 
 if __name__ == '__main__':
-    with buzz.Env(allow_complex_footprint=True, warnings=False):
+    with buzz.Env(allow_complex_footprint=True):
         main()

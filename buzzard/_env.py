@@ -7,7 +7,8 @@ from collections import namedtuple
 
 import cv2
 from osgeo import gdal, ogr, osr
-from buzzard._tools import conv, Singleton
+
+from buzzard._tools import conv, Singleton, deprecation_pool
 
 try:
     from collections import ChainMap
@@ -100,7 +101,6 @@ _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
 _OPTIONS = {
     'significant': _EnvOption(_sanitize_significant, None, 9.0),
     'default_index_dtype': _EnvOption(_sanitize_index_dtype, None, 'int32'),
-    'warnings': _EnvOption(bool, None, True), # TODO: Remove
     'allow_complex_footprint': _EnvOption(bool, None, False),
 
     '_osgeo_use_exceptions': _EnvOption(bool, _set_up_osgeo_use_exception, gdal.GetUseExceptions()),
@@ -170,8 +170,6 @@ class Env(object):
     allow_complex_footprint: bool
         Whether to allow non north-up / west-left Footprints
         Initialized to `False`
-    warnings: bool
-        Initialized to `True`
 
     Example
     -------
@@ -186,6 +184,9 @@ class Env(object):
     """
 
     def __init__(self, **kwargs):
+        kwargs = deprecation_pool.handle_param_removal_with_kwargs(
+            {'warnings': '0.5.1'}, 'Env', kwargs,
+        )
         self._mapping = {}
         for k, v in kwargs.items():
             if k not in _OPTIONS: # pragma: no cover

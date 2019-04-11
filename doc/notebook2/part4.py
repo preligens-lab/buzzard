@@ -113,5 +113,5 @@ if __name__ == '__main__':
     if os.path.isdir(CACHE_DIR):
         for path in example_tools.list_cache_files_path_in_dir(CACHE_DIR):
             os.remove(path)
-    with buzz.Env(allow_complex_footprint=True, warnings=False):
+    with buzz.Env(allow_complex_footprint=True):
         example()

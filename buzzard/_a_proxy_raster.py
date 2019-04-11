@@ -100,7 +100,7 @@ class AProxyRaster(AProxy):
         | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
 
         """
-        dst_nodata, kwargs = _tools.deprecation_pool.streamline_with_kwargs(
+        dst_nodata, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='dst_nodata', old_names={'nodata': '0.5.0'}, context='AProxyRaster.get_data',
             new_name_value=dst_nodata,
             new_name_is_provided=dst_nodata != None,

@@ -84,7 +84,7 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
         if os.path.isfile(dstpath):
             print("  {} already exits".format(dstpath), flush=True)
             return
-        with buzz.Env(significant=10, allow_complex_footprint=True, warnings=False):
+        with buzz.Env(significant=10, allow_complex_footprint=True):
             ds = buzz.Dataset(sr_work='WGS84', analyse_transformation=False)
             ds.open_vector('src', srcpath, driver='GeoJSON')
             ds.open_raster('raster', rgb_wgs84_path)

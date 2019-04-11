@@ -286,7 +286,7 @@ def test_corner_cases(fps1px):
         fps.BH,
         fps.BH.intersection(fps.BH, alignment='tl'),
     )
-    with buzz.Env(warnings=False, allow_complex_footprint=True):
+    with buzz.Env(allow_complex_footprint=True):
         for angle in np.r_[0:180:13j]:
             rotated = fps.E.intersection(fps.E, rotation=angle)
             nofit = angle % 90 != 0
@@ -320,7 +320,7 @@ def test_corner_cases(fps1px):
             fps.BH.intersection(fps.BH, alignment=[0.5, 0.5]),
             homogeneous=True,
         )
-    with buzz.Env(warnings=False, allow_complex_footprint=True):
+    with buzz.Env(allow_complex_footprint=True):
         with pytest.raises(ValueError, match='grid'):
             fps.AH.intersection(
                 fps.E.intersection(fps.E, rotation=42),
@@ -334,7 +334,7 @@ def test_corner_cases(fps1px):
         fps.AI.intersection(stripe),
         fps.AI.intersection(stripe, rotation=0),
     )
-    with buzz.Env(warnings=False, allow_complex_footprint=True):
+    with buzz.Env(allow_complex_footprint=True):
         assert fpeq(
             fps.AI.intersection(stripe, rotation='fit'),
             fps.AI.intersection(stripe, rotation=45),

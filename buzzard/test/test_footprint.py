@@ -268,7 +268,7 @@ def test_clip(fps1px):
 def test_move(fps1px):
     fps = fps1px
 
-    with buzz.Env(warnings=False, allow_complex_footprint=True):
+    with buzz.Env(warnings=False, allow_complex_footprint=True): # Test the `warnings` deprecation
         assert fpeq(
             fps.B,
             fps.A.move(fps.B.tl),
