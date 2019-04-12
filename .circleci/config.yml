@@ -60,7 +60,7 @@ references:
         - repo-v2-
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py27-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
     py27-dependencies-v7-
@@ -72,7 +72,7 @@ references:
         - *py27_requirements_backup_cache_key
 
   py34_requirements_cache_key: &py34_requirements_cache_key
-    py34-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py34-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py34_requirements_backup_cache_key: &py34_requirements_backup_cache_key
     py34-dependencies-v7-
@@ -84,7 +84,7 @@ references:
         - *py34_requirements_backup_cache_key
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py36-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
     py36-dependencies-v7-
@@ -96,7 +96,7 @@ references:
         - *py36_requirements_backup_cache_key
 
   py37_requirements_cache_key: &py37_requirements_cache_key
-    py37-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py37-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py37_requirements_backup_cache_key: &py37_requirements_backup_cache_key
     py37-dependencies-v7-
@@ -253,6 +253,7 @@ jobs:
           name: run tests
           command: |
             . venvs/37/bin/activate
+            # TODO: Does `--junitxml=` work when using `pytest_parallel`?
             python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
             codecov
       - store_artifacts:
