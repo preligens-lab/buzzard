@@ -180,7 +180,7 @@ jobs:
 
   py34_test:
     <<: *py34_container_config
-    parallelism: 4
+    parallelism: 1
     steps:
       - *restore_repo
       - *py34_restore_dependencies
@@ -200,7 +200,9 @@ jobs:
           name: run tests
           command: |
             . venvs/34/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
+
+            # circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
@@ -213,7 +215,7 @@ jobs:
 
   py36_test:
     <<: *py36_container_config
-    parallelism: 4
+    parallelism: 1
     steps:
       - *restore_repo
       - *py36_restore_dependencies
@@ -233,7 +235,8 @@ jobs:
           name: run tests
           command: |
             . venvs/36/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
+            # circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
@@ -246,7 +249,7 @@ jobs:
 
   py37_test:
     <<: *py37_container_config
-    parallelism: 4
+    parallelism: 1
     steps:
       - *restore_repo
       - *py37_restore_dependencies
@@ -269,7 +272,9 @@ jobs:
           name: run tests
           command: |
             . venvs/37/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
+
+            # circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml --junitxml=test-reports/pytest-report.xml
             codecov
       - store_artifacts:
           path: test-reports

@@ -35,7 +35,7 @@ def group(n, iterable):
         yield l
 
 def _print_cmd(s):
-    print(f'\033[33m$ {s}\033[0m')
+    print('\033[33m$ {}\033[0m'.format(s))
 
 def _gen_tests():
     cmd = ['pytest', '--collect-only'] + args_phase0
@@ -64,24 +64,24 @@ def _gen_tests():
                 n in m
                 for n in TOCHUNK
         ):
-            print(f'  {m} -> ({len(fs)} calls of 1 test)')
+            print('  {} -> ({} calls of 1 test)'.format(m, len(fs)))
             for f in fs:
-                yield f'{m}::{f}'
+                yield '{}::{}'.format(m, f)
         else:
-            print(f'  {m} -> (1 call of {len(fs)} tests)')
+            print('  {} -> (1 call of {} tests)'.format(m, len(fs)))
             yield m
 
 def _run_test(batch):
     path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
-    cmd = ' '.join([
-        'pytest',
-        *args_phase1,
-        *[f"'{s}'"
+    cmd = ' '.join(
+        ['pytest'] +
+        args_phase1 +
+        ["'{}'".format(s)
           for s in batch
-        ],
-        f'&>{path}'
-    ])
-    cmd = f'bash -c "{cmd}"'
+        ] +
+        ['&>{}'.format(path)]
+    )
+    cmd = 'bash -c "{}"'.format(cmd)
     try:
         _print_cmd(cmd)
         a = datetime.datetime.now()
@@ -94,10 +94,12 @@ def _run_test(batch):
                 res = stream.read()
             os.remove(path)
     dt = (b - a).total_seconds()
-    print(' ', cmd, f'(took {dt:.1f}sec)')
+    print(' ', cmd, '(took {:.1f}sec)'.format(dt))
     if code != 0:
         raise Exception(
-            f'{cmd} failed with code {code}\n============= output:\n{res}\n=============\n'
+            '{} failed with code {}\n============= output:\n{}\n=============\n'.format(
+                cmd, code, res
+            )
         )
 
 if __name__ == '__main__':
@@ -108,9 +110,13 @@ if __name__ == '__main__':
         if s[0] == '-'
     ]
 
+    print('-- Discovering tests --')
     tests = list(_gen_tests())
     tests = sorted(tests)[::-1]
 
-    tests = group(1, tests)
+    tests = list(group(1, tests))
+    print('-- Running tests, {} calls to pytest, {} simulateneous --'.format(
+        len(tests), mp.cpu_count()
+    ))
     with ThreadPoolExecutor(mp.cpu_count()) as ex:
         list(ex.map(_run_test, tests))
