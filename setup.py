@@ -51,7 +51,7 @@ classifiers = [
 
 setup(
     name='buzzard',
-    version='0.5.0',
+    version='0.5.0', # TODO: Update to 0.6.0 or 0.5.1?  Don't forget to udpate deprecation messages.
     author='ngoguey',
     author_email='nicolas.goguey@delair.aero',
     license='Apache License 2.0',
