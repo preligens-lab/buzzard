@@ -254,7 +254,7 @@ jobs:
           command: |
             . venvs/37/bin/activate
 
-            python -m pytest -x buzzard/test/test_footprint_tile.py --junitxml=test-reports/pytest-report.xml
+            python -m pytest -x --junitxml=test-reports/pytest-report.xml
 
             # python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
 
