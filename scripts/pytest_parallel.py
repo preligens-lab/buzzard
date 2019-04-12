@@ -72,7 +72,14 @@ def _gen_tests():
             yield m
 
 def _run_test(batch):
-    path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+    uid = str(uuid.uuid4())
+    path = os.path.join(tempfile.gettempdir(), uid)
+    args_phase1 = [
+        s.replace('pytest-report.xml', 'pytest-report-{}.xml'.format(uid))
+        for s in sys.argv[1:]
+        if s[0] == '-'
+    ]
+
     cmd = ' '.join(
         ['pytest'] +
         args_phase1 +
@@ -104,11 +111,6 @@ def _run_test(batch):
 
 if __name__ == '__main__':
     args_phase0 = list(sys.argv[1:])
-    args_phase1 = [
-        s
-        for s in sys.argv[1:]
-        if s[0] == '-'
-    ]
 
     print('-- Discovering tests --')
     tests = list(_gen_tests())
