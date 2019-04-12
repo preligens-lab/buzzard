@@ -255,8 +255,18 @@ jobs:
             . venvs/37/bin/activate
             # TODO: Does `--junitxml=` work when using `pytest_parallel`?
             python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
+
             ls -l test-reports
-            codecov --file test-reports/pytest-report*.xml --required
+
+            find test-reports -type f | grep xml | head --lines=-1 | xargs rm
+            ls -l test-reports
+
+            mv test-reports/* test-reports/pytest-report.xml
+            ls -l test-reports
+
+            codecov
+            #codecov --file test-reports/pytest-report*.xml --required
+            # codecov --file test-reports/pytest-report*.xml --required
       - store_artifacts:
           path: test-reports
           destination: test-reports
