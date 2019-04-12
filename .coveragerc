@@ -1,2 +1,2 @@
 [run]
-omit = buzzard/test/*,buzzard/srs/*,buzzard/_tools/conv/*
+omit = buzzard/test/*,buzzard/srs/*,buzzard/_tools/conv/*,scripts/*,buzzard/algo/*
