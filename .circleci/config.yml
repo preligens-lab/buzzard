@@ -128,7 +128,8 @@ jobs:
             mkdir -p venvs/lint
             python -m venv ./venvs/lint
             . venvs/lint/bin/activate
-            pip install -r requirements-dev.txt
+            # pip install -r requirements-dev.txt
+            pip install -r requirements-ci.txt
       - run:
           name: run linter
           command: |
@@ -153,9 +154,10 @@ jobs:
             mkdir -p venvs/27
             virtualenv venvs/27
             . venvs/27/bin/activate
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
+            # pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
+            # pip install -r requirements.txt
+            # pip install -r requirements-dev.txt
+            pip install -r requirements-ci.txt
             if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
       # run tests!
       - run:
@@ -164,7 +166,7 @@ jobs:
           # no coveralls for py27
           command: |
             . venvs/27/bin/activate
-            pip install .
+            # pip install .
             circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
@@ -188,10 +190,11 @@ jobs:
             mkdir -p venvs/34
             python -m venv ./venvs/34
             . venvs/34/bin/activate
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            pip install .
+            # pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
+            # pip install -r requirements.txt
+            # pip install -r requirements-dev.txt
+            # pip install .
+            pip install -r requirements-ci.txt
       # run tests!
       - run:
           name: run tests
@@ -220,10 +223,11 @@ jobs:
             mkdir -p venvs/36
             python -m venv ./venvs/36
             . venvs/36/bin/activate
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            pip install .
+            # pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
+            # pip install -r requirements.txt
+            # pip install -r requirements-dev.txt
+            # pip install .
+            pip install -r requirements-ci.txt
       # run tests!
       - run:
           name: run tests
@@ -255,10 +259,11 @@ jobs:
             # Workaround from https://github.com/PyWavelets/pywt/issues/375
             pip install Cython
             pip install numpy>=1.13
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            pip install .
+            # pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
+            # pip install -r requirements.txt
+            # pip install -r requirements-dev.txt
+            # pip install .
+            pip install -r requirements-ci.txt
       # run tests!
       - run:
           name: run tests

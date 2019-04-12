@@ -1,4 +1,6 @@
--e .
+.
+gdal==2.4.0
+
 coverage>=4.4.1
 codecov>=2.0.15
 pytest==3.6.4
