@@ -41,7 +41,8 @@ def _gen_tests():
     args_phase0 = [
         s
         for s in sys.argv[1:]
-        if 'junitxml' not in s
+        if 'junitxml' not in s and
+        'cov' not in s
     ]
     cmd = ['pytest', '--collect-only'] + args_phase0
     _print_cmd(' '.join(cmd))
@@ -80,7 +81,11 @@ def _run_test(batch):
     uid = str(uuid.uuid4())
     path = os.path.join(tempfile.gettempdir(), uid)
     args_phase1 = [
-        s.replace('pytest-report.xml', 'pytest-report-{}.xml'.format(uid))
+        s.replace(
+            'pytest-report.xml', 'pytest-report-{}.xml'.format(uid)
+        ).replace(
+            'coverage.xml', 'coverage-{}.xml'.format(uid)
+        )
         for s in sys.argv[1:]
         if s[0] == '-'
     ]

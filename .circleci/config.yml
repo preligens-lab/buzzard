@@ -254,9 +254,10 @@ jobs:
           command: |
             . venvs/37/bin/activate
 
-            python -m pytest -x --junitxml=test-reports/pytest-report.xml
+            # --cov=buzzard --cov-report=term --cov-report=xml
+            # python -m pytest -x --junitxml=test-reports/pytest-report.xml
 
-            # python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --cov=buzzard --cov-report=term --cov-report=xml:test-reports/coverage.xml --junitxml=test-reports/pytest-report.xml
 
             # ls -l test-reports
 
