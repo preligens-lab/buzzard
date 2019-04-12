@@ -253,25 +253,17 @@ jobs:
           name: run tests
           command: |
             . venvs/37/bin/activate
-
-            # --cov=buzzard --cov-report=term --cov-report=xml
-            # python -m pytest -x --junitxml=test-reports/pytest-report.xml
-
             python scripts/pytest_parallel.py -x --cov=buzzard --cov-report=term --cov-report=xml:test-reports/coverage.xml --junitxml=test-reports/pytest-report.xml
-
-            # ls -l test-reports
-
-            # find test-reports -type f | grep xml | head --lines=-1 | xargs rm
-            # ls -l test-reports
-
-            # mv test-reports/* test-reports/pytest-report.xml
-            # ls -l test-reports
-
+            ls -l test-reports
+            # codecov first concatenate the coverage*.xml files and upload it
+            # it does not seem to care about the pytest-report*.xml, is it a problem?
+            # https://circleci.com/gh/airware/buzzard/1564#queue-placeholder/containers/0
+            # It used to upload those.
+            # https://circleci.com/gh/airware/buzzard/1506#artifacts/containers/0
             codecov
-            #codecov --file test-reports/pytest-report*.xml --required
-            # codecov --file test-reports/pytest-report*.xml --required
 
       - store_artifacts:
+          # We now store the coverage*.xml files, is it a problem?
           path: test-reports
           destination: test-reports
       - store_test_results:
