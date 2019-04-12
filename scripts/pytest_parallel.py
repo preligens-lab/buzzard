@@ -38,6 +38,11 @@ def _print_cmd(s):
     print('\033[33m$ {}\033[0m'.format(s))
 
 def _gen_tests():
+    args_phase0 = [
+        s
+        for s in sys.argv[1:]
+        if 'junitxml' not in s
+    ]
     cmd = ['pytest', '--collect-only'] + args_phase0
     _print_cmd(' '.join(cmd))
     res = subprocess.check_output(cmd)
@@ -110,8 +115,6 @@ def _run_test(batch):
         )
 
 if __name__ == '__main__':
-    args_phase0 = list(sys.argv[1:])
-
     print('-- Discovering tests --')
     tests = list(_gen_tests())
     tests = sorted(tests)[::-1]

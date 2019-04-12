@@ -256,7 +256,7 @@ jobs:
             # TODO: Does `--junitxml=` work when using `pytest_parallel`?
             python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
             ls -l test-reports
-            codecov --file test-reports/pytest-report*.xml
+            codecov --file test-reports/pytest-report*.xml --required
       - store_artifacts:
           path: test-reports
           destination: test-reports
