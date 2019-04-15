@@ -281,8 +281,6 @@ FIELD_TESTS = [[],
 ]
 ]
 
-int, float
-
 def pytest_generate_tests(metafunc):
     tests = []
 
@@ -398,10 +396,38 @@ def test_file(path, driver_file, gtype, geoms, ftypes, fields):
         with pytest.raises(RuntimeError):
             v.delete()
 
+    # Test error - driver name
+    with pytest.raises(ValueError, match='driver'):
+        ds.acreate_vector(path, gtype, ftypes, driver='Truc42', options=[], sr=SR1['wkt'])
+
+    # Test error - need overwrite
+    with pytest.raises(RuntimeError, match='overwrite'):
+        ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr=SR1['wkt'], ow=False)
+
+    # Test deletion
     with ds.aopen_vector(path, driver=driver, options=[], mode='w').delete as v:
         assert v.mode == 'w'
-    assert not os.path.isfile(path)
+    assert not os.path.exists(path)
 
+    # Test error - open
+    with pytest.raises(RuntimeError, match='Could not open'):
+        ds.aopen_vector(path, driver=driver)
+
+    # Test error - bad sr
+    with pytest.raises(ValueError, match='wkt'):
+        ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr="ca n'existe pas")
+
+    # Test error - failed file deletion for overwrite
+    if driver.lower() == 'geojson':
+        try:
+            # os.remove(path)
+            os.mkdir(path)
+            os.chmod(path, int('000', 8))
+            with pytest.raises(RuntimeError, match='Could not delete'):
+                ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr=SR1['wkt'], ow=True)
+        finally:
+            os.chmod(path, int('777', 8))
+            os.rmdir(path)
 
 def test_mem(driver_mem, gtype, geoms, ftypes, fields):
     driver = driver_mem

@@ -374,7 +374,7 @@ def _assert_all_list_of_fields_same(llf):
 
 def test_value_error(path):
     ds = buzz.Dataset()
-    v = ds.acreate_vector(path, geometry='polygon') # Test deprecated parameter name
+    v = ds.acreate_vector(path, geometry='polygon') # Test depredated
 
     with pytest.raises(ValueError, match='geom_type'):
         list(v.iter_data(geom_type=''))

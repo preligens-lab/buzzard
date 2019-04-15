@@ -6,7 +6,7 @@ from osgeo import gdal
 
 from buzzard._a_pooled_emissary_vector import APooledEmissaryVector, ABackPooledEmissaryVector
 from buzzard._a_gdal_vector import ABackGDALVector
-from buzzard._tools import conv
+from buzzard._tools import conv, GDALErrorCatcher
 
 class GDALFileVector(APooledEmissaryVector):
     """Concrete class defining the behavior of a GDAL vector using a file
@@ -73,30 +73,36 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     def open_file(path, layer, driver, options, mode):
         """Open a vector dataset"""
         options = [str(arg) for arg in options] if len(options) else []
-        gdal_ds = gdal.OpenEx(
+        success, payload = GDALErrorCatcher(gdal.OpenEx, none_is_error=True)(
             path,
             conv.of_of_mode(mode) | conv.of_of_str('vector'),
             [driver],
             options,
         )
-        if gdal_ds is None: # pragma: no cover
-            raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
+        if not success:
+            raise RuntimeError('Could not open `{}` using driver `{}` (gdal error: `{}`)'.format(
+                path, driver, payload[1]
             ))
+        gdal_ds = payload
+
         if layer is None:
             layer = 0
         if isinstance(layer, numbers.Integral):
-            lyr = gdal_ds.GetLayer(layer)
+            success, payload = GDALErrorCatcher(gdal_ds.GetLayer)(layer)
         else:
-            lyr = gdal_ds.GetLayerByName(layer)
-        if lyr is None: # pragma: no cover
+            success, payload = GDALErrorCatcher(gdal_ds.GetLayerByName)(layer)
+
+        if not success: # pragma: no cover
             count = gdal_ds.GetLayerCount()
-            raise Exception('Could not open layer `{}` ({} layers available: {}) (gdal error: `{}`)'.format(
+            raise Exception('Could not open layer `{}` of `{}` ({} layers available: {}) (gdal error: `{}`)'.format(
                 layer,
+                path,
                 count,
                 {i: gdal_ds.GetLayerByIndex(i).GetName() for i in range(count)},
-                str(gdal.GetLastErrorMsg()).strip('\n'),
+                payload[1],
             ))
+        lyr = payload
+
         return gdal_ds, lyr
 
     @contextlib.contextmanager
@@ -110,9 +116,15 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     def delete(self):
         super(BackGDALFileVector, self).delete()
 
-        dr = gdal.GetDriverByName(self.driver)
-        err = dr.Delete(self.path)
-        if err: # pragma: no cover
-            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
+        success, payload = GDALErrorCatcher(gdal.GetDriverByName, none_is_error=True)(self.driver)
+        if not success: # pragma: no cover
+            raise ValueError('Could not find a driver named `{}` (gdal error: `{}`)'.format(
+                self.driver, payload[1]
+            ))
+        dr = payload
+
+        success, payload = GDALErrorCatcher(dr.Delete, nonzero_int_is_error=True)(self.path)
+        if not success: # pragma: no cover
+            raise RuntimeError('Could not delete `{}` using driver `{}` (gdal error: `{}`)'.format(
+                self.path, dr.ShortName, payload[1]
             ))

@@ -4,18 +4,29 @@
 
 from osgeo import gdal
 
+from buzzard._tools import conv
+
 class GDALErrorCatcher:
     """Wrap a call to a gdal/ogr/osr function to streamline the behavior of gdal no matter the
-    global states:
+    type of function and no matter the global states:
     - `gdal.*UseException` functions modify global states,
     - `gdal.*ErrorHandler` functions modify thread-local states.
-
-    The function should not return `None`, an assert prevents it (it may be removed if necessary).
 
     Using this wrapper makes gdal errors thread-safe.
 
     A related update was included in `gdal>=2.3.3` (https://github.com/OSGeo/gdal/pull/1117) but
-    the python bindings were not updated. To be safe, buzzard should constrain `gdal>=2.3.3`.
+    the python bindings did not change. To be safe, buzzard should constrain `gdal>=2.3.3`.
+
+    ### Type of gdal functions
+    - Return `obj` on success, `None` on failure but trigger `error_handler`
+      - `Driver.Create`
+    - Return `obj` on success, `None` on failure but does not trigger `error_handler`
+      - `gdal.GetDriverByName`
+      - `gdal.OpenEx`
+    - Return `error code`, but does not trigger `error_handler`
+      - `Driver.Delete`
+    - Return `obj` on success, `error code` on failure, but does not trigger `error_handler`
+      - `osr.GetUserInputAsWKT`
 
     Examples
     --------
@@ -37,8 +48,10 @@ class GDALErrorCatcher:
     True <osgeo.gdal.Dataset; proxy of <Swig Object of type 'GDALDatasetShadow *' at 0x> >
 
     """
-    def __init__(self, fn):
+    def __init__(self, fn, nonzero_int_is_error=False, none_is_error=False):
         self._fn = fn
+        self._nonzero_int_is_error = nonzero_int_is_error
+        self._none_is_error = none_is_error
 
     def __call__(self, *args, **kwargs):
         errs, res = None, None
@@ -46,14 +59,14 @@ class GDALErrorCatcher:
         def error_handler(err_level, err_no, err_msg):
             nonlocal errs
             if err_level >= gdal.CE_Failure:
-                errs = err_level, err_no, err_msg
+                errs = err_no, err_msg
 
         gdal.PushErrorHandler(error_handler)
         try:
             res = self._fn(*args, **kwargs)
         except Exception as e:
             if errs is None:
-                # This is not a gdal error
+                # This is not a gdal error, this might be a swig error or something else
                 raise
             else:
                 # This is a gdal error, and `gdal.GetUseExceptions()` is True
@@ -63,11 +76,13 @@ class GDALErrorCatcher:
         finally:
             gdal.PopErrorHandler()
 
-        assert (errs is None) is not (res is None), (errs, res)
         if errs:
             return False, errs
-        else:
-            return True, res
+        if self._none_is_error and res is None:
+            return False, (0, str(gdal.GetLastErrorMsg()).strip('\n'))
+        if self._nonzero_int_is_error and isinstance(res, int) and res != 0:
+            return False, (res, conv.str_of_cple(res))
+        return True, res
 
 class CallOrContext(object):
     """Private helper class to provide a common behaviour both on call and on exit"""

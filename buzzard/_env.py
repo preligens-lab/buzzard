@@ -17,37 +17,6 @@ except:
     from chainmap import ChainMap
 
 # Sanitization ********************************************************************************** **
-# _RASTER_DRIVERS = {gdal.GetDriver(i).GetDescription() for i in range(gdal.GetDriverCount())}
-# def _sanitize_raster_driver(val):
-#     if isinstance(val, gdal.Driver):
-#         return val
-#     val = str(val)
-#     if val not in _RASTER_DRIVERS:
-#         raise ValueError('Unknown raster driver')
-#     return gdal.GetDriverByName(val)
-
-# _VECTOR_DRIVERS = {ogr.GetDriver(i).GetDescription() for i in range(ogr.GetDriverCount())}
-# def _sanitize_vector_driver(val):
-#     if isinstance(val, ogr.Driver):
-#         return val
-#     val = str(val)
-#     if val not in _RASTER_DRIVERS:
-#         raise ValueError('Unknown vector driver')
-#     return ogr.GetDriverByName(val)
-
-# _CV2_INTERPOLATIONS = [
-#     (cv2.INTER_NEAREST, 'nearest'),
-#     (cv2.INTER_LINEAR, 'linear'),
-#     (cv2.INTER_AREA, 'area'),
-#     (cv2.INTER_CUBIC, 'cubic'),
-#     (cv2.INTER_LANCZOS4, 'lanczos4'),
-# ]
-# def _sanitize_raster_interpolation(val):
-#     for v, s in _CV2_INTERPOLATIONS:
-#         if val == v or val == s:
-#             return v
-#     raise ValueError('Unknown cv2 interpolation')
-
 _INDEX_DTYPES = list(conv.DTYPE_OF_NAME.keys())
 def _sanitize_index_dtype(val):
     val = conv.dtype_of_any_downcast(val)
@@ -61,58 +30,12 @@ def _sanitize_significant(val):
         raise ValueError('Significant should be greater than 0')
     return val
 
-# Set up **************************************************************************************** **
-def _set_up_osgeo_use_exception(new, _):
-    if new:
-        gdal.UseExceptions()
-        osr.UseExceptions()
-        ogr.UseExceptions()
-    else:
-        gdal.DontUseExceptions()
-        osr.DontUseExceptions()
-        ogr.DontUseExceptions()
-
-# def _set_up_check_with_invert_proj(new, _):
-#     if new:
-#         gdal.SetConfigOption('CHECK_WITH_INVERT_PROJ', 'ON')
-#     else:
-#         gdal.SetConfigOption('CHECK_WITH_INVERT_PROJ', 'OFF')
-
-# def _set_up_buzz_trusted(new, _):
-#     conf = gdal.GetConfigOption('GDAL_VRT_PYTHON_TRUSTED_MODULES') or ''
-#     conf = conf.split(',')
-#     conf = [elt for elt in conf if elt not in {'buzzard._raster_recipe', ''}]
-#     if new:
-#         conf.append('buzzard._raster_recipe')
-#         gdal.SetConfigOption(
-#             'GDAL_VRT_PYTHON_TRUSTED_MODULES',
-#             ','.join(conf)
-#         )
-#     else:
-#         pass
-        # Do not unset because it is not safe in multithreaded environment
-        # gdal.SetConfigOption(
-        #     'GDAL_VRT_PYTHON_TRUSTED_MODULES',
-        #     ','.join(conf) if conf else None
-        # )
-
 # Options declaration *************************************************************************** **
 _EnvOption = namedtuple('_Option', 'sanitize, set_up, bottom_value')
 _OPTIONS = {
     'significant': _EnvOption(_sanitize_significant, None, 9.0),
     'default_index_dtype': _EnvOption(_sanitize_index_dtype, None, 'int32'),
     'allow_complex_footprint': _EnvOption(bool, None, False),
-
-    '_osgeo_use_exceptions': _EnvOption(bool, _set_up_osgeo_use_exception, gdal.GetUseExceptions()),
-    # '_gdal_trust_buzzard': _EnvOption(bool, _set_up_buzz_trusted, False),
-
-    # 'check_with_invert_proj': _EnvOption(
-    #     bool, _set_up_check_with_invert_proj,
-    #     gdal.GetConfigOption('CHECK_WITH_INVERT_PROJ') == 'ON'
-    # ),
-    # 'default_raster_driver': _EnvOption(_sanitize_raster_driver, None, 'GTiff'),
-    # 'default_vector_driver': _EnvOption(_sanitize_vector_driver, None, 'ESRI Shapefile'),
-    # 'raster_interpolation': _EnvOption(_sanitize_raster_interpolation, None, 'area'),
 }
 
 # Storage *************************************************************************************** **

@@ -11,7 +11,7 @@ import os
 from osgeo import osr
 import numpy as np
 
-from buzzard._tools import conv, deprecation_pool
+from buzzard._tools import conv, deprecation_pool, GDALErrorCatcher
 from buzzard._footprint import Footprint
 from buzzard import _tools
 from buzzard._dataset_back import BackDataset
@@ -1108,7 +1108,7 @@ class Dataset(DatasetRegisterMixin):
         return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
     def create_vector(self, key, path, type, fields=(), layer=None,
-                      driver='ESRI Shapefile', options=(), sr=None, **kwargs):
+                      driver='ESRI Shapefile', options=(), sr=None, ow=False, **kwargs):
         """Create a vector file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
@@ -1213,19 +1213,27 @@ class Dataset(DatasetRegisterMixin):
             layer = str(layer)
         driver = str(driver)
         options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
+        ow = bool(ow)
+        if sr is None:
+            wkt = None
+        else:
+            success, payload = GDALErrorCatcher(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
 
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
             # TODO for 0.5.0: Check async_ is False
             allocator = lambda: BackGDALFileVector.create_file(
-                '', type_, fields, layer, 'Memory', options, sr
+                '', type_, fields, layer, 'Memory', options, wkt, False,
             )
             prox = GDALMemoryVector(self, allocator, options)
         elif True:
             allocator = lambda: BackGDALFileVector.create_file(
-                path, type_, fields, layer, driver, options, sr
+                path, type_, fields, layer, driver, options, wkt, ow
             )
             prox = GDALFileVector(self, allocator, options, 'w')
         else:
@@ -1239,7 +1247,7 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def acreate_vector(self, path, geometry, fields=(), layer=None,
-                       driver='ESRI Shapefile', options=(), sr=None):
+                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
         """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
         See Dataset.create_vector
@@ -1251,7 +1259,7 @@ class Dataset(DatasetRegisterMixin):
 
         """
         return self.create_vector(_AnonymousSentry(), path, geometry, fields, layer,
-                                  driver, options, sr)
+                                  driver, options, sr, ow)
 
     # Source infos ******************************************************************************* **
     def __getitem__(self, key):
@@ -1476,6 +1484,7 @@ def wrap_numpy_raster(*args, **kwargs):
 
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
     '__doc__': Dataset.close.__doc__,
+
 })
 
 DataSource = deprecation_pool.wrap_class(Dataset, 'DataSource', '0.5.1')

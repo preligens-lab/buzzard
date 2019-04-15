@@ -1,4 +1,5 @@
 import contextlib
+import os
 
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -7,7 +8,7 @@ import shapely.ops
 import shapely.geometry as sg
 
 from buzzard._a_stored_vector import ABackStoredVector
-from buzzard._tools import conv
+from buzzard._tools import conv, GDALErrorCatcher
 from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
@@ -217,45 +218,56 @@ class ABackGDALVector(ABackStoredVector):
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
-    def create_file(cls, path, geometry, fields, layer, driver, options, sr):
+    def create_file(cls, path, geometry, fields, layer, driver, options, wkt, ow):
         """Create a vector dataset"""
 
-        with Env(_osgeo_use_exceptions=False):
-            dr = gdal.GetDriverByName(driver)
-            gdal_ds = gdal.OpenEx(
-                path,
-                conv.of_of_mode('w') | conv.of_of_str('vector'),
-                [driver],
-                options,
-            )
-            if gdal_ds is None:
-                gdal_ds = dr.Create(path, 0, 0, 0, 0, options)
+        # Step 0 - Find driver ********************************************** **
+        success, payload = GDALErrorCatcher(gdal.GetDriverByName, none_is_error=True)(driver)
+        if not success:
+            raise ValueError('Could not find a driver named `{}` (gdal error: `{}`)'.format(
+                driver, payload[1]
+            ))
+        dr = payload
+
+        # Step 1 - Overwrite ************************************************ **
+        if dr.ShortName != 'Memory' and os.path.exists(path):
+            if ow:
+                success, payload = GDALErrorCatcher(dr.Delete, nonzero_int_is_error=True)(path)
+                if not success:
+                    raise RuntimeError('Could not delete `{}` using driver `{}` (gdal error: `{}`)'.format(
+                        path, dr.ShortName, payload[1]
+                    ))
             else:
-                if gdal_ds.GetLayerByName(layer) is not None: # pragma: no cover
-                    err = gdal_ds.DeleteLayer(layer)
-                    if err:
-                        raise Exception('Could not delete %s' % path)
+                raise RuntimeError("Can't create `{}` with `ow=False` (overwrite) because file exist".format(
+                    path,
+                ))
 
-            # See TODO on deletion of existing file
-            # if gdal_ds.GetLayerCount() == 0:
-            #     del gdal_ds
-            #     err = dr.DeleteDataset(path)
-            #     if err:
-            #         raise Exception('Could not delete %s' % path)
-            #     gdal_ds = dr.CreateDataSource(path, options)
+        # Step 2 - Create gdal_ds ******************************************* **
+        success, payload = GDALErrorCatcher(dr.Create)(path, 0, 0, 0, 0, options)
+        if not success: # pragma: no cover
+            raise RuntimeError('Could not create `{}` using driver `{}` (gdal error: `{}`)'.format(
+                path, dr.ShortName, payload[1]
+            ))
+        gdal_ds = payload
 
-            if gdal_ds is None: # pragma: no cover
-                raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
+        # Step 3 - Set spatial reference ************************************ **
+        if wkt is not None:
+            sr = osr.SpatialReference(wkt)
+        else:
+            sr = None
 
-        if sr is not None:
-            sr = osr.SpatialReference(osr.GetUserInputAsWKT(sr))
-
+        # Step 4 - Create layer ********************************************* **
         geometry = conv.wkbgeom_of_str(geometry)
-        lyr = gdal_ds.CreateLayer(layer, sr, geometry, options)
+        success, payload = GDALErrorCatcher(gdal_ds.CreateLayer, none_is_error=True)(
+            layer, sr, geometry, options
+        )
+        if not success: # pragma: no cover
+            raise RuntimeError('Could not create layer `{}` in `{}` using driver `{}` (gdal error: `{}`)'.format(
+                layer, path, dr.ShortName, payload[1]
+            ))
+        lyr = payload
 
-        if lyr is None: # pragma: no cover
-            raise Exception('Could not create layer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
-
+        # Step 5 - Set fields *********************************************** **
         for field in fields:
             flddef = ogr.FieldDefn(field['name'], field['type'])
             if field['precision'] is not None:
@@ -269,6 +281,7 @@ class ABackGDALVector(ABackStoredVector):
             lyr.CreateField(flddef)
         lyr.SyncToDisk()
         gdal_ds.FlushCache()
+
         return gdal_ds, lyr
 
     @classmethod
