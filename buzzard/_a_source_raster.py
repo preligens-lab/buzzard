@@ -77,13 +77,14 @@ class ASourceRaster(ASource):
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
             If Footprint: return this window from the raster
-        channel: int or sequence of int (see `Channel Parameter` below)
+        channels: int or sequence of int (see `Channels Parameter` below)
+            The channels to be read
         dst_nodata: nbr or None
             nodata value in output array
             If None and raster.nodata is not None: raster.nodata is used
             If None and raster.nodata is None: 0 is used
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
-            Resampling method
+            OpenCV method used if intepolation is necessary
 
         Returns
         -------
@@ -93,7 +94,7 @@ class ASourceRaster(ASource):
             If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
             If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, B),
                no matter the size of `B`. Use `channels=[-1]` to get a monad containing all channels.
-            (see `Channel Parameter` below)
+            (see `Channels Parameter` below)
 
         Channels Parameter
         ------------------
@@ -139,13 +140,13 @@ class ASourceRaster(ASource):
             raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp))
 
         # Normalize and check channels parameter
-        channels_ids, is_flat = _tools.normalize_channels_parameter(
+        channel_ids, is_flat = _tools.normalize_channels_parameter(
             channels, len(self)
         )
         if is_flat:
             outshape = tuple(fp.shape)
         else:
-            outshape = tuple(fp.shape) + (len(channels_ids),)
+            outshape = tuple(fp.shape) + (len(channel_ids),)
         del channels
 
         # Normalize and check dst_nodata parameter
@@ -163,11 +164,11 @@ class ASourceRaster(ASource):
                 set(self._back.REMAP_INTERPOLATIONS.keys())
             ))
 
-        channels_ids = [i + 1 for i in channels_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
+        channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
 
         return self._back.get_data(
             fp=fp,
-            band_ids=channels_ids,
+            band_ids=channel_ids,
             dst_nodata=dst_nodata,
             interpolation=interpolation,
         ).reshape(outshape)
