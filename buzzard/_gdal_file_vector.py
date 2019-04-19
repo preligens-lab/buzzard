@@ -1,8 +1,8 @@
 import uuid
-import numbers
 import contextlib
 
 from osgeo import gdal
+import numpy as np
 
 from buzzard._a_pooled_emissary_vector import APooledEmissaryVector, ABackPooledEmissaryVector
 from buzzard._a_gdal_vector import ABackGDALVector
@@ -87,8 +87,8 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
 
         if layer is None:
             layer = 0
-        if isinstance(layer, numbers.Integral):
-            success, payload = GDALErrorCatcher(gdal_ds.GetLayer)(layer)
+        if np.all(np.isreal(layer)):
+            success, payload = GDALErrorCatcher(gdal_ds.GetLayer)(int(layer))
         else:
             success, payload = GDALErrorCatcher(gdal_ds.GetLayerByName)(layer)
 

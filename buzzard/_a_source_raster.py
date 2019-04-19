@@ -1,5 +1,7 @@
 import sys
 
+import numpy as np
+
 from buzzard._a_source import ASource, ABackSource
 from buzzard._a_source_raster_remap import ABackSourceRasterRemapMixin
 from buzzard._footprint import Footprint
@@ -51,7 +53,7 @@ class ASourceRaster(ASource):
     def shared_band_id(self):
         return self._back.shared_band_id
 
-    def get_data(self, fp=None, band=1, dst_nodata=None, interpolation='cv_area', **kwargs):
+    def get_data(self, fp=None, channels=-1, dst_nodata=None, interpolation='cv_area', **kwargs):
         """Read a rectangle of data on several channels from the source raster.
 
         If `fp` is not fully within the source raster, the external pixels are set to nodata. If
@@ -64,16 +66,18 @@ class ASourceRaster(ASource):
         If `dst_nodata` is provided, nodata pixels are set to `dst_nodata`.
 
         The alpha bands are currently resampled like any other band, this behavior may change in
-        the future. To normalize a `rgba` array after a resampling operation, use this
+        the future. To normalize an `rgba` array after a resampling operation, use this
         piece of code:
         >>> arr = np.where(arr[..., -1] == 255, arr, 0)
+
+        /!\ Bands in GDAL are indexed from 1. Channels in buzzard are indexed from 0.
 
         Parameters
         ----------
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
             If Footprint: return this window from the raster
-        band: band id or sequence of band id (see `Band Identifiers` below)
+        channel: int or sequence of int (see `Channel Identifiers` below)
         dst_nodata: nbr or None
             nodata value in output array
             If None and raster.nodata is not None: raster.nodata is used
@@ -84,20 +88,21 @@ class ASourceRaster(ASource):
         Returns
         -------
         array: numpy.ndarray
-            If the `band` parameter is a band id, the returned array is of shape (Y, X) when `B=1`,
+            If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `B=1`,
                (Y, X, B) otherwise.
-            If the `band` parameter is a sequence, the returned array is always of shape (Y, X, B),
-               no matter the size of `B`. Use `band=[-1]` to get a monad containing all channels.
+            If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
+            If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, B),
+               no matter the size of `B`. Use `channels=[-1]` to get a monad containing all channels.
 
-        Band Identifiers
-        ------------
-        | id type    | id value        | meaning          |
-        |------------|-----------------|------------------|
-        | int        | -1              | All bands        |
-        | int        | 1, 2, 3, ...    | Band `i`         |
-        | complex    | -1j             | All bands masks  |
-        | complex    | 0j              | Shared mask band |
-        | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
+        Channels Parameter
+        ------------------
+        | type            | value                         | meaning        | shape               |
+        |-----------------|-------------------------------|----------------|---------------------|
+        | int             | -1                            | All channels   | (Y, X) or (Y, X, C) |
+        | int             | 0, 1, 2, ...                  | Channel `i`    | (Y, X)              |
+        | sequence of int | [-1]                          | All channels   | (Y, X, C)           |
+        | sequence of int | [0], [1], [2], ...            | Channel `i`    | (Y, X, 1)           |
+        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels | (Y, X, C)           |
 
         """
         dst_nodata, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
@@ -105,6 +110,21 @@ class ASourceRaster(ASource):
             new_name_value=dst_nodata,
             new_name_is_provided=dst_nodata != None,
             user_kwargs=kwargs,
+        )
+
+        def _band_to_channels(val):
+            val = np.asarray(val)
+            val = np.asarray([
+                val[idx] - 1 if val[idx] >= 1 else val[idx]
+                for idx in np.ndindex(val.shape)
+            ]).reshape(val.shape)
+            return val
+        channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.get_data',
+            new_name_value=channels,
+            new_name_is_provided=channels != -1,
+            user_kwargs=kwargs,
+            transform_old=_band_to_channels,
         )
         if kwargs: # pragma: no cover
             raise TypeError("get_data() got an unexpected keyword argument '{}'".format(
@@ -114,16 +134,18 @@ class ASourceRaster(ASource):
         # Normalize and check fp parameter
         if fp is None:
             fp = self.fp
-        elif not isinstance(fp, Footprint):
-            raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp)) # pragma: no cover
+        elif not isinstance(fp, Footprint): # pragma: no cover
+            raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp))
 
-        # Normalize and check band parameter
-        band_ids, is_flat = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
+        # Normalize and check channels parameter
+        channels_ids, is_flat = _tools.normalize_channels_parameter(
+            channels, len(self)
+        )
         if is_flat:
             outshape = tuple(fp.shape)
         else:
-            outshape = tuple(fp.shape) + (len(band_ids),)
-        del band
+            outshape = tuple(fp.shape) + (len(channels_ids),)
+        del channels
 
         # Normalize and check dst_nodata parameter
         if dst_nodata is not None:
@@ -133,15 +155,18 @@ class ASourceRaster(ASource):
         else:
             dst_nodata = self.dtype.type(0)
 
-        # Check interpolation parameter here
-        if not (interpolation is None or interpolation in self._back.REMAP_INTERPOLATIONS): # pragma: no cover
+        # Check interpolation parameter
+        if not (interpolation is None or
+                interpolation in self._back.REMAP_INTERPOLATIONS): # pragma: no cover
             raise ValueError('`interpolation` should be None or one of {}'.format(
                 set(self._back.REMAP_INTERPOLATIONS.keys())
             ))
 
+        channels_ids = [i + 1 for i in channels_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
+
         return self._back.get_data(
             fp=fp,
-            band_ids=band_ids,
+            band_ids=channels_ids,
             dst_nodata=dst_nodata,
             interpolation=interpolation,
         ).reshape(outshape)

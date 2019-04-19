@@ -19,7 +19,7 @@ from buzzard.test.tools import fpeq
 def test_vector():
     ds = buzz.Dataset(max_active=2)
     meta = dict(
-        geometry='point',
+        type='point',
     )
 
     def statuses(*args):
@@ -122,7 +122,7 @@ def test_vector_concurrent():
 
     ds = buzz.Dataset(max_active=4)
     meta = dict(
-        geometry='point',
+        type='point',
     )
 
     p = mp.pool.ThreadPool(4)

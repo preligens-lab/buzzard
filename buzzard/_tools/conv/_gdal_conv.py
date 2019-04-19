@@ -6,7 +6,6 @@ http://www.gdal.org/ogr__core_8h.html
 
 import datetime
 import json
-import numbers
 import collections
 
 import shapely.wkt as sw
@@ -15,11 +14,11 @@ import numpy as np
 
 # WKB (Well Known Bytes) <-> str **************************************************************** **
 _WKBGEOM_KEYS = [
-    key for key in dir(ogr)
-    if (key.startswith('wkb') and
-        isinstance(getattr(ogr, key), numbers.Integral) and
-        key not in {'wkbXDR', 'wkbNDR'}
-       )
+    key
+    for key in dir(ogr)
+    if key.startswith('wkb') and key not in {'wkbXDR', 'wkbNDR'}
+    for val in [getattr(ogr, key)]
+    if np.all(np.isreal(val))
 ]
 
 _STR_OF_WKBGEOM = {

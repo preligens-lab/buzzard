@@ -1,7 +1,6 @@
 """>>> help(buzz.Dataset)"""
 
 # pylint: disable=too-many-lines
-import numbers
 import sys
 import pathlib
 import itertools
@@ -382,7 +381,7 @@ class Dataset(DatasetRegisterMixin):
         Example
         ------
         >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
-        >>> file_wkt = ds.ortho.wkt_stored
+        >>> file_wkt = ortho.wkt_stored
 
         """
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
@@ -1125,7 +1124,7 @@ class Dataset(DatasetRegisterMixin):
         path = str(path)
         if layer is None:
             layer = 0
-        elif isinstance(layer, numbers.Integral):
+        elif np.all(np.isreal(layer)):
             layer = int(layer)
         else:
             layer = str(layer)
@@ -1165,7 +1164,7 @@ class Dataset(DatasetRegisterMixin):
         return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
     def create_vector(self, key, path, type, fields=(), layer=None,
-                      driver='ESRI Shapefile', options=(), sr=None, ow=False, **kwargs):
+                      driver='ESRI Shapefile', options=(), sr=None, ow=False):
         """Create a vector file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
@@ -1250,18 +1249,6 @@ class Dataset(DatasetRegisterMixin):
         type_ = type
         del type
 
-        # Deprecated parameter checking ****************************************
-        type_, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='type', old_names={'geometry': '0.5.1'}, context='Dataset.create_vector',
-            new_name_value=type_,
-            new_name_is_provided=True,
-            user_kwargs=kwargs,
-        )
-        if kwargs: # pragma: no cover
-            raise TypeError("create_vector() got an unexpected keyword argument '{}'".format(
-                list(kwargs.keys())[0]
-            ))
-
         # Parameter checking ***************************************************
         path = str(path)
         type_ = conv.str_of_wkbgeom(conv.wkbgeom_of_str(type_))
@@ -1305,7 +1292,7 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def acreate_vector(self, path, type, fields=(), layer=None,
-                       driver='ESRI Shapefile', options=(), sr=None, ow=False, **kwargs):
+                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
         """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
         See Dataset.create_vector
@@ -1317,7 +1304,7 @@ class Dataset(DatasetRegisterMixin):
 
         """
         return self.create_vector(_AnonymousSentry(), path, type, fields, layer,
-                                  driver, options, sr, ow, **kwargs)
+                                  driver, options, sr, ow)
 
     # Source infos ******************************************************************************* **
     def __getitem__(self, key):

@@ -53,7 +53,7 @@ def normalize_fields_parameter(fields, index_of_field_name):
     count = len(index_of_field_name)
 
     def _normalize_value(val):
-        if isinstance(val, numbers.Real):
+        if np.all(np.isreal(val)) and np.shape(val) == ():
             val = int(val)
             if not (val == -1 or 0 <= val < count): # pragma: no cover
                 raise ValueError('field index should be -1 or between 0 and {}'.format(count - 1))
@@ -92,6 +92,33 @@ def normalize_fields_parameter(fields, index_of_field_name):
         is_flat = False
     return indices, is_flat
 
+def normalize_channels_parameter(channels, channel_count):
+    def _normalize_value(val):
+        if np.all(np.isreal(val)) and np.shape(val) == ():
+            val = int(val)
+            if not (val == -1 or 0 <= val < channel_count): # pragma: no cover
+                raise ValueError('channel index should be -1 or between 0 and {}'.format(count - 1))
+            return val
+        else:
+            return None
+
+    def _index_generator(clean_indices_generator):
+        for index in clean_indices_generator:
+            if index == -1:
+                for i in range(channel_count):
+                    yield i
+            else:
+                yield index
+
+    gen = _coro_parameter_0or1dim(channels, _normalize_value, 'channel indices')
+    is_flat = next(gen)
+    indices = list(_index_generator(gen))
+    if len(indices) == 0:
+        raise ValueError('Empty `channels` parameter')
+    elif len(indices) > 1:
+        is_flat = False
+    return indices, is_flat
+
 def normalize_band_parameter(band, band_count, shared_mask_index):
     """
     band: int or complex or iterator over int/complex
@@ -102,7 +129,7 @@ def normalize_band_parameter(band, band_count, shared_mask_index):
         if complex >= 1j: Single band index (return mask)
         if iterator: Any combination of the above numbers
     """
-
+    import numbers
     def _normalize_value(nbr):
         if isinstance(nbr, numbers.Integral):
             nbr = int(nbr)
@@ -177,11 +204,11 @@ def sanitize_band_schema(band_schema, band_count):
     if diff: # pragma: no cover
         raise ValueError('Unknown band_schema keys `%s`' % diff)
 
-    def _normalize_multi_layer(name, val, type_, cleaner, default):
+    def _normalize_multi_layer(name, val, is_type, cleaner, default):
         if val is None:
             for _ in range(band_count):
                 yield default
-        elif isinstance(val, type_):
+        elif is_type(val):
             val = cleaner(val)
             for _ in range(band_count):
                 yield val
@@ -190,7 +217,7 @@ def sanitize_band_schema(band_schema, band_count):
             for elt in val:
                 if elt is None:
                     yield default
-                elif isinstance(elt, type_):
+                elif is_type(elt):
                     yield cleaner(elt)
                 else: # pragma: no cover
                     raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
@@ -199,8 +226,10 @@ def sanitize_band_schema(band_schema, band_count):
         ret['nodata'] = list(_normalize_multi_layer(
             'nodata',
             band_schema['nodata'],
-            numbers.Number,
-            lambda val: float(val),
+            # lambda x: isinstance(x, numbers.Number),
+            # lambda x: float(x),
+            lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
+            lambda x: float(np.asscalar(np.asarray(x))),
             None,
         ))
 
@@ -217,8 +246,10 @@ def sanitize_band_schema(band_schema, band_count):
         ret['offset'] = list(_normalize_multi_layer(
             'offset',
             band_schema['offset'],
-            numbers.Number,
-            lambda val: float(val),
+            # lambda x: isinstance(x, numbers.Number),
+            # lambda x: float(x),
+            lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
+            lambda x: float(np.asscalar(np.asarray(x))),
             0.,
         ))
 
@@ -226,8 +257,10 @@ def sanitize_band_schema(band_schema, band_count):
         ret['scale'] = list(_normalize_multi_layer(
             'scale',
             band_schema['scale'],
-            numbers.Number,
-            lambda val: float(val),
+            # lambda x: isinstance(x, numbers.Number),
+            # lambda x: float(x),
+            lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
+            lambda x: float(np.asscalar(np.asarray(x))),
             1.,
         ))
 
@@ -322,7 +355,8 @@ class _DeprecationPool(Singleton):
         return type(old_name, (cls,), {'__init__': _f})
 
     def handle_param_renaming_with_kwargs(self, new_name, old_names, context,
-                               new_name_value, new_name_is_provided, user_kwargs):
+                                          new_name_value, new_name_is_provided, user_kwargs,
+                                          transform_old=lambda x:x):
         """Look for errors with a particular parameter in an invocation
 
         Exemple
@@ -380,7 +414,7 @@ class _DeprecationPool(Singleton):
                     n, context, old_names[n], new_name,
                 )
             )
-        v = user_kwargs[n]
+        v = transform_old(user_kwargs[n])
         del user_kwargs[n]
         return v, user_kwargs
 

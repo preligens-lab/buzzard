@@ -1,5 +1,4 @@
 import collections
-import numbers
 import sys
 
 import shapely.geometry as sg
