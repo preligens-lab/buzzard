@@ -89,11 +89,11 @@ class ASourceRaster(ASource):
         Returns
         -------
         array: numpy.ndarray of shape (Y, X) or (Y, X, C)
-            If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `B=1`,
-               (Y, X, B) otherwise.
+            If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `C=1`,
+               (Y, X, C) otherwise.
             If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
-            If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, B),
-               no matter the size of `B`. Use `channels=[-1]` to get a monad containing all channels.
+            If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, C),
+               no matter the size of `C`. Use `channels=[-1]` to get a monad containing all channels.
             (see `Channels Parameter` below)
 
         Channels Parameter

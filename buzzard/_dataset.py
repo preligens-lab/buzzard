@@ -74,12 +74,16 @@ class Dataset(DatasetRegisterMixin):
     Creating a Dataset
     >>> ds = buzz.Dataset()
 
-    Opening two files
-    >>> ds.open_vector('roofs', 'path/to/roofs.shp')
+    Opening a files and registering it under the 'roofs' key
+    >>> r = ds.open_vector('roofs', 'path/to/roofs.shp')
     ... feature_count = len(ds.roofs)
+    ... feature_count = len(ds['roofs'])
+    ... feature_count = len(ds.get('roofs'))
+    ... feature_count = len(r)
 
-    >>> ds.open_raster('dem', 'path/to/dem.tif')
-    ... data_type = ds.dem.dtype
+    Opening a file anonymously
+    >>> r = ds.aopen_raster('path/to/dem.tif')
+    ... data_type = r.dtype
 
     Opening, reading and closing two raster files with context management
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:

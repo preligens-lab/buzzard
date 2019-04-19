@@ -15,8 +15,9 @@ class AStoredRaster(AStored, ASourceRaster):
     """
 
     def set_data(self, array, fp=None, channels=-1, interpolation='cv_area', mask=None, **kwargs):
-        """Write a rectangle of data on several channels to the destination raster. An optional
-        `mask` may be provided to only write certain pixels of `array`.
+        """Write a rectangle of data to the destination raster. Each channel in `array` written to
+        one channel in `raster` in the same order as described by the `channels` parameter. An
+        optional `mask` may be provided to only write certain pixels of `array`.
 
         If `fp` is not fully within the destination raster, only the overlapping pixels are
         written.
@@ -35,26 +36,26 @@ class AStoredRaster(AStored, ASourceRaster):
 
         Parameters
         ----------
-        array: numpy.ndarray of shape (Y, X) or (Y, X, B)
+        array: numpy.ndarray of shape (Y, X) or (Y, X, C)
             The values to be written
         fp: Footprint of shape (Y, X) or None
             If None: write the full source raster
             If Footprint: write this window to the raster
         channels: int or sequence of int (see `Channels Parameter` below)
-            The channels to be written
+            The channels to be written.
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
             OpenCV method used if intepolation is necessary
         mask: numpy array of shape (Y, X) and dtype `bool` OR inputs accepted by `Footprint.burn_polygons`
 
         Channels Parameter
         ------------------
-        | type            | value                         | meaning        | output shape        |
-        |-----------------|-------------------------------|----------------|---------------------|
-        | int             | -1                            | All channels   | (Y, X) or (Y, X, C) |
-        | int             | 0, 1, 2, ...                  | Channel `i`    | (Y, X)              |
-        | sequence of int | [-1]                          | All channels   | (Y, X, C)           |
-        | sequence of int | [0], [1], [2], ...            | Channel `i`    | (Y, X, 1)           |
-        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels | (Y, X, C)           |
+        | type            | value                         | meaning        |
+        |-----------------|-------------------------------|----------------|
+        | int             | -1                            | All channels   |
+        | int             | 0, 1, 2, ...                  | Channel `i`    |
+        | sequence of int | [-1]                          | All channels   |
+        | sequence of int | [0], [1], [2], ...            | Channel `i`    |
+        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels |
 
         Caveat
         ------
@@ -94,6 +95,8 @@ class AStoredRaster(AStored, ASourceRaster):
 
         # Normalize and check channels parameter
         channel_ids, _ = _tools.normalize_channels_parameter(channels, len(self))
+        if len(channel_ids) != len(set(channel_ids)): # pragma: no cover
+            raise ValueError("The `channels` parameter should not reference twice the same band")
         del channels
 
         # Normalize and check array parameter
@@ -138,25 +141,26 @@ class AStoredRaster(AStored, ASourceRaster):
             mask=mask,
         )
 
-    def fill(self, value, band=1):
-        """Fill bands with value.
+    def fill(self, value, channels=-1, **kwargs):
+        """Fill raster with value.
 
         This method is not thread-safe.
 
         Parameters
         ----------
         value: nbr
-        band: band ids or sequence of band ids (see `Channels Parameter` below)
+        channels: int or sequence of int (see `Channels Parameter` below)
+            The channels to be written
 
         Channels Parameter
         ------------------
-        | type            | value                         | meaning        | output shape        |
-        |-----------------|-------------------------------|----------------|---------------------|
-        | int             | -1                            | All channels   | (Y, X) or (Y, X, C) |
-        | int             | 0, 1, 2, ...                  | Channel `i`    | (Y, X)              |
-        | sequence of int | [-1]                          | All channels   | (Y, X, C)           |
-        | sequence of int | [0], [1], [2], ...            | Channel `i`    | (Y, X, 1)           |
-        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels | (Y, X, C)           |
+        | type            | value                         | meaning        |
+        |-----------------|-------------------------------|----------------|
+        | int             | -1                            | All channels   |
+        | int             | 0, 1, 2, ...                  | Channel `i`    |
+        | sequence of int | [-1]                          | All channels   |
+        | sequence of int | [0], [1], [2], ...            | Channel `i`    |
+        | sequence of int | [0, 1, 2], [0, 2, 0], ...     | Those channels |
 
         Caveat
         ------
@@ -168,18 +172,43 @@ class AStoredRaster(AStored, ASourceRaster):
         if self.mode != 'w': # pragma: no cover
             raise RuntimeError('Cannot write a read-only raster file')
 
-        band_ids, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
+        def _band_to_channels(val):
+            val = np.asarray(val)
+            val = np.asarray([
+                val[idx] - 1 if val[idx] >= 1 else val[idx]
+                for idx in np.ndindex(val.shape)
+            ]).reshape(val.shape)
+            return val
+        channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.get_data',
+            new_name_value=channels,
+            new_name_is_provided=channels != -1,
+            user_kwargs=kwargs,
+            transform_old=_band_to_channels,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("set_data() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
+        channel_ids, _ = _tools.normalize_channels_parameter(channels, len(self))
+        del channels
+        channel_ids = set(channel_ids)
+
+        value = self.dtype.type(value).tolist()
+
+        channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
 
         self._back.fill(
             value=value,
-            band_ids=band_ids,
+            band_ids=channel_ids,
         )
 
 class ABackStoredRaster(ABackStored, ABackSourceRaster):
     """Implementation of AStoredRaster's specifications"""
 
-    def set_data(self, array, fp, band_ids, interpolation, mask): # pragma: no cover
+    def set_data(self, array, fp, channels, interpolation, mask, **kwargs): # pragma: no cover
         raise NotImplementedError('ABackStoredRaster.set_data is virtual pure')
 
-    def fill(self, value, band_ids): # pragma: no cover
+    def fill(self, value, channels, **kwargs): # pragma: no cover
         raise NotImplementedError('ABackStoredRaster.fill is virtual pure')
