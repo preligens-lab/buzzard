@@ -121,7 +121,7 @@ class AAsyncRaster(ASourceRaster):
         return self._back.iter_data(
             fps=fps,
             **_tools.parse_queue_data_parameters(
-                'iter_data', self, channels, dst_nodata, interpolation, max_queue_size, **kwargs,
+                'iter_data', self, channels, dst_nodata, interpolation, max_queue_size, **kwargs
             )
         )
 
