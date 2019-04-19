@@ -234,13 +234,15 @@ class ABackGDALVector(ABackStoredVector):
             if ow:
                 success, payload = GDALErrorCatcher(dr.Delete, nonzero_int_is_error=True)(path)
                 if not success:
-                    raise RuntimeError('Could not delete `{}` using driver `{}` (gdal error: `{}`)'.format(
+                    msg = 'Could not delete `{}` using driver `{}` (gdal error: `{}`)'.format(
                         path, dr.ShortName, payload[1]
-                    ))
+                    )
+                    raise RuntimeError(msg)
             else:
-                raise RuntimeError("Can't create `{}` with `ow=False` (overwrite) because file exist".format(
+                msg = "Can't create `{}` with `ow=False` (overwrite) because file exist".format(
                     path,
-                ))
+                )
+                raise RuntimeError(msg)
 
         # Step 2 - Create gdal_ds ******************************************* **
         success, payload = GDALErrorCatcher(dr.Create)(path, 0, 0, 0, 0, options)
@@ -250,7 +252,7 @@ class ABackGDALVector(ABackStoredVector):
             ))
         gdal_ds = payload
 
-        # Step 3 - Set spatial reference ************************************ **
+        # Step 3 - Get spatial reference ************************************ **
         if wkt is not None:
             sr = osr.SpatialReference(wkt)
         else:
@@ -262,9 +264,10 @@ class ABackGDALVector(ABackStoredVector):
             layer, sr, geometry, options
         )
         if not success: # pragma: no cover
-            raise RuntimeError('Could not create layer `{}` in `{}` using driver `{}` (gdal error: `{}`)'.format(
+            msg = 'Could not create layer `{}` in `{}` using driver `{}` (gdal error: `{}`)'.format(
                 layer, path, dr.ShortName, payload[1]
-            ))
+            )
+            raise RuntimeError(msg)
         lyr = payload
 
         # Step 5 - Set fields *********************************************** **

@@ -388,7 +388,7 @@ class Dataset(DatasetRegisterMixin):
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
     def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
-                      driver='GTiff', options=(), sr=None):
+                      driver='GTiff', options=(), sr=None, ow=False):
         """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
@@ -421,6 +421,8 @@ class Dataset(DatasetRegisterMixin):
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+        ow: bool
+            Overwrite. Whether or not to erase the existing files.
 
         Example
         -------
@@ -457,6 +459,7 @@ class Dataset(DatasetRegisterMixin):
 
         """
         # Parameter checking ***************************************************
+        ow = bool(ow)
         path = str(path)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
@@ -486,11 +489,11 @@ class Dataset(DatasetRegisterMixin):
         if driver.lower() == 'mem':
             # TODO for 0.5.0: Check async_ is False
             prox = GDALMemRaster(
-                self, fp, dtype, band_count, band_schema, options, wkt
+                self, fp, dtype, band_count, band_schema, options, wkt,
             )
         elif True:
             allocator = lambda: BackGDALFileRaster.create_file(
-                path, fp, dtype, band_count, band_schema, driver, options, wkt
+                path, fp, dtype, band_count, band_schema, driver, options, wkt, ow,
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
         else:
@@ -504,7 +507,7 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
-                       driver='GTiff', options=(), sr=None):
+                       driver='GTiff', options=(), sr=None, ow=False):
         """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
         See Dataset.create_raster
@@ -523,7 +526,7 @@ class Dataset(DatasetRegisterMixin):
 
         """
         return self.create_raster(_AnonymousSentry(), path, fp, dtype, band_count, band_schema,
-                                  driver, options, sr)
+                                  driver, options, sr, ow)
 
     def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this Dataset.
@@ -1194,6 +1197,8 @@ class Dataset(DatasetRegisterMixin):
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+        ow: bool
+            Overwrite. Whether or not to erase the existing files.
 
         Returns
         -------
@@ -1280,7 +1285,6 @@ class Dataset(DatasetRegisterMixin):
 
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
-            # TODO for 0.5.0: Check async_ is False
             allocator = lambda: BackGDALFileVector.create_file(
                 '', type_, fields, layer, 'Memory', options, wkt, False,
             )

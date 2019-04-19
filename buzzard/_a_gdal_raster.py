@@ -5,7 +5,7 @@ import numpy as np
 from osgeo import gdal
 
 from buzzard._a_stored_raster import ABackStoredRaster
-from buzzard._tools import conv
+from buzzard._tools import conv, GDALErrorCatcher
 from buzzard import _tools
 
 class ABackGDALRaster(ABackStoredRaster):
@@ -43,16 +43,16 @@ class ABackGDALRaster(ABackStoredRaster):
         dstarray = np.empty(np.r_[fp.shape, len(band_ids)], self.dtype)
         for i, band_id in enumerate(band_ids):
             gdal_band = self._gdalband_of_band_id(gdal_ds, band_id)
-            a = gdal_band.ReadAsArray(
+            success, payload = GDALErrorCatcher(gdal_band.ReadAsArray, none_is_error=True)(
                 int(rtlx),
                 int(rtly),
                 int(fp.rsizex),
                 int(fp.rsizey),
                 buf_obj=dstarray[..., i],
             )
-            if a is None: # pragma: no cover
+            if not success: # pragma: no cover
                 raise ValueError('Could not read array (gdal error: `{}`)'.format(
-                    gdal.GetLastErrorMsg()
+                    payload[1]
                 ))
         return dstarray
 
@@ -114,24 +114,49 @@ class ABackGDALRaster(ABackStoredRaster):
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
-    def create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt):
+    def create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt, ow):
         """Create a raster dataset"""
-        dr = gdal.GetDriverByName(driver)
-        if os.path.isfile(path):
-            err = dr.Delete(path)
-            if err: # pragma: no cover
-                raise Exception('Could not delete %s' % path)
 
+        # Step 0 - Find driver ********************************************** **
+        success, payload = GDALErrorCatcher(gdal.GetDriverByName, none_is_error=True)(driver)
+        if not success:
+            raise ValueError('Could not find a driver named `{}` (gdal error: `{}`)'.format(
+                driver, payload[1]
+            ))
+        dr = payload
+
+        # Step 1 - Overwrite ************************************************ **
+        if dr.ShortName != 'MEM' and os.path.exists(path):
+            if ow:
+                success, payload = GDALErrorCatcher(dr.Delete, nonzero_int_is_error=True)(path)
+                if not success:
+                    msg = 'Could not delete `{}` using driver `{}` (gdal error: `{}`)'.format(
+                        path, dr.ShortName, payload[1]
+                    )
+                    raise RuntimeError(msg)
+            else:
+                msg = "Can't create `{}` with `ow=False` (overwrite) because file exist".format(
+                    path,
+                )
+                raise RuntimeError(msg)
+
+        # Step 2 - Create gdal_ds ******************************************* **
         options = [str(arg) for arg in options]
-        gdal_ds = dr.Create(
+        success, payload = GDALErrorCatcher(dr.Create)(
             path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
         )
-        if gdal_ds is None: # pragma: no cover
-            raise Exception('Could not create gdal dataset (%s)' % str(gdal.GetLastErrorMsg()).strip('\n'))
+        if not success: # pragma: no cover
+            raise RuntimeError('Could not create `{}` using driver `{}` (gdal error: `{}`)'.format(
+                path, dr.ShortName, payload[1]
+            ))
+        gdal_ds = payload
+
+        # Step 3 - Set spatial reference ************************************ **
         if wkt is not None:
             gdal_ds.SetProjection(wkt)
         gdal_ds.SetGeoTransform(fp.gt)
 
+        # Step 4 - Set band schema ****************************************** **
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         cls._apply_band_schema(gdal_ds, band_schema)
 

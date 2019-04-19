@@ -313,13 +313,13 @@ def test_mode2(fps, shp1_path, tif1_path, shp2_path, tif2_path, shp3_path, tif3_
 
     # Test file creation with/without conversion of footprint
     with buzz.Env(allow_complex_footprint=True):
-        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, sr=SR1['wkt']).delete as r:
+        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, sr=SR1['wkt'], ow=1).delete as r:
             assert fpeq(
                 fps.AI,
                 r.fp,
                 r.fp_origin
             )
-        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, sr=SR2['wkt']).delete as r:
+        with ds.acreate_raster(random_path_tif, fps.AI, 'int32', 1, sr=SR2['wkt'], ow=1).delete as r:
             assert fpeq(
                 fps.AI,
                 r.fp,

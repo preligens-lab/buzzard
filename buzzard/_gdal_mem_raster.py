@@ -27,7 +27,7 @@ class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
     def __init__(self, back_ds, fp, dtype, band_count, band_schema, open_options, sr):
 
         gdal_ds = self.create_file(
-            '', fp, dtype, band_count, band_schema, 'MEM', open_options, sr
+            '', fp, dtype, band_count, band_schema, 'MEM', open_options, sr, False
         )
         self._gdal_ds = gdal_ds
 
