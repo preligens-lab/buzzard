@@ -11,7 +11,9 @@ import os
 from osgeo import osr
 import numpy as np
 
-from buzzard._tools import conv, deprecation_pool, GDALErrorCatcher
+from buzzard._tools import conv, deprecation_pool
+from buzzard._tools import GDALErrorCatcher as Catch
+
 from buzzard._footprint import Footprint
 from buzzard import _tools
 from buzzard._dataset_back import BackDataset
@@ -257,18 +259,45 @@ class Dataset(DatasetRegisterMixin):
             ))
 
         mode = (sr_work is not None, sr_fallback is not None, sr_forced is not None)
+        wkt_work, wkt_fallback, wkt_forced = None, None, None
         if mode == (False, False, False):
             pass
         elif mode == (True, False, False):
-            sr_work = osr.GetUserInputAsWKT(sr_work)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_work)
+            if not success:
+                raise ValueError('Could not transform `sr_work` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_work = payload
         elif mode == (True, True, False):
-            sr_work = osr.GetUserInputAsWKT(sr_work)
-            sr_fallback = osr.GetUserInputAsWKT(sr_fallback)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_work)
+            if not success:
+                raise ValueError('Could not transform `sr_work` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_work = payload
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_fallback)
+            if not success:
+                raise ValueError('Could not transform `sr_fallback` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_fallback = payload
         elif mode == (True, False, True):
-            sr_work = osr.GetUserInputAsWKT(sr_work)
-            sr_forced = osr.GetUserInputAsWKT(sr_forced)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_work)
+            if not success:
+                raise ValueError('Could not transform `sr_work` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_work = payload
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_forced)
+            if not success:
+                raise ValueError('Could not transform `sr_forced` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_forced = payload
         else:
             raise ValueError('Bad combination of `sr_*` parameters') # pragma: no cover
+        del sr_work, sr_fallback, sr_forced
 
         if max_active < 1: # pragma: no cover
             raise ValueError('`max_active` should be greater than 1')
@@ -278,9 +307,9 @@ class Dataset(DatasetRegisterMixin):
         analyse_transformation = bool(analyse_transformation)
         self._ds_closed = False
         self._back = BackDataset(
-            wkt_work=sr_work,
-            wkt_fallback=sr_fallback,
-            wkt_forced=sr_forced,
+            wkt_work=wkt_work,
+            wkt_fallback=wkt_fallback,
+            wkt_forced=wkt_forced,
             analyse_transformation=analyse_transformation,
             allow_none_geometry=allow_none_geometry,
             allow_interpolation=allow_interpolation,
@@ -438,21 +467,30 @@ class Dataset(DatasetRegisterMixin):
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
 
         if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
+        else:
+            wkt = None
+        del sr
+
+        if wkt is not None:
+            fp = self._back.convert_footprint(fp, wkt)
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
             # TODO for 0.5.0: Check async_ is False
             prox = GDALMemRaster(
-                self, fp, dtype, band_count, band_schema, options, sr
+                self, fp, dtype, band_count, band_schema, options, wkt
             )
         elif True:
             allocator = lambda: BackGDALFileRaster.create_file(
-                path, fp, dtype, band_count, band_schema, driver, options, sr
+                path, fp, dtype, band_count, band_schema, driver, options, wkt
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
         else:
@@ -546,14 +584,22 @@ class Dataset(DatasetRegisterMixin):
         band_count = 1 if array.ndim == 2 else array.shape[-1]
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
+        else:
+            wkt = None
+        del sr
         _ = conv.of_of_mode(mode)
 
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
+        if wkt is not None:
+            fp = self._back.convert_footprint(fp, wkt)
 
         # Construction *********************************************************
-        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
+        prox = NumpyRaster(self, fp, array, band_schema, wkt, mode)
 
         # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
@@ -875,9 +921,17 @@ class Dataset(DatasetRegisterMixin):
             raise ValueError('`band_count` should be >0')
         band_schema = _tools.sanitize_band_schema(band_schema, band_count)
         if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
+        else:
+            wkt = None
+        del sr
+        if wkt is not None:
+            fp = self._back.convert_footprint(fp, wkt)
 
         # Callables ****************************************
         if compute_array is None:
@@ -978,7 +1032,7 @@ class Dataset(DatasetRegisterMixin):
         # Construction *********************************************************
         prox = CachedRasterRecipe(
             self,
-            fp, dtype, band_count, band_schema, sr,
+            fp, dtype, band_count, band_schema, wkt,
             compute_array, merge_arrays,
             cache_dir, overwrite,
             primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -1217,7 +1271,7 @@ class Dataset(DatasetRegisterMixin):
         if sr is None:
             wkt = None
         else:
-            success, payload = GDALErrorCatcher(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
             if not success:
                 raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
                     payload[1]
