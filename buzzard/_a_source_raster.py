@@ -77,7 +77,7 @@ class ASourceRaster(ASource):
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
             If Footprint: return this window from the raster
-        channel: int or sequence of int (see `Channel Identifiers` below)
+        channel: int or sequence of int (see `Channel Parameter` below)
         dst_nodata: nbr or None
             nodata value in output array
             If None and raster.nodata is not None: raster.nodata is used
@@ -87,16 +87,17 @@ class ASourceRaster(ASource):
 
         Returns
         -------
-        array: numpy.ndarray
+        array: numpy.ndarray of shape (Y, X) or (Y, X, C)
             If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `B=1`,
                (Y, X, B) otherwise.
             If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
             If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, B),
                no matter the size of `B`. Use `channels=[-1]` to get a monad containing all channels.
+            (see `Channel Parameter` below)
 
         Channels Parameter
         ------------------
-        | type            | value                         | meaning        | shape               |
+        | type            | value                         | meaning        | output shape        |
         |-----------------|-------------------------------|----------------|---------------------|
         | int             | -1                            | All channels   | (Y, X) or (Y, X, C) |
         | int             | 0, 1, 2, ...                  | Channel `i`    | (Y, X)              |

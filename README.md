@@ -6,7 +6,7 @@ In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
   <img src="img/buzzard.png"><br><br>
 </div>
 
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/asl-validator/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)
 [![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)
 [![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)
 
@@ -62,8 +62,8 @@ for poly in ds.polygons.iter_data(None):
     fp = ds.rgb.fp.intersection(poly)
 
     # Read rgb at `fp` to a numpy array
-    rgb = ds.rgb.get_data(band=(1, 2, 3), fp=fp).astype('uint8')
-    alpha = ds.rgb.get_data(band=4, fp=fp).astype('uint8')
+    rgb = ds.rgb.get_data(channels=(0, 1, 2), fp=fp).astype('uint8')
+    alpha = ds.rgb.get_data(channels=3, fp=fp).astype('uint8')
 
     # Create a boolean mask as a numpy array from a shapely polygon
     mask = np.invert(fp.burn_polygons(poly))

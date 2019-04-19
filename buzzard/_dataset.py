@@ -391,6 +391,8 @@ class Dataset(DatasetRegisterMixin):
         """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
+        The raster is initialized with `band_schema['nodata']` or `0`.
+
         >>> help(GDALFileRaster)
         >>> help(GDALMemRaster)
 
@@ -425,8 +427,9 @@ class Dataset(DatasetRegisterMixin):
 
         Example
         -------
-        >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> file_footprint = ds.out.fp
+        >>> ds.create_raster('dem_copy', 'dem_copy.tif', ds.dem.fp, ds.dsm.dtype, len(ds.dem))
+        >>> array = ds.dem.get_data()
+        >>> ds.dem_copy.set_data(array)
 
         Returns
         -------
@@ -1165,8 +1168,8 @@ class Dataset(DatasetRegisterMixin):
 
     def create_vector(self, key, path, type, fields=(), layer=None,
                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
-        """Create a vector file and register it under `key` in this Dataset. Only metadata are
-        kept in memory.
+        """Create an empty vector file and register it under `key` in this Dataset. Only metadata
+        are kept in memory.
 
         >>> help(GDALFileVector)
         >>> help(GDALMemoryVector)
@@ -1207,6 +1210,7 @@ class Dataset(DatasetRegisterMixin):
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
         >>> geometry_type = ds.lines.type
+        >>> ds.lines.insert_data([[0, 0], [1, 1], [1, 2]])
 
         >>> fields = [
             {'name': 'name', 'type': str},
@@ -1216,6 +1220,7 @@ class Dataset(DatasetRegisterMixin):
         ]
         >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
         >>> field0_type = ds.zones.fields[0]['type']
+        >>> ds.zones.insert_data(shapely.geometry.box(10, 10, 15, 15))
 
         Field attributes
         ----------------
