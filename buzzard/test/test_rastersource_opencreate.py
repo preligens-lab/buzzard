@@ -330,10 +330,46 @@ def test_file(meta_file, path):
 
         with pytest.raises(RuntimeError):
             r.delete()
-    assert os.path.isfile(path)
+
+    # Test error - driver name
+    meta = {**meta_file}
+    meta['driver'] = 'Truc42'
+    with pytest.raises(ValueError, match='driver'):
+        ds.acreate_raster(path, **meta)
+
+    # # Test error - need overwrite
+    meta = {**meta_file}
+    meta['ow'] = False
+    with pytest.raises(RuntimeError, match='overwrite'):
+        ds.acreate_raster(path, **meta)
+
+    # Test deletion
     with ds.aopen_raster(path, driver=meta['driver'], mode='w').delete as r:
         assert r.mode == 'w'
-    assert not os.path.isfile(path)
+    assert not os.path.exists(path)
+
+    # Test error - open
+    with pytest.raises(RuntimeError, match='Could not open'):
+        ds.aopen_raster(path, driver=meta['driver'])
+
+    # Test error - bad sr
+    meta = {**meta_file}
+    meta['sr'] = "ca n'existe pas"
+    with pytest.raises(ValueError, match='wkt'):
+        ds.acreate_raster(path, **meta)
+
+    # Test error - failed file deletion for overwrite
+    if meta['driver'].lower() == 'gtiff':
+        try:
+            os.mkdir(path)
+            os.chmod(path, int('000', 8))
+            meta = {**meta_file}
+            meta['ow'] = True
+            with pytest.raises(RuntimeError, match='Could not delete'):
+                ds.acreate_raster(path, **meta)
+        finally:
+            os.chmod(path, int('777', 8))
+            os.rmdir(path)
 
 def test_mem(meta_mem):
     meta = meta_mem
