@@ -76,7 +76,7 @@ class AStoredRaster(AStored, ASourceRaster):
             ]).reshape(val.shape)
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.get_data',
+            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.set_data',
             new_name_value=channels,
             new_name_is_provided=channels != -1,
             user_kwargs=kwargs,
@@ -180,14 +180,14 @@ class AStoredRaster(AStored, ASourceRaster):
             ]).reshape(val.shape)
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.get_data',
+            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.fill',
             new_name_value=channels,
             new_name_is_provided=channels != -1,
             user_kwargs=kwargs,
             transform_old=_band_to_channels,
         )
         if kwargs: # pragma: no cover
-            raise TypeError("set_data() got an unexpected keyword argument '{}'".format(
+            raise TypeError("fill() got an unexpected keyword argument '{}'".format(
                 list(kwargs.keys())[0]
             ))
 

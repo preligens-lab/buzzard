@@ -56,7 +56,6 @@ class ABackGDALVector(ABackStoredVector):
         ftr = None # Necessary to prevent the old swig bug
         geom = None # Necessary to prevent the old swig bug
         with self.acquire_driver_object() as (_, lyr):
-            _, lyr = gdal_objs
             for ftr in self.iter_features_driver(slicing, mask_poly, mask_rect, lyr):
                 geom = ftr.geometry()
                 if geom is None or geom.IsEmpty():
@@ -130,7 +129,6 @@ class ABackGDALVector(ABackStoredVector):
     def insert_data(self, geom, geom_type, fields, index):
         geom = self._ogr_of_geom(geom, geom_type)
         with self.acquire_driver_object() as (_, lyr):
-            _, lyr = gdal_objs
             ftr = ogr.Feature(lyr.GetLayerDefn())
 
             if geom is not None:

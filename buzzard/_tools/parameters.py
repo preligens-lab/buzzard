@@ -226,8 +226,6 @@ def sanitize_band_schema(band_schema, band_count):
         ret['nodata'] = list(_normalize_multi_layer(
             'nodata',
             band_schema['nodata'],
-            # lambda x: isinstance(x, numbers.Number),
-            # lambda x: float(x),
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
             lambda x: float(np.asscalar(np.asarray(x))),
             None,
@@ -246,8 +244,6 @@ def sanitize_band_schema(band_schema, band_count):
         ret['offset'] = list(_normalize_multi_layer(
             'offset',
             band_schema['offset'],
-            # lambda x: isinstance(x, numbers.Number),
-            # lambda x: float(x),
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
             lambda x: float(np.asscalar(np.asarray(x))),
             0.,
@@ -257,8 +253,6 @@ def sanitize_band_schema(band_schema, band_count):
         ret['scale'] = list(_normalize_multi_layer(
             'scale',
             band_schema['scale'],
-            # lambda x: isinstance(x, numbers.Number),
-            # lambda x: float(x),
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
             lambda x: float(np.asscalar(np.asarray(x))),
             1.,
@@ -463,15 +457,34 @@ def normalize_fields_defn(fields):
     return [_sanitize_dict(dic) for dic in fields]
 
 # Async rasters ***************************************************************************** **
-def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='cv_area',
-                                max_queue_size=5):
+def parse_queue_data_parameters(context, raster, channels=-1, dst_nodata=None,
+                                interpolation='cv_area', max_queue_size=5, **kwargs):
     """Check and transform the last parameters of a `queue_data` method.
-    Default values are duplicated in the CachedRasterRecipe.queue_data method
+    Default values are duplicated in the .queue_data and .iter_data methods
     """
 
-    # Normalize and check band parameter
-    band_ids, is_flat = normalize_band_parameter(band, len(raster), raster.shared_band_id)
-    del band
+    def _band_to_channels(val):
+        val = np.asarray(val)
+        val = np.asarray([
+            val[idx] - 1 if val[idx] >= 1 else val[idx]
+            for idx in np.ndindex(val.shape)
+        ]).reshape(val.shape)
+        return val
+    channels, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+        new_name='channels', old_names={'band': '0.5.1'}, context='Raster.{}'.format(context),
+        new_name_value=channels,
+        new_name_is_provided=channels != -1,
+        user_kwargs=kwargs,
+        transform_old=_band_to_channels,
+    )
+    if kwargs: # pragma: no cover
+        raise TypeError("{}() got an unexpected keyword argument '{}'".format(
+            context, list(kwargs.keys())[0]
+        ))
+
+    # Normalize and check channels parameter
+    channel_ids, is_flat = normalize_channels_parameter(channels, len(raster))
+    del channels
 
     # Normalize and check dst_nodata parameter
     if dst_nodata is not None:
@@ -492,8 +505,10 @@ def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='
     if max_queue_size <= 0:
         raise ValueError('`max_queue_size` should be >0')
 
+    channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
+
     return dict(
-        band_ids=band_ids,
+        band_ids=channel_ids,
         dst_nodata=dst_nodata,
         interpolation=interpolation,
         max_queue_size=max_queue_size,
@@ -538,7 +553,7 @@ def shatter_queue_data_method(met, name):
               'of a scheduler raster'
         raise TypeError(fmt.format(name))
 
-    kwargs = parse_queue_data_parameters(met.__self__, **kwargs)
+    kwargs = parse_queue_data_parameters('create_raster_recipe', met.__self__, **kwargs)
     return met.__self__._back, kwargs
 
 # Tiling checks ********************************************************************************* **

@@ -801,7 +801,7 @@ class Dataset(DatasetRegisterMixin):
 
         In `queue_data_per_primitive` you declare a `dependee` by giving it a key of your choice and
         the pointer to the `queue_data` method of `dependee` raster. You can parameterize the
-        connection by *currying* the `band`, `dst_nodata`, `interpolation` and `max_queue_size`
+        connection by *currying* the `channels`, `dst_nodata`, `interpolation` and `max_queue_size`
         parameters using `functools.partial`.
 
         The `convert_footprint_per_primitive` dict should contain the same keys as
@@ -813,7 +813,7 @@ class Dataset(DatasetRegisterMixin):
         band but with a context of 10 additional pixels on all 4 sides:
         >>> derived = ds.create_raster_recipe(
         ...     # <other parameters>
-        ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, band=2)},
+        ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, channels=1)},
         ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
         ... )
 

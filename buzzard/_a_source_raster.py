@@ -214,7 +214,7 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
     def __len__(self):
         return len(self.band_schema['nodata'])
 
-    def get_data(self, fp, band_ids, dst_nodata, interpolation): # pragma: no cover
+    def get_data(self, fp, channels, dst_nodata, interpolation): # pragma: no cover
         raise NotImplementedError('ABackSourceRaster.get_data is virtual pure')
 
 if sys.version_info < (3, 6):
