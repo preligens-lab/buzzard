@@ -17,8 +17,7 @@ class ABackGDALVector(ABackStoredVector):
     # extent/len implementation ***************************************************************** **
     @property
     def extent(self):
-        with self.acquire_driver_object() as gdal_objs:
-            _, lyr = gdal_objs
+        with self.acquire_driver_object() as (_, lyr):
             extent = lyr.GetExtent()
 
         if extent is None: # pragma: no cover
@@ -32,8 +31,7 @@ class ABackGDALVector(ABackStoredVector):
 
     @property
     def extent_stored(self):
-        with self.acquire_driver_object() as gdal_objs:
-            _, lyr = gdal_objs
+        with self.acquire_driver_object() as (_, lyr):
             extent = lyr.GetExtent()
         if extent is None: # pragma: no cover
             raise ValueError('Could not compute extent')
@@ -41,8 +39,7 @@ class ABackGDALVector(ABackStoredVector):
 
     def __len__(self):
         """Return the number of features in vector layer"""
-        with self.acquire_driver_object() as gdal_objs:
-            _, lyr = gdal_objs
+        with self.acquire_driver_object() as (_, lyr):
             return len(lyr)
 
     # iter_data implementation ****************************************************************** **
@@ -58,7 +55,7 @@ class ABackGDALVector(ABackStoredVector):
 
         ftr = None # Necessary to prevent the old swig bug
         geom = None # Necessary to prevent the old swig bug
-        with self.acquire_driver_object() as gdal_objs:
+        with self.acquire_driver_object() as (_, lyr):
             _, lyr = gdal_objs
             for ftr in self.iter_features_driver(slicing, mask_poly, mask_rect, lyr):
                 geom = ftr.geometry()
@@ -132,7 +129,7 @@ class ABackGDALVector(ABackStoredVector):
     # insert_data implementation **************************************************************** **
     def insert_data(self, geom, geom_type, fields, index):
         geom = self._ogr_of_geom(geom, geom_type)
-        with self.acquire_driver_object() as gdal_objs:
+        with self.acquire_driver_object() as (_, lyr):
             _, lyr = gdal_objs
             ftr = ogr.Feature(lyr.GetLayerDefn())
 

@@ -31,8 +31,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     def __init__(self, back_ds, allocator, open_options, mode):
         uid = uuid.uuid4()
 
-        with back_ds.acquire_driver_object(uid, allocator) as gdal_objs:
-            gdal_ds, lyr = gdal_objs
+        with back_ds.acquire_driver_object(uid, allocator) as (gdal_ds, lyr):
             rect = None
             if lyr is not None:
                 rect = lyr.GetExtent()
