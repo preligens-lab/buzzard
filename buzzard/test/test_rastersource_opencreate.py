@@ -332,13 +332,13 @@ def test_file(meta_file, path):
             r.delete()
 
     # Test error - driver name
-    meta = {**meta_file}
+    meta = meta_file.copy()
     meta['driver'] = 'Truc42'
     with pytest.raises(ValueError, match='driver'):
         ds.acreate_raster(path, **meta)
 
     # # Test error - need overwrite
-    meta = {**meta_file}
+    meta = meta_file.copy()
     meta['ow'] = False
     with pytest.raises(RuntimeError, match='overwrite'):
         ds.acreate_raster(path, **meta)
@@ -353,7 +353,7 @@ def test_file(meta_file, path):
         ds.aopen_raster(path, driver=meta['driver'])
 
     # Test error - bad sr
-    meta = {**meta_file}
+    meta = meta_file.copy()
     meta['sr'] = "ca n'existe pas"
     with pytest.raises(ValueError, match='wkt'):
         ds.acreate_raster(path, **meta)
@@ -363,7 +363,7 @@ def test_file(meta_file, path):
         try:
             os.mkdir(path)
             os.chmod(path, int('000', 8))
-            meta = {**meta_file}
+            meta = meta_file.copy()
             meta['ow'] = True
             with pytest.raises(RuntimeError, match='Could not delete'):
                 ds.acreate_raster(path, **meta)

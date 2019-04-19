@@ -38,16 +38,36 @@ def _print_cmd(s):
     print('\033[33m$ {}\033[0m'.format(s))
 
 def _gen_tests():
+    path = os.path.join(tempfile.gettempdir(), 'pytest-collection-tmp')
     args_phase0 = [
         s
         for s in sys.argv[1:]
         if 'junitxml' not in s and
         'cov' not in s
     ]
-    cmd = ['pytest', '--collect-only'] + args_phase0
-    _print_cmd(' '.join(cmd))
-    res = subprocess.check_output(cmd)
-    res = res.decode('utf8')
+    cmd = ['pytest', '--collect-only'] + args_phase0 + ['&>{}'.format(path)]
+    cmd = ' '.join(cmd)
+    cmd = 'bash -c "{}"'.format(cmd)
+
+    try:
+        _print_cmd(cmd)
+        a = datetime.datetime.now()
+        code = os.system(cmd)
+        b = datetime.datetime.now()
+    finally:
+        res = ''
+        if os.path.isfile(path):
+            with open(path) as stream:
+                res = stream.read()
+            os.remove(path)
+    dt = (b - a).total_seconds()
+    print(' ', cmd, '(took {:.1f}sec)'.format(dt))
+    if code != 0:
+        raise Exception(
+            '{} failed with code {}\n============= output:\n{}\n=============\n'.format(
+                cmd, code, res
+            )
+        )
     d = collections.defaultdict(list)
 
     m = None
