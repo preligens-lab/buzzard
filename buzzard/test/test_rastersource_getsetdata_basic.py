@@ -77,24 +77,6 @@ def dst_arr(rast):
         arr[np.diag_indices(arr.shape[0])] = rast.nodata
     return arr
 
-def test_get_data_band_parameter(rast):
-    band_ids = list(range(1, 1 + len(rast)))
-    flat_requests = [-1] + band_ids
-
-    for band_id in range(1, len(rast) + 1):
-        rast.fill(band=band_id, value=band_id)
-    for flat_request in flat_requests:
-        res1 = rast.get_data(band=flat_request)
-        res2 = rast.get_data(band=[flat_request])
-        assert np.all(np.atleast_3d(res1) == np.atleast_3d(res2))
-        if flat_request == -1 and len(rast) > 1:
-            assert res1.ndim == 3
-        else:
-            assert res1.ndim == 2
-        assert res2.ndim == 3
-        assert res1.shape[:2] == tuple(rast.fp.shape)
-        assert res2.shape[:2] == tuple(rast.fp.shape)
-
 def test_fill(rast):
     for band_id in range(1, len(rast) + 1):
         rast.fill(band=band_id, value=band_id)
@@ -203,3 +185,13 @@ def test_set_data_mask(rast, dst_arr):
         arr = rast.get_data(band=[-1])
         assert np.all(arr[mask] == dst_arr[mask])
         assert np.all(arr[~mask] == 0)
+
+def test_get_data_band_behavior(rast):
+    c = len(rast)
+    if c == 1:
+        assert rast.get_data(band=-1).shape[2:] == ()
+    else:
+        assert rast.get_data(band=-1).shape[2:] == (c,)
+    assert rast.get_data(band=[-1]).shape[2:] == (c,)
+    assert rast.get_data(band=[1]).shape[2:] == (1,)
+    assert rast.get_data(band=1).shape[2:] == ()

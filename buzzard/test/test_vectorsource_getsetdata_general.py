@@ -388,3 +388,44 @@ def test_value_error(path):
         list(v.iter_geojson(clip=True))
     with pytest.raises(TypeError, match='a'):
         v.insert_data(42)
+
+def test_iter_data_fields_behavior(path):
+    ds = buzz.Dataset()
+    with ds.acreate_vector(path, fields=[], type='point').remove as v:
+        pt0, pt1 = sg.Point(1, 1), sg.Point(2, 2)
+        v.insert_data(pt0)
+        v.insert_data(pt1)
+        assert list(v.iter_data(None)) == [
+            pt0, pt1
+        ]
+        assert list(v.iter_data(-1)) == [
+            pt0, pt1
+        ]
+        assert list(v.iter_data('')) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([])) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([-1])) == [
+            (pt0,), (pt1,)
+        ]
+    with ds.acreate_vector(path, fields=[dict(name='toto', type=int)], type='point').remove as v:
+        pt0, pt1 = sg.Point(1, 1), sg.Point(2, 2)
+        v.insert_data(pt0, [42])
+        v.insert_data(pt1, [43])
+        assert list(v.iter_data(None)) == [
+            pt0, pt1
+        ]
+        assert list(v.iter_data(-1)) == [
+            (pt0, 42), (pt1, 43)
+        ]
+        assert list(v.iter_data('')) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([])) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([-1])) == [
+            (pt0, 42), (pt1, 43)
+        ]

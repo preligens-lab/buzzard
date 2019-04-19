@@ -136,7 +136,7 @@ pip install buzzard
 # https://www.anaconda.com/download/
 
 # Create env
-conda create -n buzz python=3.6 gdal opencv scipy shapely -c 'conda-forge'
+conda create -n buzz python=3.6 gdal opencv scipy shapely rtree -c 'conda-forge'
 
 # Activate env
 # Windows: activate buzz

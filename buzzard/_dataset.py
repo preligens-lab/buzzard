@@ -1304,8 +1304,8 @@ class Dataset(DatasetRegisterMixin):
             self._register([], prox)
         return prox
 
-    def acreate_vector(self, path, geometry, fields=(), layer=None,
-                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
+    def acreate_vector(self, path, type, fields=(), layer=None,
+                       driver='ESRI Shapefile', options=(), sr=None, ow=False, **kwargs):
         """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
         See Dataset.create_vector
@@ -1316,8 +1316,8 @@ class Dataset(DatasetRegisterMixin):
         >>> file_proj4 = lines.proj4_stored
 
         """
-        return self.create_vector(_AnonymousSentry(), path, geometry, fields, layer,
-                                  driver, options, sr, ow)
+        return self.create_vector(_AnonymousSentry(), path, type, fields, layer,
+                                  driver, options, sr, ow, **kwargs)
 
     # Source infos ******************************************************************************* **
     def __getitem__(self, key):
