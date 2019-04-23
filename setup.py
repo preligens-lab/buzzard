@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 # https://caremad.io/posts/2013/07/setup-vs-requirement/
 reqs = [
     'opencv-python>=3.1.0',
-    'gdal>=2.1.3',
+    'gdal>=2.3.3',
     'shapely>= 1.5.16',
     'affine>=2.0.0',
     'scipy>=0.19.1',

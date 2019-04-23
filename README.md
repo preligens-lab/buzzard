@@ -102,7 +102,7 @@ The following table lists dependencies along with the minimum version, their sta
 
 | Library          | Version  | Mandatory | License                                                                              | Comment                                                       |
 |------------------|----------|-----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| gdal             | >=2.1.3  | Yes       | [MIT/X](https://github.com/OSGeo/gdal/blob/trunk/gdal/LICENSE.TXT)                   | Hard to install. Will be included in `buzzard` wheels         |
+| gdal             | >=2.3.3  | Yes       | [MIT/X](https://github.com/OSGeo/gdal/blob/trunk/gdal/LICENSE.TXT)                   | Hard to install. Will be included in `buzzard` wheels         |
 | opencv-python    | >=3.1.0  | Yes       | [3-clause BSD](http://opencv.org/license.html)                                       | Easy to install with `opencv-python` wheels. Will be optional |
 | shapely          | >=1.6.1  | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)         |                                                               |
 | affine           | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
@@ -117,33 +117,58 @@ The following table lists dependencies along with the minimum version, their sta
 | pytest           | >=3.2.2  | No        | [MIT](https://docs.pytest.org/en/latest/license.html)                                | Only for tests                                                |
 | attrdict         | >=2.0.0  | No        | [MIT](https://github.com/bcj/AttrDict/blob/master/LICENSE.txt)                       | Only for tests                                                |
 
-## How to install
-
-### Package manager and pip
+## How to install from terminal
+### Anaconda and pip
 ```sh
-# Install GDAL
-# Windows: http://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
-# MacOS: brew install gdal && brew tap osgeo/osgeo4mac && brew tap --repair && brew install gdal2 && export PATH="/usr/local/opt/gdal2/bin:$PATH" && pip install 'gdal==2.1.3'
-# Ubuntu: apt-get install python-gdal=2.1.3+dfsg-1~xenial2 libproj-dev libgdal-dev gdal-bin
+# Step 1 - Install Anaconda
+# https://www.anaconda.com/download/
 
-# Install buzzard
+# Step 2 - Create env
+conda create -n buzz python gdal>=2.3.3 shapely rtree -c 'conda-forge'
+
+# Step 3 - Activate env
+conda activate buzz
+
+# Step 4 - Install buzzard
 pip install buzzard
 ```
 
-### Anaconda and pip
+### Docker
 ```sh
-# Install Anaconda
-# https://www.anaconda.com/download/
-
-# Create env
-conda create -n buzz python=3.6 gdal opencv scipy shapely rtree -c 'conda-forge'
-
-# Activate env
-# Windows: activate buzz
-# Linux, MacOS: source activate buzz
-
-# Install buzzard
+docker build -t buzz --build-arg PYTHON_VERSION=3.7 https://raw.githubusercontent.com/airware/buzzard/master/.circleci/images/base-python/Dockerfile
+docker run -it --rm buzz bash
 pip install buzzard
+
+```
+
+### Package manager and pip
+```sh
+# Step 1 - Install GDAL and rtree
+# Windows:
+# http://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+# https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree
+
+# MacOS:
+brew install gdal
+brew tap osgeo/osgeo4mac
+brew tap --repair
+brew install gdal2
+brew install spatialindex
+export PATH="/usr/local/opt/gdal2/bin:$PATH"
+python -m pip install 'gdal==2.3.3'
+
+# Ubuntu:
+sudo add-apt-repository ppa:ubuntugis/ppa
+sudo apt-get update
+sudo apt-get install gdal-bin
+sudo apt-get install libgdal-dev
+sudo apt-get install python3-rtree
+export CPLUS_INCLUDE_PATH=/usr/include/gdal
+export C_INCLUDE_PATH=/usr/include/gdal
+pip install GDAL
+
+# Step 2 - Install buzzard
+python -m pip install buzzard
 ```
 
 ## Supported Python versions
