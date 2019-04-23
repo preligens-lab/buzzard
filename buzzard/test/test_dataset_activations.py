@@ -147,7 +147,7 @@ def test_raster():
             rsize=(10, 10),
         ),
         dtype=float,
-        band_count=1,
+        channel_count=1,
     )
 
     def statuses(*args):

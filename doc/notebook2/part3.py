@@ -29,7 +29,7 @@ def main():
             key,
             fp=fp,
             dtype='float32',
-            band_count=1,
+            channel_count=1,
             compute_array=mandelbrot_of_footprint,
             automatic_remapping=True, # True is the default value
             max_computation_size=128,
@@ -42,7 +42,7 @@ def main():
         'mand',
         fp=ds.mand_10kpx.fp,
         dtype='float32',
-        band_count=1,
+        channel_count=1,
         compute_array=mandelbrot_of_footprint,
         automatic_remapping=False,
         max_computation_size=128,

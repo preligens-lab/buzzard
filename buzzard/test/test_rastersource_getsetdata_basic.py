@@ -22,7 +22,7 @@ def driver(request):
     return request.param
 
 @pytest.fixture(scope='module', params=[1, 3])
-def band_count(request):
+def channel_count(request):
     return request.param
 
 @pytest.fixture(scope='module', params=['float32', 'uint8'])
@@ -38,7 +38,7 @@ def dst_nodata(request):
     return request.param
 
 @pytest.fixture(scope='module')
-def rast(ds, driver, band_count, dtype, src_nodata):
+def rast(ds, driver, channel_count, dtype, src_nodata):
     """Fixture for the dataset creation"""
     fp = Footprint(
         tl=(100, 110), size=(10, 10), rsize=(10, 10)
@@ -46,19 +46,19 @@ def rast(ds, driver, band_count, dtype, src_nodata):
     if driver == 'numpy':
         rast = ds.awrap_numpy_raster(
             fp,
-            np.empty(np.r_[fp.shape, band_count], dtype=dtype),
-            band_schema=dict(nodata=src_nodata),
+            np.empty(np.r_[fp.shape, channel_count], dtype=dtype),
+            channels_schema=dict(nodata=src_nodata),
             sr=None,
             mode='w',
         )
     elif driver == 'MEM':
         rast = ds.acreate_raster(
-            '', fp, dtype, band_count, band_schema=dict(nodata=src_nodata), driver='MEM',
+            '', fp, dtype, channel_count, channels_schema=dict(nodata=src_nodata), driver='MEM',
         )
     else:
         path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
         rast = ds.acreate_raster(
-            path, fp, dtype, band_count, band_schema=dict(nodata=src_nodata), driver=driver
+            path, fp, dtype, channel_count, channels_schema=dict(nodata=src_nodata), driver=driver
         )
     yield rast
     if driver in {'numpy', 'MEM'}:

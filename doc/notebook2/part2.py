@@ -36,7 +36,7 @@ def main():
         # The next 6 lines can be replaced by **buzz.algo.slopes(ds.elevation)
         fp=ds.elevation.fp,
         dtype='float32',
-        band_count=1,
+        channel_count=1,
         compute_array=slopes_of_elevation,
         queue_data_per_primitive={'dem': ds.elevation.queue_data},
         convert_footprint_per_primitive={'dem': lambda fp: fp.dilate(1)},

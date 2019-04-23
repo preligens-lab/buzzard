@@ -33,7 +33,7 @@ class CachedRasterRecipe(ARasterRecipe):
     """
     def __init__(
         self, ds,
-        fp, dtype, band_count, band_schema, sr,
+        fp, dtype, channel_count, channels_schema, sr,
         compute_array, merge_arrays,
         cache_dir, overwrite,
         primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -45,7 +45,7 @@ class CachedRasterRecipe(ARasterRecipe):
         back = BackCachedRasterRecipe(
             ds._back,
             weakref.proxy(self),
-            fp, dtype, band_count, band_schema, sr,
+            fp, dtype, channel_count, channels_schema, sr,
             compute_array, merge_arrays,
             cache_dir, overwrite,
             primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -71,7 +71,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
 
     def __init__(
         self, back_ds, facade_proxy,
-        fp, dtype, band_count, band_schema, sr,
+        fp, dtype, channel_count, channels_schema, sr,
         compute_array, merge_arrays,
         cache_dir, overwrite,
         primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -86,10 +86,10 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
             wkt_stored=sr,
 
             # RasterSource
-            band_schema=band_schema,
+            channels_schema=channels_schema,
             dtype=dtype,
             fp_stored=fp,
-            band_count=band_count,
+            channel_count=channel_count,
 
             # Recipe
             facade_proxy=facade_proxy,

@@ -15,7 +15,7 @@ class ASourceRaster(ASource):
     - Has a `stored` Footprint that defines the location of the raster
     - Has a Footprint that is influenced by the Dataset's opening mode
     - Has a lenght that defines how many bands are available
-    - Has a `band_schema` that defines per band attributes (like nodata)
+    - Has a `channels_schema` that defines per band attributes (like nodata)
     - Has a `dtype` (like np.float32)
     - Has a `get_data` method that allows to read pixels in their current state to numpy arrays
     """
@@ -29,8 +29,8 @@ class ASourceRaster(ASource):
         return self._back.fp
 
     @property
-    def band_schema(self):
-        return dict(self._back.band_schema)
+    def channels_schema(self):
+        return dict(self._back.channels_schema)
 
     @property
     def dtype(self):
@@ -182,7 +182,7 @@ class ASourceRaster(ASource):
 class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
     """Implementation of ASourceRaster's specifications"""
 
-    def __init__(self, band_schema, dtype, fp_stored, **kwargs):
+    def __init__(self, channels_schema, dtype, fp_stored, **kwargs):
         super(ABackSourceRaster, self).__init__(rect=fp_stored, **kwargs)
 
         if self.to_work is not None:
@@ -193,12 +193,12 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
             fp = fp_stored
 
         self.shared_band_id = None
-        for i, type in enumerate(band_schema['mask'], 1):
+        for i, type in enumerate(channels_schema['mask'], 1):
             if type == 'per_dataset':
                 self.shared_band_id = i
                 break
 
-        self.band_schema = band_schema
+        self.channels_schema = channels_schema
         self.dtype = dtype
         self.fp_stored = fp_stored
 
@@ -209,10 +209,10 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
         return self.get_nodata(0)
 
     def get_nodata(self, channel=0):
-        return self.band_schema['nodata'][channel]
+        return self.channels_schema['nodata'][channel]
 
     def __len__(self):
-        return len(self.band_schema['nodata'])
+        return len(self.channels_schema['nodata'])
 
     def get_data(self, fp, channels, dst_nodata, interpolation): # pragma: no cover
         raise NotImplementedError('ABackSourceRaster.get_data is virtual pure')

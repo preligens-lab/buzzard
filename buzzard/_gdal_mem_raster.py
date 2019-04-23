@@ -15,19 +15,19 @@ class GDALMemRaster(AEmissaryRaster):
     None
     """
 
-    def __init__(self, ds, fp, dtype, band_count, band_schema, open_options, sr):
+    def __init__(self, ds, fp, dtype, channel_count, channels_schema, open_options, sr):
         back = BackGDALMemRaster(
-            ds._back, fp, dtype, band_count, band_schema, open_options, sr,
+            ds._back, fp, dtype, channel_count, channels_schema, open_options, sr,
         )
         super(GDALMemRaster, self).__init__(ds=ds, back=back)
 
 class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
     """Implementation of GDALMemRaster"""
 
-    def __init__(self, back_ds, fp, dtype, band_count, band_schema, open_options, sr):
+    def __init__(self, back_ds, fp, dtype, channel_count, channels_schema, open_options, sr):
 
         gdal_ds = self.create_file(
-            '', fp, dtype, band_count, band_schema, 'MEM', open_options, sr, False
+            '', fp, dtype, channel_count, channels_schema, 'MEM', open_options, sr, False
         )
         self._gdal_ds = gdal_ds
 
@@ -37,7 +37,7 @@ class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
             gt=gdal_ds.GetGeoTransform(),
             rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
         )
-        band_schema = self._band_schema_of_gdal_ds(gdal_ds)
+        channels_schema = self._channels_schema_of_gdal_ds(gdal_ds)
         dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
         sr = gdal_ds.GetProjection()
         if sr == '':
@@ -48,7 +48,7 @@ class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
         super(BackGDALMemRaster, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
-            band_schema=band_schema,
+            channels_schema=channels_schema,
             dtype=dtype,
             fp_stored=fp_stored,
             mode='w',

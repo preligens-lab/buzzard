@@ -148,7 +148,7 @@ def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
 
 def _cache_file_write(array,
                       dir_path, filename_prefix, filename_suffix,
-                      cache_fp, band_schema, sr):
+                      cache_fp, channels_schema, sr):
     """Write this ndarray to disk.
 
     It can't use the dataset's activation pool because the file must be closed after
@@ -169,7 +169,7 @@ def _cache_file_write(array,
         Last thirf of the file name
     cache_fp: Footprint of shape (Y, X)
         Footprint of the file
-    band_schema: dict
+    channels_schema: dict
         Band schema given by user when creating the cached recipe
     sr: str or None
         Spatial reference given by user when creating the cached recipe
@@ -192,7 +192,7 @@ def _cache_file_write(array,
         "SPARSE_OK=TRUE",
     ]
     assert array.ndim == 3
-    with create_raster(src_path, cache_fp, array.dtype, array.shape[-1], band_schema,
+    with create_raster(src_path, cache_fp, array.dtype, array.shape[-1], channels_schema,
                        sr=sr, options=options).close as r:
         r.set_data(array, channels=-1)
 

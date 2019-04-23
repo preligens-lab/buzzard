@@ -63,7 +63,7 @@ def generate_dsm(rsize=(16000, 16000),
         print(f'  {fp}')
         print('  filename = ' + filename)
 
-    with ds.acreate_raster(filename, fp, dtype='float32', band_count=1, sr=None).close as out:
+    with ds.acreate_raster(filename, fp, dtype='float32', channel_count=1, sr=None).close as out:
         out.set_data(dsm)
     return filename
 

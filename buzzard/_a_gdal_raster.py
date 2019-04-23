@@ -114,7 +114,7 @@ class ABackGDALRaster(ABackStoredRaster):
         raise NotImplementedError('ABackGDALRaster.acquire_driver_object is virtual pure')
 
     @classmethod
-    def create_file(cls, path, fp, dtype, band_count, band_schema, driver, options, wkt, ow):
+    def create_file(cls, path, fp, dtype, channel_count, channels_schema, driver, options, wkt, ow):
         """Create a raster dataset"""
 
         # Step 0 - Find driver ********************************************** **
@@ -143,7 +143,7 @@ class ABackGDALRaster(ABackStoredRaster):
         # Step 2 - Create gdal_ds ******************************************* **
         options = [str(arg) for arg in options]
         success, payload = GDALErrorCatcher(dr.Create)(
-            path, fp.rsizex, fp.rsizey, band_count, conv.gdt_of_any_equiv(dtype), options
+            path, fp.rsizex, fp.rsizey, channel_count, conv.gdt_of_any_equiv(dtype), options
         )
         if not success: # pragma: no cover
             raise RuntimeError('Could not create `{}` using driver `{}` (gdal error: `{}`)'.format(
@@ -157,43 +157,43 @@ class ABackGDALRaster(ABackStoredRaster):
         gdal_ds.SetGeoTransform(fp.gt)
 
         # Step 4 - Set band schema ****************************************** **
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
-        cls._apply_band_schema(gdal_ds, band_schema)
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
+        cls._apply_channels_schema(gdal_ds, channels_schema)
 
         gdal_ds.FlushCache()
         return gdal_ds
 
     @staticmethod
-    def _apply_band_schema(gdal_ds, band_schema):
+    def _apply_channels_schema(gdal_ds, channels_schema):
         """Used on file creation"""
-        if 'nodata' in band_schema:
-            for i, val in enumerate(band_schema['nodata'], 1):
+        if 'nodata' in channels_schema:
+            for i, val in enumerate(channels_schema['nodata'], 1):
                 if val is not None:
                     gdal_ds.GetRasterBand(i).SetNoDataValue(val)
-        if 'interpretation' in band_schema:
-            for i, val in enumerate(band_schema['interpretation'], 1):
+        if 'interpretation' in channels_schema:
+            for i, val in enumerate(channels_schema['interpretation'], 1):
                 val = conv.gci_of_str(val)
                 gdal_ds.GetRasterBand(i).SetColorInterpretation(val)
-        if 'offset' in band_schema:
-            for i, val in enumerate(band_schema['offset'], 1):
+        if 'offset' in channels_schema:
+            for i, val in enumerate(channels_schema['offset'], 1):
                 gdal_ds.GetRasterBand(i).SetOffset(val)
-        if 'scale' in band_schema:
-            for i, val in enumerate(band_schema['scale'], 1):
+        if 'scale' in channels_schema:
+            for i, val in enumerate(channels_schema['scale'], 1):
                 gdal_ds.GetRasterBand(i).SetScale(val)
-        if 'mask' in band_schema:
+        if 'mask' in channels_schema:
             shared_bit = conv.gmf_of_str('per_dataset')
-            for i, val in enumerate(band_schema['mask'], 1):
+            for i, val in enumerate(channels_schema['mask'], 1):
                 val = conv.gmf_of_str(val)
                 if val & shared_bit:
                     gdal_ds.CreateMaskBand(val)
                     break
-            for i, val in enumerate(band_schema['mask'], 1):
+            for i, val in enumerate(channels_schema['mask'], 1):
                 val = conv.gmf_of_str(val)
                 if not val & shared_bit:
                     gdal_ds.GetRasterBand(i).CreateMaskBand(val)
 
     @staticmethod
-    def _band_schema_of_gdal_ds(gdal_ds):
+    def _channels_schema_of_gdal_ds(gdal_ds):
         """Used on file opening"""
         bands = [gdal_ds.GetRasterBand(i + 1) for i in range(gdal_ds.RasterCount)]
         return {

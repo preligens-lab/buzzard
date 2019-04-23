@@ -38,7 +38,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
                 gt=gdal_ds.GetGeoTransform(),
                 rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
             )
-            band_schema = self._band_schema_of_gdal_ds(gdal_ds)
+            channels_schema = self._channels_schema_of_gdal_ds(gdal_ds)
             dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
             sr = gdal_ds.GetProjection()
             if sr == '':
@@ -49,7 +49,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
         super(BackGDALFileRaster, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
-            band_schema=band_schema,
+            channels_schema=channels_schema,
             dtype=dtype,
             fp_stored=fp_stored,
             mode=mode,

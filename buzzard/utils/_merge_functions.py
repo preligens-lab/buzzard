@@ -7,10 +7,10 @@ def concat_arrays(fp, array_per_fp, _):
     """
     # Allocate
     for a in array_per_fp.values():
-        band_count = a.shape[-1]
+        channel_count = a.shape[-1]
         dtype = a.dtype
         break
-    arr = np.empty(np.r_[fp.shape, band_count], dtype)
+    arr = np.empty(np.r_[fp.shape, channel_count], dtype)
 
     # Burn
     for tile, tile_arr in array_per_fp.items():

@@ -119,34 +119,34 @@ def normalize_channels_parameter(channels, channel_count):
         is_flat = False
     return indices, is_flat
 
-def sanitize_band_schema(band_schema, band_count):
+def sanitize_channels_schema(channels_schema, channel_count):
     """Used on file/recipe creation"""
     ret = {}
 
     def _test_length(val, name):
         count = len(val)
-        if count > band_count: # pragma: no cover
+        if count > channel_count: # pragma: no cover
             raise ValueError('Too many values provided for %s (%d instead of %d)' % (
-                name, count, band_count
+                name, count, channel_count
             ))
-        elif count < band_count: # pragma: no cover
+        elif count < channel_count: # pragma: no cover
             raise ValueError('Not enough values provided for %s (%d instead of %d)' % (
-                name, count, band_count
+                name, count, channel_count
             ))
 
-    if band_schema is None:
+    if channels_schema is None:
         return {}
-    diff = set(band_schema.keys()) - BAND_SCHEMA_PARAMS
+    diff = set(channels_schema.keys()) - BAND_SCHEMA_PARAMS
     if diff: # pragma: no cover
-        raise ValueError('Unknown band_schema keys `%s`' % diff)
+        raise ValueError('Unknown channels_schema keys `%s`' % diff)
 
     def _normalize_multi_layer(name, val, is_type, cleaner, default):
         if val is None:
-            for _ in range(band_count):
+            for _ in range(channel_count):
                 yield default
         elif is_type(val):
             val = cleaner(val)
-            for _ in range(band_count):
+            for _ in range(channel_count):
                 yield val
         else:
             _test_length(val, name)
@@ -158,46 +158,46 @@ def sanitize_band_schema(band_schema, band_count):
                 else: # pragma: no cover
                     raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
 
-    if 'nodata' in band_schema:
+    if 'nodata' in channels_schema:
         ret['nodata'] = list(_normalize_multi_layer(
             'nodata',
-            band_schema['nodata'],
+            channels_schema['nodata'],
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
             lambda x: float(np.asscalar(np.asarray(x))),
             None,
         ))
 
-    if 'interpretation' in band_schema:
-        val = band_schema['interpretation']
+    if 'interpretation' in channels_schema:
+        val = channels_schema['interpretation']
         if isinstance(val, str):
-            ret['interpretation'] = [conv.gci_of_str(val)] * band_count
+            ret['interpretation'] = [conv.gci_of_str(val)] * channel_count
         else:
             _test_length(val, 'nodata')
             ret['interpretation'] = [conv.gci_of_str(elt) for elt in val]
         ret['interpretation'] = [conv.str_of_gci(v) for v in ret['interpretation']]
 
-    if 'offset' in band_schema:
+    if 'offset' in channels_schema:
         ret['offset'] = list(_normalize_multi_layer(
             'offset',
-            band_schema['offset'],
+            channels_schema['offset'],
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
             lambda x: float(np.asscalar(np.asarray(x))),
             0.,
         ))
 
-    if 'scale' in band_schema:
+    if 'scale' in channels_schema:
         ret['scale'] = list(_normalize_multi_layer(
             'scale',
-            band_schema['scale'],
+            channels_schema['scale'],
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
             lambda x: float(np.asscalar(np.asarray(x))),
             1.,
         ))
 
-    if 'mask' in band_schema:
-        val = band_schema['mask']
+    if 'mask' in channels_schema:
+        val = channels_schema['mask']
         if isinstance(val, str):
-            ret['mask'] = [conv.gmf_of_str(val)] * band_count
+            ret['mask'] = [conv.gmf_of_str(val)] * channel_count
         else:
             _test_length(val, 'mask')
             ret['mask'] = [conv.gmf_of_str(elt) for elt in val]

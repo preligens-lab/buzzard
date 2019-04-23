@@ -40,7 +40,7 @@ def example():
 
         fp=fp,
         dtype='float32',
-        band_count=1,
+        channel_count=1,
         compute_array=mandelbrot_of_footprint,
 
         cache_dir=CACHE_DIR,
@@ -97,7 +97,7 @@ def example():
         'mand_red',
         fp=fp,
         dtype='uint8',
-        band_count=3,
+        channel_count=3,
         compute_array=colorize_mandelbrot,
         queue_data_per_primitive={'mand': ds.mand_100mpx.queue_data},
         computation_tiles=computation_tiling,

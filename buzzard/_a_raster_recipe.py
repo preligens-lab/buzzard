@@ -29,8 +29,8 @@ class ARasterRecipe(AAsyncRaster):
 class ABackRasterRecipe(ABackAsyncRaster):
     """Implementation of ARasterRecipe's specifications"""
     def __init__(self,
-                 band_schema,
-                 band_count,
+                 channels_schema,
+                 channel_count,
                  facade_proxy,
                  computation_pool,
                  merge_pool,
@@ -49,19 +49,19 @@ class ABackRasterRecipe(ABackAsyncRaster):
         self.primitives_kwargs = primitives_kwargs
         self.convert_footprint_per_primitive = convert_footprint_per_primitive
 
-        if 'nodata' not in band_schema:
-            band_schema['nodata'] = [None] * band_count
+        if 'nodata' not in channels_schema:
+            channels_schema['nodata'] = [None] * channel_count
 
-        if 'interpretation' not in band_schema:
-            band_schema['interpretation'] = ['undefined'] * band_count
+        if 'interpretation' not in channels_schema:
+            channels_schema['interpretation'] = ['undefined'] * channel_count
 
-        if 'offset' not in band_schema:
-            band_schema['offset'] = [0.] * band_count
+        if 'offset' not in channels_schema:
+            channels_schema['offset'] = [0.] * channel_count
 
-        if 'scale' not in band_schema:
-            band_schema['scale'] = [1.] * band_count
+        if 'scale' not in channels_schema:
+            channels_schema['scale'] = [1.] * channel_count
 
-        if 'mask' not in band_schema:
-            band_schema['mask'] = ['all_valid']
+        if 'mask' not in channels_schema:
+            channels_schema['mask'] = ['all_valid']
 
-        super().__init__(band_schema=band_schema, **kwargs)
+        super().__init__(channels_schema=channels_schema, **kwargs)

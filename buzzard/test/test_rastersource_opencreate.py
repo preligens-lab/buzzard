@@ -42,8 +42,8 @@ TESTS = [
             dict(driver='numpy'),
         ],
         dtype='float32',
-        band_count=1,
-        band_schema= {'nodata': [-32767]},
+        channel_count=1,
+        channels_schema= {'nodata': [-32767]},
         sr=SR1['wkt'],
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
@@ -55,8 +55,8 @@ TESTS = [
             dict(driver='numpy'),
         ],
         dtype='uint8',
-        band_count=3,
-        band_schema= {},
+        channel_count=3,
+        channels_schema= {},
         sr=SR1['wkt'],
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
@@ -68,20 +68,20 @@ TESTS = [
             dict(driver='numpy'),
         ],
         dtype='uint8',
-        band_count=4,
-        band_schema= {},
+        channel_count=4,
+        channels_schema= {},
         sr=SR1['wkt'],
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='GTiff', ext='.tif', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='float32',
-        band_count=1,
-        band_schema= {
+        channel_count=1,
+        channels_schema= {
             'nodata': [42.0],
             'interpretation': ['greenband'],
             'offset': [0.0],
@@ -92,14 +92,14 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='ERS', ext='.ers', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='float32',
-        band_count=1,
-        band_schema= {
+        channel_count=1,
+        channels_schema= {
             'nodata': [0.0],
             'interpretation': ['undefined'],
             'offset': [0.0],
@@ -110,15 +110,15 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='BT', ext='.bt', options=[]),
             dict(driver='GTX', ext='.gtx', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='float32',
-        band_count=1,
-        band_schema= {
+        channel_count=1,
+        channels_schema= {
             'nodata': [-32768.0],
             'interpretation': ['undefined'],
             'offset': [0.0],
@@ -129,14 +129,14 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='RST', ext='.rst', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='float32',
-        band_count=1,
-        band_schema= {
+        channel_count=1,
+        channels_schema= {
             'nodata': [-32768.0],
             'interpretation': ['grayindex'],
             'offset': [0.0],
@@ -147,14 +147,14 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='GTiff', ext='.tif', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='float64',
-        band_count=1,
-        band_schema= {
+        channel_count=1,
+        channels_schema= {
             'nodata': [42.0],
             'interpretation': ['greenband'],
             'offset': [0.0],
@@ -165,15 +165,15 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='RMF', ext='.mtw', options=['MTW=ON']),
             dict(driver='ERS', ext='.ers', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='float64',
-        band_count=1,
-        band_schema= {
+        channel_count=1,
+        channels_schema= {
             'nodata': [0.0],
             'interpretation': ['undefined'],
             'offset': [0.0],
@@ -184,15 +184,15 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='GTiff', ext='.tif', options=[]),
             dict(driver='BMP', ext='.bmp', options=[]),
             dict(driver='MEM', options=[]),
         ],
         dtype='uint8',
-        band_count=3,
-        band_schema= {
+        channel_count=3,
+        channels_schema= {
             'nodata': [None, None, None],
             'interpretation': ['redband', 'greenband', 'blueband'],
             'offset': [0.0, 0.0, 0.0],
@@ -203,15 +203,15 @@ TESTS = [
         fp=Footprint(tl=(0, 10), size=(10, 10), rsize=(30, 30)),
     ),
 
-    dict( # Ununsual band_schema
+    dict( # Ununsual channels_schema
         subtests=[
             dict(driver='BMP', ext='.bmp', options=[]),
             dict(driver='RMF', ext='.rsw', options=['MTW=OFF']),
             dict(driver='MEM', options=[]),
         ],
         dtype='uint8',
-        band_count=3,
-        band_schema= {
+        channel_count=3,
+        channels_schema= {
             'nodata': [0., 0., 0.],
             'interpretation': ['redband', 'greenband', 'blueband'],
             'offset': [0.0, 0.0, 0.0],
@@ -243,10 +243,10 @@ def pytest_generate_tests(metafunc):
                 meta = dict(
                     fp=meta['fp'],
                     array=np.empty(
-                        np.r_[meta['fp'].shape, meta['band_count']],
+                        np.r_[meta['fp'].shape, meta['channel_count']],
                         meta['dtype']
                     ),
-                    band_schema=meta['band_schema'],
+                    channels_schema=meta['channels_schema'],
                     sr=meta['sr'],
                 )
                 tests.append(meta)
@@ -283,7 +283,7 @@ def test_file(meta_file, path):
 
     ds = Dataset()
     arr = np.add(*fp.meshgrid_raster)
-    arr = np.repeat(arr[..., np.newaxis], meta['band_count'], -1)
+    arr = np.repeat(arr[..., np.newaxis], meta['channel_count'], -1)
 
     with ds.acreate_raster(path, **meta).close as r:
         r.set_data(arr, band=-1)
@@ -291,15 +291,15 @@ def test_file(meta_file, path):
         if DRIVER_STORES_SRS[meta['driver']]:
             assert r.wkt_stored == meta['sr']
             assert r.wkt_virtual == meta['sr']
-        for k, v in meta['band_schema'].items():
-            assert r.band_schema[k] == v
+        for k, v in meta['channels_schema'].items():
+            assert r.channels_schema[k] == v
         assert r.dtype == np.dtype(meta['dtype'])
         assert r.fp_stored == fp
-        if 'nodata' in meta['band_schema']:
-            assert r.nodata == meta['band_schema']['nodata'][0]
+        if 'nodata' in meta['channels_schema']:
+            assert r.nodata == meta['channels_schema']['nodata'][0]
         else:
             assert r.nodata == None
-        assert len(r) == meta['band_count']
+        assert len(r) == meta['channel_count']
         assert r.fp == fp
         assert r.mode == 'w'
         assert r.driver == meta['driver']
@@ -313,15 +313,15 @@ def test_file(meta_file, path):
         if DRIVER_STORES_SRS[meta['driver']]:
             assert r.wkt_stored == meta['sr']
             assert r.wkt_virtual == meta['sr']
-        for k, v in meta['band_schema'].items():
-            assert r.band_schema[k] == v
+        for k, v in meta['channels_schema'].items():
+            assert r.channels_schema[k] == v
         assert r.dtype == np.dtype(meta['dtype'])
         assert r.fp_stored.almost_equals(fp)
-        if 'nodata' in meta['band_schema']:
-            assert r.nodata == meta['band_schema']['nodata'][0]
+        if 'nodata' in meta['channels_schema']:
+            assert r.nodata == meta['channels_schema']['nodata'][0]
         else:
             assert r.nodata == None
-        assert len(r) == meta['band_count']
+        assert len(r) == meta['channel_count']
         assert r.fp.almost_equals(fp)
         assert r.mode == 'r'
         assert r.driver == meta['driver']
@@ -377,22 +377,22 @@ def test_mem(meta_mem):
 
     ds = Dataset()
     arr = np.add(*fp.meshgrid_raster)
-    arr = np.repeat(arr[..., np.newaxis], meta['band_count'], -1)
+    arr = np.repeat(arr[..., np.newaxis], meta['channel_count'], -1)
 
     with ds.acreate_raster(**meta).close as r:
         r.set_data(arr, band=-1)
 
         assert r.wkt_stored == meta['sr']
         assert r.wkt_virtual == meta['sr']
-        for k, v in meta['band_schema'].items():
-            assert r.band_schema[k] == v
+        for k, v in meta['channels_schema'].items():
+            assert r.channels_schema[k] == v
         assert r.dtype == np.dtype(meta['dtype'])
         assert r.fp_stored == fp
-        if 'nodata' in meta['band_schema']:
-            assert r.nodata == meta['band_schema']['nodata'][0]
+        if 'nodata' in meta['channels_schema']:
+            assert r.nodata == meta['channels_schema']['nodata'][0]
         else:
             assert r.nodata == None
-        assert len(r) == meta['band_count']
+        assert len(r) == meta['channel_count']
         assert r.fp == fp
         assert r.mode == 'w'
         assert np.all(r.get_data(band=[-1]) == arr)
@@ -412,12 +412,12 @@ def test_numpy(meta_numpy):
 
         assert r.wkt_stored == meta['sr']
         assert r.wkt_virtual == meta['sr']
-        for k, v in meta['band_schema'].items():
-            assert r.band_schema[k] == tuple(v)
+        for k, v in meta['channels_schema'].items():
+            assert r.channels_schema[k] == tuple(v)
         assert r.dtype == meta['array'].dtype
         assert r.fp_stored == fp
-        if 'nodata' in meta['band_schema']:
-            assert r.nodata == meta['band_schema']['nodata'][0]
+        if 'nodata' in meta['channels_schema']:
+            assert r.nodata == meta['channels_schema']['nodata'][0]
         else:
             assert r.nodata == None
         assert len(r) == meta['array'].shape[-1]

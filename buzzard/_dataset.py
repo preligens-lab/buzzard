@@ -390,12 +390,12 @@ class Dataset(DatasetRegisterMixin):
         """
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
-    def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
+    def create_raster(self, key, path, fp, dtype, channel_count, channels_schema=None,
                       driver='GTiff', options=(), sr=None, ow=False):
         """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
-        The raster is initialized with `band_schema['nodata']` or `0`.
+        The raster is initialized with `channels_schema['nodata']` or `0`.
 
         >>> help(GDALFileRaster)
         >>> help(GDALMemRaster)
@@ -408,10 +408,10 @@ class Dataset(DatasetRegisterMixin):
         fp: Footprint
             Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
-        band_count: integer
+        channel_count: integer
             number of bands
-        band_schema: dict or None
-            Band(s) metadata. (see `Band fields` below)
+        channels_schema: dict or None
+            Channel(s) metadata. (see `Channels schema fields` below)
         driver: string
             gdal driver to use when opening the file
             http://www.gdal.org/formats_list.html
@@ -440,14 +440,14 @@ class Dataset(DatasetRegisterMixin):
         one of {GDALFileRaster, GDALMemRaster}
             depending on the `driver` parameter
 
-        Band fields
-        -----------
+        Channel schema fields
+        ---------------------
         Fields:
             'nodata': None or number
             'interpretation': None or str
             'offset': None or number
             'scale': None or number
-            'mask': None or one of ('')
+            'mask': None or str
         Interpretation values:
             undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
             saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
@@ -457,7 +457,7 @@ class Dataset(DatasetRegisterMixin):
         A field missing or None is kept to default value.
         A field can be passed as:
             a value: All bands are set to this value
-            a sequence of length `band_count` of value: All bands will be set to respective state
+            a sequence of length `channel_count` of value: All bands will be set to respective state
 
         Caveat
         ------
@@ -470,10 +470,10 @@ class Dataset(DatasetRegisterMixin):
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
-        band_count = int(band_count)
-        if band_count <= 0:
-            raise ValueError('`band_count` should be >0')
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        channel_count = int(channel_count)
+        if channel_count <= 0:
+            raise ValueError('`channel_count` should be >0')
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
 
@@ -495,11 +495,11 @@ class Dataset(DatasetRegisterMixin):
         if driver.lower() == 'mem':
             # TODO for 0.5.0: Check async_ is False
             prox = GDALMemRaster(
-                self, fp, dtype, band_count, band_schema, options, wkt,
+                self, fp, dtype, channel_count, channels_schema, options, wkt,
             )
         elif True:
             allocator = lambda: BackGDALFileRaster.create_file(
-                path, fp, dtype, band_count, band_schema, driver, options, wkt, ow,
+                path, fp, dtype, channel_count, channels_schema, driver, options, wkt, ow,
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
         else:
@@ -512,7 +512,7 @@ class Dataset(DatasetRegisterMixin):
             self._register([], prox)
         return prox
 
-    def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
+    def acreate_raster(self, path, fp, dtype, channel_count, channels_schema=None,
                        driver='GTiff', options=(), sr=None, ow=False):
         """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
@@ -523,18 +523,18 @@ class Dataset(DatasetRegisterMixin):
         >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
         >>> open_options = mask.open_options
 
-        >>> band_schema = {
+        >>> channels_schema = {
         ...     'nodata': -32767,
         ...     'interpretation': ['blackband', 'cyanband'],
         ... }
-        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, band_schema)
-        >>> band_interpretation = out.band_schema['interpretation']
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, channels_schema)
+        >>> band_interpretation = out.channels_schema['interpretation']
 
         """
-        return self.create_raster(_AnonymousSentry(), path, fp, dtype, band_count, band_schema,
+        return self.create_raster(_AnonymousSentry(), path, fp, dtype, channel_count, channels_schema,
                                   driver, options, sr, ow)
 
-    def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
+    def wrap_numpy_raster(self, key, fp, array, channels_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster under `key` in this Dataset.
 
         >>> help(NumpyRaster)
@@ -546,8 +546,8 @@ class Dataset(DatasetRegisterMixin):
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
         array: ndarray of shape (Y, X) or (Y, X, C)
-        band_schema: dict or None
-            Band(s) metadata. (see `Band fields` below)
+        channels_schema: dict or None
+            Channel(s) metadata. (see `Channels schema fields` below)
         sr: string or None
             Spatial reference of the new file
 
@@ -562,14 +562,14 @@ class Dataset(DatasetRegisterMixin):
         -------
         NumpyRaster
 
-        Band fields
-        -----------
+        Channel schema fields
+        ---------------------
         Fields:
             'nodata': None or number
             'interpretation': None or str
             'offset': None or number
             'scale': None or number
-            'mask': None or one of ('')
+            'mask': None or str
         Interpretation values:
             undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
             saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
@@ -579,7 +579,7 @@ class Dataset(DatasetRegisterMixin):
         A field missing or None is kept to default value.
         A field can be passed as:
             a value: All bands are set to this value
-            a sequence of length `band_count` of value: All bands will be set to respective state
+            a sequence of length `channel_count` of value: All bands will be set to respective state
 
         """
         # Parameter checking ***************************************************
@@ -590,8 +590,8 @@ class Dataset(DatasetRegisterMixin):
             raise ValueError('Incompatible shape between `array` and `fp`')
         if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
-        band_count = 1 if array.ndim == 2 else array.shape[-1]
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        channel_count = 1 if array.ndim == 2 else array.shape[-1]
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         if sr is not None:
             success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
             if not success:
@@ -608,7 +608,7 @@ class Dataset(DatasetRegisterMixin):
             fp = self._back.convert_footprint(fp, wkt)
 
         # Construction *********************************************************
-        prox = NumpyRaster(self, fp, array, band_schema, wkt, mode)
+        prox = NumpyRaster(self, fp, array, channels_schema, wkt, mode)
 
         # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
@@ -617,18 +617,18 @@ class Dataset(DatasetRegisterMixin):
             self._register([], prox)
         return prox
 
-    def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
+    def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w'):
         """Register a numpy array as a raster anonymously in this Dataset.
 
         See Dataset.wrap_numpy_raster
         """
-        return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, band_schema, sr, mode)
+        return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, channels_schema, sr, mode)
 
     def create_raster_recipe(
             self, key,
 
             # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
+            fp, dtype, channel_count, channels_schema=None, sr=None,
 
             # callbacks running on pool
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
@@ -665,9 +665,9 @@ class Dataset(DatasetRegisterMixin):
             see `create_raster` method
         dtype:
             see `create_raster` method
-        band_count:
+        channel_count:
             see `create_raster` method
-        band_schema:
+        channels_schema:
             see `create_raster` method
         sr:
             see `create_raster` method
@@ -837,7 +837,7 @@ class Dataset(DatasetRegisterMixin):
             self, key,
 
             # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
+            fp, dtype, channel_count, channels_schema=None, sr=None,
 
             # callbacks running on pool
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
@@ -876,9 +876,9 @@ class Dataset(DatasetRegisterMixin):
             see `create_raster` method
         dtype:
             see `create_raster` method
-        band_count:
+        channel_count:
             see `create_raster` method
-        band_schema:
+        channels_schema:
             see `create_raster` method
         sr:
             see `create_raster` method
@@ -925,10 +925,10 @@ class Dataset(DatasetRegisterMixin):
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
-        band_count = int(band_count)
-        if band_count <= 0:
-            raise ValueError('`band_count` should be >0')
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        channel_count = int(channel_count)
+        if channel_count <= 0:
+            raise ValueError('`channel_count` should be >0')
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         if sr is not None:
             success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
             if not success:
@@ -1041,7 +1041,7 @@ class Dataset(DatasetRegisterMixin):
         # Construction *********************************************************
         prox = CachedRasterRecipe(
             self,
-            fp, dtype, band_count, band_schema, wkt,
+            fp, dtype, channel_count, channels_schema, wkt,
             compute_array, merge_arrays,
             cache_dir, overwrite,
             primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -1062,7 +1062,7 @@ class Dataset(DatasetRegisterMixin):
             self,
 
             # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
+            fp, dtype, channel_count, channels_schema=None, sr=None,
 
             # callbacks running on pool
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
@@ -1086,7 +1086,7 @@ class Dataset(DatasetRegisterMixin):
         """
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
-            fp, dtype, band_count, band_schema, sr,
+            fp, dtype, channel_count, channels_schema, sr,
             compute_array, merge_arrays,
             cache_dir, ow,
             queue_data_per_primitive, convert_footprint_per_primitive,

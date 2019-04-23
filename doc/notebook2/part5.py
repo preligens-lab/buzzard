@@ -100,7 +100,7 @@ def open_zoomable_rasters(ds, name, overwrite):
 
             fp=fp,
             dtype='uint8',
-            band_count=3,
+            channel_count=3,
             compute_array=functools.partial(
                 download_tile,
                 url_per_tile=url_per_tile

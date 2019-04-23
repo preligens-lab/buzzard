@@ -12,11 +12,11 @@ class NumpyRaster(AStoredRaster):
     - Has an `array` property that points to the numpy array provided at construction.
     """
 
-    def __init__(self, ds, fp, array, band_schema, wkt, mode):
+    def __init__(self, ds, fp, array, channels_schema, wkt, mode):
         self._arr_shape = array.shape
         self._arr_address = array.__array_interface__['data'][0]
         back = BackNumpyRaster(
-            ds._back, fp, array, band_schema, wkt, mode
+            ds._back, fp, array, channels_schema, wkt, mode
         )
         super(NumpyRaster, self).__init__(ds=ds, back=back)
 
@@ -31,38 +31,38 @@ class NumpyRaster(AStoredRaster):
 class BackNumpyRaster(ABackStoredRaster):
     """Implementation of NumpyRaster"""
 
-    def __init__(self, back_ds, fp, array, band_schema, wkt, mode):
+    def __init__(self, back_ds, fp, array, channels_schema, wkt, mode):
         array = np.atleast_3d(array)
         self._arr = array
-        band_count = array.shape[-1]
+        channel_count = array.shape[-1]
 
-        if 'nodata' not in band_schema:
-            band_schema['nodata'] = [None] * band_count
+        if 'nodata' not in channels_schema:
+            channels_schema['nodata'] = [None] * channel_count
 
-        if 'interpretation' not in band_schema:
-            band_schema['interpretation'] = ['undefined'] * band_count
+        if 'interpretation' not in channels_schema:
+            channels_schema['interpretation'] = ['undefined'] * channel_count
 
-        if 'offset' not in band_schema:
-            band_schema['offset'] = [0.] * band_count
+        if 'offset' not in channels_schema:
+            channels_schema['offset'] = [0.] * channel_count
 
-        if 'scale' not in band_schema:
-            band_schema['scale'] = [1.] * band_count
+        if 'scale' not in channels_schema:
+            channels_schema['scale'] = [1.] * channel_count
 
-        if 'mask' not in band_schema:
-            band_schema['mask'] = ['all_valid']
+        if 'mask' not in channels_schema:
+            channels_schema['mask'] = ['all_valid']
 
         super(BackNumpyRaster, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt,
-            band_schema=band_schema,
+            channels_schema=channels_schema,
             dtype=array.dtype,
             fp_stored=fp,
             mode=mode,
         )
 
         self._should_tranform = (
-            any(v != 0 for v in band_schema['offset']) or
-            any(v != 1 for v in band_schema['scale'])
+            any(v != 0 for v in channels_schema['offset']) or
+            any(v != 1 for v in channels_schema['scale'])
         )
 
     def get_data(self, fp, band_ids, dst_nodata, interpolation):
@@ -77,7 +77,7 @@ class BackNumpyRaster(ABackStoredRaster):
         key = tuple(key)
         array = self._arr[key]
         if self._should_tranform:
-            array = array * self.band_schema['scale'] + self.band_schema['offset']
+            array = array * self.channels_schema['scale'] + self.channels_schema['offset']
         array = self.remap(
             samplefp,
             fp,

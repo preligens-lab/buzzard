@@ -59,7 +59,7 @@ def cache_tiles(request):
 def test_(pools, test_prefix, cache_tiles, test_prefix2):
     def _open(**kwargs):
         d = dict(
-            fp=fp, dtype='float32', band_count=2,
+            fp=fp, dtype='float32', channel_count=2,
             compute_array=functools.partial(_meshgrid_raster_in, reffp=fp),
             cache_dir=test_prefix,
             cache_tiles=cache_tiles,
