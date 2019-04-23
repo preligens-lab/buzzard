@@ -62,8 +62,8 @@ for poly in ds.polygons.iter_data(None):
     fp = ds.rgb.fp.intersection(poly)
 
     # Read rgb at `fp` to a numpy array
-    rgb = ds.rgb.get_data(channels=(0, 1, 2), fp=fp).astype('uint8')
-    alpha = ds.rgb.get_data(channels=3, fp=fp).astype('uint8')
+    rgb = ds.rgb.get_data(fp=fp, channels=(0, 1, 2)).astype('uint8')
+    alpha = ds.rgb.get_data(fp=fp, channels=3).astype('uint8')
 
     # Create a boolean mask as a numpy array from a shapely polygon
     mask = np.invert(fp.burn_polygons(poly))
