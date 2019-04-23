@@ -52,7 +52,7 @@ class ActorTopLevel(object):
         """
         msgs = []
         self._rasters.add(raster)
-        raster.debug_mngr.event('raster_started', raster.facade_source)
+        raster.debug_mngr.event('raster_started', raster.facade_proxy)
 
         # Instantiate raster's actors ******************************************
         actors = raster.create_actors()
@@ -100,7 +100,7 @@ class ActorTopLevel(object):
         """
         msgs = []
         self._rasters.remove(raster)
-        raster.debug_mngr.event('raster_stopped', raster.facade_source)
+        raster.debug_mngr.event('raster_stopped', raster.facade_proxy)
 
         # Deleting raster's actors *********************************************
         # Deal with QueriesHandler first.

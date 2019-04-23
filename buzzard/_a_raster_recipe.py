@@ -31,7 +31,7 @@ class ABackRasterRecipe(ABackAsyncRaster):
     def __init__(self,
                  band_schema,
                  band_count,
-                 facade_source,
+                 facade_proxy,
                  computation_pool,
                  merge_pool,
                  compute_array,
@@ -40,7 +40,7 @@ class ABackRasterRecipe(ABackAsyncRaster):
                  primitives_kwargs,
                  convert_footprint_per_primitive,
                  **kwargs):
-        self.facade_source = facade_source
+        self.facade_proxy = facade_proxy
         self.computation_pool = computation_pool
         self.merge_pool = merge_pool
         self.compute_array = compute_array

@@ -134,7 +134,7 @@ class Work(PoolJobWorking):
                 actor._raster.merge_arrays,
                 cache_fp,
                 array_per_fp,
-                actor._raster.facade_source,
+                actor._raster.facade_proxy,
             )
         else:
             func = functools.partial(
