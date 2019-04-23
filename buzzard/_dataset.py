@@ -409,7 +409,7 @@ class Dataset(DatasetRegisterMixin):
             Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
         channel_count: integer
-            number of bands
+            number of channels
         channels_schema: dict or None
             Channel(s) metadata. (see `Channels schema fields` below)
         driver: string
@@ -752,8 +752,8 @@ class Dataset(DatasetRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
-        - a single ndarray of shape (Y, X) if only one band was computed
-        - a single ndarray of shape (Y, X, C) if one or more bands were computed
+        - a single ndarray of shape (Y, X) if only one channel was computed
+        - a single ndarray of shape (Y, X, C) if one or more channels were computed
 
         If `computation_pool` points to a process pool, the `compute_array` function must be
         picklable and the `raster` parameter will be None.
@@ -799,8 +799,8 @@ class Dataset(DatasetRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
-        - a single ndarray of shape (Y, X) if only one band was computed
-        - a single ndarray of shape (Y, X, C) if one or more bands were computed
+        - a single ndarray of shape (Y, X) if only one channel was computed
+        - a single ndarray of shape (Y, X, C) if one or more channels were computed
 
         If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
         the `raster` parameter will be None.
@@ -840,7 +840,7 @@ class Dataset(DatasetRegisterMixin):
         data to compute a derived array.
 
         e.g. If the primitive raster is an `rgb` image, and the derived raster only needs the green
-        band but with a context of 10 additional pixels on all 4 sides:
+        channel but with a context of 10 additional pixels on all 4 sides:
         >>> derived = ds.create_raster_recipe(
         ...     # <other parameters>
         ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, channels=1)},

@@ -12,16 +12,16 @@ class ABackGDALRaster(ABackStoredRaster):
     """Abstract class defining the common implementation of all GDAL rasters"""
 
     # get_data implementation ******************************************************************* **
-    def get_data(self, fp, band_ids, dst_nodata, interpolation):
+    def get_data(self, fp, channel_ids, dst_nodata, interpolation):
         samplefp = self.build_sampling_footprint(fp, interpolation)
         if samplefp is None:
             return np.full(
-                np.r_[fp.shape, len(band_ids)],
+                np.r_[fp.shape, len(channel_ids)],
                 dst_nodata,
                 self.dtype
             )
         with self.acquire_driver_object() as gdal_ds:
-            array = self.sample_bands_driver(samplefp, band_ids, gdal_ds)
+            array = self.sample_bands_driver(samplefp, channel_ids, gdal_ds)
         array = self.remap(
             samplefp,
             fp,
@@ -35,14 +35,14 @@ class ABackGDALRaster(ABackStoredRaster):
         array = array.astype(self.dtype, copy=False)
         return array
 
-    def sample_bands_driver(self, fp, band_ids, gdal_ds):
+    def sample_bands_driver(self, fp, channel_ids, gdal_ds):
         rtlx, rtly = self.fp.spatial_to_raster(fp.tl)
         assert rtlx >= 0 and rtlx < self.fp.rsizex, '{} >= 0 and {} < {}'.format(rtlx, rtlx, self.fp.rsizex)
         assert rtly >= 0 and rtly < self.fp.rsizey, '{} >= 0 and {} < {}'.format(rtly, rtly, self.fp.rsizey)
 
-        dstarray = np.empty(np.r_[fp.shape, len(band_ids)], self.dtype)
-        for i, band_id in enumerate(band_ids):
-            gdal_band = gdal_ds.GetRasterBand(band_id)
+        dstarray = np.empty(np.r_[fp.shape, len(channel_ids)], self.dtype)
+        for i, channel_id in enumerate(channel_ids):
+            gdal_band = gdal_ds.GetRasterBand(channel_id + 1)
             success, payload = GDALErrorCatcher(gdal_band.ReadAsArray, none_is_error=True)(
                 int(rtlx),
                 int(rtly),
@@ -57,7 +57,7 @@ class ABackGDALRaster(ABackStoredRaster):
         return dstarray
 
     # set_data implementation ******************************************************************* **
-    def set_data(self, array, fp, band_ids, interpolation, mask):
+    def set_data(self, array, fp, channel_ids, interpolation, mask):
         if not fp.share_area(self.fp):
             return
         if not fp.same_grid(self.fp) and mask is None:
@@ -88,9 +88,9 @@ class ABackGDALRaster(ABackStoredRaster):
         # Write ****************************************************************
         # TODO: Close all but 1 driver? Or let user do this
         with self.acquire_driver_object() as gdal_ds:
-            for i, band_id in enumerate(band_ids):
+            for i, channel_id in enumerate(channel_ids):
                 leftx, topy = self.fp.spatial_to_raster(fp.tl)
-                gdalband = gdal_ds.GetRasterBand(band_id)
+                gdalband = gdal_ds.GetRasterBand(channel_id + 1)
 
                 for sl in _tools.slices_of_matrix(mask):
                     a = array[:, :, i][sl]
@@ -104,9 +104,9 @@ class ABackGDALRaster(ABackStoredRaster):
                     gdalband.WriteArray(a, x, y)
 
     # fill implementation *********************************************************************** **
-    def fill(self, value, band_ids):
+    def fill(self, value, channel_ids):
         with self.acquire_driver_object() as gdal_ds:
-            for gdalband in [gdal_ds.GetRasterBand(band_id) for band_id in band_ids]:
+            for gdalband in [gdal_ds.GetRasterBand(channel_id + 1) for channel_id in channel_ids]:
                 gdalband.Fill(value)
 
     # Misc ************************************************************************************** **
@@ -156,7 +156,7 @@ class ABackGDALRaster(ABackStoredRaster):
             gdal_ds.SetProjection(wkt)
         gdal_ds.SetGeoTransform(fp.gt)
 
-        # Step 4 - Set band schema ****************************************** **
+        # Step 4 - Set channels schema ************************************** **
         channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         cls._apply_channels_schema(gdal_ds, channels_schema)
 

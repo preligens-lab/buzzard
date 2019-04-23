@@ -73,7 +73,7 @@ class ActorResampler(object):
             assert sample_fp is None
             assert subsample_array is None
             pr.arr = np.full(
-                np.r_[resample_fp.shape, len(qi.band_ids)],
+                np.r_[resample_fp.shape, len(qi.channel_ids)],
                 qi.dst_nodata, self._raster.dtype,
             )
             pr.commit(resample_fp)
@@ -94,7 +94,7 @@ class ActorResampler(object):
         elif is_tile_alone and not is_interpolation_needed:
             # Case 3: production footprint is aligned and is both inside and outside raster
             pr.arr = np.full(
-                np.r_[resample_fp.shape, len(qi.unique_band_ids)],
+                np.r_[resample_fp.shape, len(qi.unique_channel_ids)],
                 qi.dst_nodata, self._raster.dtype,
             )
             slices = sample_fp.slice_in(resample_fp)
@@ -217,7 +217,7 @@ class ActorResampler(object):
 
         if pr.arr is None:
             pr.arr = np.full(
-                np.r_[pi.fp.shape, len(qi.band_ids)],
+                np.r_[pi.fp.shape, len(qi.channel_ids)],
                 qi.dst_nodata, self._raster.dtype,
             )
 
@@ -274,10 +274,10 @@ class _ProdArray(object):
         return len(self._missing_resample_fps) == 0
 
 def _reorder_channels(qi, arr):
-    if qi.band_ids != qi.unique_band_ids:
+    if qi.channel_ids != qi.unique_channel_ids:
         indices = [
-            qi.unique_band_ids.index(bi)
-            for bi in qi.band_ids
+            qi.unique_channel_ids.index(bi)
+            for bi in qi.channel_ids
         ]
         arr = arr[..., indices]
     return arr

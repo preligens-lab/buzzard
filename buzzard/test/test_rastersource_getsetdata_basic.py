@@ -195,3 +195,10 @@ def test_get_data_band_behavior(rast):
     assert rast.get_data(band=[-1]).shape[2:] == (c,)
     assert rast.get_data(band=[1]).shape[2:] == (1,)
     assert rast.get_data(band=1).shape[2:] == ()
+
+    if len(rast) == 3:
+        for i in range(len(rast)):
+            rast.fill(i * 10, i)
+        assert np.all(rast.get_data(channels=[0, 1, 2]) == [[[0, 10, 20]]])
+        assert np.all(rast.get_data(channels=[2, 1, 0]) == [[[20, 10, 0]]])
+        assert np.all(rast.get_data(channels=[2, 1, 0, 1, 2]) == [[[20, 10, 0, 10, 20]]])

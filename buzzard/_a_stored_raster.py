@@ -131,12 +131,10 @@ class AStoredRaster(AStored, ASourceRaster):
                 set(self._back.REMAP_INTERPOLATIONS.keys())
             ))
 
-        channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
-
         return self._back.set_data(
             array=array,
             fp=fp,
-            band_ids=channel_ids,
+            channel_ids=channel_ids,
             interpolation=interpolation,
             mask=mask,
         )
@@ -197,11 +195,9 @@ class AStoredRaster(AStored, ASourceRaster):
 
         value = self.dtype.type(value).tolist()
 
-        channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
-
         self._back.fill(
             value=value,
-            band_ids=channel_ids,
+            channel_ids=channel_ids,
         )
 
 class ABackStoredRaster(ABackStored, ABackSourceRaster):

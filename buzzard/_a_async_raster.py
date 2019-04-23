@@ -141,7 +141,7 @@ class ABackAsyncRaster(ABackSourceRaster):
 
         super().__init__(**kwargs)
 
-    def queue_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
+    def queue_data(self, fps, channel_ids, dst_nodata, interpolation, max_queue_size, is_flat,
                    parent_uid, key_in_parent):
         q = queue.Queue(max_queue_size)
         self.back_ds.put_message(Msg(
@@ -150,7 +150,7 @@ class ABackAsyncRaster(ABackSourceRaster):
             weakref.ref(q),
             max_queue_size,
             fps,
-            band_ids,
+            channel_ids,
             is_flat,
             dst_nodata,
             interpolation,
@@ -159,8 +159,8 @@ class ABackAsyncRaster(ABackSourceRaster):
         ))
         return q
 
-    def iter_data(self, fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat):
-        q = self.queue_data(fps, band_ids, dst_nodata, interpolation, max_queue_size, is_flat,
+    def iter_data(self, fps, channel_ids, dst_nodata, interpolation, max_queue_size, is_flat):
+        q = self.queue_data(fps, channel_ids, dst_nodata, interpolation, max_queue_size, is_flat,
                             None, None)
         def _iter_data_generator():
             i = 0
@@ -179,9 +179,9 @@ class ABackAsyncRaster(ABackSourceRaster):
                     self.back_ds.ensure_scheduler_still_alive()
         return _iter_data_generator()
 
-    def get_data(self, fp, band_ids, dst_nodata, interpolation):
+    def get_data(self, fp, channel_ids, dst_nodata, interpolation):
         it = self.iter_data(
-            [fp], band_ids, dst_nodata, interpolation, 1,
+            [fp], channel_ids, dst_nodata, interpolation, 1,
             False, # `is_flat` is not important since caller reshapes output
         )
         return next(it)

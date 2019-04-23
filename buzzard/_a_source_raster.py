@@ -14,8 +14,8 @@ class ASourceRaster(ASource):
     ----------------
     - Has a `stored` Footprint that defines the location of the raster
     - Has a Footprint that is influenced by the Dataset's opening mode
-    - Has a lenght that defines how many bands are available
-    - Has a `channels_schema` that defines per band attributes (like nodata)
+    - Has a length that defines how many channels are available
+    - Has a `channels_schema` that defines per channel attributes (e.g. nodata)
     - Has a `dtype` (like np.float32)
     - Has a `get_data` method that allows to read pixels in their current state to numpy arrays
     """
@@ -38,7 +38,7 @@ class ASourceRaster(ASource):
 
     @property
     def nodata(self):
-        """Accessor for first band's nodata value"""
+        """Accessor for first channel's nodata value"""
         return self._back.nodata
 
     def get_nodata(self, channel=0):
@@ -46,12 +46,8 @@ class ASourceRaster(ASource):
         return self._back.get_nodata(channel)
 
     def __len__(self):
-        """Return the number of bands"""
+        """Return the number of channels"""
         return len(self._back)
-
-    @property
-    def shared_band_id(self):
-        return self._back.shared_band_id
 
     def get_data(self, fp=None, channels=-1, dst_nodata=None, interpolation='cv_area', **kwargs):
         """Read a rectangle of data on several channels from the source raster.
@@ -65,8 +61,8 @@ class ASourceRaster(ASource):
 
         If `dst_nodata` is provided, nodata pixels are set to `dst_nodata`.
 
-        The alpha bands are currently resampled like any other band, this behavior may change in
-        the future. To normalize an `rgba` array after a resampling operation, use this
+        The alpha channels are currently resampled like any other channels, this behavior may
+        change in the future. To normalize an `rgba` array after a resampling operation, use this
         piece of code:
         >>> arr = np.where(arr[..., -1] == 255, arr, 0)
 
@@ -164,11 +160,9 @@ class ASourceRaster(ASource):
                 set(self._back.REMAP_INTERPOLATIONS.keys())
             ))
 
-        channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
-
         return self._back.get_data(
             fp=fp,
-            band_ids=channel_ids,
+            channel_ids=channel_ids,
             dst_nodata=dst_nodata,
             interpolation=interpolation,
         ).reshape(outshape)
@@ -196,12 +190,6 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
             ]))
         else:
             fp = fp_stored
-
-        self.shared_band_id = None
-        for i, type in enumerate(channels_schema['mask'], 1):
-            if type == 'per_dataset':
-                self.shared_band_id = i
-                break
 
         self.channels_schema = channels_schema
         self.dtype = dtype

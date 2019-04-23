@@ -13,7 +13,7 @@ from . import conv
 
 Footprint, AAsyncRaster = None, None # Lazy import
 
-BAND_SCHEMA_PARAMS = frozenset({
+CHANNELS_SCHEMA_PARAMS = frozenset({
     'nodata', 'interpretation', 'offset', 'scale', 'mask',
 })
 
@@ -136,7 +136,7 @@ def sanitize_channels_schema(channels_schema, channel_count):
 
     if channels_schema is None:
         return {}
-    diff = set(channels_schema.keys()) - BAND_SCHEMA_PARAMS
+    diff = set(channels_schema.keys()) - CHANNELS_SCHEMA_PARAMS
     if diff: # pragma: no cover
         raise ValueError('Unknown channels_schema keys `%s`' % diff)
 
@@ -441,10 +441,8 @@ def parse_queue_data_parameters(context, raster, channels=-1, dst_nodata=None,
     if max_queue_size <= 0:
         raise ValueError('`max_queue_size` should be >0')
 
-    channel_ids = [i + 1 for i in channel_ids] # DEBUG!! # DEBUG!! # DEBUG!! # DEBUG!!
-
     return dict(
-        band_ids=channel_ids,
+        channel_ids=channel_ids,
         dst_nodata=dst_nodata,
         interpolation=interpolation,
         max_queue_size=max_queue_size,

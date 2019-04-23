@@ -227,6 +227,16 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             assert np.all(arr == npr.get_data(band=-1, fp=tile))
 
     with buzz.Dataset(allow_interpolation=1).close as ds:
+        npr = ds.awrap_numpy_raster(fp, np.stack(fp.meshgrid_raster, axis=2).astype('float32'))
+
+        # Test channels order versus numpy raster
+        r = _open()
+        for channels in [
+                0, 1, -1, [-1], [0, 1], [1, 0], [1, 0, 1],
+        ]:
+            assert np.all(r.get_data(channels=channels) == npr.get_data(channels=channels))
+
+    with buzz.Dataset(allow_interpolation=1).close as ds:
         # Derived and primitive rasters not computed
         if compute_same_address_space:
             ac0, ac1 = _AreaCounter(fp), _AreaCounter(fp)

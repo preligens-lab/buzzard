@@ -43,7 +43,7 @@ def test_raster(r):
     if r.get_keys():
         print(f'|   key: {r.get_keys()[0]}')
     print(f'|   type: {type(r).__name__}')
-    print(f'|   dtype: {r.dtype}, band-count: {len(r)}')
+    print(f'|   dtype: {r.dtype}, channel-count: {len(r)}')
     print(f'|   Footprint: center:{fp.c}, scale:{fp.scale}')
     print(f'|              size(m):{fp.size}, raster-size(px):{fp.rsize}')
     fp_lowres = fp.intersection(fp, scale=fp.scale * 2)
@@ -51,13 +51,13 @@ def test_raster(r):
     # *********************************************************************** **
     print('| Test 2 - Getting the full raster')
     with example_tools.Timer() as t:
-        arr = r.get_data(band=-1)
+        arr = r.get_data()
     print(f'|   took {t}, {fp.rarea / float(t):_.0f} pixel/sec')
 
     # *********************************************************************** **
     print('| Test 3 - Getting and downsampling the full raster')
     with example_tools.Timer() as t:
-        arr = r.get_data(fp=fp_lowres, band=-1)
+        arr = r.get_data(fp=fp_lowres)
     print(f'|   took {t}, {fp_lowres.rarea / float(t):_.0f} pixel/sec')
 
     # *********************************************************************** **
@@ -66,11 +66,11 @@ def test_raster(r):
     tiles = fp.tile_count(3, 3, boundary_effect='shrink').flatten()
     if hasattr(r, 'iter_data'):
         # Using `iter_data` of async rasters
-        arr_iterator = r.iter_data(tiles, band=-1)
+        arr_iterator = r.iter_data(tiles)
     else:
         # Making up an `iter_data` for classic rasters
         arr_iterator = (
-            r.get_data(fp=tile, band=-1)
+            r.get_data(fp=tile)
             for tile in tiles
         )
     with example_tools.Timer() as t:
