@@ -1,5 +1,5 @@
 # Source code organization
-All directories and files starting with an `_` are private, the `__init__.py` takes care of exporting all symbols.
+All directories and files starting with an `_` are private, the `__init__.py` file takes care of exporting all symbols.
 
 ---
 
@@ -8,7 +8,7 @@ All directories and files starting with an `_` are private, the `__init__.py` ta
 Symbols export
 
 #### `_a_*.py`
-Almost all files follow the following semantic: a 'facade' class that starts with `A` and directly or indirectly inherits from `ASource`, and a 'back' class that starts with `ABack` and directly or indirectly inherits from `ABackSource`.
+Almost all files follow this semantic: a `facade` class that starts with `A` and directly or indirectly inherits from `ASource`, and a `back` class that starts with `ABack` and directly or indirectly inherits from `ABackSource`.
 
 > Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fairware%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-classes-doc.xml
 
@@ -24,22 +24,21 @@ Contains the definition of the `Footprint` class, as well as some mixins.
 #### `_pint_interop.py`
 A not so useful file
 
-#### Concrete raster proxies
+#### Concrete raster sources
 ```
 _gdal_file_raster.py
 _gdal_mem_raster.py
 _numpy_raster.py
 _cached_raster_recipe.py
-TODO: add new ones
 ```
-All concrete 'facade' that directly or indirectly inherit from `ARasterSource` (and their 'back' equivalent of course).
+All concrete `facade` that directly or indirectly inherit from `ARasterSource` (and their `back` equivalent of course).
 
-#### Concrete raster vectors
+#### Concrete vector sources
 ```
 _gdal_file_vector.py
 _gdal_memory_vector.py
 ```
-All concrete 'facade' that directly or indirectly inherit from `AVectorSource` (and their 'back' equivalent of course).
+All concrete `facade` that directly or indirectly inherit from `AVectorSource` (and their `back` equivalent of course).
 
 ---
 

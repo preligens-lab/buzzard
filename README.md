@@ -33,7 +33,7 @@ Table of Contents
 - a `gdal`/`ogr`/`osr` wrapper
 - designed to hide all cumbersome operations while working with GIS files
 - designed for data science workflows
-- under active development (see [`TODO`](https://github.com/airware/buzzard/wiki/TODO))
+- under active development (see [`todo`](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f))
 - tested with `pytest` with python 3.4 and python 3.7
 
 ## `buzzard` contains
@@ -208,6 +208,6 @@ See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 - [examples](./doc/examples.ipynb)
 - [classes](https://github.com/airware/buzzard/wiki/Classes)
 - [wiki](https://github.com/airware/buzzard/wiki)
-- [todo](https://github.com/airware/buzzard/wiki/TODO)
+- [todo](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f)
 
 ------------------------------------------------------------------------------------------------------------------------
