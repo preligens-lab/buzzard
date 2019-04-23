@@ -118,7 +118,7 @@ class ASourceRaster(ASource):
             ]).reshape(val.shape)
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.get_data',
+            new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.get_data',
             new_name_value=channels,
             new_name_is_provided=channels != -1,
             user_kwargs=kwargs,
@@ -175,7 +175,7 @@ class ASourceRaster(ASource):
 
     band_schema = _tools.deprecation_pool.wrap_property(
         'channels_schema',
-        '0.5.1'
+        '0.6.0'
     )
 
 class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):

@@ -407,7 +407,7 @@ def parse_queue_data_parameters(context, raster, channels=-1, dst_nodata=None,
         ]).reshape(val.shape)
         return val
     channels, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
-        new_name='channels', old_names={'band': '0.5.1'}, context='Raster.{}'.format(context),
+        new_name='channels', old_names={'band': '0.6.0'}, context='Raster.{}'.format(context),
         new_name_value=channels,
         new_name_is_provided=channels != -1,
         user_kwargs=kwargs,

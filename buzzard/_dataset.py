@@ -467,7 +467,7 @@ class Dataset(DatasetRegisterMixin):
 
         # Deprecated parameters ************************************************
         channels_schema, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels_schema', old_names={'band_schema': '0.5.1'},
+            new_name='channels_schema', old_names={'band_schema': '0.6.0'},
             context='Dataset.create_raster',
             new_name_value=channels_schema,
             new_name_is_provided=channels_schema is not None,
@@ -599,7 +599,7 @@ class Dataset(DatasetRegisterMixin):
 
         # Deprecated parameters ************************************************
         channels_schema, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels_schema', old_names={'band_schema': '0.5.1'},
+            new_name='channels_schema', old_names={'band_schema': '0.6.0'},
             context='Dataset.wrap_numpy_raster',
             new_name_value=channels_schema,
             new_name_is_provided=channels_schema is not None,
@@ -1571,7 +1571,7 @@ _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
 
 })
 
-DataSource = deprecation_pool.wrap_class(Dataset, 'DataSource', '0.5.1')
+DataSource = deprecation_pool.wrap_class(Dataset, 'DataSource', '0.6.0')
 
 class _AnonymousSentry(object):
     """Sentry object used to instanciate anonymous proxies"""

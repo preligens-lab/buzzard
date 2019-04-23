@@ -76,7 +76,7 @@ class AStoredRaster(AStored, ASourceRaster):
             ]).reshape(val.shape)
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.set_data',
+            new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.set_data',
             new_name_value=channels,
             new_name_is_provided=channels != -1,
             user_kwargs=kwargs,
@@ -178,7 +178,7 @@ class AStoredRaster(AStored, ASourceRaster):
             ]).reshape(val.shape)
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
-            new_name='channels', old_names={'band': '0.5.1'}, context='ASourceRaster.fill',
+            new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.fill',
             new_name_value=channels,
             new_name_is_provided=channels != -1,
             user_kwargs=kwargs,

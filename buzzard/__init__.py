@@ -3,7 +3,7 @@
 buzzard should always be imported the first time from the main thread
 """
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 # Import osgeo before cv2
 import osgeo as _

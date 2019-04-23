@@ -108,7 +108,7 @@ class Env(object):
 
     def __init__(self, **kwargs):
         kwargs = deprecation_pool.handle_param_removal_with_kwargs(
-            {'warnings': '0.5.1'}, 'Env', kwargs,
+            {'warnings': '0.6.0'}, 'Env', kwargs,
         )
         self._mapping = {}
         for k, v in kwargs.items():
