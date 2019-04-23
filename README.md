@@ -145,7 +145,7 @@ pip install buzzard
 ```sh
 # Step 1 - Install GDAL and rtree
 # Windows:
-# http://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
+# https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 # https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree
 
 # MacOS:

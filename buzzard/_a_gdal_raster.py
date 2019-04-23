@@ -42,7 +42,7 @@ class ABackGDALRaster(ABackStoredRaster):
 
         dstarray = np.empty(np.r_[fp.shape, len(band_ids)], self.dtype)
         for i, band_id in enumerate(band_ids):
-            gdal_band = self._gdalband_of_band_id(gdal_ds, band_id)
+            gdal_band = gdal_ds.GetRasterBand(band_id)
             success, payload = GDALErrorCatcher(gdal_band.ReadAsArray, none_is_error=True)(
                 int(rtlx),
                 int(rtly),
@@ -90,7 +90,7 @@ class ABackGDALRaster(ABackStoredRaster):
         with self.acquire_driver_object() as gdal_ds:
             for i, band_id in enumerate(band_ids):
                 leftx, topy = self.fp.spatial_to_raster(fp.tl)
-                gdalband = self._gdalband_of_band_id(gdal_ds, band_id)
+                gdalband = gdal_ds.GetRasterBand(band_id)
 
                 for sl in _tools.slices_of_matrix(mask):
                     a = array[:, :, i][sl]
@@ -106,7 +106,7 @@ class ABackGDALRaster(ABackStoredRaster):
     # fill implementation *********************************************************************** **
     def fill(self, value, band_ids):
         with self.acquire_driver_object() as gdal_ds:
-            for gdalband in [self._gdalband_of_band_id(gdal_ds, band_id) for band_id in band_ids]:
+            for gdalband in [gdal_ds.GetRasterBand(band_id) for band_id in band_ids]:
                 gdalband.Fill(value)
 
     # Misc ************************************************************************************** **
@@ -162,14 +162,6 @@ class ABackGDALRaster(ABackStoredRaster):
 
         gdal_ds.FlushCache()
         return gdal_ds
-
-    @staticmethod
-    def _gdalband_of_band_id(gdal_ds, id):
-        """Convert a band identifier to a gdal band"""
-        if isinstance(id, int):
-            return gdal_ds.GetRasterBand(id)
-        else:
-            return gdal_ds.GetRasterBand(int(id.imag)).GetMaskBand()
 
     @staticmethod
     def _apply_band_schema(gdal_ds, band_schema):
