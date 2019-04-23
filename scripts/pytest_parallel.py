@@ -118,7 +118,7 @@ def _run_test(batch):
         ] +
         ['&>{}'.format(path)]
     )
-    cmd = 'bash -c "{}"'.format(cmd)
+    cmd = 'COVERAGE_FILE=.coverage.{} bash -c "{}"'.format(uid, cmd)
     try:
         _print_cmd(cmd)
         a = datetime.datetime.now()
