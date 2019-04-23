@@ -56,6 +56,7 @@ def test_band_parameters():
     assert f([1, 2]) == ([1, 2], False)
     assert f([0, 1, 2]) == ([0, 1, 2], False)
     assert f(range(0, 3)) == ([0, 1, 2], False)
+    assert f(np.float32(0).reshape(1)) == ([0], False)
 
     # Iterable for 1 **************************************************************************** **
     f = lambda v: buzz._tools.normalize_channels_parameter(v, 1)
@@ -64,6 +65,7 @@ def test_band_parameters():
     assert f([-1, -1]) == ([0, 0], False)
     assert f([0]) == ([0], False)
     assert f(range(0, 1)) == ([0], False)
+    assert f(np.float32(0).reshape(1)) == ([0], False)
 
     # Iterable - failing ************************************************************************ **
     ll = [

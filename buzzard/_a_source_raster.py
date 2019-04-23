@@ -41,9 +41,9 @@ class ASourceRaster(ASource):
         """Accessor for first band's nodata value"""
         return self._back.nodata
 
-    def get_nodata(self, band=1):
+    def get_nodata(self, channel=0):
         """Accessor for nodata value"""
-        return self._back.get_nodata(band)
+        return self._back.get_nodata(channel)
 
     def __len__(self):
         """Return the number of bands"""
@@ -206,10 +206,10 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
 
     @property
     def nodata(self):
-        return self.get_nodata(1)
+        return self.get_nodata(0)
 
-    def get_nodata(self, band=1):
-        return self.band_schema['nodata'][band - 1]
+    def get_nodata(self, channel=0):
+        return self.band_schema['nodata'][channel]
 
     def __len__(self):
         return len(self.band_schema['nodata'])
