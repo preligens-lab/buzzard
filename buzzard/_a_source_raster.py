@@ -179,6 +179,11 @@ class ASourceRaster(ASource):
         '0.4.4'
     )
 
+    band_schema = _tools.deprecation_pool.wrap_property(
+        'channels_schema',
+        '0.5.1'
+    )
+
 class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
     """Implementation of ASourceRaster's specifications"""
 

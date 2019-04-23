@@ -391,7 +391,7 @@ class Dataset(DatasetRegisterMixin):
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
     def create_raster(self, key, path, fp, dtype, channel_count, channels_schema=None,
-                      driver='GTiff', options=(), sr=None, ow=False):
+                      driver='GTiff', options=(), sr=None, ow=False, **kwargs):
         """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
@@ -464,6 +464,20 @@ class Dataset(DatasetRegisterMixin):
         When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
 
         """
+
+        # Deprecated parameters ************************************************
+        channels_schema, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels_schema', old_names={'band_schema': '0.5.1'},
+            context='Dataset.create_raster',
+            new_name_value=channels_schema,
+            new_name_is_provided=channels_schema is not None,
+            user_kwargs=kwargs,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("create_raster() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
         # Parameter checking ***************************************************
         ow = bool(ow)
         path = str(path)
@@ -513,7 +527,7 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def acreate_raster(self, path, fp, dtype, channel_count, channels_schema=None,
-                       driver='GTiff', options=(), sr=None, ow=False):
+                       driver='GTiff', options=(), sr=None, ow=False, **kwargs):
         """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
         See Dataset.create_raster
@@ -532,9 +546,9 @@ class Dataset(DatasetRegisterMixin):
 
         """
         return self.create_raster(_AnonymousSentry(), path, fp, dtype, channel_count, channels_schema,
-                                  driver, options, sr, ow)
+                                  driver, options, sr, ow, **kwargs)
 
-    def wrap_numpy_raster(self, key, fp, array, channels_schema=None, sr=None, mode='w'):
+    def wrap_numpy_raster(self, key, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
         """Register a numpy array as a raster under `key` in this Dataset.
 
         >>> help(NumpyRaster)
@@ -582,6 +596,20 @@ class Dataset(DatasetRegisterMixin):
             a sequence of length `channel_count` of value: All bands will be set to respective state
 
         """
+
+        # Deprecated parameters ************************************************
+        channels_schema, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels_schema', old_names={'band_schema': '0.5.1'},
+            context='Dataset.wrap_numpy_raster',
+            new_name_value=channels_schema,
+            new_name_is_provided=channels_schema is not None,
+            user_kwargs=kwargs,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("wrap_numpy_raster() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
         # Parameter checking ***************************************************
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
@@ -617,12 +645,14 @@ class Dataset(DatasetRegisterMixin):
             self._register([], prox)
         return prox
 
-    def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w'):
+    def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
         """Register a numpy array as a raster anonymously in this Dataset.
 
         See Dataset.wrap_numpy_raster
         """
-        return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, channels_schema, sr, mode)
+        return self.wrap_numpy_raster(
+            _AnonymousSentry(), fp, array, channels_schema, sr, mode, **kwargs
+        )
 
     def create_raster_recipe(
             self, key,
@@ -642,7 +672,7 @@ class Dataset(DatasetRegisterMixin):
             # misc
             computation_tiles=None, max_computation_size=None,
             max_resampling_size=None, automatic_remapping=True,
-            debug_observers=()
+            debug_observers=(),
     ):
         """/!\ This method is not yet implemented. It is here for documentation purposes.
 
