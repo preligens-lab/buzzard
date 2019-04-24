@@ -313,7 +313,7 @@ See [AUTHORS](./AUTHORS.md)
 See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
-- [todo](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f)
+- [TODO](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f) on `notion.so`
 
 ------------------------------------------------------------------------------------------------------------------------
 
