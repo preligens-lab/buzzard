@@ -29,6 +29,7 @@ Begining of `README.md`.
 
 # `buzzard`
 :heavy_multiplication_x: In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
+
 :grey_question: In a nutshell, `buzzard` provides powerful abstractions to work with images and geometries that comes from many kind of sources.
 
 <div align="center">
