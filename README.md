@@ -128,7 +128,7 @@ for i, fp in enumerate(tiles.flat):
 
     # Perform pixelwise semantic segmentation with a keras model
     predictions_heatmap = km.predict(rgb[np.newaxis, ...])[0]
-    predictions_top1 = np.argmax(heatmap, axis=-1)
+    predictions_top1 = np.argmax(predictions_heatmap, axis=-1)
 
     # Save the prediction to a `geotiff`
     with buzz.create_raster(path='predictions_{}.tif'.format(i), fp=fp,
