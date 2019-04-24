@@ -150,11 +150,11 @@ with buzz.create_vector(path='roads.shp', type='polygon').close as out:
 ```
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/56656251-4b3d9c80-6695-11e9-9a0e-1d9a309ddf03.png" width="100%"><br><br>
+  <img src="https://user-images.githubusercontent.com/9285880/56656251-4b3d9c80-6695-11e9-9a0e-1d9a309ddf03.png" width="80%"><br><br>
 </div>
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/56656252-4b3d9c80-6695-11e9-80cd-84365dd68f91.png" width="100%"><br><br>
+  <img src="https://user-images.githubusercontent.com/9285880/56656252-4b3d9c80-6695-11e9-80cd-84365dd68f91.png" width="80%"><br><br>
 </div>
 
 ## Advanced examples
