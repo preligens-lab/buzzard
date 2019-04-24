@@ -313,9 +313,6 @@ See [AUTHORS](./AUTHORS.md)
 See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
-- [examples](./doc/examples.ipynb)
-- [classes](https://github.com/airware/buzzard/wiki/Classes)
-- [wiki](https://github.com/airware/buzzard/wiki)
 - [todo](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f)
 
 ------------------------------------------------------------------------------------------------------------------------
