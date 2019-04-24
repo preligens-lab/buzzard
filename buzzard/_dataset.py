@@ -74,7 +74,7 @@ class Dataset(DatasetRegisterMixin):
     Creating a Dataset
     >>> ds = buzz.Dataset()
 
-    Opening a files and registering it under the 'roofs' key
+    Opening a file and registering it under the 'roofs' key
     >>> r = ds.open_vector('roofs', 'path/to/roofs.shp')
     ... feature_count = len(ds.roofs)
     ... feature_count = len(ds['roofs'])
@@ -395,7 +395,7 @@ class Dataset(DatasetRegisterMixin):
         """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
 
-        The raster is initialized with `channels_schema['nodata']` or `0`.
+        The raster's values are initialized with `channels_schema['nodata']` or `0`.
 
         >>> help(GDALFileRaster)
         >>> help(GDALMemRaster)

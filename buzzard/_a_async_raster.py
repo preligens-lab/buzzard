@@ -136,7 +136,7 @@ class ABackAsyncRaster(ABackSourceRaster):
 
         # Quick hack to share the dict of path to cache files with the ActorCacheSupervisor
         # This is currently needed to perform the `.close` operation
-        # This is clear a violation of the separation of concerns
+        # This is a clear violation of the separation of concerns
         self.async_dict_path_of_cache_fp = {}
 
         super().__init__(**kwargs)

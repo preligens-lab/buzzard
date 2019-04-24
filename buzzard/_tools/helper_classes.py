@@ -34,7 +34,7 @@ class GDALErrorCatcher:
     ... dr = gdal.GetDriverByName('mem')
     ... success, payload = GDALErrorCatcher(dr.Create)('', 0, 0)
     ... print(success, payload)
-    False (3, 1, 'Attempt to create 0x0 dataset is illegal,sizes must be larger than zero.')
+    False (3, 1, 'Attempt to create 0x0 dataset is illegal,sizes must be larger than zero.') # no exception raised
 
     >>> gdal.DontUseExceptions()
     ... dr = gdal.GetDriverByName('mem')

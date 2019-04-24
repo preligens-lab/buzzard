@@ -186,7 +186,7 @@ def test_set_data_mask(rast, dst_arr):
         assert np.all(arr[mask] == dst_arr[mask])
         assert np.all(arr[~mask] == 0)
 
-def test_get_data_band_behavior(rast):
+def test_get_data_channel_behavior(rast):
     c = len(rast)
     if c == 1:
         assert rast.get_data(band=-1).shape[2:] == ()
