@@ -8,3 +8,14 @@
 .wy-table-responsive {
     overflow: visible !important;
 }
+
+/* .rst-content dl p, .rst-content dl table, .rst-content dl ul, .rst-content dl ol { */
+
+.rst-content dl p {
+    margin-bottom: 2px !important;
+}
+
+.rst-content .rubric {
+    margin-top: 20px !important;
+    margin-bottom: 5px !important;
+}

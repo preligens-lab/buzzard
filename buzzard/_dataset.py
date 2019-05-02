@@ -28,34 +28,43 @@ from buzzard._a_pooled_emissary import APooledEmissary
 import buzzard.utils
 
 class Dataset(DatasetRegisterMixin):
-    """Dataset is a class that stores references to sources. A source is either a raster, or a
+    """**Dataset** is a class that stores references to sources. A source is either a raster, or a
     vector. It allows quick manipulations by assigning a key to each registered source. It also
     allows inter-sources operations, like:
-    - spatial reference harmonization (see `On the fly re-projections in buzzard` below)
-    - workload scheduling on pools when using async rasters (see `Scheduler` below)
-    - other features in the future (like data visualization)
+
+    + spatial reference harmonization (see :ref:`On the fly re-projections in buzzard` below)
+    + workload scheduling on pools when using async rasters (see :ref:`Scheduler` below)
+    + other features in the future (like data visualization)
 
     For actions specific to opened sources, see those classes:
-    - GDALFileRaster
-    - GDALMemRaster
-    - NumpyRaster
-    - CachedRasterRecipe
-    - GDALFileVector
-    - GDALMemoryVector
 
-    /!\ This class is not equivalent to the `gdal.Dataset` class.
+    - :doc:`source_gdal_file_raster`
+    - :doc:`source_gdal_mem_raster`
+    - :doc:`source_numpy_raster`
+    - :doc:`source_cached_raster_recipe`
+    - :doc:`source_gdal_file_vector`
+    - :doc:`source_gdal_memory_vector`
+
+    .. warning::
+        This class is not equivalent to the `gdal.Dataset` class.
 
     Parameters
     ----------
-    sr_work: None or string (see `On the fly re-projections in buzzard` below)
-    sr_fallback: None or string (see `On the fly re-projections in buzzard` below)
-    sr_forced: None or string (see `On the fly re-projections in buzzard` below)
+    sr_work: None or string
+        (see :ref:`On the fly re-projections in buzzard` below)
+    sr_fallback: None or string
+        (see :ref:`On the fly re-projections in buzzard` below)
+    sr_forced: None or string
+        (see :ref:`On the fly re-projections in buzzard` below)
     analyse_transformation: bool
         Whether or not to perform a basic analysis on two `sr` to check their compatibility.
+
         if True: Read the `buzz.env.significant` variable and raise an exception if a spatial
-            reference conversions is too lossy in precision.
+        reference conversions is too lossy in precision.
+
         if False: Skip all checks.
-        (see `On the fly re-projections in buzzard` below)
+
+        (see :ref:`On the fly re-projections in buzzard` below)
     allow_none_geometry: bool
         Whether or not a vector geometry should raise an exception when encountering a None geometry
     allow_interpolation: bool
@@ -63,29 +72,34 @@ class Dataset(DatasetRegisterMixin):
         is necessary.
     max_active: nbr >= 1
         Maximum number of pooled sources active at the same time.
-        (see `Sources activation / deactivation` below)
+        (see :ref:`Sources activation / deactivation` below)
     debug_observers: sequence of object
         Entry points to observe what is happening in the Dataset's sheduler.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import buzzard as buzz
 
-    Creating a Dataset
+    Creating a Dataset.
+
     >>> ds = buzz.Dataset()
 
-    Opening a file and registering it under the 'roofs' key
+    Opening a file and registering it under the 'roofs' key. There are four ways to the access an
+    opened source.
+
     >>> r = ds.open_vector('roofs', 'path/to/roofs.shp')
     ... feature_count = len(ds.roofs)
     ... feature_count = len(ds['roofs'])
     ... feature_count = len(ds.get('roofs'))
     ... feature_count = len(r)
 
-    Opening a file anonymously
+    Opening a file anonymously. There is only one way to access the source.
+
     >>> r = ds.aopen_raster('path/to/dem.tif')
     ... data_type = r.dtype
 
-    Opening, reading and closing two raster files with context management
+    Opening, reading and closing two raster files with context management.
+
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
     ...     data_type = ds.rgb.fp
     ...     arr = ds.rgb.get_data()
@@ -95,6 +109,7 @@ class Dataset(DatasetRegisterMixin):
     ...     arr = rgb.get_data()
 
     Creating two files
+
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
     ... geometry_type = ds.targets.type
 
@@ -102,45 +117,50 @@ class Dataset(DatasetRegisterMixin):
     ...     file_footprint = cache.fp
     ...     cache.set_data(dem.get_data())
 
-    Sources type
-    ------------
-    Raster sources:
-    - numpy.ndarray
-    - GDAL drivers http://www.gdal.org/formats_list.html
-        (e.g. 'GTIff', 'JPEG', 'PNG', ...)
-    Vector sources:
-    - OGR drivers: https://www.gdal.org/ogr_formats.html
-        (e.g. 'ESRI Shapefile', 'GeoJSON', 'DXF', ...)
+    Sources Types
+    -------------
+    - Raster sources
+        - GDAL drivers http://www.gdal.org/formats_list.html (e.g. 'GTIff', 'JPEG', 'PNG', ...)
+        - numpy.ndarray
+        - recipes
+    - Vector sources
+        - OGR drivers: https://www.gdal.org/ogr_formats.html (e.g. 'ESRI Shapefile', 'GeoJSON', 'DXF', ...)
 
-    Sources registering
+    Sources Registering
     -------------------
-    There are always two ways to create source, with a key or anonymously.
+    There are always two ways to create a source, with a key or anonymously.
 
     When creating a source using a key, said key (e.g. the string "my_source_name") must be provided
     by user. Each key identify one source and should thus be unique. There are then three ways to
     access that source:
+
     - from the object returned by the method that created the source,
     - from the Dataset with the attribute syntax: `ds.my_source_name`,
     - from the Dataset with the item syntax: ds["my_source_name"].
+
     All keys should be unique.
 
     When creating a source anonymously you don't have to provide a key, but the only way to access
     this source is to use the object returned by the method that created the source.
 
+    .. _Sources activation / deactivation:
     Sources activation / deactivation
     ---------------------------------
+
     The sources that inherit from `APooledEmissary` (like `GDALFileVector` and `GDALFileRaster`) are
     flexible about their underlying driver object. Those sources may be temporary deactivated
     (useful to limit the number of file descriptors active), or activated multiple time at the
     same time (useful to perfom concurrent reads).
 
     Those sources are automatically activated and deactivated given the current needs and
-    constraints. Setting a `max_activated` lower than `np.inf` in the Dataset constructor, will
-    ensure that no more than `max_activated` driver objects are active at the same time, by
+    constraints. Setting a `max_active` lower than `np.inf` in the Dataset constructor, will
+    ensure that no more than `max_active` driver objects are active at the same time, by
     deactivating the LRU ones.
 
+    .. _On the fly re-projections in buzzard:
     On the fly re-projections in buzzard
     ------------------------------------
+
     A Dataset may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
     read operations and write operations, all are performed by the OSR library.
@@ -159,60 +179,84 @@ class Dataset(DatasetRegisterMixin):
     can create unpredictable behaviors at the pixel level deep in your code. Those bugs can be
     witnessed when zooming to infinity with tools like `qgis` or `matplotlib`.
 
-    ### Terminology
-    `sr`: Spatial reference
-    `sr_work`: The sr of all interactions with a Dataset (i.e. Footprints, extents, Polygons...),
-        may be None.
-    `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None.
-    `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
-        often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
-        `sr_virtual` to `sr_work`. When writing vector data, a conversion is performed from
-        `sr_work` to `sr_virtual`.
-    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for example
-        useful when the `sr` stored in the input files are corrupted.
-    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
-        for example useful when an input file can't store a `sr` (e.g. DFX).
+    On the fly re-projections in buzzard - Terminology
+    --------------------------------------------------
+    `sr`
+      Spatial reference
+    `sr_work`
+      The sr of all interactions with a Dataset (i.e. Footprints, extents, Polygons...),
+      may be None.
+    `sr_stored`
+      The sr that can be found in the metadata of a raster/vector storage, may be None.
+    `sr_virtual`
+      The sr considered to be written in the metadata of a raster/vector storage, it is
+      often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
+      `sr_virtual` to `sr_work`. When writing vector data, a conversion is performed from
+      `sr_work` to `sr_virtual`.
+    `sr_forced`
+      A `sr_virtual` provided by user to ignore all `sr_stored`. This is for example
+      useful when the `sr` stored in the input files are corrupted.
+    `sr_fallback`
+      A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
+      for example useful when an input file can't store a `sr` (e.g. DFX).
 
-    ### Dataset parameters and modes
-    | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a source determined                                  |
-    |------|---------|-------------|-----------|---------------------------------------------------------------------------------|
-    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this Dataset |
-    | 2    | string  | None        | None      | Use `sr_stored`, if None raises an exception                                    |
-    | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                   |
-    | 4    | string  | None        | string    | Use `sr_forced`                                                                 |
+    On the fly re-projections in buzzard -  Dataset parameters and modes
+    --------------------------------------------------------------------
 
-    ### Use cases
-    - If all opened files are known to be written in a same sr in advance, use `mode 1`. No
-        conversions will be performed, this is the safest way to work.
-    - If all opened files are known to be written in the same sr but you wish to work in a different
-        sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | mode | sr_work  | sr_fallback  | sr_forced  | How is the `sr_virtual` of a source determined                                |
+    +======+==========+==============+============+===============================================================================+
+    | 1    | None     | None         | None       | Use `sr_stored`, no conversion is performed for the lifetime of this Dataset  |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | 2    | string   | None         | None       | Use `sr_stored`, if None raises an exception                                  |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | 3    | string   | string       | None       | Use `sr_stored`, if None it is considered to be `sr_fallback`                 |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | 4    | string   | None         | string     | Use `sr_forced`                                                               |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+
+    On the fly re-projections in buzzard - Use cases
+    ------------------------------------------------
+    - If all opened files are known to be written in a same sr in advance, use `mode 1`.
+        No conversions will be performed, this is the safest way to work.
+
+    - If all opened files are known to be written in the same sr but you wish to work in a \
+    different sr, use `mode 4`.
+        The huge benefit of this mode is that the `driver` specific behaviors
         concerning spatial references have no impacts on the data you manipulate.
-    - And the other hand if you don't have a priori information on files' `sr`, `mode 2` or
-       `mode 3` should be used.
-       Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
-           create a GeoJSON file in `mode 2`.
 
-    ### Examples
+    - On the other hand if you don't have a priori information on files' `sr`, `mode 2` or \
+    `mode 3` should be used.
+         Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
+         create a GeoJSON file in `mode 2`.
+
+    On the fly re-projections in buzzard - Examples
+    -----------------------------------------------
     mode 1 - No conversions at all
+
     >>> ds = buzz.Dataset()
 
     mode 2 - Working with WGS84 coordinates
+
     >>> ds = buzz.Dataset(
-            sr_work='WGS84',
-        )
+    ...     sr_work='WGS84',
+    ... )
 
     mode 3 - Working in UTM with DXF files in WGS84 coordinates
+
     >>> ds = buzz.Dataset(
-            sr_work='EPSG:32632',
-            sr_fallback='WGS84',
-        )
+    ...     sr_work='EPSG:32632',
+    ...     sr_fallback='WGS84',
+    ... )
 
     mode 4 - Working in UTM with unreliable LCC input files
-    >>> ds = buzz.Dataset(
-            sr_work='EPSG:32632',
-            sr_forced='EPSG:27561',
-        )
 
+    >>> ds = buzz.Dataset(
+    ...     sr_work='EPSG:32632',
+    ...     sr_forced='EPSG:27561',
+    ..  )
+
+    .. _Scheduler:
     Scheduler
     ---------
     To handle *async rasters* living in a Dataset, a thread is to manage requests made to those
@@ -224,10 +268,11 @@ class Dataset(DatasetRegisterMixin):
     Thread-safety
     -------------
     Thread safety is one of the main concern of buzzard. Everything is thread-safe except:
+
     - The raster write methods
     - The vector write methods
-    - The raster read methods when using the GDAL::MEM driver
-    - The vector read methods when using the GDAL::Memory driver
+    - The raster read methods when using the `GDAL::MEM` driver
+    - The vector read methods when using the `GDAL::Memory` driver
 
     """
 

@@ -14,12 +14,9 @@ Repository is located here: https://github.com/airware/buzzard
 
 .. autogenerate a title
 .. toctree::
-   :maxdepth: 3
    :caption: Contents:
 
-   buzzard
-   buzzard.algo
-   buzzard.srs
+   API <api>
 
 Indices and tables:
 -------------------

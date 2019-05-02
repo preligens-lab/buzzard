@@ -17,15 +17,13 @@ import sys
 from datetime import datetime
 sys.path.insert(0, os.path.abspath('../'))
 
-
 # -- Project information -----------------------------------------------------
 
 # Gather version
 project = 'buzzard'
-copyright = u'%s, Airware' % datetime.now().year
-author = 'Airware'
-version = '0.6.0'
-release = version
+copyright = u'%s, Delair' % datetime.now().year
+author = 'Delair'
+release = '0.6.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -40,6 +38,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    # 'sphinx.ext.autosectionlabel',
 ]
 
 # Configure `numpy` style documentation
@@ -48,6 +47,28 @@ extensions = [
 napoleon_google_docstring = False
 napoleon_use_param = False
 napoleon_use_ivar = True
+# napoleon_use_admonition_for_examples = True
+
+# *********************************************************************************************** **
+# Small hack to allow custom sections with sphinx::autodoc::napoleon::numpy
+import glob
+import re
+
+napoleon_custom_sections = set()
+for f in glob.glob('../buzzard/**/*.py', recursive=True):
+
+    content = open(f).read()
+    matches = re.findall(r'\n([ ]*)([^\n]+)\n( *)(\-+)\n', content)
+    for spaces0, name, spaces1, dashes in matches:
+        if spaces0 != spaces1:
+            continue
+        if len(name) != len(dashes):
+            continue
+        napoleon_custom_sections.add(name)
+napoleon_custom_sections = list(napoleon_custom_sections)
+# *********************************************************************************************** **
+
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -111,6 +132,25 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
+
+html_theme_options = {
+    'collapse_navigation': False,
+
+    # 'canonical_url': '',
+    # 'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
+    # 'logo_only': False,
+    # 'display_version': True,
+    # 'prev_next_buttons_location': 'bottom',
+    # 'style_external_links': False,
+    # 'vcs_pageview_mode': '',
+    # 'style_nav_header_background': 'white',
+    # # Toc options
+    # 'collapse_navigation': True,
+    # 'sticky_navigation': True,
+    # 'navigation_depth': 4,
+    'includehidden': True,
+    # 'titles_only': False
+}
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -199,5 +239,24 @@ todo_include_todos = True
 
 # -- Additional setup --------------------------------------------------------
 
+def process_docstring(app, what, name, obj, options, lines):
+    # if not app.config.markdown_docstring_convert or not lines:
+    #     return
+    if not lines:
+        return
+
+    # import m2r
+    input_text = os.linesep.join(lines)
+    # output_text = m2r.convert(input_text)
+    print('////////////////////////////////////////////////////////////////////////////////')
+    print('////////////////////////////////////////////////////////////////////////////////')
+    print(input_text)
+    # print(output_text)
+    print('////////////////////////////////////////////////////////////////////////////////')
+    print('////////////////////////////////////////////////////////////////////////////////')
+    # lines[:] = output_text.split(os.linesep)
+
+
 def setup(app):
     app.add_stylesheet('theme_overrides.css')
+    # app.connect('autodoc-process-docstring', process_docstring)
