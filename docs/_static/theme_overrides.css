@@ -19,3 +19,18 @@
     margin-top: 20px !important;
     margin-bottom: 5px !important;
 }
+
+/* background-color: #fc702d !important; */
+.rst-content .attribute > dt, .rst-content .method > dt {
+    width: 102% !important;
+    margin-left: -2% !important;
+    padding: 7px !important;
+    border-left-width: 4px !important;
+}
+.rst-content .class .attribute > dt > code:first-child:before, .rst-content .class .method > dt > code:first-child:before {
+    content: ".";
+}
+
+.rst-content .class > dt {
+    width: 100% !important;
+}

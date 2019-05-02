@@ -19,7 +19,9 @@ class PoolsContainer(object):
         Parameters
         ----------
         key: hashable (like a string)
+            ..
         pool_or_none: multiprocessing.pool.Pool or multiprocessing.pool.ThreadPool or None
+            ..
         """
         with self._lock:
             if key in self._aliases: # pragma: no cover
@@ -31,6 +33,12 @@ class PoolsContainer(object):
 
     def manage(self, pool):
         """Add the given pool to the list of pools that must be terminated upon Dataset closing.
+
+        Parameters
+        ----------
+        pool: multiprocessing.pool.Pool or multiprocessing.pool.ThreadPool
+            ..
+
         """
         if not isinstance(pool, (mp.pool.Pool, mp.pool.ThreadPool)): # pragma: no cover
             raise TypeError('Can only manage pools')
@@ -56,10 +64,10 @@ class PoolsContainer(object):
         """Pool or none getter from alias"""
         return self._aliases[key]
 
-    def __contains__(self, key):
+    def __contains__(self, obj):
         """Is pool or alias registered in this Dataset"""
         with self._lock:
-            return key in self._aliases or key in self._aliases_per_pool
+            return obj in self._aliases or obj in self._aliases_per_pool
 
     # Private interface with Dataset ********************************************************* **
     def _close(self):

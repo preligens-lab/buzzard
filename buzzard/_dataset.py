@@ -369,7 +369,7 @@ class Dataset(DatasetRegisterMixin):
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file in this Dataset under `key`. Only metadata are kept in memory.
+        """Open a raster file within this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileRaster)
 
@@ -377,17 +377,22 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`aopen_raster`
         path: string
+            ..
         driver: string
             gdal driver to use when opening the file
             http://www.gdal.org/formats_list.html
         options: sequence of str
             options for gdal
         mode: one of {'r', 'w'}
+            ..
 
         Returns
         -------
-        GDALFileRaster
+        source: GDALFileRaster
+            ..
 
         Example
         -------
@@ -396,6 +401,11 @@ class Dataset(DatasetRegisterMixin):
 
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
         >>> nodata_value = ds.dem.nodata
+
+        See Also
+        --------
+        - :py:meth:`Dataset.aopen_raster`: To skip the `key` assigment
+        - :py:func:`buzzard.open_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         # Parameter checking ***************************************************
@@ -423,21 +433,27 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file anonymously in this Dataset. Only metadata are kept in memory.
+        """Open a raster file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.open_raster
+        See :py:meth:`~Dataset.open_raster`
 
         Example
         ------
         >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
         >>> file_wkt = ortho.wkt_stored
 
+
+        See Also
+        --------
+        - :py:meth:`Dataset.open_raster`: To assign a key to this source within the Dataset
+        - :py:func:`buzzard.open_raster`: To skip the explicit `Dataset` instanciation
+
         """
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
     def create_raster(self, key, path, fp, dtype, channel_count, channels_schema=None,
                       driver='GTiff', options=(), sr=None, ow=False, **kwargs):
-        """Create a raster file and register it under `key` in this Dataset. Only metadata are
+        """Create a raster file and register it under `key` within this Dataset. Only metadata are
         kept in memory.
 
         The raster's values are initialized with `channels_schema['nodata']` or `0`.
@@ -449,10 +465,14 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`acreate_raster`
         path: string
+            ..
         fp: Footprint
             Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
+            ..
         channel_count: integer
             number of channels
         channels_schema: dict or None
@@ -467,23 +487,24 @@ class Dataset(DatasetRegisterMixin):
             Spatial reference of the new file
 
             if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+            if path: Use same projection as file at `path`
+
+            if textual spatial reference:
+                converted to wkt using http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
         ow: bool
             Overwrite. Whether or not to erase the existing files.
+
+        Returns
+        -------
+        source: GDALFileRaster or GDALMemRaster
+            The type depends on the `driver` parameter
 
         Example
         -------
         >>> ds.create_raster('dem_copy', 'dem_copy.tif', ds.dem.fp, ds.dsm.dtype, len(ds.dem))
         >>> array = ds.dem.get_data()
         >>> ds.dem_copy.set_data(array)
-
-        Returns
-        -------
-        one of {GDALFileRaster, GDALMemRaster}
-            depending on the `driver` parameter
 
         Channel schema fields
         ---------------------
@@ -499,14 +520,21 @@ class Dataset(DatasetRegisterMixin):
         Mask values:
             all_valid, per_dataset, alpha, nodata
 
-        A field missing or None is kept to default value.
-        A field can be passed as:
-            a value: All bands are set to this value
-            a sequence of length `channel_count` of value: All bands will be set to respective state
+        Additionally:
+
+        - A field missing or None is kept to default value.
+        - A field can be passed as:
+            - a value: All bands are set to this value
+            - a sequence of length `channel_count` of value: All bands will be set to respective state
 
         Caveat
         ------
         When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
+
+        See Also
+        --------
+        - :py:meth:`Dataset.acreate_raster`: To skip the `key` assigment
+        - :py:func:`buzzard.create_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
 
@@ -573,9 +601,9 @@ class Dataset(DatasetRegisterMixin):
 
     def acreate_raster(self, path, fp, dtype, channel_count, channels_schema=None,
                        driver='GTiff', options=(), sr=None, ow=False, **kwargs):
-        """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
+        """Create a raster file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.create_raster
+        See :py:meth:`~Dataset.create_raster`
 
         Example
         -------
@@ -589,12 +617,17 @@ class Dataset(DatasetRegisterMixin):
         >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, channels_schema)
         >>> band_interpretation = out.channels_schema['interpretation']
 
+        See Also
+        --------
+        - :py:meth:`Dataset.create_raster`: To assign a key to this source within the Dataset
+        - :py:func:`buzzard.create_raster`: To skip the explicit `Dataset` instanciation
+
         """
         return self.create_raster(_AnonymousSentry(), path, fp, dtype, channel_count, channels_schema,
                                   driver, options, sr, ow, **kwargs)
 
     def wrap_numpy_raster(self, key, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
-        """Register a numpy array as a raster under `key` in this Dataset.
+        """Register a numpy array as a raster under `key` within this Dataset.
 
         >>> help(NumpyRaster)
 
@@ -602,6 +635,8 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`awrap_numpy_raster`
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
         array: ndarray of shape (Y, X) or (Y, X, C)
@@ -691,7 +726,7 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
-        """Register a numpy array as a raster anonymously in this Dataset.
+        """Register a numpy array as a raster anonymously within this Dataset.
 
         See Dataset.wrap_numpy_raster
         """
@@ -721,7 +756,7 @@ class Dataset(DatasetRegisterMixin):
     ):
         """/!\ This method is not yet implemented. It is here for documentation purposes.
 
-        Create a *raster recipe* and register it under `key` in this Dataset.
+        Create a *raster recipe* and register it under `key` within this Dataset.
 
         A *raster recipe* implements the same interfaces as all other rasters, but internally it
         computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
@@ -930,7 +965,7 @@ class Dataset(DatasetRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a *cached raster recipe* and register it under `key` in this Dataset.
+        """Create a *cached raster recipe* and register it under `key` within this Dataset.
 
         Compared to a `NocacheRasterRecipe`, in a `CachedRasterRecipe` the pixels are never computed
         twice. Cache files are used to store and reuse pixels from computations. The cache can even
@@ -1155,7 +1190,7 @@ class Dataset(DatasetRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a cached raster reciped anonymously in this Dataset.
+        """Create a cached raster reciped anonymously within this Dataset.
 
         See Dataset.create_cached_raster_recipe
         """
@@ -1172,7 +1207,7 @@ class Dataset(DatasetRegisterMixin):
 
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file in this Dataset under `key`. Only metadata are kept in memory.
+        """Open a vector file within this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileVector)
 
@@ -1180,6 +1215,8 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`aopen_vector`
         path: string
         layer: None or int or string
         driver: string
@@ -1233,9 +1270,9 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file anonymously in this Dataset. Only metadata are kept in memory.
+        """Open a vector file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.open_vector
+        See :py:meth:`~Dataset.open_vector`
 
         Example
         -------
@@ -1247,7 +1284,7 @@ class Dataset(DatasetRegisterMixin):
 
     def create_vector(self, key, path, type, fields=(), layer=None,
                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
-        """Create an empty vector file and register it under `key` in this Dataset. Only metadata
+        """Create an empty vector file and register it under `key` within this Dataset. Only metadata
         are kept in memory.
 
         >>> help(GDALFileVector)
@@ -1257,6 +1294,8 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`acreate_vector`
         path: string
         type: string
             name of a wkb geometry type
@@ -1377,9 +1416,9 @@ class Dataset(DatasetRegisterMixin):
 
     def acreate_vector(self, path, type, fields=(), layer=None,
                        driver='ESRI Shapefile', options=(), sr=None, ow=False):
-        """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
+        """Create a vector file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.create_vector
+        See :py:meth:`~Dataset.create_vector`
 
         Example
         -------
@@ -1389,47 +1428,6 @@ class Dataset(DatasetRegisterMixin):
         """
         return self.create_vector(_AnonymousSentry(), path, type, fields, layer,
                                   driver, options, sr, ow)
-
-    # Source infos ******************************************************************************* **
-    def __getitem__(self, key):
-        """Retrieve a source from its key"""
-        return self._source_of_key[key]
-
-    def __contains__(self, item):
-        """Is key or source registered in Dataset"""
-        if isinstance(item, ASource):
-            return item in self._keys_of_source
-        return item in self._source_of_key
-
-    def items(self):
-        """Generate the pair of (keys_of_source, source) for all proxies"""
-        for source, keys in self._keys_of_source.items():
-            yield list(keys), source
-
-    def keys(self):
-        """Generate all source keys"""
-        for source, keys in self._keys_of_source.items():
-            for key in keys:
-                yield key
-
-    def values(self):
-        """Generate all proxies"""
-        for source, _ in self._keys_of_source.items():
-            yield source
-
-    def __len__(self):
-        """Retrieve source count registered in this Dataset"""
-        return len(self._keys_of_source)
-
-    # Pools infos ******************************************************************************* **
-    @property
-    def pools(self):
-        """Get the Pool Container.
-
-        >>> help(PoolsContainer)
-
-        """
-        return self._back.pools_container
 
     # Cleanup *********************************************************************************** **
     def __del__(self):
@@ -1442,10 +1440,13 @@ class Dataset(DatasetRegisterMixin):
         The `close` attribute returns an object that can be both called and used in a with statement
 
         The Dataset can be closed manually or automatically when garbage collected, it is safer
-        to do it manually. The steps are:
+        to do it manually.
+
+        The internal steps are:
+
         - Stopping the scheduler
         - Joining the mp.Pool that have been automatically allocated
-        - Close all sources
+        - Closing all sources
 
         Examples
         --------
@@ -1460,6 +1461,7 @@ class Dataset(DatasetRegisterMixin):
         ------
         When using a scheduler, some memory leaks may still occur after closing a Dataset.
         Possible origins:
+
         - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
         - Gdal cache not flushed (not a leak)
         - The gdal version
@@ -1491,6 +1493,37 @@ class Dataset(DatasetRegisterMixin):
                 source.close()
 
         return _CloseRoutine(self, _close)
+
+    # Source infos ******************************************************************************* **
+    def __getitem__(self, key):
+        """Retrieve a source from its key"""
+        return self._source_of_key[key]
+
+    def __contains__(self, item):
+        """Is key or source registered in Dataset"""
+        if isinstance(item, ASource):
+            return item in self._keys_of_source
+        return item in self._source_of_key
+
+    def items(self):
+        """Generate the pair of (keys_of_source, source) for all proxies"""
+        for source, keys in self._keys_of_source.items():
+            yield list(keys), source
+
+    def keys(self):
+        """Generate all source keys"""
+        for source, keys in self._keys_of_source.items():
+            for key in keys:
+                yield key
+
+    def values(self):
+        """Generate all proxies"""
+        for source, _ in self._keys_of_source.items():
+            yield source
+
+    def __len__(self):
+        """Retrieve source count registered within this Dataset"""
+        return len(self._keys_of_source)
 
     # Spatial reference getters ***************************************************************** **
     @property
@@ -1549,6 +1582,16 @@ class Dataset(DatasetRegisterMixin):
             if prox.active:
                 prox.deactivate()
 
+    # Pools infos ******************************************************************************* **
+    @property
+    def pools(self):
+        """Get the Pool Container.
+
+        >>> help(PoolsContainer)
+
+        """
+        return self._back.pools_container
+
     # Deprecation ******************************************************************************* **
     open_araster = deprecation_pool.wrap_method(
         aopen_raster,
@@ -1580,27 +1623,51 @@ def open_raster(*args, **kwargs):
     """Shortcut for `Dataset().aopen_raster`
 
     >>> help(Dataset.open_raster)
+
+    See Also
+    --------
+    - :py:func:`Dataset.open_raster`
+    - :py:meth:`Dataset.aopen_raster`
+
     """
     return Dataset().aopen_raster(*args, **kwargs)
-
-def open_vector(*args, **kwargs):
-    """Shortcut for `Dataset().aopen_vector`
-
-    >>> help(Dataset.open_vector)
-    """
-    return Dataset().aopen_vector(*args, **kwargs)
 
 def create_raster(*args, **kwargs):
     """Shortcut for `Dataset().acreate_raster`
 
     >>> help(Dataset.create_raster)
+
+    See Also
+    --------
+    - :py:func:`Dataset.create_raster`
+    - :py:meth:`Dataset.acreate_raster`
+
     """
     return Dataset().acreate_raster(*args, **kwargs)
+
+def open_vector(*args, **kwargs):
+    """Shortcut for `Dataset().aopen_vector`
+
+    >>> help(Dataset.open_vector)
+
+    See Also
+    --------
+    - :py:func:`Dataset.open_vector`
+    - :py:meth:`Dataset.aopen_vector`
+
+    """
+    return Dataset().aopen_vector(*args, **kwargs)
 
 def create_vector(*args, **kwargs):
     """Shortcut for `Dataset().acreate_vector`
 
     >>> help(Dataset.create_vector)
+
+    See Also
+    --------
+    - :py:func:`Dataset.create_vector`
+    - :py:meth:`Dataset.acreate_vector`
+
     """
     return Dataset().acreate_vector(*args, **kwargs)
 
@@ -1608,6 +1675,12 @@ def wrap_numpy_raster(*args, **kwargs):
     """Shortcut for `Dataset().awrap_numpy_raster`
 
     >>> help(Dataset.wrap_numpy_raster)
+
+    See Also
+    --------
+    - :py:func:`Dataset.wrap_numpy_raster`
+    - :py:meth:`Dataset.awrap_numpy_raster`
+
     """
     return Dataset().awrap_numpy_raster(*args, **kwargs)
 

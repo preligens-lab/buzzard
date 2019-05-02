@@ -239,24 +239,10 @@ todo_include_todos = True
 
 # -- Additional setup --------------------------------------------------------
 
-def process_docstring(app, what, name, obj, options, lines):
-    # if not app.config.markdown_docstring_convert or not lines:
-    #     return
-    if not lines:
-        return
-
-    # import m2r
-    input_text = os.linesep.join(lines)
-    # output_text = m2r.convert(input_text)
-    print('////////////////////////////////////////////////////////////////////////////////')
-    print('////////////////////////////////////////////////////////////////////////////////')
-    print(input_text)
-    # print(output_text)
-    print('////////////////////////////////////////////////////////////////////////////////')
-    print('////////////////////////////////////////////////////////////////////////////////')
-    # lines[:] = output_text.split(os.linesep)
-
+def process(app, what, name, obj, options, signature, return_annotation):
+    print(signature, what, name, obj, return_annotation)
+    # return 'aaa', 'bbb'
 
 def setup(app):
     app.add_stylesheet('theme_overrides.css')
-    # app.connect('autodoc-process-docstring', process_docstring)
+    # app.connect('autodoc-process-signature', process)
