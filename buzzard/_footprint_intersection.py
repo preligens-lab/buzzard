@@ -121,11 +121,13 @@ class IntersectionMixin(object):
                 tr=tmp_to_spatial * [points[:, 0].max(), points[:, 1].min()],
             )
 
-
         if env.significant <= rect.significant_min(np.abs(resolution).min()):
-            raise RuntimeError('`env.significant` of value {} should be at least {}'.format(
-                env.significant, rect.significant_min(np.abs(resolution).min()),
-            ))
+            s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
+                'significant digits are necessary to perform this operation, but '
+                 '`buzz.env.significant` is set to {}. Increase this value by using '
+                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
+            ).format(rect.significant_min(np.abs(resolution).min()), env.significant)
+            raise RuntimeError(s)
 
         if fitalign:
             alignment = rect.tl

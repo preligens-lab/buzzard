@@ -67,8 +67,8 @@ def test_intersection_and_equals_and_of_extent(fp, env):
     for ax, ay, bx, by in cwr([-eps * LESS_ERROR, 0, +eps * LESS_ERROR], 4):
         deltas = np.asarray([ax, ay, bx, by])
 
-        assert fp == fp & sg.LineString([fp.tl + [ax, ay], fp.br + [bx, by]])
-        assert fp == fp.of_extent(fp.extent + deltas, fp.scale)
+        assert fp.almost_equals(fp & sg.LineString([fp.tl + [ax, ay], fp.br + [bx, by]]))
+        assert fp.almost_equals(fp.of_extent(fp.extent + deltas, fp.scale))
 
         if (np.asarray([ax, ay, bx, by]) != 0).any():
             assert fp != fp.of_extent(fp.extent + deltas / LESS_ERROR * MORE_ERROR, fp.scale)

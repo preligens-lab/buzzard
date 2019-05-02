@@ -5,7 +5,7 @@ import itertools
 import logging
 
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, osr
 
 import buzzard as buzz
 
@@ -28,6 +28,7 @@ SRS = [
     )
     for name, epsg, cx, cy, minx, miny, maxx, maxy, wkt in _SRS
 ]
+
 
 def get_srs_by_name(name):
     return next(
@@ -65,6 +66,32 @@ def fpeq(*items, **kwargs):
             return False
     return True
 
+def sreq(*items, verbose_on=None):
+    """SR items are all equal"""
+    for a, b in itertools.combinations(items, 2):
+        a = osr.SpatialReference(osr.GetUserInputAsWKT(a))
+        a.StripCTParms()
+        a = a.ExportToProj4()
+        a = osr.SpatialReference(osr.GetUserInputAsWKT(a))
+        a.StripCTParms()
+
+        b = osr.SpatialReference(osr.GetUserInputAsWKT(b))
+        b.StripCTParms()
+        b = b.ExportToProj4()
+        b = osr.SpatialReference(osr.GetUserInputAsWKT(b))
+        b.StripCTParms()
+
+        res = bool(a.IsSame(b))
+        if res is verbose_on:
+            print('')
+            print(a.ExportToPrettyWkt())
+            print('---------- vs ----------')
+            print(b.ExportToPrettyWkt())
+            print('')
+
+        if not res:
+            return False
+    return True
 
 def poly_relation(a, b):
     """Describe 2 polygons relation"""
@@ -94,7 +121,7 @@ ROOT_TL = np.asarray([296455., 71495.])
 
 
 def make_tif(path, tloffset=(0, 0), reso=(0.25, -0.25), rsize=(20, 10),
-             proj=SRS[0]['wkt'], band_count=1, dtype=gdal.GDT_Float32):
+             proj=SRS[0]['wkt'], channel_count=1, dtype=gdal.GDT_Float32):
     """Create a tiff files and return info about it"""
     tl = ROOT_TL + tloffset
     reso = np.asarray(reso)
@@ -107,10 +134,10 @@ def make_tif(path, tloffset=(0, 0), reso=(0.25, -0.25), rsize=(20, 10),
     a = x / 2 + y / 2
     a = np.around(a).astype('float32')
     driver = gdal.GetDriverByName('GTiff')
-    dataset = driver.Create(path, rsize[0], rsize[1], band_count, dtype)
+    dataset = driver.Create(path, rsize[0], rsize[1], channel_count, dtype)
     dataset.SetGeoTransform(fp.gt)
     dataset.SetProjection(proj)
-    for i in range(band_count):
+    for i in range(channel_count):
         dataset.GetRasterBand(i + 1).WriteArray(a)
         dataset.GetRasterBand(i + 1).SetNoDataValue(-32000.)
     dataset.FlushCache()
@@ -118,7 +145,7 @@ def make_tif(path, tloffset=(0, 0), reso=(0.25, -0.25), rsize=(20, 10),
 
 
 def make_tif2(path, reso=(1., -1.), rsize=(10, 10), tl=(0., 10.),
-              proj=SRS[0]['wkt'], band_count=1, dtype=gdal.GDT_Float32,
+              proj=SRS[0]['wkt'], channel_count=1, dtype=gdal.GDT_Float32,
               nodata=-32000, nodata_border_size=(0, 0, 0, 0)):
     """Create a tiff files"""
     reso = np.asarray(reso)
@@ -139,10 +166,10 @@ def make_tif2(path, reso=(1., -1.), rsize=(10, 10), tl=(0., 10.),
     LOGGER.info('TIFF ARRAY:%s\n', a)
     gdal.UseExceptions()
     driver = gdal.GetDriverByName('GTiff')
-    dataset = driver.Create(path, int(rsize[0]), int(rsize[1]), band_count, dtype)
+    dataset = driver.Create(path, int(rsize[0]), int(rsize[1]), channel_count, dtype)
     dataset.SetGeoTransform(fp.gt)
     dataset.SetProjection(proj)
-    for i in range(band_count):
+    for i in range(channel_count):
         dataset.GetRasterBand(i + 1).WriteArray(a)
         dataset.GetRasterBand(i + 1).SetNoDataValue(nodata)
     dataset.FlushCache()

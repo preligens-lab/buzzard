@@ -24,8 +24,7 @@ sys.path.insert(0, os.path.abspath('../'))
 project = 'buzzard'
 copyright = u'%s, Airware' % datetime.now().year
 author = 'Airware'
-version_file = open(os.path.join('..', 'VERSION'))
-version = version_file.read().strip()
+version = '0.6.0'
 release = version
 
 # -- General configuration ---------------------------------------------------

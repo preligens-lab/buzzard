@@ -1,11 +1,7 @@
 # Authors
-
-This list refers authors and contributors
-
-* Nicolas Goguey <ngoguey@airware.com>
-* Hervé Nivon <hnivon@airware.com>
-* Damien Grogeorge <dgrosgeorge@airware.com>
-* Clément Fouquet <cfouquet@airware.com>
-* Clément Delgrange <cdelgrange@airware.com>
+- Nicolas Goguey <nicolas.goguey@delair.aero>
+- Hervé Nivon <herve.nivon@delair.aero>
+- Amaury Zarzelli <amaury.zarzelli@ign.fr>
+- Rubenach Théo <theo.rubenach@delair.aero>
 
 See also [Contributors](https://github.com/airware/buzzard/graphs/contributors).

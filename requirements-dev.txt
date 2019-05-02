@@ -1,11 +1,10 @@
+-e .
 coverage>=4.4.1
 codecov>=2.0.15
-pytest>=3.0.7
+pytest==3.6.4
 attrdict>=2.0.0
 pytest-cov>=2.5.1
 pylint>=1.7.1
-dask>=0.16.0
-distributed>=1.20.2
 Sphinx>=1.7.4
 recommonmark>=0.4.0
 sphinx_rtd_theme>=0.4.0

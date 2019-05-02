@@ -68,14 +68,14 @@ instance/
 docs/_build/
 
 # jupyter leftovers
-docs/*.tif
-docs/*.tif.aux.xml
-docs/*.vrt
-docs/*.geojson
-docs/*.dbf
-docs/*.shp
-docs/*.shx
-docs/*.prj
+doc/*.tif
+doc/*.tif.aux.xml
+doc/*.vrt
+doc/*.geojson
+doc/*.dbf
+doc/*.shp
+doc/*.shx
+doc/*.prj
 
 # PyBuilder
 target/
@@ -124,3 +124,4 @@ venv.bak/
 
 .pytest_cache
 dask-worker-space
+test-reports

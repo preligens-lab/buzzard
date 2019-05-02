@@ -1,2 +1,2 @@
 [run]
-omit = buzzard/test/*,buzzard/srs/*,buzzard/conv/*,buzzard/_tools/prio_thread_pool.py,buzzard/_tools/coro/*
+omit = buzzard/test/*,buzzard/srs/*,buzzard/_tools/conv/*,scripts/*,buzzard/algo/*
