@@ -445,7 +445,7 @@ class Dataset(DatasetRegisterMixin):
 
         See Also
         --------
-        - :py:meth:`Dataset.open_raster`: To assign a key to this source within the Dataset
+        - :py:meth:`Dataset.open_raster`: To assign a `key` to this source within the `Dataset`
         - :py:func:`buzzard.open_raster`: To skip the explicit `Dataset` instanciation
 
         """
@@ -523,9 +523,10 @@ class Dataset(DatasetRegisterMixin):
         Additionally:
 
         - A field missing or None is kept to default value.
-        - A field can be passed as:
+        - A field can be passed as
+
             - a value: All bands are set to this value
-            - a sequence of length `channel_count` of value: All bands will be set to respective state
+            - a sequence of values of length `channel_count`: All bands will be set to their respective state
 
         Caveat
         ------
@@ -619,7 +620,7 @@ class Dataset(DatasetRegisterMixin):
 
         See Also
         --------
-        - :py:meth:`Dataset.create_raster`: To assign a key to this source within the Dataset
+        - :py:meth:`Dataset.create_raster`: To assign a `key` to this source within the `Dataset`
         - :py:func:`buzzard.create_raster`: To skip the explicit `Dataset` instanciation
 
         """
@@ -640,21 +641,24 @@ class Dataset(DatasetRegisterMixin):
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
         array: ndarray of shape (Y, X) or (Y, X, C)
+            ..
         channels_schema: dict or None
             Channel(s) metadata. (see `Channels schema fields` below)
         sr: string or None
             Spatial reference of the new file
 
             if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+            if path: Use same projection as file at `path`
+
+            if textual spatial reference: http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
         mode: one of {'r', 'w'}
+            ..
 
         Returns
         -------
-        NumpyRaster
+        source: NumpyRaster
+            ..
 
         Channel schema fields
         ---------------------
@@ -670,10 +674,18 @@ class Dataset(DatasetRegisterMixin):
         Mask values:
             all_valid, per_dataset, alpha, nodata
 
-        A field missing or None is kept to default value.
-        A field can be passed as:
-            a value: All bands are set to this value
-            a sequence of length `channel_count` of value: All bands will be set to respective state
+        Additionally:
+
+        - A field missing or None is kept to default value.
+        - A field can be passed as
+
+            - a value: All bands are set to this value
+            - a sequence of values of length `channel_count`: All bands will be set to their respective state
+
+        See Also
+        --------
+        - :py:meth:`Dataset.awrap_numpy_raster`: To skip the `key` assigment
+        - :py:meth:`buzzard.wrap_numpy_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
 
@@ -728,7 +740,11 @@ class Dataset(DatasetRegisterMixin):
     def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
         """Register a numpy array as a raster anonymously within this Dataset.
 
-        See Dataset.wrap_numpy_raster
+        See Also
+        --------
+        - :py:meth:`Dataset.wrap_numpy_raster`: To assign a `key` to this source within the `Dataset`
+        - :py:meth:`buzzard.wrap_numpy_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
+
         """
         return self.wrap_numpy_raster(
             _AnonymousSentry(), fp, array, channels_schema, sr, mode, **kwargs
@@ -754,15 +770,25 @@ class Dataset(DatasetRegisterMixin):
             max_resampling_size=None, automatic_remapping=True,
             debug_observers=(),
     ):
-        """/!\ This method is not yet implemented. It is here for documentation purposes.
+        """
+
+        .. warning::
+            This method is not yet implemented. It exists for documentation purposes.
 
         Create a *raster recipe* and register it under `key` within this Dataset.
 
         A *raster recipe* implements the same interfaces as all other rasters, but internally it
         computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
-        provide a boilerplate-free interface that automatize those cumbersome tasks: tiling,
-        parallelism, caching, file reads, resampling, lazy evaluation, backpressure prevention and
-        optimised task scheduling.
+        provide a boilerplate-free interface that automatize those cumbersome tasks:
+
+        - tiling,
+        - parallelism
+        - caching
+        - file reads
+        - resampling
+        - lazy evaluation
+        - backpressure prevention and
+        - optimised task scheduling.
 
         If you are familiar with `create_cached_raster_recipe` two parameters are new here:
         `automatic_remapping` and `max_computation_size`.
@@ -770,47 +796,49 @@ class Dataset(DatasetRegisterMixin):
         Parameters
         ----------
         key:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         fp:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         dtype:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         channel_count:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         channels_schema:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         sr:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         compute_array: callable
-            see `Computation Function` below
+            see :ref:`Computation Function` below
         merge_arrays: callable
-            see `Merge Function` below
+            see :ref:`Merge Function` below
         queue_data_per_primitive: dict of hashable (like a string) to a `queue_data` method pointer
-            see `Primitives` below
+            see :ref:`Primitives` below
         convert_footprint_per_primitive: None or dict of hashable (like a string) to a callable
-            see `Primitives` below
+            see :ref:`Primitives` below
         computation_pool:
-            see `Pools` below
+            see :ref:`Pools` below
         merge_pool:
-            see `Pools` below
+            see :ref:`Pools` below
         resample_pool:
-            see `Pools` below
+            see :ref:`Pools` below
         computation_tiles: None or (int, int) or numpy.ndarray of Footprint
-            see `Computation Tiling` below
+            see :ref:`Computation Tiling` below
         max_computation_size:  None or int or (int, int)
-            see `Computation Tiling` below
+            see :ref:`Computation Tiling` below
         max_resampling_size: None or int or (int, int)
             Optionally define a maximum resampling size. If a larger resampling has to be performed,
             it will be performed tile by tile in parallel.
         automatic_remapping: bool
-            see `Automatic Remapping` below
+            see :ref:`Automatic Remapping` below
         debug_observers: sequence of object
             Entry points that observe what is happening with this raster in the Dataset's scheduler.
 
         Returns
         -------
-        NocacheRasterRecipe
+        source: NocacheRasterRecipe
+            ..
 
+        .. _Computation Function:
         Computation Function
         --------------------
         The function that will map a Footprint to a numpy.ndarray. If `queue_data_per_primitive`
@@ -820,6 +848,7 @@ class Dataset(DatasetRegisterMixin):
         construction.
 
         The function will be called with the following positional parameters:
+
         - fp: Footprint of shape (Y, X)
             The location at which the pixels should be computed
         - primitive_fps: dict of hashable to Footprint
@@ -832,16 +861,21 @@ class Dataset(DatasetRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
+
         - a single ndarray of shape (Y, X) if only one channel was computed
+            ..
         - a single ndarray of shape (Y, X, C) if one or more channels were computed
+            ..
 
         If `computation_pool` points to a process pool, the `compute_array` function must be
         picklable and the `raster` parameter will be None.
 
+        .. _Computation Tiling:
         Computation Tiling
         ------------------
         You may sometimes want to have control on the Footprints that are requested to the
-        `compute_array` function, for exemple:
+        `compute_array` function, for example:
+
         - If pixels computed by `compute_array` are long to compute, you want to tile to increase
           parallelism.
         - If the `compute_array` function scales badly in term of memory or time, you want to tile
@@ -861,6 +895,7 @@ class Dataset(DatasetRegisterMixin):
         If `computation_tiles` is (int, int), a tiling will be constructed using Footprint.tile
         using those two ints.
 
+        .. _Merge Function:
         Merge Function
         --------------
         The function that will map several pairs of Footprint/numpy.ndarray to a single
@@ -870,6 +905,7 @@ class Dataset(DatasetRegisterMixin):
         construction.
 
         The function will be called with the following positional parameters:
+
         - fp: Footprint of shape (Y, X)
             The location at which the pixels should be computed.
         - array_per_fp: dict of Footprint to numpy.ndarray
@@ -879,28 +915,34 @@ class Dataset(DatasetRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
+
         - a single ndarray of shape (Y, X) if only one channel was computed
+            ..
         - a single ndarray of shape (Y, X, C) if one or more channels were computed
+            ..
 
         If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
         the `raster` parameter will be None.
 
+        .. _Automatic Remapping:
         Automatic Remapping
         -------------------
-        When creating a recipe you give a _Footprint_ through the `fp` parameter. When calling your
+        When creating a recipe you give a *Footprint* through the `fp` parameter. When calling your
         `compute_array` function the scheduler will only ask for slices of `fp`. This means that the
         scheduler takes care of those boilerplate steps:
+
         - If you request a *Footprint* on a different grid in a `get_data()` call, the scheduler
-          __takes care of resampling__ the outputs of your `compute_array` function.
+          **takes care of resampling** the outputs of your `compute*array` function.
         - If you request a *Footprint* partially or fully outside of the raster's extent, the
           scheduler will call your `compute_array` function to get the interior pixels and then
-          __pad the output with nodata__.
+          **pad the output with nodata**.
 
         This system is flexible and can be deactivated by passing `automatic_remapping=False` to
-        the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your
-        `compute_array` function for any kind of _Footprint_; thus your function must be able to
+        the constructor of a *NocacheRasterRecipe*, in this case the scheduler will call your
+        `compute_array` function for any kind of *Footprint*; thus your function must be able to
         comply with any request.
 
+        .. _Primitives:
         Primitives
         ----------
         The `queue_data_per_primitive` and `convert_footprint_per_primitive` parameters can be used
@@ -921,25 +963,35 @@ class Dataset(DatasetRegisterMixin):
 
         e.g. If the primitive raster is an `rgb` image, and the derived raster only needs the green
         channel but with a context of 10 additional pixels on all 4 sides:
+
         >>> derived = ds.create_raster_recipe(
         ...     # <other parameters>
         ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, channels=1)},
         ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
         ... )
 
+        .. _Pools:
         Pools
         -----
         The `*_pool` parameters can be used to select where certain computations occur. Those
         parameters can be of the following types:
-        - A _multiprocessing.pool.ThreadPool_, should be the default choice.
-        - A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the
+
+        - A *multiprocessing.pool.ThreadPool*, should be the default choice.
+        - A *multiprocessing.pool.Pool*, a process pool. Useful for computations that requires the
           GIL or that leaks memory.
         - `None`, to request the scheduler thread to perform the tasks itself. Should be used when
           the computation is very light.
-        - A _hashable_ (like a _string_), that will map to a pool registered in the _Dataset_. If
-          that key is missing from the _Dataset_, a _ThreadPool_ with
+        - A *hashable* (like a *string*), that will map to a pool registered in the *Dataset*. If
+          that key is missing from the *Dataset*, a *ThreadPool* with
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
           Dataset is closed, the pools instanciated that way will be joined.
+
+        See Also
+        --------
+        - :py:meth:`Dataset.acreate_raster_recipe`: To skip the `key` assigment
+        - :py:meth:`Dataset.create_raster_recipe`: For results `caching`
+        - :py:meth:`Dataset.acreate_cached_raster_recipe`: To skip the `key` assigment
+
         """
         raise NotImplementedError()
 
@@ -974,46 +1026,51 @@ class Dataset(DatasetRegisterMixin):
         If you are familiar with `create_raster_recipe` four parameters are new here: `io_pool`,
         `cache_tiles`, `cache_dir` and `ow`. They are all related to file system operations.
 
-        see `create_raster_recipe` method, since it shares most of the features.
+        See `create_raster_recipe` method, since it shares most of the features:
 
         >>> help(CachedRasterRecipe)
 
         Parameters
         ----------
         key:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         fp:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         dtype:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         channel_count:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         channels_schema:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         sr:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         compute_array:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         merge_arrays:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         cache_dir: str or pathlib.Path
             Path to the directory that holds the cache files associated with this raster. If cache
             files are present, they will be reused (or erased if corrupted). If a cache file is
             needed and missing, it will be computed.
         ow: bool
-            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`. Warning: not only the tiles needed (hence computed) but all cached files in `cache_dir` will be deleted.
+            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`.
+
+            .. warning::
+                not only the tiles needed (hence computed) but all buzzard cache files in
+                `cache_dir` will be deleted.
+
         queue_data_per_primitive:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         convert_footprint_per_primitive:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         computation_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         merge_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         io_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         resample_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         cache_tiles: (int, int) or numpy.ndarray of Footprint
             A tiling of the `fp` parameter. Each tile will correspond to one cache file.
             if (int, int): Construct the tiling by calling Footprint.tile with this parameter
@@ -1021,13 +1078,19 @@ class Dataset(DatasetRegisterMixin):
             if None: Use the same tiling as `cache_tiles`
             else: see `create_raster_recipe` method
         max_resampling_size: None or int or (int, int)
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         debug_observers: sequence of object
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
 
         Returns
         -------
-        CachedRasterRecipe
+        source: CachedRasterRecipe
+            ..
+
+        See Also
+        --------
+        - :py:meth:`Dataset.create_raster_recipe`: To skip the `caching`
+        - :py:meth:`Dataset.acreate_cached_raster_recipe`: To skip the `key` assigment
 
         """
         # Parameter checking ***************************************************
@@ -1193,6 +1256,12 @@ class Dataset(DatasetRegisterMixin):
         """Create a cached raster reciped anonymously within this Dataset.
 
         See Dataset.create_cached_raster_recipe
+
+        See Also
+        --------
+        - :py:meth:`Dataset.create_raster_recipe`: To skip the `caching`
+        - :py:meth:`Dataset.create_cached_raster_recipe`: To assign a `key` to this source within the `Dataset`
+
         """
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
@@ -1313,10 +1382,10 @@ class Dataset(DatasetRegisterMixin):
             Spatial reference of the new file
 
             if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+
+            if path: Use same projection as file at `path`
+
+            if textual spatial reference: http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
         ow: bool
             Overwrite. Whether or not to erase the existing files.
 
