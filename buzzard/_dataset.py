@@ -442,7 +442,6 @@ class Dataset(DatasetRegisterMixin):
         >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
         >>> file_wkt = ortho.wkt_stored
 
-
         See Also
         --------
         - :py:meth:`Dataset.open_raster`: To assign a `key` to this source within the `Dataset`
@@ -1287,17 +1286,21 @@ class Dataset(DatasetRegisterMixin):
 
             To avoid using a `key`, you may use :py:meth:`aopen_vector`
         path: string
+            ..
         layer: None or int or string
+            ..
         driver: string
             ogr driver to use when opening the file
             http://www.gdal.org/ogr_formats.html
         options: sequence of str
             options for ogr
         mode: one of {'r', 'w'}
+            ..
 
         Returns
         -------
-        GDALFileVector
+        source: GDALFileVector
+            ..
 
         Example
         -------
@@ -1306,6 +1309,11 @@ class Dataset(DatasetRegisterMixin):
 
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
         >>> fields_list = ds.roofs.fields
+
+        See Also
+        --------
+        - :py:meth:`Dataset.aopen_vector`: To skip the `key` assigment
+        - :py:func:`buzzard.open_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         # Parameter checking ***************************************************
@@ -1348,6 +1356,11 @@ class Dataset(DatasetRegisterMixin):
         >>> trees = ds.aopen_vector('/path/to.shp')
         >>> features_bounds = trees.bounds
 
+        See Also
+        --------
+        - :py:meth:`Dataset.open_vector`: To assign a `key` to this source within the `Dataset`
+        - :py:func:`buzzard.open_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
+
         """
         return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
@@ -1366,13 +1379,16 @@ class Dataset(DatasetRegisterMixin):
 
             To avoid using a `key`, you may use :py:meth:`acreate_vector`
         path: string
+            ..
         type: string
-            name of a wkb geometry type
-            http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
-            (see example below)
+            name of a wkb geometry type, without the `wkb` prefix.
+
+            list: http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
+
         fields: sequence of dict
-            Attributes of fields, one dict per field. (see `Field attributes` below)
+            Attributes of fields, one dict per field. (see :ref:`Field Attributes` below)
         layer: None or string
+            ..
         driver: string
             ogr driver to use when opening the file
             http://www.gdal.org/ogr_formats.html
@@ -1391,7 +1407,8 @@ class Dataset(DatasetRegisterMixin):
 
         Returns
         -------
-        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
+        source: GDALFileVector or GDALMemoryVector
+            The type depends on the `driver` parameter
 
         Example
         -------
@@ -1409,33 +1426,53 @@ class Dataset(DatasetRegisterMixin):
         >>> field0_type = ds.zones.fields[0]['type']
         >>> ds.zones.insert_data(shapely.geometry.box(10, 10, 15, 15))
 
-        Field attributes
+        .. _Field Attributes:
+        Field Attributes
         ----------------
         Attributes:
-            'name': string
-            'type': string (see `Field type` below)
-            'precision': int
-            'width': int
-            'nullable': bool
-            'default': same as `type`
+
+        - "name": string
+        - "type": string (see :ref:`Field Types` below)
+        - "precision": int
+        - "width": int
+        - "nullable": bool
+        - "default": same as `type`
+
         An attribute missing or None is kept to default value.
 
-        Field types
+        .. _Field Types:
+        Field Types
         -----------
-        Binary        key: 'binary', bytes, np.bytes_, aliases of np.bytes_
-        Date          key: 'date'
-        DateTime      key: 'datetime', datetime.datetime, np.datetime64, aliases of np.datetime64
-        Time          key: 'time'
+        +---------------+------------------------------------------------------------------------+
+        | Type          | Type names                                                             |
+        +===============+========================================================================+
+        | Binary        | "binary", bytes, np.bytes\_, aliases of np.bytes\_                     |
+        +---------------+------------------------------------------------------------------------+
+        | Date          | "date"                                                                 |
+        +---------------+------------------------------------------------------------------------+
+        | DateTime      | "datetime", datetime.datetime, np.datetime64, aliases of np.datetime64 |
+        +---------------+------------------------------------------------------------------------+
+        | Time          | "time"                                                                 |
+        +---------------+------------------------------------------------------------------------+
+        | Integer       | "integer" np.int32, aliases of np.int32                                |
+        +---------------+------------------------------------------------------------------------+
+        | Integer64     | "integer64", int, np.int64, aliases of np.int64                        |
+        +---------------+------------------------------------------------------------------------+
+        | Real          | "real", float, np.float64, aliases of np.float64                       |
+        +---------------+------------------------------------------------------------------------+
+        | String        | "string", str, np.str\_, aliases of np.str\_                           |
+        +---------------+------------------------------------------------------------------------+
+        | Integer64List | "integer64list", "int list"                                            |
+        +---------------+------------------------------------------------------------------------+
+        | IntegerList   | "integerlist"                                                          |
+        +---------------+------------------------------------------------------------------------+
+        | RealList      | "reallist", "float list"                                               |
+        +---------------+------------------------------------------------------------------------+
 
-        Integer       key: 'integer' np.int32, aliases of np.int32
-        Integer64     key: 'integer64', int, np.int64, aliases of np.int64
-        Real          key: 'real', float, np.float64, aliases of np.float64
-        String        key: 'string', str, np.str_, aliases of np.str_
-
-        Integer64List key: 'integer64list', 'int list'
-        IntegerList   key: 'integerlist'
-        RealList      key: 'reallist', 'float list'
-        StringList    key: 'stringlist', 'str list'
+        See Also
+        --------
+        - :py:meth:`Dataset.acreate_vector`: To skip the `key` assigment
+        - :py:func:`buzzard.create_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         type_ = type
@@ -1493,6 +1530,11 @@ class Dataset(DatasetRegisterMixin):
         -------
         >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
         >>> file_proj4 = lines.proj4_stored
+
+        See Also
+        --------
+        - :py:meth:`Dataset.create_vector`: To assign a `key` to this source within the `Dataset`
+        - :py:func:`buzzard.create_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         return self.create_vector(_AnonymousSentry(), path, type, fields, layer,

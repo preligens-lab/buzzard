@@ -25,4 +25,4 @@ Source Constructors
    Rasters Sources Using GDAL <dataset_raster>
    Rasters Sources Using NumPy <dataset_numpy>
    Rasters Sources Using Recipes <dataset_recipe>
-   Vectors Sources Using OGR <dataset_vector>
+   Vectors Sources Using GDAL (OGR) <dataset_vector>
