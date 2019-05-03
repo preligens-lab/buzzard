@@ -5,3 +5,4 @@ Misc.
 .. autofunction:: buzzard.wrap_numpy_raster
 .. autofunction:: buzzard.open_vector
 .. autofunction:: buzzard.create_vector
+.. autofunction:: buzzard.utils.concat_arrays
