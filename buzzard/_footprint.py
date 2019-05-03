@@ -118,7 +118,7 @@ class Footprint(TileMixin, IntersectionMixin):
         ----------
         tl: (nbr, nbr)
             raster spatial top left coordinates
-        gt: (nbr, nbr, nbr, nbr, nbr)
+        gt: (nbr, nbr, nbr, nbr, nbr, nbr)
             geotransforms with GDAL ordering
         size: (nbr, nbr)
             Size of Footprint in space (unsigned)
@@ -322,7 +322,7 @@ class Footprint(TileMixin, IntersectionMixin):
         return self._morpho(count)
 
     def intersection(self, *objects, **kwargs):
-        """intersection(self, *objects, scale='self', rotation='auto', alignment='auto',
+        """intersection(self, *objects, scale='self', rotation='auto', alignment='auto', \
                         homogeneous=False)
 
         Construct a Footprint bounding the intersection of geometric objects, self being one of the
@@ -343,8 +343,11 @@ class Footprint(TileMixin, IntersectionMixin):
             'auto'
                 If `scale` designate a Footprint object, its rotation is chosen
                 Else, self's rotation is chosen
-            'fit': Output Footprint is the rotated minimum bounding rectangle
-            nbr: Angle in degree
+            'fit'
+                Output Footprint is the rotated minimum bounding rectangle
+            nbr
+                Angle in degree
+
         alignment: {'auto', 'tl', (nbr, nbr)}
             'auto'
                 If `scale` and `rotation` designate the same Footprint object, its alignment
@@ -442,11 +445,15 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Usage cases
         -----------
+        +-------+-------+-------+-------------------------------------------------------------------+
         | tl    | tr    | br    | Affine transformations possible                                   |
-        |-------|-------|-------|-------------------------------------------------------------------|
+        +=======+=======+=======+===================================================================+
         | coord | None  | None  | Translation                                                       |
+        +-------+-------+-------+-------------------------------------------------------------------+
         | coord | coord | None  | Translation, Rotation, Scale x and y uniformly with positive real |
+        +-------+-------+-------+-------------------------------------------------------------------+
         | coord | coord | coord | Translation, Rotation, Scale x and y independently with reals     |
+        +-------+-------+-------+-------------------------------------------------------------------+
 
         Parameters
         ----------
@@ -527,6 +534,7 @@ class Footprint(TileMixin, IntersectionMixin):
         >>> plt.imshow(arr, extent=fp.extent)
 
         fp.extent from fp.bounds using numpy fancy indexing
+
         >>> minx, maxx, miny, maxy = fp.bounds[[0, 2, 1, 3]]
         """
         points = np.r_["1,0,2", self.coords]
@@ -544,6 +552,7 @@ class Footprint(TileMixin, IntersectionMixin):
         >>> minx, miny, maxx, maxy = fp.bounds
 
         fp.bounds from fp.extent using numpy fancy indexing
+
         >>> minx, miny, maxx, maxy = fp.extent[[0, 2, 1, 3]]
         """
         points = np.r_["1,0,2", self.coords]
@@ -1080,6 +1089,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         other: Footprint or shapely object
+            ..
 
         Returns
         -------
@@ -1095,6 +1105,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         other: Footprint
+            ..
 
         Returns
         -------
@@ -1113,6 +1124,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         other: Footprint
+            ..
 
         Returns
         -------
@@ -1145,6 +1157,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         other: Footprint
+            ..
 
         Returns
         -------
@@ -1232,6 +1245,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         other: Footprint
+            ..
         dtype: None or convertible to np.dtype
             Output dtype
             If None: Use buzz.env.default_index_dtype
@@ -1270,6 +1284,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         other: Footprint
+            ..
         clip: bool
             False
                 Does nothing
@@ -1399,16 +1414,19 @@ class Footprint(TileMixin, IntersectionMixin):
 
     # Geometry / Raster conversions ************************************************************* **
     def find_lines(self, arr, output_offset='middle', merge=True):
-        """Create a list of line-strings from a mask. Works with connectivity 4 and 8. Should work fine
-        when several disconnected components
+        """Create a list of line-strings from a mask. Works with connectivity 4 and 8.
 
-        # TODO: Update doc about skimage.thin and 2x2 squares collapsing
+        TODO: Update doc about skimage.thin and 2x2 squares collapsing
 
         See `shapely.ops.linemerge` for details concerning output connectivity
+
+        .. warning::
+            All standalone pixels contained in arr will be ignored.
 
         Parameters
         ----------
         arr: np.ndarray of bool of shape (self.shape)
+            ..
         output_offset: 'middle' or (nbr, nbr)
             Coordinate offset in meter
             if `middle`: substituted by `self.pxvec / 2`
@@ -1417,9 +1435,6 @@ class Footprint(TileMixin, IntersectionMixin):
         -------
         list of shapely.geometry.LineString
 
-        Caveats
-        -------
-        All standalone pixels contained in arr will be ignored.
 
         Exemple
         -------
@@ -1441,10 +1456,10 @@ class Footprint(TileMixin, IntersectionMixin):
         ...
         ...     # Display input / output
         ...     print(fp)
-        ...     print(a.astype(int), '\n')
+        ...     print(a.astype(int))
         ...     for i, l in enumerate(lines, 1):
         ...         print(f'edge-id:{i} of type:{type(l)} and length:{l.length}')
-        ...         print(fp.burn_lines(l).astype(int) * i, '\n')
+        ...         print(fp.burn_lines(l).astype(int) * i)
         ...
         ...     # Build a networkx graph
         ...     g = nx.Graph([(l.coords[0], l.coords[-1]) for l in lines])
@@ -1456,28 +1471,24 @@ class Footprint(TileMixin, IntersectionMixin):
          [0 1 1 1 0]
          [0 1 0 0 0]
          [0 1 1 0 0]]
-
         edge-id:1 of type:<class 'shapely.geometry.linestring.LineString'> and length:2.0
         [[0 0 0 0 0]
          [0 0 0 0 0]
          [0 1 1 1 0]
          [0 0 0 0 0]
          [0 0 0 0 0]]
-
         edge-id:2 of type:<class 'shapely.geometry.linestring.LineString'> and length:3.0
         [[0 0 0 0 0]
          [0 0 0 0 0]
          [0 2 0 0 0]
          [0 2 0 0 0]
          [0 2 2 0 0]]
-
         edge-id:3 of type:<class 'shapely.geometry.linestring.LineString'> and length:4.0
         [[0 3 3 3 0]
          [0 3 0 0 0]
          [0 3 0 0 0]
          [0 0 0 0 0]
          [0 0 0 0 0]]
-
         DegreeView({(3.0, 2.0): 1, (1.0, 2.0): 3, (2.0, 4.0): 1, (3.0, 0.0): 1})
         """
         # Step 1: Parameter checking ************************************************************ **
@@ -1606,15 +1617,16 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         obj: shapely line or nested iterators over shapely lines
+            ..
         labelize: bool
-            if `False`: Create a boolean mask
-            if `True`: Create an integer matrix containing lines indices from order in input
+            - if `False`: Create a boolean mask
+            - if `True`: Create an integer matrix containing lines indices from order in input
 
         Returns
         ----------
         np.ndarray
-            of bool or uint8 or int
-            of shape (self.shape)
+            - of bool or uint8 or int
+            - of shape (self.shape)
         """
         lines = list(_line_iterator(obj))
 
@@ -1665,6 +1677,18 @@ class Footprint(TileMixin, IntersectionMixin):
     def find_polygons(self, mask):
         """Creates a list of polygons from a mask.
 
+        .. warning::
+            Some inputs that may produce invalid polygons (see below) are fixed with the \
+            `shapely.geometry.Polygon.buffer` method.
+
+            >>> 0 0 0 0 0 0 0
+            ... 0 1 1 1 0 0 0
+            ... 0 1 1 1 1 0 0
+            ... 0 1 1 1 0 1 0  <- Hole near edge, should create a self touching
+            ... 0 1 1 1 1 1 1     polygon without holes. A valid polygon with
+            ... 0 1 1 1 1 1 1     one hole is returned instead.
+            ... 0 0 0 0 0 0 0
+
         Parameters
         ----------
         arr: np.ndarray of bool of shape (self.shape)
@@ -1673,17 +1697,6 @@ class Footprint(TileMixin, IntersectionMixin):
         -------
         list of shapely.geometry.Polygon
 
-        Caveats
-        -------
-        Some inputs that may produce invalid polygons (see below) are fixed with the
-        `shapely.geometry.Polygon.buffer` method.
-        0 0 0 0 0 0 0
-        0 1 1 1 0 0 0
-        0 1 1 1 1 0 0
-        0 1 1 1 0 1 0  <- Hole near edge, should create a self touching polygon without holes.
-        0 1 1 1 1 1 1     A valid polygon with one hole is returned instead.
-        0 1 1 1 1 1 1
-        0 0 0 0 0 0 0
         """
         if mask.shape != tuple(self.shape):
             raise ValueError('Mask shape%s incompatible with self shape%s' % (
@@ -1733,6 +1746,7 @@ class Footprint(TileMixin, IntersectionMixin):
         Parameters
         ----------
         obj: shapely polygon or nested iterators over shapely polygons
+            ..
         all_touched: bool
             Burn all polygons touched
 
@@ -1804,58 +1818,62 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Parameters
         ----------
-        size : (int, int)
+        size: (int, int)
             Tile width and tile height, in pixel
-        overlapx : int
+        overlapx: int
             Width of a tile overlapping with each direct horizontal neighbors, in pixel
-        overlapy : int
+        overlapy: int
             Height of a tile overlapping with each direct vertical neighbors, in pixel
-        boundary_effect : {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
+        boundary_effect: {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
             Behevior at boundary effect locus
-            'extend'
-                Preserve tile size
-                Preserve overlapx and overlapy
-                Sacrifice global bounds, results in tiles partially outside bounds at locus (if necessary)
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'overlap'
-                Preserve tile size
-                Sacrifice overlapx and overlapy, results in tiles overlapping more at locus (if necessary)
-                Preserve global bounds
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'exclude'
-                Preserve tile size
-                Preserve overlapx and overlapy
-                Preserve global bounds
-                Sacrifice tile count, results in tiles excluded at locus (if necessary)
-                Sacrifice boundary pixels coverage at locus (if necessary)
-            'shrink'
-                Sacrifice tile size, results in tiles shrinked at locus (if necessary)
-                Preserve overlapx and overlapy
-                Preserve global bounds
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'exception'
-                Raise an exception if tiles at locus do not lie inside the global bounds
-        boundary_effect_locus : {'br', 'tr', 'tl', 'bl'}, optional
+
+            - 'extend'
+                - Preserve tile size
+                - Preserve overlapx and overlapy
+                - Sacrifice global bounds, results in tiles partially outside bounds at locus (if necessary)
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'overlap'
+                - Preserve tile size
+                - Sacrifice overlapx and overlapy, results in tiles overlapping more at locus (if necessary)
+                - Preserve global bounds
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'exclude'
+                - Preserve tile size
+                - Preserve overlapx and overlapy
+                - Preserve global bounds
+                - Sacrifice tile count, results in tiles excluded at locus (if necessary)
+                - Sacrifice boundary pixels coverage at locus (if necessary)
+            - 'shrink'
+                - Sacrifice tile size, results in tiles shrinked at locus (if necessary)
+                - Preserve overlapx and overlapy
+                - Preserve global bounds
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'exception'
+                - Raise an exception if tiles at locus do not lie inside the global bounds
+        boundary_effect_locus: {'br', 'tr', 'tl', 'bl'}
             Locus of the boundary effects
-            'br' : Boundary effect occurs at the bottom right corner of the raster,
+
+            - 'br' : Boundary effect occurs at the bottom right corner of the raster, \
                 top left coordinates are preserved
-            'tr' : Boundary effect occurs at the top right corner of the raster,
+            - 'tr' : Boundary effect occurs at the top right corner of the raster, \
                 bottom left coordinates are preserved
-            'tl' : Boundary effect occurs at the top left corner of the raster,
+            - 'tl' : Boundary effect occurs at the top left corner of the raster, \
                 bottom right coordinates are preserved
-            'bl' : Boundary effect occurs at the bottom left corner of the raster,
+            - 'bl' : Boundary effect occurs at the bottom left corner of the raster, \
                 top right coordinates are preserved
 
         Returns
         -------
         np.ndarray
-            of dtype=object (Footprint)
-            of shape (M, N)
-                with M the line count
-                with N the column count
+            - of dtype=object (Footprint)
+            - of shape (M, N)
+
+                - with M the line count
+                - with N the column count
+
         """
         size = np.asarray(size, dtype=int)
         overlapx = int(overlapx)
@@ -1889,60 +1907,52 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Parameters
         ----------
-        rowcount : int
+        rowcount: int
             Tile count per row
-        colcount : int
+        colcount: int
             Tile count per column
-        overlapx : int
+        overlapx: int
             Width of a tile overlapping with each direct horizontal neighbors, in pixel
-        overlapy : int
+        overlapy: int
             Height of a tile overlapping with each direct vertical neighbors, in pixel
-        boundary_effect : {'extend', 'exclude', 'overlap', 'shrink', 'exception'}, optional
+        boundary_effect: {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
             Behevior at boundary effect locus
-            'extend'
-                Preserve tile size
-                Preserve overlapx and overlapy
-                Sacrifice global bounds, results in tiles partially outside bounds at locus (if necessary)
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'overlap'
-                Preserve tile size
-                Sacrifice overlapx and overlapy, results in tiles overlapping more at locus (if necessary)
-                Preserve global bounds
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'exclude'
-                Preserve tile size
-                Preserve overlapx and overlapy
-                Preserve global bounds
-                Preserve tile count
-                Sacrifice boundary pixels coverage at locus (if necessary)
-            'shrink'
-                Sacrifice tile size, results in tiles shrinked at locus (if necessary)
-                Preserve overlapx and overlapy
-                Preserve global bounds
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'exception'
-                Raise an exception if tiles at locus do not lie inside the global bounds
-        boundary_effect_locus : {'br', 'tr', 'tl', 'bl'}, optional
-            Locus of the boundary effects
-            'br' : Boundary effect occurs at the bottom right corner of the raster,
-                top left coordinates are preserved
-            'tr' : Boundary effect occurs at the top right corner of the raster,
-                bottom left coordinates are preserved
-            'tl' : Boundary effect occurs at the top left corner of the raster,
-                bottom right coordinates are preserved
-            'bl' : Boundary effect occurs at the bottom left corner of the raster,
-                top right coordinates are preserved
 
-        Returns
-        -------
-        np.ndarray
-            of dtype=object (Footprint)
-            of shape (M, N)
-                with M the line count
-                with N the column count
+            - 'extend'
+                - Preserve tile size
+                - Preserve overlapx and overlapy
+                - Sacrifice global bounds, results in tiles partially outside bounds at locus (if necessary)
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'overlap'
+                - Preserve tile size
+                - Sacrifice overlapx and overlapy, results in tiles overlapping more at locus (if necessary)
+                - Preserve global bounds
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'exclude'
+                - Preserve tile size
+                - Preserve overlapx and overlapy
+                - Preserve global bounds
+                - Preserve tile count
+                - Sacrifice boundary pixels coverage at locus (if necessary)
+            - 'shrink'
+                - Sacrifice tile size, results in tiles shrinked at locus (if necessary)
+                - Preserve overlapx and overlapy
+                - Preserve global bounds
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'exception'
+                - Raise an exception if tiles at locus do not lie inside the global bounds
+
+        boundary_effect_locus: {'br', 'tr', 'tl', 'bl'}
+            Locus of the boundary effects
+
+            - 'br' : Boundary effect occurs at the bottom right corner of the raster, \
+                top left coordinates are preserved
+            - 'tr' : Boundary effect occurs at the top right corner of the raster, \
+                bottom left coordinates are preserved
+
         """
         rowcount = int(rowcount)
         colcount = int(colcount)
@@ -2033,60 +2043,64 @@ class Footprint(TileMixin, IntersectionMixin):
 
         Parameters
         ----------
-        size : (int, int)
+        size: (int, int)
             Tile width and tile height, in pixel
         pixel_occurrencex: int
             Number of occurence of each pixel in a line of tile
         pixel_occurrencey: int
             Number of occurence of each pixel in a column of tile
-        boundary_effect : {'extend', 'exclude', 'overlap', 'shrink', 'exception'}, optional
+        boundary_effect: {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
             Behevior at boundary effect locus
-            'extend'
-                Preserve tile size
-                Preserve overlapx and overlapy
-                Sacrifice global bounds
-                    Results in tiles partially outside bounds at locus (if necessary)
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'overlap'
-                Preserve tile size
-                Sacrifice overlapx and overlapy
-                    Results in tiles overlapping more at locus (if necessary)
-                Preserve global bounds
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'exclude'
-                Preserve tile size
-                Preserve overlapx and overlapy
-                Preserve global bounds
-                Sacrifice tile count, results in tiles excluded at locus (if necessary)
-                Sacrifice boundary pixels coverage at locus (if necessary)
-            'shrink'
-                Sacrifice tile size, results in tiles shrinked at locus (if necessary)
-                Preserve overlapx and overlapy
-                Preserve global bounds
-                Preserve tile count
-                Preserve boundary pixels coverage
-            'exception'
+
+            - 'extend'
+                - Preserve tile size
+                - Preserve overlapx and overlapy
+                - Sacrifice global bounds, \
+                    results in tiles partially outside bounds at locus (if necessary)
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'overlap'
+                - Preserve tile size
+                - Sacrifice overlapx and overlapy \
+                    results in tiles overlapping more at locus (if necessary)
+                - Preserve global bounds
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'exclude'
+                - Preserve tile size
+                - Preserve overlapx and overlapy
+                - Preserve global bounds
+                - Sacrifice tile count, results in tiles excluded at locus (if necessary)
+                - Sacrifice boundary pixels coverage at locus (if necessary)
+            - 'shrink'
+                - Sacrifice tile size, results in tiles shrinked at locus (if necessary)
+                - Preserve overlapx and overlapy
+                - Preserve global bounds
+                - Preserve tile count
+                - Preserve boundary pixels coverage
+            - 'exception'
                 Raise an exception if tiles at locus do not lie inside the global bounds
-        boundary_effect_locus : {'br', 'tr', 'tl', 'bl'}, optional
+        boundary_effect_locus: {'br', 'tr', 'tl', 'bl'}
             Locus of the boundary effects
-            'br' : Boundary effect occurs at the bottom right corner of the raster
+
+            - 'br' : Boundary effect occurs at the bottom right corner of the raster \
                 top left coordinates are preserved
-            'tr' : Boundary effect occurs at the top right corner of the raster,
+            - 'tr' : Boundary effect occurs at the top right corner of the raster, \
                 bottom left coordinates are preserved
-            'tl' : Boundary effect occurs at the top left corner of the raster,
+            - 'tl' : Boundary effect occurs at the top left corner of the raster, \
                 bottom right coordinates are preserved
-            'bl' : Boundary effect occurs at the bottom left corner of the raster,
+            - 'bl' : Boundary effect occurs at the bottom left corner of the raster, \
                 top right coordinates are preserved
 
         Returns
         -------
         np.ndarray
-            of dtype=object (Footprint)
-            of shape (M, N)
-                with M the line count
-                with N the column count
+            - of dtype=object (Footpr
+            int)
+            - of shape (M, N)
+                - with M the line count
+                - with N the column count
+
         """
         size = np.asarray(size, dtype=int)
         pixel_occurrencex = int(pixel_occurrencex)
@@ -2155,9 +2169,6 @@ class Footprint(TileMixin, IntersectionMixin):
         return (_restore, (self.gt, self.rsize))
 
     def __hash__(self):
-        """Should be optimized with respect with the current implementation of the Footprint
-        class.
-        """
         # TODO: Speed test and optimize
         return hash((
             self._aff.to_gdal(),

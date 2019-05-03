@@ -257,6 +257,7 @@ def skip(app, what, name, obj, skip, options):
             '__dict__',
             '__weakref__',
             '__doc__',
+            '__slots__',
     ]:
         return True
     return skip
