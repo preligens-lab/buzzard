@@ -89,22 +89,23 @@ for poly in v.iter_data():
     rgb[mask] = (rgb[mask] * 0.5).astype(np.uint8)
     rgb[alpha == 0] = [236, 120, 57]
 
-    # Show the result with matplotlib 
+    # Show the result with matplotlib
     plt.imshow(rgb)
     plt.show()
 
 ```
+Images from ISPRS's Potsdam dataset.
 
-`Footprint(tl=(712441.061695, 281118.139643), br=(712730.051695, 281007.304643), size=(288.990000, 110.835000), rsize=(6422, 2463))`
+`Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/56652243-34924800-668b-11e9-9692-a77e44a05f00.png" width="100%"><br><br>
+  <img src="https://user-images.githubusercontent.com/9285880/57147615-46c96000-6dc8-11e9-9d3c-6f7f105c1867.png" width="100%"><br><br>
 </div>
 
-`Footprint(tl=(712834.451695, 281577.139643), br=(713136.221695, 281294.539643), size=(301.770000, 282.600000), rsize=(6706, 6280))`
+`Footprint(tl=(3171.600000, -1321.500000), br=(4553.400000, -2400.000000), size=(1381.800000, 1078.500000), rsize=(9212, 7190))`
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/56652245-34924800-668b-11e9-8a9d-7f1876c144a5.png" width="65%"><br><br>
+  <img src="https://user-images.githubusercontent.com/9285880/57147617-4761f680-6dc8-11e9-8cc1-129e6a182186.png" width="65%"><br><br>
 </div>
 
 ## How to create files and manipulate _Footprints_
@@ -316,4 +317,3 @@ See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 - [TODO](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f) on `notion.so`
 
 ------------------------------------------------------------------------------------------------------------------------
-
