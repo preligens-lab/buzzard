@@ -38,7 +38,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    # 'sphinx.ext.autosectionlabel',
+    'sphinx.ext.autosectionlabel',
 ]
 
 # Configure `numpy` style documentation
@@ -240,9 +240,28 @@ todo_include_todos = True
 # -- Additional setup --------------------------------------------------------
 
 def process(app, what, name, obj, options, signature, return_annotation):
-    print(signature, what, name, obj, return_annotation)
-    # return 'aaa', 'bbb'
+    if hasattr(obj, 'mro') and 'ASource' in [o.__name__ for o in obj.mro()]:
+        return '(<implementation detail>)', None
+
+def skip(app, what, name, obj, skip, options):
+    if name in [
+            'create_araster',
+            'create_avector',
+            'open_araster',
+            'open_avector',
+            'proj4_origin',
+            'wkt_origin',
+            'band_schema',
+            'fp_origin',
+            '__module__',
+            '__dict__',
+            '__weakref__',
+            '__doc__',
+    ]:
+        return True
+    return skip
 
 def setup(app):
     app.add_stylesheet('theme_overrides.css')
-    # app.connect('autodoc-process-signature', process)
+    app.connect('autodoc-process-signature', process)
+    app.connect('autodoc-skip-member', skip)

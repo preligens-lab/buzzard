@@ -24,6 +24,7 @@ class AStoredRaster(AStored, ASourceRaster):
         If `fp` is not on the same grid as the destination raster, remapping is automatically
         performed using the `interpolation` algorithm. (It fails if the `allow_interpolation`
         parameter is set to `False` in `Dataset` (default)). When interpolating:
+
         - The nodata values are not interpolated, they are correctly spread to the output.
         - At most one pixel may be lost at edges due to interpolation. Provide more context in
           `array` to compensate this loss.
@@ -46,16 +47,24 @@ class AStoredRaster(AStored, ASourceRaster):
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
             OpenCV method used if intepolation is necessary
         mask: numpy array of shape (Y, X) and dtype `bool` OR inputs accepted by `Footprint.burn_polygons`
+            ..
 
         Channels Parameter
         ------------------
+
+        +-----------------+-------------------------------+----------------+
         | type            | value                         | meaning        |
-        |-----------------|-------------------------------|----------------|
+        +=================+===============================+================+
         | int             | -1                            | All channels   |
+        +-----------------+-------------------------------+----------------+
         | int             | 0, 1, 2, ...                  | Channel `i`    |
+        +-----------------+-------------------------------+----------------+
         | sequence of int | [-1]                          | All channels   |
+        +-----------------+-------------------------------+----------------+
         | sequence of int | [0], [1], [2], ...            | Channel `i`    |
+        +-----------------+-------------------------------+----------------+
         | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels |
+        +-----------------+-------------------------------+----------------+
 
         Caveat
         ------
@@ -147,18 +156,26 @@ class AStoredRaster(AStored, ASourceRaster):
         Parameters
         ----------
         value: nbr
+            ..
         channels: int or sequence of int (see `Channels Parameter` below)
             The channels to be written
 
         Channels Parameter
         ------------------
+
+        +-----------------+-------------------------------+----------------+
         | type            | value                         | meaning        |
-        |-----------------|-------------------------------|----------------|
+        +=================+===============================+================+
         | int             | -1                            | All channels   |
+        +-----------------+-------------------------------+----------------+
         | int             | 0, 1, 2, ...                  | Channel `i`    |
+        +-----------------+-------------------------------+----------------+
         | sequence of int | [-1]                          | All channels   |
+        +-----------------+-------------------------------+----------------+
         | sequence of int | [0], [1], [2], ...            | Channel `i`    |
-        | sequence of int | [0, 1, 2], [0, 2, 0], ...     | Those channels |
+        +-----------------+-------------------------------+----------------+
+        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels |
+        +-----------------+-------------------------------+----------------+
 
         Caveat
         ------

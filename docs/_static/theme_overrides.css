@@ -34,3 +34,7 @@
 .rst-content .class > dt {
     width: 100% !important;
 }
+
+.rst-content dd > p {
+    margin-top: 10px !important;
+}

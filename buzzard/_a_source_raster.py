@@ -61,17 +61,21 @@ class ASourceRaster(ASource):
 
         If `dst_nodata` is provided, nodata pixels are set to `dst_nodata`.
 
-        The alpha channels are currently resampled like any other channels, this behavior may
-        change in the future. To normalize an `rgba` array after a resampling operation, use this
-        piece of code:
-        >>> arr = np.where(arr[..., -1] == 255, arr, 0)
+        .. warning::
+            The alpha channels are currently resampled like any other channels, this behavior may
+            change in the future. To normalize an `rgba` array after a resampling operation, use this
+            piece of code:
 
-        /!\ Bands in GDAL are indexed from 1. Channels in buzzard are indexed from 0.
+            >>> arr = np.where(arr[..., -1] == 255, arr, 0)
+
+        .. warning::
+            Bands in GDAL are indexed from 1. Channels in buzzard are indexed from 0.
 
         Parameters
         ----------
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
+
             If Footprint: return this window from the raster
         channels: int or sequence of int (see `Channels Parameter` below)
             The channels to be read
@@ -85,22 +89,30 @@ class ASourceRaster(ASource):
         Returns
         -------
         array: numpy.ndarray of shape (Y, X) or (Y, X, C)
-            If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `C=1`,
+            - If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `C=1`, \
                (Y, X, C) otherwise.
-            If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
-            If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, C),
+            - If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
+            - If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, C), \
                no matter the size of `C`. Use `channels=[-1]` to get a monad containing all channels.
-            (see `Channels Parameter` below)
 
+            (see :ref:`Channels Parameter` below)
+
+        .. _Channels Parameter:
         Channels Parameter
         ------------------
+        +-----------------+-------------------------------+----------------+---------------------+
         | type            | value                         | meaning        | output shape        |
-        |-----------------|-------------------------------|----------------|---------------------|
+        +=================+===============================+================+=====================+
         | int             | -1                            | All channels   | (Y, X) or (Y, X, C) |
+        +-----------------+-------------------------------+----------------+---------------------+
         | int             | 0, 1, 2, ...                  | Channel `i`    | (Y, X)              |
+        +-----------------+-------------------------------+----------------+---------------------+
         | sequence of int | [-1]                          | All channels   | (Y, X, C)           |
+        +-----------------+-------------------------------+----------------+---------------------+
         | sequence of int | [0], [1], [2], ...            | Channel `i`    | (Y, X, 1)           |
+        +-----------------+-------------------------------+----------------+---------------------+
         | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels | (Y, X, C)           |
+        +-----------------+-------------------------------+----------------+---------------------+
 
         """
         dst_nodata, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
