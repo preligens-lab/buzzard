@@ -25,7 +25,7 @@ class ActorQueriesHandler(object):
 
     # ******************************************************************************************* **
     def ext_receive_new_query(self, queue_wref, max_queue_size, produce_fps,
-                              band_ids, is_flat, dst_nodata, interpolation, parent_uid,
+                              channel_ids, is_flat, dst_nodata, interpolation, parent_uid,
                               key_in_parent):
         """Receive message sent by something else than an actor, still treated synchronously: There
         is a new query.
@@ -39,7 +39,7 @@ class ActorQueriesHandler(object):
            (or behind a `(get|iter)_data`).
         produce_fps: sequence of Footprint
            Parameter of the underlying `(get|iter|queue)_data`
-        band_ids: sequence of int
+        channel_ids: sequence of int
            Parameter of the underlying `(get|iter|queue)_data`
         is_flat: bool
            Parameter of the underlying `(get|iter|queue)_data`
@@ -60,7 +60,7 @@ class ActorQueriesHandler(object):
 
         qi = CachedQueryInfos(
             self._raster, produce_fps,
-            band_ids, is_flat, dst_nodata, interpolation,
+            channel_ids, is_flat, dst_nodata, interpolation,
             max_queue_size,
             parent_uid, key_in_parent,
         )

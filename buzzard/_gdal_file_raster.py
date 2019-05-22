@@ -5,14 +5,14 @@ from osgeo import gdal
 
 from buzzard._a_pooled_emissary_raster import APooledEmissaryRaster, ABackPooledEmissaryRaster
 from buzzard._a_gdal_raster import ABackGDALRaster
-from buzzard._tools import conv
+from buzzard._tools import conv, GDALErrorCatcher
 from buzzard._footprint import Footprint
 
 class GDALFileRaster(APooledEmissaryRaster):
     """Concrete class defining the behavior of a GDAL raster using a file.
 
-    >>> help(DataSource.open_raster)
-    >>> help(DataSource.create_raster)
+    >>> help(Dataset.open_raster)
+    >>> help(Dataset.create_raster)
 
     Features Defined
     ----------------
@@ -38,7 +38,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
                 gt=gdal_ds.GetGeoTransform(),
                 rsize=(gdal_ds.RasterXSize, gdal_ds.RasterYSize),
             )
-            band_schema = self._band_schema_of_gdal_ds(gdal_ds)
+            channels_schema = self._channels_schema_of_gdal_ds(gdal_ds)
             dtype = conv.dtype_of_gdt_downcast(gdal_ds.GetRasterBand(1).DataType)
             sr = gdal_ds.GetProjection()
             if sr == '':
@@ -49,7 +49,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
         super(BackGDALFileRaster, self).__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
-            band_schema=band_schema,
+            channels_schema=channels_schema,
             dtype=dtype,
             fp_stored=fp_stored,
             mode=mode,
@@ -70,11 +70,17 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
     def delete(self):
         super(BackGDALFileRaster, self).delete()
 
-        dr = gdal.GetDriverByName(self.driver)
-        err = dr.Delete(self.path)
-        if err: # pragma: no cover
-            raise RuntimeError('Could not delete `{}` (gdal error: `{}`)'.format(
-                self.path, str(gdal.GetLastErrorMsg()).strip('\n')
+        success, payload = GDALErrorCatcher(gdal.GetDriverByName, none_is_error=True)(self.driver)
+        if not success: # pragma: no cover
+            raise ValueError('Could not find a driver named `{}` (gdal error: `{}`)'.format(
+                self.driver, payload[1]
+            ))
+        dr = payload
+
+        success, payload = GDALErrorCatcher(dr.Delete, nonzero_int_is_error=True)(self.path)
+        if not success: # pragma: no cover
+            raise RuntimeError('Could not delete `{}` using driver `{}` (gdal error: `{}`)'.format(
+                self.path, dr.ShortName, payload[1]
             ))
 
     def allocator(self):
@@ -83,15 +89,17 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
     @staticmethod
     def open_file(path, driver, options, mode):
         """Open a raster dataset"""
-        gdal_ds = gdal.OpenEx(
+
+        success, payload = GDALErrorCatcher(gdal.OpenEx, none_is_error=True)(
             path,
             conv.of_of_mode(mode) | conv.of_of_str('raster'),
             [driver],
             options,
         )
-
-        if gdal_ds is None: # pragma: no cover
-            raise ValueError('Could not open `{}` with `{}` (gdal error: `{}`)'.format(
-                path, driver, str(gdal.GetLastErrorMsg()).strip('\n')
+        if not success:
+            raise RuntimeError('Could not open `{}` using driver `{}` (gdal error: `{}`)'.format(
+                path, driver, payload[1]
             ))
+        gdal_ds = payload
+
         return gdal_ds

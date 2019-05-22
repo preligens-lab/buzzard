@@ -126,7 +126,7 @@ class ActorReader(object):
             # returned in the output queue
             full_sample_fp = qi.prod[prod_idx].sample_fp
             self._sample_array_per_prod_tile[qi][prod_idx] = np.empty(
-                np.r_[full_sample_fp.shape, len(qi.unique_band_ids)],
+                np.r_[full_sample_fp.shape, len(qi.unique_channel_ids)],
                 self._raster.dtype,
             )
             self._raster.debug_mngr.event(
@@ -189,19 +189,19 @@ class Work(PoolJobWorking):
         if actor._raster.io_pool is None or actor._same_address_space:
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, dst_array_slice,
+                path, cache_fp, actor._raster.dtype, qi.unique_channel_ids, sample_fp, dst_array_slice,
                 actor._back_ds,
             )
         else:
             self.dst_array_slice = dst_array_slice
             func = functools.partial(
                 _cache_file_read,
-                path, cache_fp, actor._raster.dtype, qi.unique_band_ids, sample_fp, None, None,
+                path, cache_fp, actor._raster.dtype, qi.unique_channel_ids, sample_fp, None, None,
             )
         actor._raster.debug_mngr.event('object_allocated', func)
         super().__init__(actor.address, func)
 
-def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_ds_opt):
+def _cache_file_read(path, cache_fp, dtype, channel_ids, sample_fp, dst_opt, back_ds_opt):
     """
     Parameters
     ----------
@@ -210,7 +210,7 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
         Should be the Footprint of the cache file
     dtype: np.dtype
         Should be the dtype of the cache file
-    band_ids: sequence of int
+    channel_ids: sequence of int
     sample_fp: Footprint
         Rect of `cache_fp` to read
     dst_opt: None or np.ndarray
@@ -245,7 +245,7 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
 
         # Allocate if ProcessPool
         if dst_opt is None:
-            dst = np.empty(np.r_[sample_fp.shape, len(band_ids)], dtype)
+            dst = np.empty(np.r_[sample_fp.shape, len(channel_ids)], dtype)
             ret = dst
         else:
             dst = dst_opt
@@ -253,8 +253,8 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
 
         # Perform read
         rtlx, rtly = cache_fp.spatial_to_raster(sample_fp.tl)
-        for i, bi in enumerate(band_ids):
-            b = gdal_ds.GetRasterBand(bi)
+        for i, ci in enumerate(channel_ids):
+            b = gdal_ds.GetRasterBand(ci + 1)
             a = b.ReadAsArray(
                 int(rtlx),
                 int(rtly),
@@ -264,7 +264,7 @@ def _cache_file_read(path, cache_fp, dtype, band_ids, sample_fp, dst_opt, back_d
             )
             del b
             if a is None: # pragma: no cover
-                raise RuntimeError('Could not read band_id {}'.format(bi))
+                raise RuntimeError('Could not read channel_id {}'.format(ci))
     del gdal_ds
 
     # Return

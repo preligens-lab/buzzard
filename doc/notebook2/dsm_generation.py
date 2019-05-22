@@ -57,13 +57,13 @@ def generate_dsm(rsize=(16000, 16000),
     tly = np.random.uniform(32, 111)
     fp = buzz.Footprint(tl=(tlx, tly), size=(w * resolution, l * resolution), rsize=(w, l))
 
-    ds = buzz.DataSource(allow_interpolation=False)
+    ds = buzz.Dataset(allow_interpolation=False)
     filename = f'{uuid.uuid4()}.tif'
     if verbose:
         print(f'  {fp}')
         print('  filename = ' + filename)
 
-    with ds.acreate_raster(filename, fp, dtype='float32', band_count=1, sr=None).close as out:
+    with ds.acreate_raster(filename, fp, dtype='float32', channel_count=1, sr=None).close as out:
         out.set_data(dsm)
     return filename
 

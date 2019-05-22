@@ -9,7 +9,7 @@ from buzzard._debug_observers_manager import DebugObserversManager
 
 VERBOSE = 0
 
-class BackDataSourceSchedulerMixin(object):
+class BackDatasetSchedulerMixin(object):
     """TODO: docstring"""
 
     def __init__(self, ds_id, debug_observers, **kwargs):
@@ -26,7 +26,7 @@ class BackDataSourceSchedulerMixin(object):
         if self._thread is None:
             self._thread = threading.Thread(
                 target=self._exception_catcher,
-                name='DataSource{:#x}Scheduler'.format(self._ds_id),
+                name='Dataset{:#x}Scheduler'.format(self._ds_id),
                 daemon=True,
             )
             self._thread.start()
@@ -40,7 +40,7 @@ class BackDataSourceSchedulerMixin(object):
                 raise self._thread_exn
             else:
                 raise RuntimeError(
-                    "DataSource's scheduler crashed without exception. Did you call `exit()`?"
+                    "Dataset's scheduler crashed without exception. Did you call `exit()`?"
                 )
 
     def put_message(self, msg, check_scheduler_status=True):
@@ -60,15 +60,15 @@ class BackDataSourceSchedulerMixin(object):
         try:
             self._debug_mngr.event('scheduler_starting')
             self._debug_mngr.event('scheduler_activity_update', True)
-            self._scheduler_loop_until_datasource_close()
+            self._scheduler_loop_until_dataset_close()
             self._debug_mngr.event('scheduler_activity_update', False)
             self._debug_mngr.event('scheduler_stopping')
         except Exception as e:
             self._thread_exn = e
             raise
 
-    def _scheduler_loop_until_datasource_close(self):
-        """This is the entry point of a DataSource's scheduler.
+    def _scheduler_loop_until_dataset_close(self):
+        """This is the entry point of a Dataset's scheduler.
         The design of this method would be much better with recursive calls, but much slower too. (maybe)
 
         TODO: Improve main loop perfs
@@ -177,7 +177,7 @@ class BackDataSourceSchedulerMixin(object):
                             delta = (b - a).total_seconds()
                             self._debug_mngr.event('message_passed', dst_actor.__class__.__name__, msg.title, delta)
                             if self._stop:
-                                # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
+                                # Dataset is closing. This is the same as `step 5`. (optimisation purposes)
                                 return
                             if not dst_actor.alive:
                                 # Actor is closing
@@ -226,7 +226,7 @@ class BackDataSourceSchedulerMixin(object):
                     self._debug_mngr.event('message_passed', actor.__class__.__name__, 'nothing', delta)
 
                     if self._stop:
-                        # DataSource is closing. This is the same as `step 5`. (optimisation purposes)
+                        # Dataset is closing. This is the same as `step 5`. (optimisation purposes)
                         return
                     if not actor.alive:
                         # Actor is closing
@@ -253,7 +253,7 @@ class BackDataSourceSchedulerMixin(object):
                 time.sleep(1 / 20) # TODO: Set a better sleep time / make it parameterizable
                 self._debug_mngr.event('scheduler_activity_update', True)
 
-            # Step 5: Check if DataSource was collected
+            # Step 5: Check if Dataset was collected
             if self._stop:
                 return
 

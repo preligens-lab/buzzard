@@ -6,7 +6,6 @@ http://www.gdal.org/ogr__core_8h.html
 
 import datetime
 import json
-import numbers
 import collections
 
 import shapely.wkt as sw
@@ -15,11 +14,11 @@ import numpy as np
 
 # WKB (Well Known Bytes) <-> str **************************************************************** **
 _WKBGEOM_KEYS = [
-    key for key in dir(ogr)
-    if (key.startswith('wkb') and
-        isinstance(getattr(ogr, key), numbers.Integral) and
-        key not in {'wkbXDR', 'wkbNDR'}
-       )
+    key
+    for key in dir(ogr)
+    if key.startswith('wkb') and key not in {'wkbXDR', 'wkbNDR'}
+    for val in [getattr(ogr, key)]
+    if np.all(np.isreal(val))
 ]
 
 _STR_OF_WKBGEOM = {
@@ -207,7 +206,7 @@ def gci_of_str(str_):
 def str_of_gci(gci):
     return _STR_OF_GCI[gci]
 
-# GMF (GDAL Mask Flags) <-> ********************************************************************* **
+# GMF (GDAL Mask Flags) <-> str ***************************************************************** **
 _STR_OF_GMF = {
     gdal.GMF_ALL_VALID: 'all_valid',
     gdal.GMF_PER_DATASET: 'per_dataset',
@@ -237,3 +236,20 @@ def str_of_gmf(gmf):
     if check != gmf:
         raise ValueError('Unknown gmf bits %#x' % gmf)
     return ','.join(l)
+
+# CPLE (Common Portability Library Errors) <-> str ********************************************** **
+_STR_OF_CPLE = {
+    val: key.replace('CPLE_', '')
+    for key in dir(gdal)
+    if key.startswith('CPLE_')
+    for val in [getattr(gdal, key)]
+    if isinstance(val, int)
+}
+
+_CPLE_OF_STR = {v: k for (k, v) in _STR_OF_CPLE.items()}
+
+def cple_of_str(str_):
+    return _CPLE_OF_STR[str_]
+
+def str_of_cple(cple):
+    return _STR_OF_CPLE.get(cple, 'Unknown')

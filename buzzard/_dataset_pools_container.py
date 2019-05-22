@@ -4,7 +4,7 @@ import multiprocessing as mp
 import multiprocessing.pool
 
 class PoolsContainer(object):
-    """Manages thread/process pools and aliases for a DataSource"""
+    """Manages thread/process pools and aliases for a Dataset"""
 
     def __init__(self):
         self._aliases_per_pool = collections.defaultdict(set)
@@ -13,7 +13,7 @@ class PoolsContainer(object):
         self._lock = threading.Lock()
 
     def alias(self, key, pool_or_none):
-        """Register the given pool under the given key in this DataSource. The key can then be
+        """Register the given pool under the given key in this Dataset. The key can then be
         used to refer to that pool from within the async raster constructors.
 
         Parameters
@@ -30,7 +30,7 @@ class PoolsContainer(object):
             self._aliases[key] = pool_or_none
 
     def manage(self, pool):
-        """Add the given pool to the list of pools that must be terminated upon DataSource closing.
+        """Add the given pool to the list of pools that must be terminated upon Dataset closing.
         """
         if not isinstance(pool, (mp.pool.Pool, mp.pool.ThreadPool)): # pragma: no cover
             raise TypeError('Can only manage pools')
@@ -38,7 +38,7 @@ class PoolsContainer(object):
             self._managed_pools.add(pool)
 
     def __len__(self):
-        """Number of pools registered in this DataSource"""
+        """Number of pools registered in this Dataset"""
         with self._lock:
             return len(
                 p
@@ -47,7 +47,7 @@ class PoolsContainer(object):
             )
 
     def __iter__(self):
-        """Generator of pools registered in this DataSource"""
+        """Generator of pools registered in this Dataset"""
         for p in self._aliases_per_pool.keys():
             if p is not None:
                 yield p
@@ -57,11 +57,11 @@ class PoolsContainer(object):
         return self._aliases[key]
 
     def __contains__(self, key):
-        """Is pool or alias registered in this DataSource"""
+        """Is pool or alias registered in this Dataset"""
         with self._lock:
             return key in self._aliases or key in self._aliases_per_pool
 
-    # Private interface with DataSource ********************************************************* **
+    # Private interface with Dataset ********************************************************* **
     def _close(self):
         for pool in self._managed_pools:
             pool.terminate()

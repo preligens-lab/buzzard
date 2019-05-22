@@ -1,7 +1,6 @@
-""">>> help(buzz.DataSource)"""
+""">>> help(buzz.Dataset)"""
 
 # pylint: disable=too-many-lines
-import numbers
 import sys
 import pathlib
 import itertools
@@ -12,35 +11,39 @@ from osgeo import osr
 import numpy as np
 
 from buzzard._tools import conv, deprecation_pool
+from buzzard._tools import GDALErrorCatcher as Catch
+
 from buzzard._footprint import Footprint
 from buzzard import _tools
-from buzzard._datasource_back import BackDataSource
-from buzzard._a_proxy import AProxy
+from buzzard._dataset_back import BackDataset
+from buzzard._a_source import ASource
 from buzzard._gdal_file_raster import GDALFileRaster, BackGDALFileRaster
 from buzzard._gdal_file_vector import GDALFileVector, BackGDALFileVector
 from buzzard._gdal_mem_raster import GDALMemRaster
 from buzzard._gdal_memory_vector import GDALMemoryVector
-from buzzard._datasource_register import DataSourceRegisterMixin
+from buzzard._dataset_register import DatasetRegisterMixin
 from buzzard._numpy_raster import NumpyRaster
 from buzzard._cached_raster_recipe import CachedRasterRecipe
 from buzzard._a_pooled_emissary import APooledEmissary
 import buzzard.utils
 
-class DataSource(DataSourceRegisterMixin):
-    """DataSource is a class that stores references to sources. A source is either a raster, or a
+class Dataset(DatasetRegisterMixin):
+    """Dataset is a class that stores references to sources. A source is either a raster, or a
     vector. It allows quick manipulations by assigning a key to each registered source. It also
     allows inter-sources operations, like:
     - spatial reference harmonization (see `On the fly re-projections in buzzard` below)
-    - workload scheduling on pools (buzzard v0.5)
+    - workload scheduling on pools when using async rasters (see `Scheduler` below)
     - other features in the future (like data visualization)
 
     For actions specific to opened sources, see those classes:
-    - GDALFileRaster,
-    - GDALMemRaster,
-    - NumpyRaster,
-    - CachedRasterRecipe,
-    - GDALFileVector,
-    - GDALMemoryVector.
+    - GDALFileRaster
+    - GDALMemRaster
+    - NumpyRaster
+    - CachedRasterRecipe
+    - GDALFileVector
+    - GDALMemoryVector
+
+    /!\ This class is not equivalent to the `gdal.Dataset` class.
 
     Parameters
     ----------
@@ -62,21 +65,25 @@ class DataSource(DataSourceRegisterMixin):
         Maximum number of pooled sources active at the same time.
         (see `Sources activation / deactivation` below)
     debug_observers: sequence of object
-        Entry points to observe what is happening in the DataSource's sheduler.
+        Entry points to observe what is happening in the Dataset's sheduler.
 
     Example
     -------
     >>> import buzzard as buzz
 
-    Creating a DataSource
-    >>> ds = buzz.DataSource()
+    Creating a Dataset
+    >>> ds = buzz.Dataset()
 
-    Opening two files
-    >>> ds.open_vector('roofs', 'path/to/roofs.shp')
+    Opening a file and registering it under the 'roofs' key
+    >>> r = ds.open_vector('roofs', 'path/to/roofs.shp')
     ... feature_count = len(ds.roofs)
+    ... feature_count = len(ds['roofs'])
+    ... feature_count = len(ds.get('roofs'))
+    ... feature_count = len(r)
 
-    >>> ds.open_raster('dem', 'path/to/dem.tif')
-    ... data_type = ds.dem.dtype
+    Opening a file anonymously
+    >>> r = ds.aopen_raster('path/to/dem.tif')
+    ... data_type = r.dtype
 
     Opening, reading and closing two raster files with context management
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
@@ -113,8 +120,8 @@ class DataSource(DataSourceRegisterMixin):
     by user. Each key identify one source and should thus be unique. There are then three ways to
     access that source:
     - from the object returned by the method that created the source,
-    - from the DataSource with the attribute syntax: `ds.my_source_name`,
-    - from the DataSource with the item syntax: ds["my_source_name"].
+    - from the Dataset with the attribute syntax: `ds.my_source_name`,
+    - from the Dataset with the item syntax: ds["my_source_name"].
     All keys should be unique.
 
     When creating a source anonymously you don't have to provide a key, but the only way to access
@@ -128,13 +135,13 @@ class DataSource(DataSourceRegisterMixin):
     same time (useful to perfom concurrent reads).
 
     Those sources are automatically activated and deactivated given the current needs and
-    constraints. Setting a `max_activated` lower than `np.inf` in the DataSource constructor, will
+    constraints. Setting a `max_activated` lower than `np.inf` in the Dataset constructor, will
     ensure that no more than `max_activated` driver objects are active at the same time, by
     deactivating the LRU ones.
 
     On the fly re-projections in buzzard
     ------------------------------------
-    A DataSource may perform spatial reference conversions on the fly, like a GIS does. Several
+    A Dataset may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
     read operations and write operations, all are performed by the OSR library.
 
@@ -154,7 +161,7 @@ class DataSource(DataSourceRegisterMixin):
 
     ### Terminology
     `sr`: Spatial reference
-    `sr_work`: The sr of all interactions with a DataSource (i.e. Footprints, extents, Polygons...),
+    `sr_work`: The sr of all interactions with a Dataset (i.e. Footprints, extents, Polygons...),
         may be None.
     `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None.
     `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
@@ -166,10 +173,10 @@ class DataSource(DataSourceRegisterMixin):
     `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
         for example useful when an input file can't store a `sr` (e.g. DFX).
 
-    ### DataSource parameters and modes
+    ### Dataset parameters and modes
     | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a source determined                                  |
     |------|---------|-------------|-----------|---------------------------------------------------------------------------------|
-    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this DataSource |
+    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this Dataset |
     | 2    | string  | None        | None      | Use `sr_stored`, if None raises an exception                                    |
     | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                   |
     | 4    | string  | None        | string    | Use `sr_forced`                                                                 |
@@ -187,29 +194,29 @@ class DataSource(DataSourceRegisterMixin):
 
     ### Examples
     mode 1 - No conversions at all
-    >>> ds = buzz.DataSource()
+    >>> ds = buzz.Dataset()
 
     mode 2 - Working with WGS84 coordinates
-    >>> ds = buzz.DataSource(
+    >>> ds = buzz.Dataset(
             sr_work='WGS84',
         )
 
     mode 3 - Working in UTM with DXF files in WGS84 coordinates
-    >>> ds = buzz.DataSource(
+    >>> ds = buzz.Dataset(
             sr_work='EPSG:32632',
             sr_fallback='WGS84',
         )
 
     mode 4 - Working in UTM with unreliable LCC input files
-    >>> ds = buzz.DataSource(
+    >>> ds = buzz.Dataset(
             sr_work='EPSG:32632',
             sr_forced='EPSG:27561',
         )
 
     Scheduler
     ---------
-    To handle *async rasters* living in a DataSource, a thread is to manage requests made to those
-    rasters. It will start as soon as you create an *async raster* and stop when the DataSource is
+    To handle *async rasters* living in a Dataset, a thread is to manage requests made to those
+    rasters. It will start as soon as you create an *async raster* and stop when the Dataset is
     closed or collected. If one of your callbacks to be called by the scheduler raises an exception,
     the scheduler will stop and the exception will be propagated to the main thread as soon as
     possible.
@@ -231,20 +238,20 @@ class DataSource(DataSourceRegisterMixin):
                  max_active=np.inf,
                  debug_observers=(),
                  **kwargs):
-        sr_fallback, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='DataSource.__init__',
+        sr_fallback, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='sr_fallback', old_names={'sr_implicit': '0.4.4'}, context='Dataset.__init__',
             new_name_value=sr_fallback,
             new_name_is_provided=sr_fallback is not None,
             user_kwargs=kwargs,
         )
-        sr_forced, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='DataSource.__init__',
+        sr_forced, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='sr_forced', old_names={'sr_origin': '0.4.4'}, context='Dataset.__init__',
             new_name_value=sr_forced,
             new_name_is_provided=sr_forced is not None,
             user_kwargs=kwargs,
         )
-        max_active, kwargs = deprecation_pool.streamline_with_kwargs(
-            new_name='max_active', old_names={'max_activated': '0.5.0'}, context='DataSource.__init__',
+        max_active, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='max_active', old_names={'max_activated': '0.5.0'}, context='Dataset.__init__',
             new_name_value=max_active,
             new_name_is_provided=max_active != np.inf,
             user_kwargs=kwargs,
@@ -255,18 +262,45 @@ class DataSource(DataSourceRegisterMixin):
             ))
 
         mode = (sr_work is not None, sr_fallback is not None, sr_forced is not None)
+        wkt_work, wkt_fallback, wkt_forced = None, None, None
         if mode == (False, False, False):
             pass
         elif mode == (True, False, False):
-            sr_work = osr.GetUserInputAsWKT(sr_work)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_work)
+            if not success:
+                raise ValueError('Could not transform `sr_work` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_work = payload
         elif mode == (True, True, False):
-            sr_work = osr.GetUserInputAsWKT(sr_work)
-            sr_fallback = osr.GetUserInputAsWKT(sr_fallback)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_work)
+            if not success:
+                raise ValueError('Could not transform `sr_work` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_work = payload
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_fallback)
+            if not success:
+                raise ValueError('Could not transform `sr_fallback` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_fallback = payload
         elif mode == (True, False, True):
-            sr_work = osr.GetUserInputAsWKT(sr_work)
-            sr_forced = osr.GetUserInputAsWKT(sr_forced)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_work)
+            if not success:
+                raise ValueError('Could not transform `sr_work` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_work = payload
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr_forced)
+            if not success:
+                raise ValueError('Could not transform `sr_forced` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt_forced = payload
         else:
             raise ValueError('Bad combination of `sr_*` parameters') # pragma: no cover
+        del sr_work, sr_fallback, sr_forced
 
         if max_active < 1: # pragma: no cover
             raise ValueError('`max_active` should be greater than 1')
@@ -275,10 +309,10 @@ class DataSource(DataSourceRegisterMixin):
         allow_none_geometry = bool(allow_none_geometry)
         analyse_transformation = bool(analyse_transformation)
         self._ds_closed = False
-        self._back = BackDataSource(
-            wkt_work=sr_work,
-            wkt_fallback=sr_fallback,
-            wkt_forced=sr_forced,
+        self._back = BackDataset(
+            wkt_work=wkt_work,
+            wkt_fallback=wkt_fallback,
+            wkt_forced=wkt_forced,
             analyse_transformation=analyse_transformation,
             allow_none_geometry=allow_none_geometry,
             allow_interpolation=allow_interpolation,
@@ -286,18 +320,18 @@ class DataSource(DataSourceRegisterMixin):
             ds_id=id(self),
             debug_observers=debug_observers,
         )
-        super(DataSource, self).__init__()
+        super(Dataset, self).__init__()
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file in this DataSource under `key`. Only metadata are kept in memory.
+        """Open a raster file in this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileRaster)
 
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         driver: string
             gdal driver to use when opening the file
@@ -336,7 +370,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -344,22 +378,24 @@ class DataSource(DataSourceRegisterMixin):
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file anonymously in this DataSource. Only metadata are kept in memory.
+        """Open a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.open_raster
+        See Dataset.open_raster
 
         Example
         ------
         >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
-        >>> file_wkt = ds.ortho.wkt_stored
+        >>> file_wkt = ortho.wkt_stored
 
         """
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
-    def create_raster(self, key, path, fp, dtype, band_count, band_schema=None,
-                      driver='GTiff', options=(), sr=None):
-        """Create a raster file and register it under `key` in this DataSource. Only metadata are
+    def create_raster(self, key, path, fp, dtype, channel_count, channels_schema=None,
+                      driver='GTiff', options=(), sr=None, ow=False, **kwargs):
+        """Create a raster file and register it under `key` in this Dataset. Only metadata are
         kept in memory.
+
+        The raster's values are initialized with `channels_schema['nodata']` or `0`.
 
         >>> help(GDALFileRaster)
         >>> help(GDALMemRaster)
@@ -367,15 +403,15 @@ class DataSource(DataSourceRegisterMixin):
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         fp: Footprint
             Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
-        band_count: integer
-            number of bands
-        band_schema: dict or None
-            Band(s) metadata. (see `Band fields` below)
+        channel_count: integer
+            number of channels
+        channels_schema: dict or None
+            Channel(s) metadata. (see `Channels schema fields` below)
         driver: string
             gdal driver to use when opening the file
             http://www.gdal.org/formats_list.html
@@ -390,25 +426,28 @@ class DataSource(DataSourceRegisterMixin):
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+        ow: bool
+            Overwrite. Whether or not to erase the existing files.
 
         Example
         -------
-        >>> ds.create_raster('out', 'output.tif', ds.dem.fp, 'float32', 1)
-        >>> file_footprint = ds.out.fp
+        >>> ds.create_raster('dem_copy', 'dem_copy.tif', ds.dem.fp, ds.dsm.dtype, len(ds.dem))
+        >>> array = ds.dem.get_data()
+        >>> ds.dem_copy.set_data(array)
 
         Returns
         -------
         one of {GDALFileRaster, GDALMemRaster}
             depending on the `driver` parameter
 
-        Band fields
-        -----------
+        Channel schema fields
+        ---------------------
         Fields:
             'nodata': None or number
             'interpretation': None or str
             'offset': None or number
             'scale': None or number
-            'mask': None or one of ('')
+            'mask': None or str
         Interpretation values:
             undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
             saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
@@ -418,87 +457,111 @@ class DataSource(DataSourceRegisterMixin):
         A field missing or None is kept to default value.
         A field can be passed as:
             a value: All bands are set to this value
-            a sequence of length `band_count` of value: All bands will be set to respective state
+            a sequence of length `channel_count` of value: All bands will be set to respective state
 
         Caveat
         ------
         When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
 
         """
+
+        # Deprecated parameters ************************************************
+        channels_schema, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels_schema', old_names={'band_schema': '0.6.0'},
+            context='Dataset.create_raster',
+            new_name_value=channels_schema,
+            new_name_is_provided=channels_schema is not None,
+            user_kwargs=kwargs,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("create_raster() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
         # Parameter checking ***************************************************
+        ow = bool(ow)
         path = str(path)
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
-        band_count = int(band_count)
-        if band_count <= 0:
-            raise ValueError('`band_count` should be >0')
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        channel_count = int(channel_count)
+        if channel_count <= 0:
+            raise ValueError('`channel_count` should be >0')
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         driver = str(driver)
         options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
 
         if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
+        else:
+            wkt = None
+        del sr
+
+        if wkt is not None:
+            fp = self._back.convert_footprint(fp, wkt)
 
         # Construction dispatch ************************************************
         if driver.lower() == 'mem':
             # TODO for 0.5.0: Check async_ is False
             prox = GDALMemRaster(
-                self, fp, dtype, band_count, band_schema, options, sr
+                self, fp, dtype, channel_count, channels_schema, options, wkt,
             )
         elif True:
             allocator = lambda: BackGDALFileRaster.create_file(
-                path, fp, dtype, band_count, band_schema, driver, options, sr
+                path, fp, dtype, channel_count, channels_schema, driver, options, wkt, ow,
             )
             prox = GDALFileRaster(self, allocator, options, 'w')
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
             self._register([], prox)
         return prox
 
-    def acreate_raster(self, path, fp, dtype, band_count, band_schema=None,
-                       driver='GTiff', options=(), sr=None):
-        """Create a raster file anonymously in this DataSource. Only metadata are kept in memory.
+    def acreate_raster(self, path, fp, dtype, channel_count, channels_schema=None,
+                       driver='GTiff', options=(), sr=None, ow=False, **kwargs):
+        """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.create_raster
+        See Dataset.create_raster
 
         Example
         -------
         >>> mask = ds.acreate_raster('mask.tif', ds.dem.fp, bool, 1, options=['SPARSE_OK=YES'])
         >>> open_options = mask.open_options
 
-        >>> band_schema = {
+        >>> channels_schema = {
         ...     'nodata': -32767,
         ...     'interpretation': ['blackband', 'cyanband'],
         ... }
-        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, band_schema)
-        >>> band_interpretation = out.band_schema['interpretation']
+        >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, channels_schema)
+        >>> band_interpretation = out.channels_schema['interpretation']
 
         """
-        return self.create_raster(_AnonymousSentry(), path, fp, dtype, band_count, band_schema,
-                                  driver, options, sr)
+        return self.create_raster(_AnonymousSentry(), path, fp, dtype, channel_count, channels_schema,
+                                  driver, options, sr, ow, **kwargs)
 
-    def wrap_numpy_raster(self, key, fp, array, band_schema=None, sr=None, mode='w'):
-        """Register a numpy array as a raster under `key` in this DataSource.
+    def wrap_numpy_raster(self, key, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
+        """Register a numpy array as a raster under `key` in this Dataset.
 
         >>> help(NumpyRaster)
 
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
         array: ndarray of shape (Y, X) or (Y, X, C)
-        band_schema: dict or None
-            Band(s) metadata. (see `Band fields` below)
+        channels_schema: dict or None
+            Channel(s) metadata. (see `Channels schema fields` below)
         sr: string or None
             Spatial reference of the new file
 
@@ -513,14 +576,14 @@ class DataSource(DataSourceRegisterMixin):
         -------
         NumpyRaster
 
-        Band fields
-        -----------
+        Channel schema fields
+        ---------------------
         Fields:
             'nodata': None or number
             'interpretation': None or str
             'offset': None or number
             'scale': None or number
-            'mask': None or one of ('')
+            'mask': None or str
         Interpretation values:
             undefined, grayindex, paletteindex, redband, greenband, blueband, alphaband, hueband,
             saturationband, lightnessband, cyanband, magentaband, yellowband, blackband
@@ -530,9 +593,23 @@ class DataSource(DataSourceRegisterMixin):
         A field missing or None is kept to default value.
         A field can be passed as:
             a value: All bands are set to this value
-            a sequence of length `band_count` of value: All bands will be set to respective state
+            a sequence of length `channel_count` of value: All bands will be set to respective state
 
         """
+
+        # Deprecated parameters ************************************************
+        channels_schema, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels_schema', old_names={'band_schema': '0.6.0'},
+            context='Dataset.wrap_numpy_raster',
+            new_name_value=channels_schema,
+            new_name_is_provided=channels_schema is not None,
+            user_kwargs=kwargs,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("wrap_numpy_raster() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
         # Parameter checking ***************************************************
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
@@ -541,37 +618,47 @@ class DataSource(DataSourceRegisterMixin):
             raise ValueError('Incompatible shape between `array` and `fp`')
         if array.ndim not in [2, 3]: # pragma: no cover
             raise ValueError('Array should have 2 or 3 dimensions')
-        band_count = 1 if array.ndim == 2 else array.shape[-1]
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        channel_count = 1 if array.ndim == 2 else array.shape[-1]
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
+        else:
+            wkt = None
+        del sr
         _ = conv.of_of_mode(mode)
 
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
+        if wkt is not None:
+            fp = self._back.convert_footprint(fp, wkt)
 
         # Construction *********************************************************
-        prox = NumpyRaster(self, fp, array, band_schema, sr, mode)
+        prox = NumpyRaster(self, fp, array, channels_schema, wkt, mode)
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
             self._register([], prox)
         return prox
 
-    def awrap_numpy_raster(self, fp, array, band_schema=None, sr=None, mode='w'):
-        """Register a numpy array as a raster anonymously in this DataSource.
+    def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
+        """Register a numpy array as a raster anonymously in this Dataset.
 
-        See DataSource.wrap_numpy_raster
+        See Dataset.wrap_numpy_raster
         """
-        return self.wrap_numpy_raster(_AnonymousSentry(), fp, array, band_schema, sr, mode)
+        return self.wrap_numpy_raster(
+            _AnonymousSentry(), fp, array, channels_schema, sr, mode, **kwargs
+        )
 
     def create_raster_recipe(
             self, key,
 
             # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
+            fp, dtype, channel_count, channels_schema=None, sr=None,
 
             # callbacks running on pool
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
@@ -585,11 +672,11 @@ class DataSource(DataSourceRegisterMixin):
             # misc
             computation_tiles=None, max_computation_size=None,
             max_resampling_size=None, automatic_remapping=True,
-            debug_observers=()
+            debug_observers=(),
     ):
         """/!\ This method is not yet implemented. It is here for documentation purposes.
 
-        Create a *raster recipe* and register it under `key` in this DataSource.
+        Create a *raster recipe* and register it under `key` in this Dataset.
 
         A *raster recipe* implements the same interfaces as all other rasters, but internally it
         computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
@@ -608,9 +695,9 @@ class DataSource(DataSourceRegisterMixin):
             see `create_raster` method
         dtype:
             see `create_raster` method
-        band_count:
+        channel_count:
             see `create_raster` method
-        band_schema:
+        channels_schema:
             see `create_raster` method
         sr:
             see `create_raster` method
@@ -638,7 +725,7 @@ class DataSource(DataSourceRegisterMixin):
         automatic_remapping: bool
             see `Automatic Remapping` below
         debug_observers: sequence of object
-            Entry points that observe what is happening with this raster in the DataSource's scheduler.
+            Entry points that observe what is happening with this raster in the Dataset's scheduler.
 
         Returns
         -------
@@ -665,8 +752,8 @@ class DataSource(DataSourceRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
-        - a single ndarray of shape (Y, X) if only one band was computed
-        - a single ndarray of shape (Y, X, C) if one or more bands were computed
+        - a single ndarray of shape (Y, X) if only one channel was computed
+        - a single ndarray of shape (Y, X, C) if one or more channels were computed
 
         If `computation_pool` points to a process pool, the `compute_array` function must be
         picklable and the `raster` parameter will be None.
@@ -712,8 +799,8 @@ class DataSource(DataSourceRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
-        - a single ndarray of shape (Y, X) if only one band was computed
-        - a single ndarray of shape (Y, X, C) if one or more bands were computed
+        - a single ndarray of shape (Y, X) if only one channel was computed
+        - a single ndarray of shape (Y, X, C) if one or more channels were computed
 
         If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
         the `raster` parameter will be None.
@@ -744,7 +831,7 @@ class DataSource(DataSourceRegisterMixin):
 
         In `queue_data_per_primitive` you declare a `dependee` by giving it a key of your choice and
         the pointer to the `queue_data` method of `dependee` raster. You can parameterize the
-        connection by *currying* the `band`, `dst_nodata`, `interpolation` and `max_queue_size`
+        connection by *currying* the `channels`, `dst_nodata`, `interpolation` and `max_queue_size`
         parameters using `functools.partial`.
 
         The `convert_footprint_per_primitive` dict should contain the same keys as
@@ -753,10 +840,10 @@ class DataSource(DataSourceRegisterMixin):
         data to compute a derived array.
 
         e.g. If the primitive raster is an `rgb` image, and the derived raster only needs the green
-        band but with a context of 10 additional pixels on all 4 sides:
+        channel but with a context of 10 additional pixels on all 4 sides:
         >>> derived = ds.create_raster_recipe(
         ...     # <other parameters>
-        ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, band=2)},
+        ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, channels=1)},
         ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
         ... )
 
@@ -769,10 +856,10 @@ class DataSource(DataSourceRegisterMixin):
           GIL or that leaks memory.
         - `None`, to request the scheduler thread to perform the tasks itself. Should be used when
           the computation is very light.
-        - A _hashable_ (like a _string_), that will map to a pool registered in the _DataSource_. If
-          that key is missing from the _DataSource_, a _ThreadPool_ with
+        - A _hashable_ (like a _string_), that will map to a pool registered in the _Dataset_. If
+          that key is missing from the _Dataset_, a _ThreadPool_ with
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
-          DataSource is closed, the pools instanciated that way will be joined.
+          Dataset is closed, the pools instanciated that way will be joined.
         """
         raise NotImplementedError()
 
@@ -780,7 +867,7 @@ class DataSource(DataSourceRegisterMixin):
             self, key,
 
             # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
+            fp, dtype, channel_count, channels_schema=None, sr=None,
 
             # callbacks running on pool
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
@@ -798,7 +885,7 @@ class DataSource(DataSourceRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a *cached raster recipe* and register it under `key` in this DataSource.
+        """Create a *cached raster recipe* and register it under `key` in this Dataset.
 
         Compared to a `NocacheRasterRecipe`, in a `CachedRasterRecipe` the pixels are never computed
         twice. Cache files are used to store and reuse pixels from computations. The cache can even
@@ -819,9 +906,9 @@ class DataSource(DataSourceRegisterMixin):
             see `create_raster` method
         dtype:
             see `create_raster` method
-        band_count:
+        channel_count:
             see `create_raster` method
-        band_schema:
+        channels_schema:
             see `create_raster` method
         sr:
             see `create_raster` method
@@ -864,18 +951,26 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         # Parameter checking ***************************************************
-        # Classic RasterProxy parameters *******************
+        # Classic RasterSource parameters *******************
         if not isinstance(fp, Footprint): # pragma: no cover
             raise TypeError('`fp` should be a Footprint')
         dtype = np.dtype(dtype)
-        band_count = int(band_count)
-        if band_count <= 0:
-            raise ValueError('`band_count` should be >0')
-        band_schema = _tools.sanitize_band_schema(band_schema, band_count)
+        channel_count = int(channel_count)
+        if channel_count <= 0:
+            raise ValueError('`channel_count` should be >0')
+        channels_schema = _tools.sanitize_channels_schema(channels_schema, channel_count)
         if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
-        if sr is not None:
-            fp = self._back.convert_footprint(fp, sr)
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
+        else:
+            wkt = None
+        del sr
+        if wkt is not None:
+            fp = self._back.convert_footprint(fp, wkt)
 
         # Callables ****************************************
         if compute_array is None:
@@ -910,7 +1005,7 @@ class DataSource(DataSourceRegisterMixin):
         for name, met in queue_data_per_primitive.items():
             primitives_back[name], primitives_kwargs[name] = _tools.shatter_queue_data_method(met, name)
             if primitives_back[name].back_ds is not self._back:
-                raise ValueError('The `{}` primitive comes from another DataSource'.format(
+                raise ValueError('The `{}` primitive comes from another Dataset'.format(
                     name
                 ))
 
@@ -976,7 +1071,7 @@ class DataSource(DataSourceRegisterMixin):
         # Construction *********************************************************
         prox = CachedRasterRecipe(
             self,
-            fp, dtype, band_count, band_schema, sr,
+            fp, dtype, channel_count, channels_schema, wkt,
             compute_array, merge_arrays,
             cache_dir, overwrite,
             primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -986,7 +1081,7 @@ class DataSource(DataSourceRegisterMixin):
             debug_observers,
         )
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -997,7 +1092,7 @@ class DataSource(DataSourceRegisterMixin):
             self,
 
             # raster attributes
-            fp, dtype, band_count, band_schema=None, sr=None,
+            fp, dtype, channel_count, channels_schema=None, sr=None,
 
             # callbacks running on pool
             compute_array=None, merge_arrays=buzzard.utils.concat_arrays,
@@ -1015,13 +1110,13 @@ class DataSource(DataSourceRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a cached raster reciped anonymously in this DataSource.
+        """Create a cached raster reciped anonymously in this Dataset.
 
-        See DataSource.create_cached_raster_recipe
+        See Dataset.create_cached_raster_recipe
         """
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
-            fp, dtype, band_count, band_schema, sr,
+            fp, dtype, channel_count, channels_schema, sr,
             compute_array, merge_arrays,
             cache_dir, ow,
             queue_data_per_primitive, convert_footprint_per_primitive,
@@ -1032,14 +1127,14 @@ class DataSource(DataSourceRegisterMixin):
 
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file in this DataSource under `key`. Only metadata are kept in memory.
+        """Open a vector file in this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileVector)
 
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
         layer: None or int or string
         driver: string
@@ -1066,7 +1161,7 @@ class DataSource(DataSourceRegisterMixin):
         path = str(path)
         if layer is None:
             layer = 0
-        elif isinstance(layer, numbers.Integral):
+        elif np.all(np.isreal(layer)):
             layer = int(layer)
         else:
             layer = str(layer)
@@ -1085,7 +1180,7 @@ class DataSource(DataSourceRegisterMixin):
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
@@ -1093,9 +1188,9 @@ class DataSource(DataSourceRegisterMixin):
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file anonymously in this DataSource. Only metadata are kept in memory.
+        """Open a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.open_vector
+        See Dataset.open_vector
 
         Example
         -------
@@ -1105,10 +1200,10 @@ class DataSource(DataSourceRegisterMixin):
         """
         return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
-    def create_vector(self, key, path, geometry, fields=(), layer=None,
-                      driver='ESRI Shapefile', options=(), sr=None):
-        """Create a vector file and register it under `key` in this DataSource. Only metadata are
-        kept in memory.
+    def create_vector(self, key, path, type, fields=(), layer=None,
+                      driver='ESRI Shapefile', options=(), sr=None, ow=False):
+        """Create an empty vector file and register it under `key` in this Dataset. Only metadata
+        are kept in memory.
 
         >>> help(GDALFileVector)
         >>> help(GDALMemoryVector)
@@ -1116,9 +1211,9 @@ class DataSource(DataSourceRegisterMixin):
         Parameters
         ----------
         key: hashable (like a string)
-            File identifier within DataSource
+            File identifier within Dataset
         path: string
-        geometry: string
+        type: string
             name of a wkb geometry type
             http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
             (see example below)
@@ -1138,6 +1233,8 @@ class DataSource(DataSourceRegisterMixin):
                 if path: Use same projection as file at `path`
                 if textual spatial reference:
                     http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+        ow: bool
+            Overwrite. Whether or not to erase the existing files.
 
         Returns
         -------
@@ -1147,6 +1244,7 @@ class DataSource(DataSourceRegisterMixin):
         -------
         >>> ds.create_vector('lines', '/path/to.shp', 'linestring')
         >>> geometry_type = ds.lines.type
+        >>> ds.lines.insert_data([[0, 0], [1, 1], [1, 2]])
 
         >>> fields = [
             {'name': 'name', 'type': str},
@@ -1156,6 +1254,7 @@ class DataSource(DataSourceRegisterMixin):
         ]
         >>> ds.create_vector('zones', '/path/to.shp', 'polygon', fields)
         >>> field0_type = ds.zones.fields[0]['type']
+        >>> ds.zones.insert_data(shapely.geometry.box(10, 10, 15, 15))
 
         Field attributes
         ----------------
@@ -1186,9 +1285,12 @@ class DataSource(DataSourceRegisterMixin):
         StringList    key: 'stringlist', 'str list'
 
         """
+        type_ = type
+        del type
+
         # Parameter checking ***************************************************
         path = str(path)
-        geometry = conv.str_of_wkbgeom(conv.wkbgeom_of_str(geometry))
+        type_ = conv.str_of_wkbgeom(conv.wkbgeom_of_str(type_))
         fields = _tools.normalize_fields_defn(fields)
         if layer is None:
             layer = '.'.join(os.path.basename(path).split('.')[:-1])
@@ -1196,36 +1298,43 @@ class DataSource(DataSourceRegisterMixin):
             layer = str(layer)
         driver = str(driver)
         options = [str(arg) for arg in options]
-        if sr is not None:
-            sr = osr.GetUserInputAsWKT(sr)
+        ow = bool(ow)
+        if sr is None:
+            wkt = None
+        else:
+            success, payload = Catch(osr.GetUserInputAsWKT, nonzero_int_is_error=True)(sr)
+            if not success:
+                raise ValueError('Could not transform `sr` to `wkt` (gdal error: `{}`)'.format(
+                    payload[1]
+                ))
+            wkt = payload
 
         # Construction dispatch ************************************************
         if driver.lower() == 'memory':
-            # TODO for 0.5.0: Check async_ is False
             allocator = lambda: BackGDALFileVector.create_file(
-                '', geometry, fields, layer, 'Memory', options, sr
+                '', type_, fields, layer, 'Memory', options, wkt, False,
             )
             prox = GDALMemoryVector(self, allocator, options)
         elif True:
             allocator = lambda: BackGDALFileVector.create_file(
-                path, geometry, fields, layer, driver, options, sr
+                path, type_, fields, layer, driver, options, wkt, ow
             )
             prox = GDALFileVector(self, allocator, options, 'w')
         else:
             pass
 
-        # DataSource Registering ***********************************************
+        # Dataset Registering ***********************************************
         if not isinstance(key, _AnonymousSentry):
             self._register([key], prox)
         else:
             self._register([], prox)
         return prox
 
-    def acreate_vector(self, path, geometry, fields=(), layer=None,
-                       driver='ESRI Shapefile', options=(), sr=None):
-        """Create a vector file anonymously in this DataSource. Only metadata are kept in memory.
+    def acreate_vector(self, path, type, fields=(), layer=None,
+                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
+        """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
 
-        See DataSource.create_vector
+        See Dataset.create_vector
 
         Example
         -------
@@ -1233,39 +1342,39 @@ class DataSource(DataSourceRegisterMixin):
         >>> file_proj4 = lines.proj4_stored
 
         """
-        return self.create_vector(_AnonymousSentry(), path, geometry, fields, layer,
-                                  driver, options, sr)
+        return self.create_vector(_AnonymousSentry(), path, type, fields, layer,
+                                  driver, options, sr, ow)
 
-    # Proxy infos ******************************************************************************* **
+    # Source infos ******************************************************************************* **
     def __getitem__(self, key):
-        """Retrieve a proxy from its key"""
-        return self._proxy_of_key[key]
+        """Retrieve a source from its key"""
+        return self._source_of_key[key]
 
     def __contains__(self, item):
-        """Is key or proxy registered in DataSource"""
-        if isinstance(item, AProxy):
-            return item in self._keys_of_proxy
-        return item in self._proxy_of_key
+        """Is key or source registered in Dataset"""
+        if isinstance(item, ASource):
+            return item in self._keys_of_source
+        return item in self._source_of_key
 
     def items(self):
-        """Generate the pair of (keys_of_proxy, proxy) for all proxies"""
-        for proxy, keys in self._keys_of_proxy.items():
-            yield list(keys), proxy
+        """Generate the pair of (keys_of_source, source) for all proxies"""
+        for source, keys in self._keys_of_source.items():
+            yield list(keys), source
 
     def keys(self):
-        """Generate all proxy keys"""
-        for proxy, keys in self._keys_of_proxy.items():
+        """Generate all source keys"""
+        for source, keys in self._keys_of_source.items():
             for key in keys:
                 yield key
 
     def values(self):
         """Generate all proxies"""
-        for proxy, _ in self._keys_of_proxy.items():
-            yield proxy
+        for source, _ in self._keys_of_source.items():
+            yield source
 
     def __len__(self):
-        """Retrieve proxy count registered in this DataSource"""
-        return len(self._keys_of_proxy)
+        """Retrieve source count registered in this Dataset"""
+        return len(self._keys_of_source)
 
     # Pools infos ******************************************************************************* **
     @property
@@ -1284,10 +1393,10 @@ class DataSource(DataSourceRegisterMixin):
 
     @property
     def close(self):
-        """Close the DataSource with a call or a context management.
+        """Close the Dataset with a call or a context management.
         The `close` attribute returns an object that can be both called and used in a with statement
 
-        The DataSource can be closed manually or automatically when garbage collected, it is safer
+        The Dataset can be closed manually or automatically when garbage collected, it is safer
         to do it manually. The steps are:
         - Stopping the scheduler
         - Joining the mp.Pool that have been automatically allocated
@@ -1295,16 +1404,16 @@ class DataSource(DataSourceRegisterMixin):
 
         Examples
         --------
-        >>> ds = buzz.DataSource()
+        >>> ds = buzz.Dataset()
         ... # code...
         ... ds.close()
 
-        >>> with buzz.DataSource().close as ds
+        >>> with buzz.Dataset().close as ds
         ...     # code...
 
         Caveat
         ------
-        When using a scheduler, some memory leaks may still occur after closing a DataSource.
+        When using a scheduler, some memory leaks may still occur after closing a Dataset.
         Possible origins:
         - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
         - Gdal cache not flushed (not a leak)
@@ -1321,11 +1430,11 @@ class DataSource(DataSourceRegisterMixin):
 
         """
         if self._ds_closed:
-            raise RuntimeError("DataSource already closed")
+            raise RuntimeError("Dataset already closed")
 
         def _close():
             if self._ds_closed:
-                raise RuntimeError("DataSource already closed")
+                raise RuntimeError("Dataset already closed")
             self._ds_closed = True
 
             # Tell scheduler to stop, wait until it is done
@@ -1333,15 +1442,15 @@ class DataSource(DataSourceRegisterMixin):
 
             # Safely release all resources
             self._back.pools_container._close()
-            for proxy in list(self._keys_of_proxy.keys()):
-                proxy.close()
+            for source in list(self._keys_of_source.keys()):
+                source.close()
 
         return _CloseRoutine(self, _close)
 
     # Spatial reference getters ***************************************************************** **
     @property
     def proj4(self):
-        """DataSource's work spatial reference in WKT proj4.
+        """Dataset's work spatial reference in WKT proj4.
         Returns None if `mode 1`.
         """
         if self._back.wkt_work is None:
@@ -1350,7 +1459,7 @@ class DataSource(DataSourceRegisterMixin):
 
     @property
     def wkt(self):
-        """DataSource's work spatial reference in WKT format.
+        """Dataset's work spatial reference in WKT format.
         Returns None if `mode 1`.
         """
         return self._back.wkt_work
@@ -1367,7 +1476,7 @@ class DataSource(DataSourceRegisterMixin):
         """
         proxs = [
             prox
-            for prox in self._keys_of_proxy.keys()
+            for prox in self._keys_of_source.keys()
             if isinstance(prox, APooledEmissary)
         ]
         total = len(proxs)
@@ -1391,7 +1500,7 @@ class DataSource(DataSourceRegisterMixin):
 
     def deactivate_all(self):
         """Deactivate all deactivable proxies. Useful to flush all files to disk"""
-        for prox in self._keys_of_proxy.keys():
+        for prox in self._keys_of_source.keys():
             if prox.active:
                 prox.deactivate()
 
@@ -1418,48 +1527,51 @@ class DataSource(DataSourceRegisterMixin):
 
 if sys.version_info < (3, 6):
     # https://www.python.org/dev/peps/pep-0487/
-    for k, v in DataSource.__dict__.items():
+    for k, v in Dataset.__dict__.items():
         if hasattr(v, '__set_name__'):
-            v.__set_name__(DataSource, k)
+            v.__set_name__(Dataset, k)
 
 def open_raster(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_raster`
+    """Shortcut for `Dataset().aopen_raster`
 
-    >>> help(DataSource.open_raster)
+    >>> help(Dataset.open_raster)
     """
-    return DataSource().aopen_raster(*args, **kwargs)
+    return Dataset().aopen_raster(*args, **kwargs)
 
 def open_vector(*args, **kwargs):
-    """Shortcut for `DataSource().aopen_vector`
+    """Shortcut for `Dataset().aopen_vector`
 
-    >>> help(DataSource.open_vector)
+    >>> help(Dataset.open_vector)
     """
-    return DataSource().aopen_vector(*args, **kwargs)
+    return Dataset().aopen_vector(*args, **kwargs)
 
 def create_raster(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_raster`
+    """Shortcut for `Dataset().acreate_raster`
 
-    >>> help(DataSource.create_raster)
+    >>> help(Dataset.create_raster)
     """
-    return DataSource().acreate_raster(*args, **kwargs)
+    return Dataset().acreate_raster(*args, **kwargs)
 
 def create_vector(*args, **kwargs):
-    """Shortcut for `DataSource().acreate_vector`
+    """Shortcut for `Dataset().acreate_vector`
 
-    >>> help(DataSource.create_vector)
+    >>> help(Dataset.create_vector)
     """
-    return DataSource().acreate_vector(*args, **kwargs)
+    return Dataset().acreate_vector(*args, **kwargs)
 
 def wrap_numpy_raster(*args, **kwargs):
-    """Shortcut for `DataSource().awrap_numpy_raster`
+    """Shortcut for `Dataset().awrap_numpy_raster`
 
-    >>> help(DataSource.wrap_numpy_raster)
+    >>> help(Dataset.wrap_numpy_raster)
     """
-    return DataSource().awrap_numpy_raster(*args, **kwargs)
+    return Dataset().awrap_numpy_raster(*args, **kwargs)
 
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
-    '__doc__': DataSource.close.__doc__,
+    '__doc__': Dataset.close.__doc__,
+
 })
+
+DataSource = deprecation_pool.wrap_class(Dataset, 'DataSource', '0.6.0')
 
 class _AnonymousSentry(object):
     """Sentry object used to instanciate anonymous proxies"""

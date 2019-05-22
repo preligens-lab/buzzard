@@ -3,9 +3,9 @@ import numpy as np
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._a_stored import AStored, ABackStored
-from buzzard._a_proxy_raster import AProxyRaster, ABackProxyRaster
+from buzzard._a_source_raster import ASourceRaster, ABackSourceRaster
 
-class AStoredRaster(AStored, AProxyRaster):
+class AStoredRaster(AStored, ASourceRaster):
     """Base abstract class defining the common behavior of all rasters that are stored somewhere
     (like RAM or disk).
 
@@ -14,14 +14,16 @@ class AStoredRaster(AStored, AProxyRaster):
     - Has a `set_data` method that allows to write pixels to storage
     """
 
-    def set_data(self, array, fp=None, band=1, interpolation='cv_area', mask=None):
-        """Write a rectangle of data on several channels to the destination raster. An optional
-        `mask` may be provided to only write certain pixels of `array`.
+    def set_data(self, array, fp=None, channels=None, interpolation='cv_area', mask=None, **kwargs):
+        """Write a rectangle of data to the destination raster. Each channel in `array` is written to
+        one channel in `raster` in the same order as described by the `channels` parameter. An
+        optional `mask` may be provided to only write certain pixels of `array`.
+
         If `fp` is not fully within the destination raster, only the overlapping pixels are
         written.
-        If `fp` is not on the same grid as the destination raster, remapping is performed using
-        `interpolation` algorithm. (It fails if the `allow_interpolation` parameter is set to
-        False in `DataSource` (default)). When remapping:
+        If `fp` is not on the same grid as the destination raster, remapping is automatically
+        performed using the `interpolation` algorithm. (It fails if the `allow_interpolation`
+        parameter is set to `False` in `Dataset` (default)). When interpolating:
         - The nodata values are not interpolated, they are correctly spread to the output.
         - At most one pixel may be lost at edges due to interpolation. Provide more context in
           `array` to compensate this loss.
@@ -34,25 +36,25 @@ class AStoredRaster(AStored, AProxyRaster):
 
         Parameters
         ----------
-        array: numpy.ndarray of shape (Y, X) or (Y, X, B)
-            Input data
+        array: numpy.ndarray of shape (Y, X) or (Y, X, C)
+            The values to be written
         fp: Footprint of shape (Y, X) or None
             If None: write the full source raster
             If Footprint: write this window to the raster
-        band: band ids or sequence of band ids (see `Band Identifiers` below)
+        channels: None or int or slice or sequence of int (see `Channels Parameter` below)
+            The channels to be written.
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
-            Resampling method
-        mask: numpy array of shape (Y, X) and dtype `bool` OR inputs accepted by Footprint.burn_polygons
+            OpenCV method used if intepolation is necessary
+        mask: numpy array of shape (Y, X) and dtype `bool` OR inputs accepted by `Footprint.burn_polygons`
 
-        Band Identifiers
-        ------------
-        | id type    | id value        | meaning          |
-        |------------|-----------------|------------------|
-        | int        | -1              | All bands        |
-        | int        | 1, 2, 3, ...    | Band `i`         |
-        | complex    | -1j             | All bands mask   |
-        | complex    | 0j              | Shared mask band |
-        | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
+        Channels Parameter
+        ------------------
+        | type       | value                                               | meaning        |
+        |------------|-----------------------------------------------------|----------------|
+        | NoneType   | None (default)                                      | All channels   |
+        | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels |
+        | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  |
+        | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels |
 
         Caveat
         ------
@@ -61,8 +63,35 @@ class AStoredRaster(AStored, AProxyRaster):
         driver cache is flushed to disk, call `.close` or `.deactivate` on this Raster.
 
         """
+
         if self.mode != 'w': # pragma: no cover
             raise RuntimeError('Cannot write a read-only raster file')
+
+        def _band_to_channels(val):
+            val = np.asarray(val)
+            if np.array_equal(val, -1):
+                return None
+            if val.ndim == 0:
+                return val - 1
+            if val.ndim != 1:
+                raise ValueError('Error in deprecated `band` parameter')
+            val = [
+                v
+                for v in val
+                for v in (range(len(self)) if v == -1 else [v - 1])
+            ]
+            return val
+        channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.set_data',
+            new_name_value=channels,
+            new_name_is_provided=channels is not None,
+            user_kwargs=kwargs,
+            transform_old=_band_to_channels,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("set_data() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
 
         # Normalize and check fp parameter
         if fp is None:
@@ -70,17 +99,26 @@ class AStoredRaster(AStored, AProxyRaster):
         elif not isinstance(fp, Footprint):
             raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp)) # pragma: no cover
 
-        # Normalize and check band parameter
-        band_ids, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
+        # Normalize and check channels parameter
+        channel_ids, _ = _tools.normalize_channels_parameter(channels, len(self))
+        if len(channel_ids) != len(set(channel_ids)): # pragma: no cover
+            raise ValueError("The `channels` parameter should not reference twice the same channel")
+        del channels
 
         # Normalize and check array parameter
         array = np.atleast_3d(array)
         if array.ndim != 3: # pragma: no cover
-            raise ValueError('Input array should have 2 or 3 dimensions')
+            raise ValueError('Input array should have 2 or 3 dimensions, not {}'.format(array.ndim))
         if array.shape[:2] != tuple(fp.shape): # pragma: no cover
-            raise ValueError('Incompatible shape between input `array` and `fp`')
-        if len(band_ids) != array.shape[-1]: # pragma: no cover
-            raise ValueError('Incompatible number of channels between input `array` and `band`')
+            msg = 'Incompatible shape between input `array` ({}) and `fp` ({})'.format(
+                array.shape[:2], tuple(fp.shape)
+            )
+            raise ValueError(msg)
+        if len(channel_ids) != array.shape[-1]: # pragma: no cover
+            msg = 'Incompatible number of channels between `array` ({}) and `channels` ({})'.format(
+                len(channel_ids), array.shape[-1]
+            )
+            raise ValueError(msg)
 
         # Normalize and check mask parameter
         if mask is not None:
@@ -102,30 +140,30 @@ class AStoredRaster(AStored, AProxyRaster):
         return self._back.set_data(
             array=array,
             fp=fp,
-            band_ids=band_ids,
+            channel_ids=channel_ids,
             interpolation=interpolation,
             mask=mask,
         )
 
-    def fill(self, value, band=1):
-        """Fill bands with value.
+    def fill(self, value, channels=None, **kwargs):
+        """Fill raster with value.
 
         This method is not thread-safe.
 
         Parameters
         ----------
         value: nbr
-        band: band ids or sequence of band ids (see `Band Identifiers` below)
+        channels: int or sequence of int (see `Channels Parameter` below)
+            The channels to be written
 
-        Band Identifiers
-        ------------
-        | id type    | id value        | meaning          |
-        |------------|-----------------|------------------|
-        | int        | -1              | All bands        |
-        | int        | 1, 2, 3, ...    | Band `i`         |
-        | complex    | -1j             | All bands mask   |
-        | complex    | 0j              | Shared mask band |
-        | complex    | 1j, 2j, 3j, ... | Mask of band `i` |
+        Channels Parameter
+        ------------------
+        | type       | value                                               | meaning        |
+        |------------|-----------------------------------------------------|----------------|
+        | NoneType   | None (default)                                      | All channels   |
+        | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels |
+        | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  |
+        | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels |
 
         Caveat
         ------
@@ -137,18 +175,48 @@ class AStoredRaster(AStored, AProxyRaster):
         if self.mode != 'w': # pragma: no cover
             raise RuntimeError('Cannot write a read-only raster file')
 
-        band_ids, _ = _tools.normalize_band_parameter(band, len(self), self.shared_band_id)
+        def _band_to_channels(val):
+            val = np.asarray(val)
+            if np.array_equal(val, -1):
+                return None
+            if val.ndim == 0:
+                return val - 1
+            if val.ndim != 1:
+                raise ValueError('Error in deprecated `band` parameter')
+            val = [
+                v
+                for v in val
+                for v in (range(len(self)) if v == -1 else [v - 1])
+            ]
+            return val
+        channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
+            new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.fill',
+            new_name_value=channels,
+            new_name_is_provided=channels is not None,
+            user_kwargs=kwargs,
+            transform_old=_band_to_channels,
+        )
+        if kwargs: # pragma: no cover
+            raise TypeError("fill() got an unexpected keyword argument '{}'".format(
+                list(kwargs.keys())[0]
+            ))
+
+        channel_ids, _ = _tools.normalize_channels_parameter(channels, len(self))
+        del channels
+        channel_ids = set(channel_ids)
+
+        value = self.dtype.type(value).tolist()
 
         self._back.fill(
             value=value,
-            band_ids=band_ids,
+            channel_ids=channel_ids,
         )
 
-class ABackStoredRaster(ABackStored, ABackProxyRaster):
+class ABackStoredRaster(ABackStored, ABackSourceRaster):
     """Implementation of AStoredRaster's specifications"""
 
-    def set_data(self, array, fp, band_ids, interpolation, mask): # pragma: no cover
+    def set_data(self, array, fp, channels, interpolation, mask, **kwargs): # pragma: no cover
         raise NotImplementedError('ABackStoredRaster.set_data is virtual pure')
 
-    def fill(self, value, band_ids): # pragma: no cover
+    def fill(self, value, channels, **kwargs): # pragma: no cover
         raise NotImplementedError('ABackStoredRaster.fill is virtual pure')

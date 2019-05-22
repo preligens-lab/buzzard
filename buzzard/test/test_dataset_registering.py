@@ -78,7 +78,7 @@ def test_raster(fps, random_path_tif):
         else:
             assert len(ds) == 0
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     # Raster test 1
     test = None
@@ -128,7 +128,7 @@ def test_raster(fps, random_path_tif):
     del ds
     ws = weakref.WeakSet()
     def _test():
-        ds = buzz.DataSource()
+        ds = buzz.Dataset()
         assert len(ds) == len(ws) == 0
 
         prox = ds.create_raster('test', random_path_tif, fps.A, float, 1)
@@ -176,7 +176,7 @@ def test_vector(fps, random_path_shp):
         else:
             assert len(ds) == 0
 
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     # Vector test 1
     test = None
@@ -222,7 +222,7 @@ def test_vector(fps, random_path_shp):
     del ds
     ws = weakref.WeakSet()
     def _test():
-        ds = buzz.DataSource()
+        ds = buzz.Dataset()
         assert len(ds) == len(ws) == 0
 
         prox = ds.create_vector('test', random_path_shp, 'polygon')

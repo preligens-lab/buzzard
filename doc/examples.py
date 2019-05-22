@@ -25,7 +25,7 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
     Why is this file importing gdal?
     --------------------------------
     `wgs84` files are poorly supported by `buzzard`, the library was initially designed to work
-    with metric projections. The use of `gdal.Warp ` inside buzzard.DataSource is planned for a
+    with metric projections. The use of `gdal.Warp ` inside buzzard.Dataset is planned for a
     future version.
     """
 
@@ -84,8 +84,8 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
         if os.path.isfile(dstpath):
             print("  {} already exits".format(dstpath), flush=True)
             return
-        with buzz.Env(significant=10, allow_complex_footprint=True, warnings=False):
-            ds = buzz.DataSource(sr_work='WGS84', analyse_transformation=False)
+        with buzz.Env(significant=10, allow_complex_footprint=True):
+            ds = buzz.Dataset(sr_work='WGS84', analyse_transformation=False)
             ds.open_vector('src', srcpath, driver='GeoJSON')
             ds.open_raster('raster', rgb_wgs84_path)
             ds.create_vector(

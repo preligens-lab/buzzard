@@ -26,7 +26,7 @@ def colorize_mandelbrot(fp, primitive_fps, primitive_arrays, raster):
     return res
 
 def example():
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     # Create a Footprint that ranges from -2 to 2 on both x and y axes
     fp = buzz.Footprint(
@@ -40,7 +40,7 @@ def example():
 
         fp=fp,
         dtype='float32',
-        band_count=1,
+        channel_count=1,
         compute_array=mandelbrot_of_footprint,
 
         cache_dir=CACHE_DIR,
@@ -97,7 +97,7 @@ def example():
         'mand_red',
         fp=fp,
         dtype='uint8',
-        band_count=3,
+        channel_count=3,
         compute_array=colorize_mandelbrot,
         queue_data_per_primitive={'mand': ds.mand_100mpx.queue_data},
         computation_tiles=computation_tiling,
@@ -113,5 +113,5 @@ if __name__ == '__main__':
     if os.path.isdir(CACHE_DIR):
         for path in example_tools.list_cache_files_path_in_dir(CACHE_DIR):
             os.remove(path)
-    with buzz.Env(allow_complex_footprint=True, warnings=False):
+    with buzz.Env(allow_complex_footprint=True):
         example()

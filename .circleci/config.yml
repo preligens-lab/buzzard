@@ -60,7 +60,7 @@ references:
         - repo-v2-
 
   py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py27-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
     py27-dependencies-v7-
@@ -72,7 +72,7 @@ references:
         - *py27_requirements_backup_cache_key
 
   py34_requirements_cache_key: &py34_requirements_cache_key
-    py34-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py34-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py34_requirements_backup_cache_key: &py34_requirements_backup_cache_key
     py34-dependencies-v7-
@@ -84,7 +84,7 @@ references:
         - *py34_requirements_backup_cache_key
 
   py36_requirements_cache_key: &py36_requirements_cache_key
-    py36-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py36-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
     py36-dependencies-v7-
@@ -96,7 +96,7 @@ references:
         - *py36_requirements_backup_cache_key
 
   py37_requirements_cache_key: &py37_requirements_cache_key
-    py37-dependencies-v7-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+    py37-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
 
   py37_requirements_backup_cache_key: &py37_requirements_backup_cache_key
     py37-dependencies-v7-
@@ -128,7 +128,7 @@ jobs:
             mkdir -p venvs/lint
             python -m venv ./venvs/lint
             . venvs/lint/bin/activate
-            pip install -r requirements-dev.txt
+            pip install -r requirements-lint.txt
       - run:
           name: run linter
           command: |
@@ -153,9 +153,7 @@ jobs:
             mkdir -p venvs/27
             virtualenv venvs/27
             . venvs/27/bin/activate
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
+            pip install -r requirements-ci.txt
             if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
       # run tests!
       - run:
@@ -164,7 +162,6 @@ jobs:
           # no coveralls for py27
           command: |
             . venvs/27/bin/activate
-            pip install .
             circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
@@ -178,7 +175,7 @@ jobs:
 
   py34_test:
     <<: *py34_container_config
-    parallelism: 4
+    parallelism: 1
     steps:
       - *restore_repo
       - *py34_restore_dependencies
@@ -188,16 +185,13 @@ jobs:
             mkdir -p venvs/34
             python -m venv ./venvs/34
             . venvs/34/bin/activate
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            pip install .
+            pip install -r requirements-ci.txt
       # run tests!
       - run:
           name: run tests
           command: |
             . venvs/34/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
@@ -210,7 +204,7 @@ jobs:
 
   py36_test:
     <<: *py36_container_config
-    parallelism: 4
+    parallelism: 1
     steps:
       - *restore_repo
       - *py36_restore_dependencies
@@ -220,16 +214,13 @@ jobs:
             mkdir -p venvs/36
             python -m venv ./venvs/36
             . venvs/36/bin/activate
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            pip install .
+            pip install -r requirements-ci.txt
       # run tests!
       - run:
           name: run tests
           command: |
             . venvs/36/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
       - store_artifacts:
           path: test-reports
           destination: test-reports
@@ -242,7 +233,7 @@ jobs:
 
   py37_test:
     <<: *py37_container_config
-    parallelism: 4
+    parallelism: 1
     steps:
       - *restore_repo
       - *py37_restore_dependencies
@@ -255,18 +246,24 @@ jobs:
             # Workaround from https://github.com/PyWavelets/pywt/issues/375
             pip install Cython
             pip install numpy>=1.13
-            pip install gdal==2.4.0 # Fix gdal version, this should match the Dockerfile version
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
-            pip install .
+
+            pip install -r requirements-ci.txt
       # run tests!
       - run:
           name: run tests
           command: |
             . venvs/37/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest --cov=buzzard --cov-report=term --cov-report=xml --junitxml=test-reports/pytest-report.xml
+            python scripts/pytest_parallel.py -x --cov=buzzard --cov-report=term --cov-report=xml:test-reports/coverage.xml --junitxml=test-reports/pytest-report.xml
+            ls -l test-reports
+            # codecov first concatenate the coverage*.xml files and upload it
+            # it does not seem to care about the pytest-report*.xml, is it a problem?
+            # https://circleci.com/gh/airware/buzzard/1564#queue-placeholder/containers/0
+            # It used to upload those.
+            # https://circleci.com/gh/airware/buzzard/1506#artifacts/containers/0
             codecov
+
       - store_artifacts:
+          # We now store the coverage*.xml files, is it a problem?
           path: test-reports
           destination: test-reports
       - store_test_results:

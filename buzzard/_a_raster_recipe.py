@@ -2,7 +2,7 @@ from buzzard._a_async_raster import ABackAsyncRaster, AAsyncRaster
 
 class ARasterRecipe(AAsyncRaster):
     """Base abstract class defining the common behavior of all rasters that compute data on the fly
-    through the DataSource's scheduler.
+    through the Dataset's scheduler.
 
     Features Defined
     ----------------
@@ -11,14 +11,14 @@ class ARasterRecipe(AAsyncRaster):
 
     @property
     def primitives(self):
-        """dict of primitive name to Proxy, deduced from the `queue_data_per_primitive` provided at
+        """dict of primitive name to Source, deduced from the `queue_data_per_primitive` provided at
         construction.
         """
-        # TODO: differenciate `_datasource_register` and `_datasource_back_register`
+        # TODO: differenciate `_dataset_register` and `_dataset_back_register`
         # to lower the complexity of that method
         d = {}
         for key, back in self._back.primitives_back.items():
-            for facade in self._ds._keys_of_proxy.keys():
+            for facade in self._ds._keys_of_source.keys():
                 if facade._back is back:
                     d[key] = facade
                     break
@@ -29,8 +29,8 @@ class ARasterRecipe(AAsyncRaster):
 class ABackRasterRecipe(ABackAsyncRaster):
     """Implementation of ARasterRecipe's specifications"""
     def __init__(self,
-                 band_schema,
-                 band_count,
+                 channels_schema,
+                 channel_count,
                  facade_proxy,
                  computation_pool,
                  merge_pool,
@@ -49,19 +49,19 @@ class ABackRasterRecipe(ABackAsyncRaster):
         self.primitives_kwargs = primitives_kwargs
         self.convert_footprint_per_primitive = convert_footprint_per_primitive
 
-        if 'nodata' not in band_schema:
-            band_schema['nodata'] = [None] * band_count
+        if 'nodata' not in channels_schema:
+            channels_schema['nodata'] = [None] * channel_count
 
-        if 'interpretation' not in band_schema:
-            band_schema['interpretation'] = ['undefined'] * band_count
+        if 'interpretation' not in channels_schema:
+            channels_schema['interpretation'] = ['undefined'] * channel_count
 
-        if 'offset' not in band_schema:
-            band_schema['offset'] = [0.] * band_count
+        if 'offset' not in channels_schema:
+            channels_schema['offset'] = [0.] * channel_count
 
-        if 'scale' not in band_schema:
-            band_schema['scale'] = [1.] * band_count
+        if 'scale' not in channels_schema:
+            channels_schema['scale'] = [1.] * channel_count
 
-        if 'mask' not in band_schema:
-            band_schema['mask'] = ['all_valid']
+        if 'mask' not in channels_schema:
+            channels_schema['mask'] = ['all_valid']
 
-        super().__init__(band_schema=band_schema, **kwargs)
+        super().__init__(channels_schema=channels_schema, **kwargs)

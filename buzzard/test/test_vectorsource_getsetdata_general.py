@@ -69,7 +69,7 @@ def path(suffix, driver):
 
 def test_run(path, driver, fps, test_fields, test_coords_insertion):
     # Step 1 - Build file according to fixture parameters **********************
-    ds = buzz.DataSource()
+    ds = buzz.Dataset()
 
     if test_fields:
         fields = FIELDS
@@ -209,7 +209,7 @@ def _test_fields_read(v, data):
         [[0, 1, 2], -1, ['rarea', 'fpname', 'sqrtarea'], [0, 'fpname', 'sqrtarea'], ['rarea', 1, 2]],
     ]
 
-    # ds = buzz.DataSource()
+    # ds = buzz.Dataset()
     # v = ds.open_vector('v', path, driver=driver)
 
     for query_ways in query_waysssss:
@@ -239,7 +239,7 @@ def _test_fields_read(v, data):
 
 def _test_geom_read(v, fps, data, test_fields):
     """Test many combinations of parameters for iter/get_data/geojson. Only check geometry"""
-    # ds = buzz.DataSource()
+    # ds = buzz.Dataset()
     # v = ds.open_vector('v', path, driver=driver)
 
     queries = _build_geom_read_queries(v, fps, test_fields)
@@ -373,8 +373,8 @@ def _assert_all_list_of_fields_same(llf):
         assert all(val == lf[i] for lf in llf)
 
 def test_value_error(path):
-    ds = buzz.DataSource()
-    v = ds.acreate_vector(path, 'polygon')
+    ds = buzz.Dataset()
+    v = ds.acreate_vector(path, type='polygon')
 
     with pytest.raises(ValueError, match='geom_type'):
         list(v.iter_data(geom_type=''))
@@ -388,3 +388,44 @@ def test_value_error(path):
         list(v.iter_geojson(clip=True))
     with pytest.raises(TypeError, match='a'):
         v.insert_data(42)
+
+def test_iter_data_fields_behavior(path):
+    ds = buzz.Dataset()
+    with ds.acreate_vector(path, fields=[], type='point').remove as v:
+        pt0, pt1 = sg.Point(1, 1), sg.Point(2, 2)
+        v.insert_data(pt0)
+        v.insert_data(pt1)
+        assert list(v.iter_data(None)) == [
+            pt0, pt1
+        ]
+        assert list(v.iter_data(-1)) == [
+            pt0, pt1
+        ]
+        assert list(v.iter_data('')) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([])) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([-1])) == [
+            (pt0,), (pt1,)
+        ]
+    with ds.acreate_vector(path, fields=[dict(name='toto', type=int)], type='point').remove as v:
+        pt0, pt1 = sg.Point(1, 1), sg.Point(2, 2)
+        v.insert_data(pt0, [42])
+        v.insert_data(pt1, [43])
+        assert list(v.iter_data(None)) == [
+            pt0, pt1
+        ]
+        assert list(v.iter_data(-1)) == [
+            (pt0, 42), (pt1, 43)
+        ]
+        assert list(v.iter_data('')) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([])) == [
+            (pt0,), (pt1,)
+        ]
+        assert list(v.iter_data([-1])) == [
+            (pt0, 42), (pt1, 43)
+        ]

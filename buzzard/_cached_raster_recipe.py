@@ -28,12 +28,12 @@ class CachedRasterRecipe(ARasterRecipe):
     """Concrete class defining the behavior of a raster computed on the fly and fills a cache to
     avoid subsequent computations.
 
-    >>> help(DataSource.create_cached_raster_recipe)
+    >>> help(Dataset.create_cached_raster_recipe)
 
     """
     def __init__(
         self, ds,
-        fp, dtype, band_count, band_schema, sr,
+        fp, dtype, channel_count, channels_schema, sr,
         compute_array, merge_arrays,
         cache_dir, overwrite,
         primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -45,7 +45,7 @@ class CachedRasterRecipe(ARasterRecipe):
         back = BackCachedRasterRecipe(
             ds._back,
             weakref.proxy(self),
-            fp, dtype, band_count, band_schema, sr,
+            fp, dtype, channel_count, channels_schema, sr,
             compute_array, merge_arrays,
             cache_dir, overwrite,
             primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -71,7 +71,7 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
 
     def __init__(
         self, back_ds, facade_proxy,
-        fp, dtype, band_count, band_schema, sr,
+        fp, dtype, channel_count, channels_schema, sr,
         compute_array, merge_arrays,
         cache_dir, overwrite,
         primitives_back, primitives_kwargs, convert_footprint_per_primitive,
@@ -81,15 +81,15 @@ class BackCachedRasterRecipe(ABackRasterRecipe):
         debug_observers,
     ):
         super().__init__(
-            # Proxy
+            # Source
             back_ds=back_ds,
             wkt_stored=sr,
 
-            # RasterProxy
-            band_schema=band_schema,
+            # RasterSource
+            channels_schema=channels_schema,
             dtype=dtype,
             fp_stored=fp,
-            band_count=band_count,
+            channel_count=channel_count,
 
             # Recipe
             facade_proxy=facade_proxy,

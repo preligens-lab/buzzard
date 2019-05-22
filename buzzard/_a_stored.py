@@ -1,6 +1,6 @@
-from buzzard._a_proxy import AProxy, ABackProxy
+from buzzard._a_source import ASource, ABackSource
 
-class AStored(AProxy):
+class AStored(ASource):
     """Base abstract class defining the common behavior of all sources that are stored somewhere
     (like RAM or disk).
 
@@ -14,7 +14,7 @@ class AStored(AProxy):
         """Open mode, one of {'r', 'w'}"""
         return self._back.mode
 
-class ABackStored(ABackProxy):
+class ABackStored(ABackSource):
     """Implementation of AStored's specifications"""
 
     def __init__(self, mode, **kwargs):

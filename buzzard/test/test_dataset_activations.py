@@ -17,9 +17,9 @@ from buzzard.test.tools import fpeq
 
 
 def test_vector():
-    ds = buzz.DataSource(max_active=2)
+    ds = buzz.Dataset(max_active=2)
     meta = dict(
-        geometry='point',
+        type='point',
     )
 
     def statuses(*args):
@@ -72,7 +72,7 @@ def test_vector():
         del it
         assert (ds._back.idle_count(r1._back.uid), ds._back.used_count(r1._back.uid), r1.active_count, r1.active) == (1, 0, 1, True)
 
-        # Iteration 4 - try proxy.close
+        # Iteration 4 - try source.close
         it = r1.iter_data()
         next(it)
         assert (ds._back.idle_count(), ds._back.used_count(), ds.active_count) == (0, 1, 1)
@@ -120,9 +120,9 @@ def test_vector_concurrent():
         point, = r1.iter_data(None)
         return point
 
-    ds = buzz.DataSource(max_active=4)
+    ds = buzz.Dataset(max_active=4)
     meta = dict(
-        geometry='point',
+        type='point',
     )
 
     p = mp.pool.ThreadPool(4)
@@ -139,7 +139,7 @@ def test_vector_concurrent():
     p.terminate()
 
 def test_raster():
-    ds = buzz.DataSource(max_activated=2)
+    ds = buzz.DataSource(max_activated=2) # Test deprecated name
     meta = dict(
         fp = buzz.Footprint(
             tl=(1, 1),
@@ -147,7 +147,7 @@ def test_raster():
             rsize=(10, 10),
         ),
         dtype=float,
-        band_count=1,
+        channel_count=1,
     )
 
     def statuses(*args):

@@ -4,8 +4,8 @@ from osgeo import osr
 from buzzard import srs
 from buzzard._footprint import Footprint
 
-class BackDataSourceConversionsMixin(object):
-    """Private mixin for the DataSource class containing the spatial coordinates
+class BackDatasetConversionsMixin(object):
+    """Private mixin for the Dataset class containing the spatial coordinates
     conversion subroutines"""
 
     def __init__(self, wkt_work, wkt_fallback, wkt_forced, analyse_transformation, **kwargs):
@@ -30,7 +30,7 @@ class BackDataSourceConversionsMixin(object):
         self.sr_fallback = sr_fallback
         self.sr_forced = sr_forced
         self.analyse_transformations = analyse_transformation
-        super(BackDataSourceConversionsMixin, self).__init__(**kwargs)
+        super(BackDatasetConversionsMixin, self).__init__(**kwargs)
 
     def get_transforms(self, sr_virtual, rect, rect_from='virtual'):
         """Retrieve the `to_work` and `to_virtual` conversion functions.
@@ -64,33 +64,33 @@ class BackDataSourceConversionsMixin(object):
             elif isinstance(rect, Footprint):
                 if not an.ratio_valid:
                     s = ('Error while checking if on-the-fly reprojection could be performed '
-                         'between between DataSource\'s `sr_work` and raster\'s `sr_virtual`. '
+                         'between between Dataset\'s `sr_work` and raster\'s `sr_virtual`. '
                          'Cause: {} (The reprojection is too lossy).\n'
                          'Solutions:\n'
                          '- Pass those tests by reducing `buzz.env.significant`.\n'
                          '- First reproject the raster (using `gdalwarp` for example).\n'
                          '- Bypass those tests by passing `analyse_transformation=False` to the '
-                         'DataSource\'s constructor.\n'
+                         'Dataset\'s constructor.\n'
                          '- Use smaller coordinates.\n'
                          '- Use different spatial references.\n'
                          '- Avoid reprojections at all.\n'
-                         '>>> help(DataSource) # for more informations.').format(an.messages)
+                         '>>> help(Dataset) # for more informations.').format(an.messages)
                     raise ValueError(s)
             else:
                 minx, maxx, miny, maxy = rect
                 if minx != maxx and miny != maxy and not an.inverse_valid:
                     s = ('Error while checking if on-the-fly reprojection could be performed '
-                         'between between DataSource\'s `sr_work` and vector\'s `sr_virtual`. '
+                         'between between Dataset\'s `sr_work` and vector\'s `sr_virtual`. '
                          'Cause: {} (The reprojection is too lossy).\n'
                          'Cause: The reprojection is too lossy and {}.\n'
                          'Solutions:\n'
                          '- Pass those tests by reducing `buzz.env.significant`.\n'
                          '- Bypass those tests by passing `analyse_transformation=False` to the '
-                         'DataSource\'s constructor.\n'
+                         'Dataset\'s constructor.\n'
                          '- Use smaller coordinates.\n'
                          '- Use different spatial references.\n'
                          '- Avoid reprojections at all.\n'
-                         '>>> help(DataSource) # for more informations.').format(an.messages)
+                         '>>> help(Dataset) # for more informations.').format(an.messages)
                     raise ValueError(s)
 
         return to_work, to_virtual
@@ -153,7 +153,7 @@ class BackDataSourceConversionsMixin(object):
 
         # Mode 2: If stored missing and `ds` does not provide a fallback
         if virtual is None and work is not None:
-            raise ValueError("Missing proxy's spatial reference while using a `mode 2` DataSource")
+            raise ValueError("Missing source's spatial reference while using a `mode 2` Dataset")
 
         # Mode 1:
         if work is None:

@@ -10,7 +10,7 @@ scales         -> full raster:{src.scale}, argument:{dst.scale}
 grids distance -> {tldiff}
 """
 
-_EXN_FORMAT1 = """`allow_interpolation` was set to `False` in `DataSource` constructor. It means that either
+_EXN_FORMAT1 = """`allow_interpolation` was set to `False` in `Dataset` constructor. It means that either
 1. there is a mistake in your code and you did not meant to perform this operation with an unaligned Footprint,
 2. or that you want to perform a resampling operation and that you need `allow_interpolation` to be `True`.
 """
@@ -20,7 +20,7 @@ _EXN_FORMAT2 = """The `interpolation` parameter is None. It means that either
 2. or that you want to perform a resampling operation and that you need `interpolation` to be a string.
 """
 
-class ABackProxyRasterRemapMixin(object):
+class ABackSourceRasterRemapMixin(object):
     """Raster Mixin containing remap subroutine"""
 
     _REMAP_MASK_MODES = frozenset(['dilate', 'erode', ])

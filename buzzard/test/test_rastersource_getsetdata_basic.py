@@ -11,18 +11,18 @@ import tempfile
 import numpy as np
 import pytest
 
-from buzzard import Footprint, DataSource
+from buzzard import Footprint, Dataset
 
 @pytest.fixture(scope='module')
 def ds():
-    return DataSource(allow_interpolation=0)
+    return Dataset(allow_interpolation=0)
 
 @pytest.fixture(scope='module', params=['GTiff', 'MEM', 'numpy'])
 def driver(request):
     return request.param
 
 @pytest.fixture(scope='module', params=[1, 3])
-def band_count(request):
+def channel_count(request):
     return request.param
 
 @pytest.fixture(scope='module', params=['float32', 'uint8'])
@@ -38,27 +38,27 @@ def dst_nodata(request):
     return request.param
 
 @pytest.fixture(scope='module')
-def rast(ds, driver, band_count, dtype, src_nodata):
-    """Fixture for the datasource creation"""
+def rast(ds, driver, channel_count, dtype, src_nodata):
+    """Fixture for the dataset creation"""
     fp = Footprint(
         tl=(100, 110), size=(10, 10), rsize=(10, 10)
     )
     if driver == 'numpy':
         rast = ds.awrap_numpy_raster(
             fp,
-            np.empty(np.r_[fp.shape, band_count], dtype=dtype),
-            band_schema=dict(nodata=src_nodata),
+            np.empty(np.r_[fp.shape, channel_count], dtype=dtype),
+            channels_schema=dict(nodata=src_nodata),
             sr=None,
             mode='w',
         )
     elif driver == 'MEM':
         rast = ds.acreate_raster(
-            '', fp, dtype, band_count, band_schema=dict(nodata=src_nodata), driver='MEM',
+            '', fp, dtype, channel_count, channels_schema=dict(nodata=src_nodata), driver='MEM',
         )
     else:
         path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
         rast = ds.acreate_raster(
-            path, fp, dtype, band_count, band_schema=dict(nodata=src_nodata), driver=driver
+            path, fp, dtype, channel_count, channels_schema=dict(nodata=src_nodata), driver=driver
         )
     yield rast
     if driver in {'numpy', 'MEM'}:
@@ -77,24 +77,6 @@ def dst_arr(rast):
         arr[np.diag_indices(arr.shape[0])] = rast.nodata
     return arr
 
-def test_get_data_band_parameter(rast):
-    band_ids = list(range(1, 1 + len(rast)))
-    flat_requests = [-1] + band_ids
-
-    for band_id in range(1, len(rast) + 1):
-        rast.fill(band=band_id, value=band_id)
-    for flat_request in flat_requests:
-        res1 = rast.get_data(band=flat_request)
-        res2 = rast.get_data(band=[flat_request])
-        assert np.all(np.atleast_3d(res1) == np.atleast_3d(res2))
-        if flat_request == -1 and len(rast) > 1:
-            assert res1.ndim == 3
-        else:
-            assert res1.ndim == 2
-        assert res2.ndim == 3
-        assert res1.shape[:2] == tuple(rast.fp.shape)
-        assert res2.shape[:2] == tuple(rast.fp.shape)
-
 def test_fill(rast):
     for band_id in range(1, len(rast) + 1):
         rast.fill(band=band_id, value=band_id)
@@ -104,7 +86,7 @@ def test_fill(rast):
         )
 
 def test_set_data_whole(rast, dst_arr):
-    rast.set_data(dst_arr, band=-1)
+    rast.set_data(dst_arr, channels=slice(None))
     arr = rast.get_data(band=[-1])
     assert np.all(
         arr == dst_arr
@@ -113,7 +95,7 @@ def test_set_data_whole(rast, dst_arr):
 def test_get_data_dst_nodata(rast, dst_nodata, dst_arr):
     fp = rast.fp.dilate(1)
     inner_slice = rast.fp.slice_in(fp)
-    rast.set_data(dst_arr, band=-1)
+    rast.set_data(dst_arr, channels=None)
 
     arr = rast.get_data(band=[-1], dst_nodata=dst_nodata, fp=fp)
 
@@ -203,3 +185,20 @@ def test_set_data_mask(rast, dst_arr):
         arr = rast.get_data(band=[-1])
         assert np.all(arr[mask] == dst_arr[mask])
         assert np.all(arr[~mask] == 0)
+
+def test_get_data_channel_behavior(rast):
+    c = len(rast)
+    if c == 1:
+        assert rast.get_data(band=-1).shape[2:] == ()
+    else:
+        assert rast.get_data(band=-1).shape[2:] == (c,)
+    assert rast.get_data(band=[-1]).shape[2:] == (c,)
+    assert rast.get_data(band=[1]).shape[2:] == (1,)
+    assert rast.get_data(band=1).shape[2:] == ()
+
+    if len(rast) == 3:
+        for i in range(len(rast)):
+            rast.fill(i * 10, i)
+        assert np.all(rast.get_data(channels=[0, 1, 2]) == [[[0, 10, 20]]])
+        assert np.all(rast.get_data(channels=[2, 1, 0]) == [[[20, 10, 0]]])
+        assert np.all(rast.get_data(channels=[2, 1, 0, 1, 2]) == [[[20, 10, 0, 10, 20]]])

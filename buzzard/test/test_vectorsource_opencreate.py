@@ -21,7 +21,7 @@ from osgeo import gdal
 import shapely.geometry as sg
 
 from .tools import get_srs_by_name, eq
-from buzzard import Footprint, DataSource, srs
+from buzzard import Footprint, Dataset, srs
 
 # SR1 = get_srs_by_name('EPSG:2154')
 SR1 = dict(wkt="""GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]""")
@@ -281,8 +281,6 @@ FIELD_TESTS = [[],
 ]
 ]
 
-int, float
-
 def pytest_generate_tests(metafunc):
     tests = []
 
@@ -338,7 +336,7 @@ def path(driver_file):
 
 def test_file(path, driver_file, gtype, geoms, ftypes, fields):
     driver = driver_file
-    ds = DataSource(allow_none_geometry=1)
+    ds = Dataset(allow_none_geometry=1)
 
     with ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr=SR1['wkt']).close as v:
         for geom in geoms:
@@ -398,14 +396,42 @@ def test_file(path, driver_file, gtype, geoms, ftypes, fields):
         with pytest.raises(RuntimeError):
             v.delete()
 
+    # Test error - driver name
+    with pytest.raises(ValueError, match='driver'):
+        ds.acreate_vector(path, gtype, ftypes, driver='Truc42', options=[], sr=SR1['wkt'])
+
+    # Test error - need overwrite
+    with pytest.raises(RuntimeError, match='overwrite'):
+        ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr=SR1['wkt'], ow=False)
+
+    # Test deletion
     with ds.aopen_vector(path, driver=driver, options=[], mode='w').delete as v:
         assert v.mode == 'w'
-    assert not os.path.isfile(path)
+    assert not os.path.exists(path)
 
+    # Test error - open
+    with pytest.raises(RuntimeError, match='Could not open'):
+        ds.aopen_vector(path, driver=driver)
+
+    # Test error - bad sr
+    with pytest.raises(ValueError, match='wkt'):
+        ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr="ca n'existe pas")
+
+    # Test error - failed file deletion for overwrite
+    if driver.lower() == 'geojson':
+        try:
+            # os.remove(path)
+            os.mkdir(path)
+            os.chmod(path, int('000', 8))
+            with pytest.raises(RuntimeError, match='Could not delete'):
+                ds.acreate_vector(path, gtype, ftypes, driver=driver, options=[], sr=SR1['wkt'], ow=True)
+        finally:
+            os.chmod(path, int('777', 8))
+            os.rmdir(path)
 
 def test_mem(driver_mem, gtype, geoms, ftypes, fields):
     driver = driver_mem
-    ds = DataSource(allow_none_geometry=1)
+    ds = Dataset(allow_none_geometry=1)
 
     with ds.acreate_vector('', gtype, ftypes, driver=driver, options=[], sr=SR1['wkt']).close as v:
         for geom in geoms:

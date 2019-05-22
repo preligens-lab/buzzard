@@ -4,13 +4,13 @@ from osgeo import osr
 
 from buzzard import _tools
 
-class AProxy(object):
-    """Base abstract class defining the common behavior of all sources opened in the DataSource.
+class ASource(object):
+    """Base abstract class defining the common behavior of all sources opened in the Dataset.
 
     Features Defined
     ----------------
     - Has a `stored` spatial reference
-    - Has a `virtual` spatial reference that is influenced by the DataSource's opening mode
+    - Has a `virtual` spatial reference that is influenced by the Dataset's opening mode
     - Can be closed
     """
 
@@ -20,7 +20,7 @@ class AProxy(object):
 
     @property
     def wkt_stored(self):
-        """The spatial reference that can be found in the metadata of a proxy, in wkt format.
+        """The spatial reference that can be found in the metadata of a source, in wkt format.
 
         string or None
         """
@@ -28,7 +28,7 @@ class AProxy(object):
 
     @property
     def proj4_stored(self):
-        """The spatial reference that can be found in the metadata of a proxy, in proj4 format.
+        """The spatial reference that can be found in the metadata of a source, in proj4 format.
 
         string or None
         """
@@ -36,7 +36,7 @@ class AProxy(object):
 
     @property
     def wkt_virtual(self):
-        """The spatial reference considered to be written in the metadata of a proxy, in wkt
+        """The spatial reference considered to be written in the metadata of a source, in wkt
         format.
 
         string or None
@@ -45,7 +45,7 @@ class AProxy(object):
 
     @property
     def proj4_virtual(self):
-        """The spatial reference considered to be written in the metadata of a proxy, in proj4
+        """The spatial reference considered to be written in the metadata of a source, in proj4
         format.
 
         string or None
@@ -53,12 +53,12 @@ class AProxy(object):
         return self._back.proj4_virtual
 
     def get_keys(self):
-        """Get the list of keys under which this proxy is registered to in the DataSource"""
-        return list(self._ds._keys_of_proxy[self])
+        """Get the list of keys under which this source is registered to in the Dataset"""
+        return list(self._ds._keys_of_source[self])
 
     @property
     def close(self):
-        """Close a proxy with a call or a context management.
+        """Close a source with a call or a context management.
         The `close` attribute returns an object that can be both called and used in a with statement
 
         Examples
@@ -93,8 +93,8 @@ class AProxy(object):
         '0.4.4'
     )
 
-class ABackProxy(object):
-    """Implementation of AProxy's specifications"""
+class ABackSource(object):
+    """Implementation of ASource's specifications"""
 
     def __init__(self, back_ds, wkt_stored, rect, **kwargs):
         wkt_virtual = back_ds.virtual_of_stored_given_mode(
@@ -135,11 +135,11 @@ class ABackProxy(object):
         return osr.SpatialReference(self.wkt_stored).ExportToProj4()
 
 _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
-    '__doc__': AProxy.close.__doc__,
+    '__doc__': ASource.close.__doc__,
 })
 
 if sys.version_info < (3, 6):
     # https://www.python.org/dev/peps/pep-0487/
-    for k, v in AProxy.__dict__.items():
+    for k, v in ASource.__dict__.items():
         if hasattr(v, '__set_name__'):
-            v.__set_name__(AProxy, k)
+            v.__set_name__(ASource, k)

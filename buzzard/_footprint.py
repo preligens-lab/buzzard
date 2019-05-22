@@ -5,7 +5,6 @@
 from __future__ import division, print_function
 import logging
 import itertools
-import numbers
 
 import shapely
 import shapely.geometry as sg
@@ -21,6 +20,7 @@ import skimage.morphology as skm
 
 from buzzard import _tools
 from buzzard._tools import conv
+from buzzard._tools import GDALErrorCatcher as Catch
 from buzzard._env import env
 from buzzard._footprint_tile import TileMixin
 from buzzard._footprint_intersection import IntersectionMixin
@@ -233,8 +233,8 @@ class Footprint(TileMixin, IntersectionMixin):
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
-                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(significant_min, env.significant)
+                 'buzz.Env(significant={}) in a `with statement`.'
+            ).format(significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
 
         abstract_grid_density = rect.abstract_grid_density(pxsize.min())
@@ -471,8 +471,8 @@ class Footprint(TileMixin, IntersectionMixin):
                 s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                      'significant digits are necessary to perform this operation, but '
                      '`buzz.env.significant` is set to {}. Increase this value by using '
-                     'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-                ).format(significant_min, env.significant)
+                     'buzz.Env(significant={}) in a `with statement`.'
+                ).format(significant_min, env.significant, env.significant + 1)
                 raise RuntimeError(s)
 
             slack_angles = rect.tr_slack_angles
@@ -1098,15 +1098,15 @@ class Footprint(TileMixin, IntersectionMixin):
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
-                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(self._significant_min, env.significant)
+                 'buzz.Env(significant={}) in a `with statement`.'
+            ).format(significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if env.significant <= other._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
-                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(other._significant_min, env.significant)
+                 'buzz.Env(significant={}) in a `with statement`.'
+            ).format(significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if (self.rsize != other.rsize).any():
             return False
@@ -1130,15 +1130,15 @@ class Footprint(TileMixin, IntersectionMixin):
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
-                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(self._significant_min, env.significant)
+                 'buzz.Env(significant={}) in a `with statement`.'
+            ).format(significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if env.significant <= other._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
-                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(other._significant_min, env.significant)
+                 'buzz.Env(significant={}) in a `with statement`.'
+            ).format(significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
@@ -1233,7 +1233,7 @@ class Footprint(TileMixin, IntersectionMixin):
             dtype = conv.dtype_of_any_downcast(dtype)
 
         # Check op parameter
-        if not isinstance(np.zeros(1, dtype=dtype)[0], numbers.Integral):
+        if not np.issubdtype(dtype, np.integer):
             op = None
 
         xy = other.spatial_to_raster(np.dstack(self.meshgrid_spatial), dtype=dtype, op=op)
@@ -1313,15 +1313,15 @@ class Footprint(TileMixin, IntersectionMixin):
             dtype = conv.dtype_of_any_downcast(dtype)
 
         # Check op parameter
-        if not isinstance(np.zeros(1, dtype=dtype)[0], numbers.Integral):
+        if not np.issubdtype(dtype, np.integer):
             op = None
 
         if env.significant <= self._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
-                 'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(self._significant_min, env.significant)
+                 'buzz.Env(significant={}) in a `with statement`.'
+            ).format(significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         largest_coord = np.abs(self.coords).max()
         spatial_precision = largest_coord * 10 ** -env.significant
@@ -1629,11 +1629,12 @@ class Footprint(TileMixin, IntersectionMixin):
             options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
         else:
             options = ["ATTRIBUTE=val"]
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
-        if err != 0:
-            raise Exception(
-                'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
-            )
+
+        success, payload = Catch(gdal.RasterizeLayer, nonzero_int_is_error=True)(
+            target_ds, [1], rast_mem_lyr, options=options
+        )
+        if not success:
+            raise ValueError('Could not rasterize (gdal error: `{}`)'.format(payload[1]))
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype, copy=False)
 
@@ -1680,12 +1681,14 @@ class Footprint(TileMixin, IntersectionMixin):
         field_defn = ogr.FieldDefn('elev', ogr.OFTReal)
         ogr_lyr.CreateField(field_defn)
 
-        gdal.Polygonize(
+        success, payload = Catch(gdal.Polygonize, nonzero_int_is_error=True)(
             srcBand=source_ds.GetRasterBand(1),
             maskBand=source_ds.GetRasterBand(1),
             outLayer=ogr_lyr,
             iPixValField=0,
         )
+        if not success:
+            raise ValueError('Could not polygonize (gdal error: `{}`)'.format(payload[1]))
         del source_ds
 
         def _polygon_iterator():
@@ -1762,11 +1765,11 @@ class Footprint(TileMixin, IntersectionMixin):
         else:
             options = ["ATTRIBUTE=val"]
 
-        err = gdal.RasterizeLayer(target_ds, [1], rast_mem_lyr, options=options)
-        if err != 0:
-            raise Exception(
-                'Got non-zero result code from gdal.RasterizeLayer (%s)' % str(gdal.GetLastErrorMsg()).strip('\n')
-            )
+        success, payload = Catch(gdal.RasterizeLayer, nonzero_int_is_error=True)(
+            target_ds, [1], rast_mem_lyr, options=options
+        )
+        if not success:
+            raise ValueError('Could not rasterize (gdal error: `{}`)'.format(payload[1]))
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype, copy=False)
 

@@ -15,7 +15,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from buzzard import Footprint, DataSource
+from buzzard import Footprint, Dataset
 
 # CONSTANTS - INTERPOLATIONS ******************************************************************** **
 INTERPOLATIONS = [
@@ -87,7 +87,7 @@ SCENARIOS = [DATA_FULL_LOADING, ZONES_EDGES_TESTS]
 # FIXTURES ************************************************************************************** **
 @pytest.fixture(scope='module')
 def ds():
-    return DataSource(allow_interpolation=1)
+    return Dataset(allow_interpolation=1)
 
 @pytest.fixture(
     scope='module',
@@ -101,27 +101,27 @@ def ds():
     ],
 )
 def rast(request, ds):
-    """Fixture for the datasource creation"""
+    """Fixture for the dataset creation"""
     fp = TIF_FP
-    driver, band_count, dtype, nodata = request.param
+    driver, channel_count, dtype, nodata = request.param
     if driver == 'numpy':
         rast = ds.awrap_numpy_raster(
             fp,
-            np.dstack([TIF_VALUES.copy().astype(dtype=dtype)] * band_count),
-            band_schema=dict(nodata=nodata),
+            np.dstack([TIF_VALUES.copy().astype(dtype=dtype)] * channel_count),
+            channels_schema=dict(nodata=nodata),
             sr=None,
             mode='r',
         )
     elif driver == 'MEM':
         rast = ds.acreate_raster(
-            '', fp, dtype, band_count, band_schema=dict(nodata=nodata), driver='MEM',
+            '', fp, dtype, channel_count, channels_schema=dict(nodata=nodata), driver='MEM',
         )
         for band_id in range(1, len(rast) + 1):
             rast.set_data(TIF_VALUES, band=band_id)
     else:
         path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
         rast = ds.acreate_raster(
-            path, fp, dtype, band_count, band_schema=dict(nodata=nodata), driver=driver
+            path, fp, dtype, channel_count, channels_schema=dict(nodata=nodata), driver=driver
         )
         for band_id in range(1, len(rast) + 1):
             rast.set_data(TIF_VALUES, band=band_id)

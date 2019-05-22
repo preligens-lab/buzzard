@@ -123,3 +123,4 @@ doc/*.shx
 doc/*.prj
 .pytest_cache
 dask-worker-space
+test-reports

@@ -137,7 +137,7 @@ def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
                     acc += tail
         return '{:016x}'.format(np.asscalar(acc))
 
-def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
+def _cache_file_check(cache_fp, path, channel_count, dtype, back_ds_opt):
     checksum = path
     checksum = checksum.split('.')[-2]
     checksum = checksum.split('_')[-1]
@@ -173,9 +173,9 @@ def _cache_file_check(cache_fp, path, band_count, dtype, back_ds_opt):
                 raise RuntimeError('invalid dtype of {}({} instead of {})'.format(
                     path, file_dtype, dtype
                 ))
-            if file_len != band_count: # pragma: no cover
-                raise RuntimeError('invalid band_count of {}({} instead of {})'.format(
-                    path, file_len, band_count
+            if file_len != channel_count: # pragma: no cover
+                raise RuntimeError('invalid channel_count of {}({} instead of {})'.format(
+                    path, file_len, channel_count
                 ))
             del gdal_ds
         except Exception:

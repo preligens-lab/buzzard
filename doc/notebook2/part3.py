@@ -8,7 +8,7 @@ from part1 import test_raster
 
 def main():
     return # None of the features shown here are implemented yet
-    ds = buzz.DataSource(allow_interpolation=True)
+    ds = buzz.Dataset(allow_interpolation=True)
     pixel_per_line = {
         'mand_100px': 10,
         'mand_10kpx': 100,
@@ -29,7 +29,7 @@ def main():
             key,
             fp=fp,
             dtype='float32',
-            band_count=1,
+            channel_count=1,
             compute_array=mandelbrot_of_footprint,
             automatic_remapping=True, # True is the default value
             max_computation_size=128,
@@ -42,7 +42,7 @@ def main():
         'mand',
         fp=ds.mand_10kpx.fp,
         dtype='float32',
-        band_count=1,
+        channel_count=1,
         compute_array=mandelbrot_of_footprint,
         automatic_remapping=False,
         max_computation_size=128,
@@ -110,5 +110,5 @@ def mandelbrot_jit(array, tl, scale, maxit):
 if __name__ == '__main__':
     # Using `allow_complex_footprint` because we are instanciating Footprints
     # with `fp.scale[1] > 0`
-    with buzz.Env(allow_complex_footprint=True, warnings=False):
+    with buzz.Env(allow_complex_footprint=True):
         main()

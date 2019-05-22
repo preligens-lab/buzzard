@@ -1,16 +1,15 @@
 import collections
-import numbers
 import sys
 
 import shapely.geometry as sg
 import numpy as np
 
-from buzzard._a_proxy import AProxy, ABackProxy
+from buzzard._a_source import ASource, ABackSource
 from buzzard import _tools
 from buzzard._footprint import Footprint
 from buzzard._tools import conv
 
-class AProxyVector(AProxy):
+class ASourceVector(ASource):
     """Base abstract class defining the common behavior of all vectors.
 
     Features Defined
@@ -67,7 +66,7 @@ class AProxyVector(AProxy):
         """Return the number of features in vector"""
         return len(self._back)
 
-    def iter_data(self, fields=-1, geom_type='shapely',
+    def iter_data(self, fields=None, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over vector's features
 
@@ -76,7 +75,7 @@ class AProxyVector(AProxy):
         fields: None or string or -1 or sequence of string/int
             Which fields to include in iteration
 
-            if None or empty sequence: No fields included
+            if None, empty sequence or empty string: No fields included
             if -1: All fields included
             if string: Name of fields to include (separated by comma or space)
             if sequence: List of indices / names to include
@@ -103,25 +102,33 @@ class AProxyVector(AProxy):
         slicing: slice
             Slice of the iteration to return. It is applied after spatial filtering
 
-        Returns
-        -------
-        iterable of value:
+        Yields
+        ------
+        feature: geometry or (geometry,) or (geometry, *fields)
+            If `geom_type` is 'shapely', geometry is a `shapely geometry`.
+            If `geom_type` is `coordinates`, geometry is a `nested lists of numpy arrays`.
 
-        | geom_type     | fields | value type                            |
-        |---------------|--------|---------------------------------------|
-        | 'shapely'     | None   | shapely object                        |
-        | 'coordinates' | None   | nested list / numpy arrays            |
-        | 'shapely'     | Some   | (shapely object, *fields)             |
-        | 'coordinates' | Some   | (nested list / numpy arrays, *fields) |
+            If `fields` is not a sequence, `feature` is `geometry` or `(geometry, *fields)`,
+                 depending on the number of fields to yield.
+            If `fields` is a sequence or a string, `feature` is `(geometry,)` or
+                `(geometry, *fields)`. Use `fields=[-1]` to get a monad containing all fields.
 
-        Example
-        -------
+        Examples
+        --------
         >>> for polygon, volume, stock_type in ds.stocks.iter_data('volume,type'):
                 print('area:{}m**2, volume:{}m**3'.format(polygon.area, volume))
 
+        >>> for polygon, in ds.stocks.iter_data([]):
+                print('area:{}m**2'.format(polygon.area))
+
+        >>> for polygon in ds.stocks.iter_data():
+                print('area:{}m**2'.format(polygon.area))
+
         """
         # Normalize and check fields parameter
-        field_indices = list(self._iter_user_intput_field_keys(fields))
+        field_indices, is_flat = _tools.normalize_fields_parameter(
+            fields, self._back.index_of_field_name
+        )
         del fields
 
         # Normalize and check geom_type parameter
@@ -146,13 +153,14 @@ class AProxyVector(AProxy):
 
         for data in self._back.iter_data(geom_type, field_indices, slicing,
                                          mask_poly, mask_rect, clip):
-            if len(field_indices) == 0:
+            if is_flat:
+                assert len(data) == 1, len(data)
                 yield data[0]
             else:
                 yield data
 
     def get_data(self, index, fields=-1, geom_type='shapely', mask=None, clip=False):
-        """Fetch a single feature in vector. See AProxyVector.iter_data"""
+        """Fetch a single feature in vector. See ASourceVector.iter_data"""
         index = int(index)
         for val in self.iter_data(fields, geom_type, mask, clip, slice(index, index + 1, 1)):
             return val
@@ -232,37 +240,12 @@ class AProxyVector(AProxy):
             }
 
     def get_geojson(self, index, mask=None, clip=False):
-        """Fetch a single feature in vector. See AProxyVector.iter_geojson"""
+        """Fetch a single feature in vector. See ASourceVector.iter_geojson"""
         index = int(index)
         for val in self.iter_geojson(mask, clip, slice(index, index + 1, 1)):
             return val
         else: # pragma: no cover
             raise IndexError('Feature `{}` not found'.format(index))
-
-    def _iter_user_intput_field_keys(self, keys):
-        """Used on features reading"""
-        if keys == -1:
-            for i in range(len(self._back.fields)):
-                yield i
-        elif isinstance(keys, str):
-            for str_ in keys.replace(' ', ',').split(','):
-                if str_ != '':
-                    yield self._back.index_of_field_name[str_]
-        elif keys is None:
-            return
-        elif isinstance(keys, collections.Iterable):
-            for val in keys:
-                if isinstance(val, numbers.Number):
-                    val = int(val)
-                    if val >= len(self._back.fields): # pragma: no cover
-                        raise ValueError('Out of bound %d' % val)
-                    yield val
-                elif isinstance(val, str):
-                    yield self._back.index_of_field_name[val]
-                else: # pragma: no cover
-                    raise TypeError('bad type in `fields`')
-        else: # pragma: no cover
-            raise TypeError('bad `fields` type')
 
     @staticmethod
     def _normalize_mask_parameter(mask):
@@ -286,11 +269,11 @@ class AProxyVector(AProxy):
         '0.4.4'
     )
 
-class ABackProxyVector(ABackProxy):
-    """Implementation of AProxyVector's specifications"""
+class ABackSourceVector(ABackSource):
+    """Implementation of ASourceVector's specifications"""
 
     def __init__(self, type, fields, **kwargs):
-        super(ABackProxyVector, self).__init__(**kwargs)
+        super(ABackSourceVector, self).__init__(**kwargs)
         self.type = type
         self.fields = fields
         self.index_of_field_name = {
@@ -305,11 +288,11 @@ class ABackProxyVector(ABackProxy):
 
     @property
     def extent(self): # pragma: no cover
-        raise NotImplementedError('ABackProxyVector.extent is virtual pure')
+        raise NotImplementedError('ABackSourceVector.extent is virtual pure')
 
     @property # pragma: no cover
     def extent_stored(self):
-        raise NotImplementedError('ABackProxyVector.extent_stored is virtual pure')
+        raise NotImplementedError('ABackSourceVector.extent_stored is virtual pure')
 
     @property
     def bounds(self):
@@ -322,13 +305,13 @@ class ABackProxyVector(ABackProxy):
         return np.asarray([extent[0], extent[2], extent[1], extent[3]])
 
     def __len__(self): # pragma: no cover
-        raise NotImplementedError('ABackProxyVector.__len__ is virtual pure')
+        raise NotImplementedError('ABackSourceVector.__len__ is virtual pure')
 
     def iter_data(self, geom_type, field_indices, slicing, mask_poly, mask_rect, clip): # pragma: no cover
-        raise NotImplementedError('ABackProxyVector.iter_data is virtual pure')
+        raise NotImplementedError('ABackSourceVector.iter_data is virtual pure')
 
 if sys.version_info < (3, 6):
     # https://www.python.org/dev/peps/pep-0487/
-    for k, v in AProxyVector.__dict__.items():
+    for k, v in ASourceVector.__dict__.items():
         if hasattr(v, '__set_name__'):
-            v.__set_name__(AProxyVector, k)
+            v.__set_name__(ASourceVector, k)

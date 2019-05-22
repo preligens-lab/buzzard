@@ -21,7 +21,7 @@ DOWNLOAD_POOL = mp.pool.ThreadPool(5)
 def main():
     print("All images shown here belong to ESA/Hubble. See spacetelescope.org.\n")
 
-    ds = buzz.DataSource(allow_interpolation=True)
+    ds = buzz.Dataset(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=True)
 
     # Test 1 - Perform basic tests ****************************************** **
@@ -30,21 +30,21 @@ def main():
     test_raster(ds.andromeda_zoom0)
     example_tools.show_several_images((
         'andromeda_zoom0', ds.andromeda_zoom0.fp,
-        ds.andromeda_zoom0.get_data(band=-1)
+        ds.andromeda_zoom0.get_data()
     ))
     print()
 
     test_raster(ds.andromeda_zoom1)
     example_tools.show_several_images((
         'andromeda_zoom1', ds.andromeda_zoom1.fp,
-        ds.andromeda_zoom1.get_data(band=-1)
+        ds.andromeda_zoom1.get_data()
     ))
     print()
 
     test_raster(ds.andromeda_zoom2)
     example_tools.show_several_images((
         'andromeda_zoom2', ds.andromeda_zoom2.fp,
-        ds.andromeda_zoom2.get_data(band=-1)
+        ds.andromeda_zoom2.get_data()
     ))
     print()
 
@@ -52,30 +52,30 @@ def main():
     print()
     print('Test 2 - Read andromeda 4 times and compare timings')
     with example_tools.Timer() as t:
-        ds.andromeda_zoom5.get_data(band=-1)
+        ds.andromeda_zoom5.get_data()
     print(f'Getting andromeda_zoom5 took {t}, download was performed')
 
     with example_tools.Timer() as t:
-        ds.andromeda_zoom5.get_data(band=-1)
+        ds.andromeda_zoom5.get_data()
     print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
 
     print('Closing and opening andromeda rasters again...')
     ds.close()
-    ds = buzz.DataSource(allow_interpolation=True)
+    ds = buzz.Dataset(allow_interpolation=True)
     open_zoomable_rasters(ds, 'andromeda', overwrite=False)
 
     with example_tools.Timer() as t:
-        ds.andromeda_zoom5.get_data(band=-1)
+        ds.andromeda_zoom5.get_data()
     print(f'Getting andromeda_zoom5 took {t}, cache files validity was checked'
           ' and data was fetched from cache')
 
     with example_tools.Timer() as t:
-        ds.andromeda_zoom5.get_data(band=-1)
+        ds.andromeda_zoom5.get_data()
     print(f'Getting andromeda_zoom5 took {t}, data was directly fetched from cache')
 
     example_tools.show_several_images((
         'andromeda_zoom5', ds.andromeda_zoom5.fp,
-        ds.andromeda_zoom5.get_data(band=-1)
+        ds.andromeda_zoom5.get_data()
     ))
 
     # Test 3 **************************************************************** **
@@ -84,7 +84,7 @@ def main():
     open_zoomable_rasters(ds, 'monocerotis', overwrite=False)
     example_tools.show_several_images((
         'monocerotis_zoom3', ds.monocerotis_zoom3.fp,
-        ds.monocerotis_zoom3.get_data(band=-1)
+        ds.monocerotis_zoom3.get_data()
     ))
 
 def open_zoomable_rasters(ds, name, overwrite):
@@ -100,7 +100,7 @@ def open_zoomable_rasters(ds, name, overwrite):
 
             fp=fp,
             dtype='uint8',
-            band_count=3,
+            channel_count=3,
             compute_array=functools.partial(
                 download_tile,
                 url_per_tile=url_per_tile
@@ -119,5 +119,5 @@ def download_tile(fp, *_, url_per_tile):
     return arr
 
 if __name__ == '__main__':
-    with buzz.Env(allow_complex_footprint=True, warnings=False):
+    with buzz.Env(allow_complex_footprint=True):
         main()

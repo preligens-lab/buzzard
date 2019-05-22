@@ -13,7 +13,7 @@ from . import conv
 
 Footprint, AAsyncRaster = None, None # Lazy import
 
-BAND_SCHEMA_PARAMS = frozenset({
+CHANNELS_SCHEMA_PARAMS = frozenset({
     'nodata', 'interpretation', 'offset', 'scale', 'mask',
 })
 
@@ -37,161 +37,162 @@ def _coro_parameter_0or1dim(val, clean_fn, name):
         yield True
         yield attempt
         return
-    if isinstance(val, str) or not isinstance(val, collections.Iterable):
+    if isinstance(val, str) or not isinstance(val, collections.Iterable): # pragma: no cover
         raise TypeError(
             'Expecting a `{}` or an `sequence of `{}`, found a `{}`'.format(name, name, type(val))
         )
     yield False
     for elt in val:
         attempt = clean_fn(elt)
-        if attempt is None:
+        if attempt is None: # pragma: no cover
             fmt = 'Expecting a `{}` or an `sequence of `{}`, found an `sequence of {}`'
             raise TypeError(fmt.format(name, name, type(elt)))
         yield attempt
 
-def normalize_band_parameter(band, band_count, shared_mask_index):
-    """
-    band: int or complex or iterator over int/complex
-        if int == -1: All bands
-        if int >= 1: Single band index
-        if complex == -1j: All bands' mask
-        if complex == 0j: Shared mask band
-        if complex >= 1j: Single band index (return mask)
-        if iterator: Any combination of the above numbers
-    """
+def normalize_fields_parameter(fields, index_of_field_name):
+    count = len(index_of_field_name)
 
-    def _normalize_value(nbr):
-        if isinstance(nbr, numbers.Integral):
-            nbr = int(nbr)
-            if not (nbr == -1 or 1 <= nbr <= band_count):
-                raise ValueError('band index should be -1 or between 1 and {}'.format(band_count))
-            return nbr
-        elif np.iscomplexobj(nbr) and not isinstance(nbr, collections.Iterable):
-            nbr = complex(nbr)
-            if nbr.real != 0:
-                raise ValueError('imaginary band index should have a real part equal to 0')
-            if not -1 <= nbr.imag <= band_count:
-                raise ValueError('band index should be between 1 and {}'.format(band_count))
-            if not nbr.imag.is_integer():
-                raise ValueError('band index should be a whole number')
-            return nbr
-        elif isinstance(nbr, numbers.Real):
-            nbr = float(nbr)
-            if nbr == -1.:
-                return -1
-            if not 0 < nbr <= band_count:
-                raise ValueError('band index should be between 1 and {}'.format(band_count))
-            if not nbr.is_integer():
-                raise ValueError('band index should be a whole number')
-            return int(nbr)
+    def _normalize_value(val):
+        if np.all(np.isreal(val)) and np.shape(val) == ():
+            val = int(val)
+            if not (val == -1 or 0 <= val < count): # pragma: no cover
+                raise ValueError('field index should be -1 or between 0 and {}'.format(count - 1))
+            return val
+        elif isinstance(val, str): # pragma: no cover
+            if val not in index_of_field_name:
+                raise ValueError('Unknown field name')
+            return val
         return None
 
     def _index_generator(clean_indices_generator):
         for index in clean_indices_generator:
-            if not isinstance(index, int):
-                index = index.imag
+            if isinstance(index, str):
+                yield index_of_field_name[index]
+            elif isinstance(index, int):
                 if index == -1:
-                    for i in range(1, band_count + 1):
-                        yield i * 1j + 0
-                elif index == -0j:
-                    yield shared_mask_index
-                else:
-                    yield index * 1j + 0
-            else:
-                if index == -1:
-                    for i in range(1, band_count + 1):
+                    for i in range(len(index_of_field_name)):
                         yield i
                 else:
                     yield index
+            else: # pragma: no cover
+                assert False, index
 
-    gen = _coro_parameter_0or1dim(band, _normalize_value, 'band index')
+    if fields is None:
+        return [], True
+    if isinstance(fields, str):
+        fields = [
+            f
+            for f in fields.replace(' ', ',').split(',')
+            if f
+        ]
+    gen = _coro_parameter_0or1dim(fields, _normalize_value, 'field index')
     is_flat = next(gen)
     indices = list(_index_generator(gen))
-    if len(indices) == 0:
-        raise ValueError('Empty list of band index')
-    elif len(indices) > 1:
+    if len(indices) > 0:
         is_flat = False
     return indices, is_flat
 
-def sanitize_band_schema(band_schema, band_count):
+def normalize_channels_parameter(channels, channel_count):
+    if channels is None:
+        if channel_count == 1:
+            return [0], True
+        else:
+            return list(range(channel_count)), False
+
+    indices = np.arange(channel_count)
+    indices = indices[channels]
+    indices = np.atleast_1d(indices)
+
+    if isinstance(channels, slice):
+        return indices.tolist(), False
+
+    channels = np.asarray(channels)
+    if not np.issubdtype(channels.dtype, np.number):
+        raise TypeError('`channels` should be None or int or slice or list of int')
+    if channels.ndim == 0:
+        assert len(indices) == 1
+        return indices.tolist(), True
+    return indices.tolist(), False
+
+def sanitize_channels_schema(channels_schema, channel_count):
     """Used on file/recipe creation"""
     ret = {}
 
     def _test_length(val, name):
         count = len(val)
-        if count > band_count: # pragma: no cover
+        if count > channel_count: # pragma: no cover
             raise ValueError('Too many values provided for %s (%d instead of %d)' % (
-                name, count, band_count
+                name, count, channel_count
             ))
-        elif count < band_count: # pragma: no cover
+        elif count < channel_count: # pragma: no cover
             raise ValueError('Not enough values provided for %s (%d instead of %d)' % (
-                name, count, band_count
+                name, count, channel_count
             ))
 
-    if band_schema is None:
+    if channels_schema is None:
         return {}
-    diff = set(band_schema.keys()) - BAND_SCHEMA_PARAMS
+    diff = set(channels_schema.keys()) - CHANNELS_SCHEMA_PARAMS
     if diff: # pragma: no cover
-        raise ValueError('Unknown band_schema keys `%s`' % diff)
+        raise ValueError('Unknown channels_schema keys `%s`' % diff)
 
-    def _normalize_multi_layer(name, val, type_, cleaner, default):
+    def _normalize_multi_layer(name, val, is_type, cleaner, default):
         if val is None:
-            for _ in range(band_count):
+            for _ in range(channel_count):
                 yield default
-        elif isinstance(val, type_):
+        elif is_type(val):
             val = cleaner(val)
-            for _ in range(band_count):
+            for _ in range(channel_count):
                 yield val
         else:
             _test_length(val, name)
             for elt in val:
                 if elt is None:
                     yield default
-                elif isinstance(elt, type_):
+                elif is_type(elt):
                     yield cleaner(elt)
                 else: # pragma: no cover
                     raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
 
-    if 'nodata' in band_schema:
+    if 'nodata' in channels_schema:
         ret['nodata'] = list(_normalize_multi_layer(
             'nodata',
-            band_schema['nodata'],
-            numbers.Number,
-            lambda val: float(val),
+            channels_schema['nodata'],
+            lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
+            lambda x: float(np.asscalar(np.asarray(x))),
             None,
         ))
 
-    if 'interpretation' in band_schema:
-        val = band_schema['interpretation']
+    if 'interpretation' in channels_schema:
+        val = channels_schema['interpretation']
         if isinstance(val, str):
-            ret['interpretation'] = [conv.gci_of_str(val)] * band_count
+            ret['interpretation'] = [conv.gci_of_str(val)] * channel_count
         else:
             _test_length(val, 'nodata')
             ret['interpretation'] = [conv.gci_of_str(elt) for elt in val]
         ret['interpretation'] = [conv.str_of_gci(v) for v in ret['interpretation']]
 
-    if 'offset' in band_schema:
+    if 'offset' in channels_schema:
         ret['offset'] = list(_normalize_multi_layer(
             'offset',
-            band_schema['offset'],
-            numbers.Number,
-            lambda val: float(val),
+            channels_schema['offset'],
+            lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
+            lambda x: float(np.asscalar(np.asarray(x))),
             0.,
         ))
 
-    if 'scale' in band_schema:
+    if 'scale' in channels_schema:
         ret['scale'] = list(_normalize_multi_layer(
             'scale',
-            band_schema['scale'],
-            numbers.Number,
-            lambda val: float(val),
+            channels_schema['scale'],
+            lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
+            lambda x: float(np.asscalar(np.asarray(x))),
             1.,
         ))
 
-    if 'mask' in band_schema:
-        val = band_schema['mask']
+    if 'mask' in channels_schema:
+        val = channels_schema['mask']
         if isinstance(val, str):
-            ret['mask'] = [conv.gmf_of_str(val)] * band_count
+            ret['mask'] = [conv.gmf_of_str(val)] * channel_count
         else:
             _test_length(val, 'mask')
             ret['mask'] = [conv.gmf_of_str(elt) for elt in val]
@@ -266,14 +267,27 @@ class _DeprecationPool(Singleton):
     def wrap_property(self, new_property, deprecation_version):
         return self._PropertyWrapper(new_property, deprecation_version, self._seen)
 
-    def streamline_with_kwargs(self, new_name, old_names, context,
-                               new_name_value, new_name_is_provided, user_kwargs):
+    def wrap_class(self, cls, old_name, deprecation_version):
+        key = (cls, old_name)
+        @functools.wraps(cls.__init__)
+        def _f(*args, **kwargs):
+            if key not in self._seen:
+                self._seen.add(key)
+                logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
+                    old_name, deprecation_version, cls.__name__,
+                ))
+            return cls.__init__(*args, **kwargs)
+        return type(old_name, (cls,), {'__init__': _f})
+
+    def handle_param_renaming_with_kwargs(self, new_name, old_names, context,
+                                          new_name_value, new_name_is_provided, user_kwargs,
+                                          transform_old=lambda x:x):
         """Look for errors with a particular parameter in an invocation
 
         Exemple
         -------
         >>> def fn(newname='default', **kwargs):
-        ...     newname, kwargs = deprecation_pool.streamline_with_kwargs(
+        ...     newname, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
         ...         new_name='newname', old_names={'oldname': '0.2.3'},
         ...         new_name_value=newname, context='the fn function',
         ...         new_name_is_provided=newname != 'default',
@@ -320,12 +334,28 @@ class _DeprecationPool(Singleton):
         key = (context, new_name, n)
         if key not in self._seen:
             self._seen.add(key)
-            logging.warning('`{}` is deprecated since v{}, use `{}` instead'.format(
-                n, old_names[n], new_name,
-            ))
-        v = user_kwargs[n]
+            logging.warning(
+                '`{}` parameter in `{}` is deprecated since v{}, use `{}` instead'.format(
+                    n, context, old_names[n], new_name,
+                )
+            )
+        v = transform_old(user_kwargs[n])
         del user_kwargs[n]
         return v, user_kwargs
+
+    def handle_param_removal_with_kwargs(self, old_names, context, user_kwargs):
+        deprecated_names_used = six.viewkeys(old_names) & six.viewkeys(user_kwargs)
+        if len(deprecated_names_used) == 0:
+            return user_kwargs
+        n = deprecated_names_used.pop()
+        key = (context, n)
+        if key not in self._seen:
+            self._seen.add(key)
+            logging.warning('`{}` parameter in `{}` was removed in v{}'.format(
+                n, context, old_names[n],
+            ))
+        del user_kwargs[n]
+        return user_kwargs
 
 deprecation_pool = _DeprecationPool()
 
@@ -358,15 +388,41 @@ def normalize_fields_defn(fields):
     return [_sanitize_dict(dic) for dic in fields]
 
 # Async rasters ***************************************************************************** **
-def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='cv_area',
-                                max_queue_size=5):
+def parse_queue_data_parameters(context, raster, channels=None, dst_nodata=None,
+                                interpolation='cv_area', max_queue_size=5, **kwargs):
     """Check and transform the last parameters of a `queue_data` method.
-    Default values are duplicated in the CachedRasterRecipe.queue_data method
+    Default values are duplicated in the .queue_data and .iter_data methods
     """
 
-    # Normalize and check band parameter
-    band_ids, is_flat = normalize_band_parameter(band, len(raster), raster.shared_band_id)
-    del band
+    def _band_to_channels(val):
+        val = np.asarray(val)
+        if np.array_equal(val, -1):
+            return None
+        if val.ndim == 0:
+            return val - 1
+        if val.ndim != 1:
+            raise ValueError('Error in deprecated `band` parameter')
+        val = [
+            v
+            for v in val
+            for v in (range(len(self)) if v == -1 else [v - 1])
+        ]
+        return val
+    channels, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
+        new_name='channels', old_names={'band': '0.6.0'}, context='Raster.{}'.format(context),
+        new_name_value=channels,
+        new_name_is_provided=channels is not None,
+        user_kwargs=kwargs,
+        transform_old=_band_to_channels,
+    )
+    if kwargs: # pragma: no cover
+        raise TypeError("{}() got an unexpected keyword argument '{}'".format(
+            context, list(kwargs.keys())[0]
+        ))
+
+    # Normalize and check channels parameter
+    channel_ids, is_flat = normalize_channels_parameter(channels, len(raster))
+    del channels
 
     # Normalize and check dst_nodata parameter
     if dst_nodata is not None:
@@ -388,7 +444,7 @@ def parse_queue_data_parameters(raster, band=1, dst_nodata=None, interpolation='
         raise ValueError('`max_queue_size` should be >0')
 
     return dict(
-        band_ids=band_ids,
+        channel_ids=channel_ids,
         dst_nodata=dst_nodata,
         interpolation=interpolation,
         max_queue_size=max_queue_size,
@@ -433,7 +489,7 @@ def shatter_queue_data_method(met, name):
               'of a scheduler raster'
         raise TypeError(fmt.format(name))
 
-    kwargs = parse_queue_data_parameters(met.__self__, **kwargs)
+    kwargs = parse_queue_data_parameters('create_raster_recipe', met.__self__, **kwargs)
     return met.__self__._back, kwargs
 
 # Tiling checks ********************************************************************************* **
