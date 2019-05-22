@@ -54,7 +54,7 @@ Begining of `README.md`.
 :grey_question: :grey_question: :grey_question:
 - A _python_ library.
 - Primarily designed to hide all cumbersome operations when doing data-science with [GIS](https://en.wikipedia.org/wiki/Geographic_information_system) files.
-- Multipurpose, it can be used in all kind of situations were images or geometries are involved.
+- Multipurpose: it can be used in all kind of situations were images or geometries are involved.
 - A pythonic wrapper for _osgeo_'s _gdal_/_ogr_/_osr_.
 - A solution to work with arbitrary large images by simplifying and automating the manipulation of image slices.
 - Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
