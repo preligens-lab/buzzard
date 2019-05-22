@@ -21,6 +21,8 @@ X python gis raster vector gdal feedback-welcome footprint
 more? less?
 ```
 
+TODO: Update example images URL
+
 ---
 
 Begining of `README.md`.
@@ -99,13 +101,13 @@ Images from ISPRS's Potsdam dataset.
 `Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/57147615-46c96000-6dc8-11e9-9d3c-6f7f105c1867.png" width="80%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex0-img0.jpg" width="80%"><br><br>
 </div>
 
 `Footprint(tl=(3171.600000, -1321.500000), br=(4553.400000, -2400.000000), size=(1381.800000, 1078.500000), rsize=(9212, 7190))`
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/57147617-4761f680-6dc8-11e9-8cc1-129e6a182186.png" width="70%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex0-img1.jpg" width="70%"><br><br>
 </div>
 
 ## How to create files and manipulate _Footprints_
@@ -154,11 +156,11 @@ with buzz.create_vector(path='roads.shp', type='polygon').close as out:
 ```
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/56656251-4b3d9c80-6695-11e9-9a0e-1d9a309ddf03.png" width="80%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex1-img0.jpg" width="80%"><br><br>
 </div>
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/9285880/56656252-4b3d9c80-6695-11e9-80cd-84365dd68f91.png" width="80%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex1-img1.jpg" width="80%"><br><br>
 </div>
 
 ## Advanced examples
