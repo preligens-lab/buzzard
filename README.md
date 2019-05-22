@@ -62,7 +62,7 @@ Begining of `README.md`.
 :grey_question: :grey_question: :grey_question:
 
 ## How to open and read files
-This example demonstrates how to visualize a large raster based on polygons.
+This example demonstrates how to visualize a large raster polygon per polygon.
 
 ```py
 import buzzard as buzz
