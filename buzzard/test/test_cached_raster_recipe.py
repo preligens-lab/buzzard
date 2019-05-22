@@ -232,7 +232,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
         # Test channels order versus numpy raster
         r = _open()
         for channels in [
-                0, 1, -1, [-1], [0, 1], [1, 0], [1, 0, 1],
+                0, 1, None, slice(None), [0, 1], [1, 0], [1, 0, 1],
         ]:
             assert np.all(r.get_data(channels=channels) == npr.get_data(channels=channels))
 

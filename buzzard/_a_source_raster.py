@@ -49,7 +49,7 @@ class ASourceRaster(ASource):
         """Return the number of channels"""
         return len(self._back)
 
-    def get_data(self, fp=None, channels=-1, dst_nodata=None, interpolation='cv_area', **kwargs):
+    def get_data(self, fp=None, channels=None, dst_nodata=None, interpolation='cv_area', **kwargs):
         """Read a rectangle of data on several channels from the source raster.
 
         If `fp` is not fully within the source raster, the external pixels are set to nodata. If
@@ -73,7 +73,7 @@ class ASourceRaster(ASource):
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
             If Footprint: return this window from the raster
-        channels: int or sequence of int (see `Channels Parameter` below)
+        channels: None or int or slice or sequence of int (see `Channels Parameter` below)
             The channels to be read
         dst_nodata: nbr or None
             nodata value in output array
@@ -85,22 +85,21 @@ class ASourceRaster(ASource):
         Returns
         -------
         array: numpy.ndarray of shape (Y, X) or (Y, X, C)
-            If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `C=1`,
+            If the `channels` parameter is `None`, the returned array is of shape (Y, X) when `C=1`,
                (Y, X, C) otherwise.
             If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
-            If the `channels` parameter is a sequence, the returned array is always of shape (Y, X, C),
-               no matter the size of `C`. Use `channels=[-1]` to get a monad containing all channels.
+            If the `channels` parameter is a sequence or a slice, the returned array is always of
+               shape (Y, X, C), no matter the size of `C`.
             (see `Channels Parameter` below)
 
         Channels Parameter
         ------------------
-        | type            | value                         | meaning        | output shape        |
-        |-----------------|-------------------------------|----------------|---------------------|
-        | int             | -1                            | All channels   | (Y, X) or (Y, X, C) |
-        | int             | 0, 1, 2, ...                  | Channel `i`    | (Y, X)              |
-        | sequence of int | [-1]                          | All channels   | (Y, X, C)           |
-        | sequence of int | [0], [1], [2], ...            | Channel `i`    | (Y, X, 1)           |
-        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels | (Y, X, C)           |
+        | type       | value                                               | meaning        | output shape        |
+        |------------|-----------------------------------------------------|----------------|---------------------|
+        | NoneType   | None (default)                                      | All channels   | (Y, X) or (Y, X, C) |
+        | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels | (Y, X, C)           |
+        | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  | (Y, X)              |
+        | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels | (Y, X, C)           |
 
         """
         dst_nodata, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
@@ -112,15 +111,22 @@ class ASourceRaster(ASource):
 
         def _band_to_channels(val):
             val = np.asarray(val)
-            val = np.asarray([
-                val[idx] - 1 if val[idx] >= 1 else val[idx]
-                for idx in np.ndindex(val.shape)
-            ]).reshape(val.shape)
+            if np.array_equal(val, -1):
+                return None
+            if val.ndim == 0:
+                return val - 1
+            if val.ndim != 1:
+                raise ValueError('Error in deprecated `band` parameter')
+            val = [
+                v
+                for v in val
+                for v in (range(len(self)) if v == -1 else [v - 1])
+            ]
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.get_data',
             new_name_value=channels,
-            new_name_is_provided=channels != -1,
+            new_name_is_provided=channels is not None,
             user_kwargs=kwargs,
             transform_old=_band_to_channels,
         )

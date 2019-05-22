@@ -86,7 +86,7 @@ def test_fill(rast):
         )
 
 def test_set_data_whole(rast, dst_arr):
-    rast.set_data(dst_arr, band=-1)
+    rast.set_data(dst_arr, channels=slice(None))
     arr = rast.get_data(band=[-1])
     assert np.all(
         arr == dst_arr
@@ -95,7 +95,7 @@ def test_set_data_whole(rast, dst_arr):
 def test_get_data_dst_nodata(rast, dst_nodata, dst_arr):
     fp = rast.fp.dilate(1)
     inner_slice = rast.fp.slice_in(fp)
-    rast.set_data(dst_arr, band=-1)
+    rast.set_data(dst_arr, channels=None)
 
     arr = rast.get_data(band=[-1], dst_nodata=dst_nodata, fp=fp)
 

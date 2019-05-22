@@ -93,31 +93,26 @@ def normalize_fields_parameter(fields, index_of_field_name):
     return indices, is_flat
 
 def normalize_channels_parameter(channels, channel_count):
-    def _normalize_value(val):
-        if np.all(np.isreal(val)) and np.shape(val) == () and np.allclose(val, int(val)):
-            val = int(val)
-            if not (val == -1 or 0 <= val < channel_count): # pragma: no cover
-                raise ValueError('channel index should be -1 or between 0 and {}'.format(channel_count - 1))
-            return val
+    if channels is None:
+        if channel_count == 1:
+            return [0], True
         else:
-            return None
+            return list(range(channel_count)), False
 
-    def _index_generator(clean_indices_generator):
-        for index in clean_indices_generator:
-            if index == -1:
-                for i in range(channel_count):
-                    yield i
-            else:
-                yield index
+    indices = np.arange(channel_count)
+    indices = indices[channels]
+    indices = np.atleast_1d(indices)
 
-    gen = _coro_parameter_0or1dim(channels, _normalize_value, 'channel indices')
-    is_flat = next(gen)
-    indices = list(_index_generator(gen))
-    if len(indices) == 0:
-        raise ValueError('Empty `channels` parameter')
-    elif len(indices) > 1:
-        is_flat = False
-    return indices, is_flat
+    if isinstance(channels, slice):
+        return indices.tolist(), False
+
+    channels = np.asarray(channels)
+    if not np.issubdtype(channels.dtype, np.number):
+        raise TypeError('`channels` should be None or int or slice or list of int')
+    if channels.ndim == 0:
+        assert len(indices) == 1
+        return indices.tolist(), True
+    return indices.tolist(), False
 
 def sanitize_channels_schema(channels_schema, channel_count):
     """Used on file/recipe creation"""
@@ -393,7 +388,7 @@ def normalize_fields_defn(fields):
     return [_sanitize_dict(dic) for dic in fields]
 
 # Async rasters ***************************************************************************** **
-def parse_queue_data_parameters(context, raster, channels=-1, dst_nodata=None,
+def parse_queue_data_parameters(context, raster, channels=None, dst_nodata=None,
                                 interpolation='cv_area', max_queue_size=5, **kwargs):
     """Check and transform the last parameters of a `queue_data` method.
     Default values are duplicated in the .queue_data and .iter_data methods
@@ -401,15 +396,22 @@ def parse_queue_data_parameters(context, raster, channels=-1, dst_nodata=None,
 
     def _band_to_channels(val):
         val = np.asarray(val)
-        val = np.asarray([
-            val[idx] - 1 if val[idx] >= 1 else val[idx]
-            for idx in np.ndindex(val.shape)
-        ]).reshape(val.shape)
+        if np.array_equal(val, -1):
+            return None
+        if val.ndim == 0:
+            return val - 1
+        if val.ndim != 1:
+            raise ValueError('Error in deprecated `band` parameter')
+        val = [
+            v
+            for v in val
+            for v in (range(len(self)) if v == -1 else [v - 1])
+        ]
         return val
     channels, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
         new_name='channels', old_names={'band': '0.6.0'}, context='Raster.{}'.format(context),
         new_name_value=channels,
-        new_name_is_provided=channels != -1,
+        new_name_is_provided=channels is not None,
         user_kwargs=kwargs,
         transform_old=_band_to_channels,
     )
