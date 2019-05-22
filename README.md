@@ -96,7 +96,7 @@ for poly in v.iter_data():
     plt.show()
 
 ```
-Images from ISPRS's Potsdam dataset.
+Images from the ISPRS's Potsdam dataset.
 
 `Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
 
@@ -207,6 +207,9 @@ Additional examples can be found here:
 :grey_question: :grey_question: :grey_question:
 - A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened files in order to share ressources.
 - An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
+<!---
+TODO: Links from github to readthedoc
+-->
 
 :grey_question: :grey_question: :grey_question:
 
