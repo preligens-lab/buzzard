@@ -96,7 +96,7 @@ for poly in v.iter_data():
     plt.show()
 
 ```
-Images from the ISPRS's Potsdam dataset.
+Images from the [ISPRS's Potsdam dataset](http://www2.isprs.org/commissions/comm3/wg4/2d-sem-label-potsdam.html).
 
 `Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
 
