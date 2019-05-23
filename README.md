@@ -87,8 +87,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Open the files. Only files' metadata are read so far
-r = buzz.open_raster('path/to/rgba-image.file')
-v = buzz.open_vector('path/to/polygons.file')
+r = buzz.open_raster('path/to/rgba-image.tif')
+v = buzz.open_vector('path/to/polygons.geojson', driver='GEOJson')
 
 # Load the polygons from disk one by one as shapely objects
 for poly in v.iter_data():
@@ -134,7 +134,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import keras
 
-r = buzz.open_raster('path/to/rgba-image.file')
+r = buzz.open_raster('path/to/rgba-image.tif')
 km = keras.models.load_model('path/to/deep-learning-model.hdf5')
 
 # Chunk the raster's Footprint to Footprints of size
