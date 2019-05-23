@@ -88,7 +88,7 @@ import matplotlib.pyplot as plt
 
 # Open the files. Only files' metadata are read so far
 r = buzz.open_raster('path/to/rgba-image.tif')
-v = buzz.open_vector('path/to/polygons.geojson', driver='GEOJson')
+v = buzz.open_vector('path/to/polygons.geojson', driver='GeoJSON')
 
 # Load the polygons from disk one by one as shapely objects
 for poly in v.iter_data():
