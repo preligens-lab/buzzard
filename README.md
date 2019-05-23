@@ -61,6 +61,23 @@ Begining of `README.md`.
 
 :grey_question: :grey_question: :grey_question:
 
+## `buzzard` contains
+:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
+- a class to open/read/write/create GIS files: [`Dataset`](./buzzard/_dataset.py)
+- a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
+
+:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
+
+:grey_question: :grey_question: :grey_question:
+- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened files in order to share ressources.
+- An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
+<!---
+TODO: Links from github to readthedoc
+-->
+
+:grey_question: :grey_question: :grey_question:
+
+
 ## How to open and read files
 This example demonstrates how to visualize a large raster polygon per polygon.
 
@@ -194,22 +211,6 @@ Additional examples can be found here:
   - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
   - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
 - Spatial reference homogenization between opened files like a GIS software does (beta)
-
-:grey_question: :grey_question: :grey_question:
-
-## `buzzard` contains
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-- a class to open/read/write/create GIS files: [`Dataset`](./buzzard/_dataset.py)
-- a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
-
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-
-:grey_question: :grey_question: :grey_question:
-- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened files in order to share ressources.
-- An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
-<!---
-TODO: Links from github to readthedoc
--->
 
 :grey_question: :grey_question: :grey_question:
 
