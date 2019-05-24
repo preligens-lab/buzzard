@@ -19,15 +19,14 @@ def wkt_of_any(string):
         return out
     else:
         prj = None
-        with Env(_osgeo_use_exceptions=False):
-            gdal_ds = gdal.OpenEx(string, conv.of_of_str('raster'))
-            if gdal_ds is not None:
-                prj = gdal_ds.GetProjection()
-            gdal_ds = gdal.OpenEx(string, conv.of_of_str('vector'))
-            if gdal_ds is not None:
-                lyr = gdal_ds.GetLayerByIndex(0)
-                if lyr is not None:
-                    prj = lyr.GetSpatialRef()
+        gdal_ds = gdal.OpenEx(string, conv.of_of_str('raster'))
+        if gdal_ds is not None:
+            prj = gdal_ds.GetProjection()
+        gdal_ds = gdal.OpenEx(string, conv.of_of_str('vector'))
+        if gdal_ds is not None:
+            lyr = gdal_ds.GetLayerByIndex(0)
+            if lyr is not None:
+                prj = lyr.GetSpatialRef()
         if prj is not None:
             return prj.ExportToWkt()
     raise ValueError('Could not convert to wkt ({})'.format(str(gdal.GetLastErrorMsg()).strip('\n')))
@@ -41,25 +40,24 @@ def wkt_same(a, b):
     return bool(sra.IsSame(srb))
 
 def _details_of_file(path):
-    with Env(_osgeo_use_exceptions=False):
-        gdal_ds = gdal.OpenEx(path, conv.of_of_str('raster'))
-        if gdal_ds is not None:
-            aff = affine.Affine.from_gdal(*gdal_ds.GetGeoTransform())
-            w, h = gdal_ds.RasterXSize, gdal_ds.RasterYSize
-            cx, cy = aff * [w / 2, h / 2]
-            return gdal_ds.GetProjection(), (cx, cy)
-        gdal_ds = gdal.OpenEx(path, conv.of_of_str('vector'))
-        if gdal_ds is not None:
-            lyr = gdal_ds.GetLayerByIndex(0)
-            if lyr is None:
-                raise ValueError('Could not open file layer')
-            extent = lyr.GetExtent()
-            if extent is None:
-                raise ValueError('Could not compute extent')
-            minx, maxx, miny, maxy = extent
-            cx, cy = (maxx + minx) / 2, (maxy + miny) / 2
-            return lyr.GetSpatialRef().ExportToWkt(), (cx, cy)
-        raise ValueError('Could not open file')
+    gdal_ds = gdal.OpenEx(path, conv.of_of_str('raster'))
+    if gdal_ds is not None:
+        aff = affine.Affine.from_gdal(*gdal_ds.GetGeoTransform())
+        w, h = gdal_ds.RasterXSize, gdal_ds.RasterYSize
+        cx, cy = aff * [w / 2, h / 2]
+        return gdal_ds.GetProjection(), (cx, cy)
+    gdal_ds = gdal.OpenEx(path, conv.of_of_str('vector'))
+    if gdal_ds is not None:
+        lyr = gdal_ds.GetLayerByIndex(0)
+        if lyr is None:
+            raise ValueError('Could not open file layer')
+        extent = lyr.GetExtent()
+        if extent is None:
+            raise ValueError('Could not compute extent')
+        minx, maxx, miny, maxy = extent
+        cx, cy = (maxx + minx) / 2, (maxy + miny) / 2
+        return lyr.GetSpatialRef().ExportToWkt(), (cx, cy)
+    raise ValueError('Could not open file')
 
 def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
     """Retrieve projection of file as wkt.
