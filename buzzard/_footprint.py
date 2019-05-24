@@ -1553,23 +1553,7 @@ class Footprint(TileMixin, IntersectionMixin):
             if isinstance(mline, shapely.geometry.LineString):
                 mline = sg.MultiLineString([mline])
 
-        # Step 8: Temporary check for badness, until further testing of this method ************* **
-        check = arr.copy()
-        check[:] = 0
-
-        for l in mline:
-            coords = np.asarray(l) - output_offset
-            coords = self.spatial_to_raster(coords)
-            x = coords[:, 0]
-            y = coords[:, 1]
-            check[y, x] = 1
-
-        # Burning size one components since they are not transformed to lines
-        for sly, slx in ndi.find_objects(ndi.label(arr)[0]):
-            if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
-                check[sly, slx] = 1
-
-        # Step 9: Return ************************************************************************ **
+        # Step 8: Return ************************************************************************ **
         if isinstance(mline, shapely.geometry.LineString):
             return [mline]
         if isinstance(mline, shapely.geometry.MultiLineString):
