@@ -68,18 +68,23 @@ def fpeq(*items, **kwargs):
 
 def sreq(*items, verbose_on=None):
     """SR items are all equal"""
+    v = tuple(map(int, gdal.__version__.split('.')))
     for a, b in itertools.combinations(items, 2):
         a = osr.SpatialReference(osr.GetUserInputAsWKT(a))
-        a.StripCTParms()
+        if v < (3,):
+            a.StripCTParms()
         a = a.ExportToProj4()
         a = osr.SpatialReference(osr.GetUserInputAsWKT(a))
-        a.StripCTParms()
+        if v < (3,):
+            a.StripCTParms()
 
         b = osr.SpatialReference(osr.GetUserInputAsWKT(b))
-        b.StripCTParms()
+        if v < (3,):
+            b.StripCTParms()
         b = b.ExportToProj4()
         b = osr.SpatialReference(osr.GetUserInputAsWKT(b))
-        b.StripCTParms()
+        if v < (3,):
+            b.StripCTParms()
 
         res = bool(a.IsSame(b))
         if res is verbose_on:
