@@ -136,7 +136,7 @@ class BackDatasetConversionsMixin(object):
         sr = osr.SpatialReference(wkt)
         _, to_virtual = self.get_transforms(sr, fp, 'work')
         if to_virtual:
-            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
+            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]), round_coordinates=True)
         return fp
 
     @staticmethod

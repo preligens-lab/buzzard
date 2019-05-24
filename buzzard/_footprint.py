@@ -24,10 +24,11 @@ from buzzard._tools import GDALErrorCatcher as Catch
 from buzzard._env import env
 from buzzard._footprint_tile import TileMixin
 from buzzard._footprint_intersection import IntersectionMixin
+from buzzard._footprint_move import MoveMixin
 
 LOGGER = logging.getLogger('buzzard')
 
-class Footprint(TileMixin, IntersectionMixin):
+class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     """Immutable object representing the location and size of a spatially localized raster. All
     methods are thread-safe.
 
@@ -412,7 +413,7 @@ class Footprint(TileMixin, IntersectionMixin):
             footprints, geoms, resolution, rotation, alignment
         )
 
-    def move(self, tl, tr=None, br=None):
+    def move(self, tl, tr=None, br=None, round_coordinates=False):
         """Create a copy of self moved by an Affine transformation by providing new points.
         `rsize` is always conserved
 
@@ -432,6 +433,19 @@ class Footprint(TileMixin, IntersectionMixin):
             New top right coordinates
         br: (nbr, nbr)
             New bottom right coordinates
+        round_coordinates: bool
+            Round the input coordinates with respect to `buzz.env.significant`, so that the output
+            `Footprint` is as much similar as possible as the input `Footprint` regarding those
+            properties:
+            - angle
+            - pxsize
+            - pxsizex / pxsizey
+
+            This option helps a lot if the input coordinates suffered from floating point
+            precision loss.
+
+            .. warning::
+                Only work when `tr` and `br` are both provided
 
         Returns
         -------
@@ -453,6 +467,12 @@ class Footprint(TileMixin, IntersectionMixin):
             if br is not None:
                 raise ValueError('If br present, bl should be present too') # pragma: no cover
 
+        if round_coordinates:
+            if br is None: # pragma: no cover
+                raise ValueError(
+                    'Can only round input coordinates when all parameters are probided'
+                )
+            tl, tr, br = self._snap_target_coordinates_before_move(tl, tr, br)
 
         if tr is None:
             angle = self.angle
