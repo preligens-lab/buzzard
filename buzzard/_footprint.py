@@ -470,7 +470,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         if round_coordinates:
             if br is None: # pragma: no cover
                 raise ValueError(
-                    'Can only round input coordinates when all parameters are probided'
+                    'Can only round input coordinates when all parameters are provided'
                 )
             tl, tr, br = self._snap_target_coordinates_before_move(tl, tr, br)
 
