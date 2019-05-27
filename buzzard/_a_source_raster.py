@@ -193,7 +193,7 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
         if self.to_work is not None:
             fp = fp_stored.move(*self.to_work([
                 fp_stored.tl, fp_stored.tr, fp_stored.br
-            ]))
+            ]), round_coordinates=True)
         else:
             fp = fp_stored
 
