@@ -69,7 +69,7 @@ Beginning of `README.md`.
 :heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
 
 :grey_question: :grey_question: :grey_question:
-- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened files in order to share ressources.
+- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened raster and vector files in order to share resources.
 - An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
 <!---
 TODO: Links from github to readthedoc
