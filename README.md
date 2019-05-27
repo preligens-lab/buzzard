@@ -25,14 +25,14 @@ TODO: Update example images URL
 
 ---
 
-Begining of `README.md`.
+Beginning of `README.md`.
 
 ---
 
 # `buzzard`
 :heavy_multiplication_x: In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
 
-:grey_question: In a nutshell, `buzzard` provides powerful abstractions to work with images and geometries that comes from many kind of sources.
+:grey_question: In a nutshell, the `buzzard` library provides powerful abstractions to work with images and geometries that come from different kind of sources.
 
 <div align="center">
   <img src="https://github.com/airware/buzzard/raw/master/img/buzzard.png"><br><br>
@@ -54,7 +54,7 @@ Begining of `README.md`.
 :grey_question: :grey_question: :grey_question:
 - A _python_ library.
 - Primarily designed to hide all cumbersome operations when doing data-science with [GIS](https://en.wikipedia.org/wiki/Geographic_information_system) files.
-- Multipurpose: it can be used in all kind of situations were images or geometries are involved.
+- Multipurpose: it can be used in all kind of situations where images or geometries are involved.
 - A pythonic wrapper for _osgeo_'s _gdal_/_ogr_/_osr_.
 - A solution to work with arbitrary large images by simplifying and automating the manipulation of image slices.
 - Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
@@ -196,16 +196,16 @@ Additional examples can be found here:
 :heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
 
 :grey_question: :grey_question: :grey_question:
-- Raster and vector files opening and creation. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
-- Raster files reading to _numpy.ndarray_.
+- Opening and creating raster and vector files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
+- Reading raster files from disk to _numpy.ndarray_.
   - _Options:_ `sub-rectangle reading`, `rotated and scaled sub-rectangle reading (thanks to on-the-fly remapping with OpenCV)`, `automatic parallelization of read and remapping (soon)`, `async (soon)`, `be the source of an image processing pipeline (soon)`.
   - _Properties:_ `thread-safe`
-- Raster files writing from _numpy.ndarray_.
+- Writing raster files to disk from _numpy.ndarray_.
   - _Options:_ `sub-rectangle writing`, `rotated and scaled sub-rectangle writing (thanks to on-the-fly remapping with OpenCV)`, `masked writing`.
-- Vector files reading to _shapely objects_, _geojson dict_ and _raw coordinates_.
+- Reading vector files from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
   - _Options:_ `masking`.
   - _Properties:_ `thread-safe`
-- Vector files writing from _shapely objects_, _geojson dict_ and _raw coordinates_.
+- Writing vector files to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
 - Powerful manipulations of raster windows
 - Instantiation of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
   - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
