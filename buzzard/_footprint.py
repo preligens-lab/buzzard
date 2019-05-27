@@ -442,7 +442,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             - pxsizex / pxsizey
 
             This option helps a lot if the input coordinates suffered from floating point
-            precision loss.
+            precision loss since it will cancel the noise in the resulting transformation matrix.
 
             .. warning::
                 Only work when `tr` and `br` are both provided
@@ -507,10 +507,16 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             affine.Affine.rotation(angle) *
             affine.Affine.scale(*scale)
         )
-        return self.__class__(
-            gt=aff.to_gdal(),
-            rsize=self.rsize,
-        )
+        try:
+            return self.__class__(
+                gt=aff.to_gdal(),
+                rsize=self.rsize,
+            )
+        except ValueError as e:
+            if br is not None and round_coordinates is False and \
+               len(e.args) > 0 and 'north-up' in e.args[0]:
+                raise ValueError('Moving Footprint failed. Try using `round_coordinates=True`.')
+            raise
 
     # Export ************************************************************************************ **
     @property
