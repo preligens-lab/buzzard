@@ -32,7 +32,7 @@ Beginning of `README.md`.
 # `buzzard`
 :heavy_multiplication_x: In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
 
-:grey_question: In a nutshell, the `buzzard` library provides powerful abstractions to work with images and geometries that come from different kind of sources.
+:grey_question: In a nutshell, the `buzzard` library provides powerful abstractions to manipulate together images (GeoTIFF, PNG, ...) and geometries (GeoJSON, Shapefile, ...) that come from different kind of sources.
 
 <div align="center">
   <img src="https://github.com/airware/buzzard/raw/master/img/buzzard.png"><br><br>
