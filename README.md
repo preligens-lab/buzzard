@@ -1,38 +1,5 @@
-The code is currently annotated for review, it will be cleaned before merging.
-
-Previous code is annotated with a :heavy_multiplication_x: symbol.
-New code is annotated with a :grey_question: symbol.
-
-```
-# repository's description
-X Geofiles management can be great. No joke!
-? Data-science with images and geometries
-? Advanced raster and geometry manipulations
-
-which one?
-```
-
-
-```
-# repository's keywords
-X python gis raster vector gdal feedback-welcome footprint
-? python gis geospatial raster image vector geometry gdal ogr osr data-science footprint rasters-pipelines
-
-more? less?
-```
-
-TODO: Update example images URL
-
----
-
-Beginning of `README.md`.
-
----
-
 # `buzzard`
-:heavy_multiplication_x: In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
-
-:grey_question: In a nutshell, the `buzzard` library provides powerful abstractions to manipulate together images and geometries that come from different kind of sources (`GeoTIFF`, `PNG`, `GeoJSON`, `Shapefile`, `numpy array`, `buzzard pipelines`, ...).
+In a nutshell, the `buzzard` library provides powerful abstractions to manipulate together images and geometries that come from different kind of sources (`GeoTIFF`, `PNG`, `GeoJSON`, `Shapefile`, `numpy array`, `buzzard pipelines`, ...).
 
 <div align="center">
   <img src="https://github.com/airware/buzzard/raw/master/img/buzzard.png"><br><br>
@@ -41,17 +8,6 @@ Beginning of `README.md`.
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)
 
 ## `buzzard` is
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-- a python library
-- a `gdal`/`ogr`/`osr` wrapper
-- designed to hide all cumbersome operations while working with GIS files
-- designed for data science workflows
-- under active development (see [`todo`](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f))
-- tested with `pytest` with python 3.4 and python 3.7
-
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-
-:grey_question: :grey_question: :grey_question:
 - A _python_ library.
 - Primarily designed to hide all cumbersome operations when doing data-science with [GIS](https://en.wikipedia.org/wiki/Geographic_information_system) files.
 - Multipurpose: it can be used in all kind of situations where images or geometries are involved.
@@ -59,24 +15,12 @@ Beginning of `README.md`.
 - A solution to work with arbitrary large images by simplifying and automating the manipulation of image slices.
 - Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
 
-:grey_question: :grey_question: :grey_question:
-
 ## `buzzard` contains
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-- a class to open/read/write/create GIS files: [`Dataset`](./buzzard/_dataset.py)
-- a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
-
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-
-:grey_question: :grey_question: :grey_question:
 - A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened raster and vector files in order to share resources.
 - An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
 <!---
 TODO: Links from github to readthedoc
 -->
-
-:grey_question: :grey_question: :grey_question:
-
 
 ## How to open and read files
 This example demonstrates how to visualize a large raster polygon per polygon.
@@ -118,13 +62,13 @@ Images from the [ISPRS's Potsdam dataset](http://www2.isprs.org/commissions/comm
 `Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex0-img0.jpg" width="80%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex0-img0.jpg" width="80%"><br><br>
 </div>
 
 `Footprint(tl=(3171.600000, -1321.500000), br=(4553.400000, -2400.000000), size=(1381.800000, 1078.500000), rsize=(9212, 7190))`
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex0-img1.jpg" width="70%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex0-img1.jpg" width="70%"><br><br>
 </div>
 
 ## How to create files and manipulate _Footprints_
@@ -173,11 +117,11 @@ with buzz.create_vector(path='roads.shp', type='polygon').close as out:
 ```
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex1-img0.jpg" width="80%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex1-img0.jpg" width="80%"><br><br>
 </div>
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/README-update/img/ex1-img1.jpg" width="80%"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex1-img1.jpg" width="80%"><br><br>
 </div>
 
 ## Advanced examples
@@ -186,16 +130,6 @@ Additional examples can be found here:
 - [_async rasters_ in depth](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
 
 ## `buzzard` allows
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-- Raster and vector files reading to `numpy.ndarray`, `shapely` objects, `geojson` and raw coordinates
-- Raster and vector files writing from `numpy.ndarray`, `shapely` objects, `geojson` and raw coordinates
-- Raster and vector files creation
-- Powerful manipulations of raster windows
-- Spatial reference homogenization between opened files like a `GIS software`
-
-:heavy_multiplication_x: :heavy_multiplication_x: :heavy_multiplication_x:
-
-:grey_question: :grey_question: :grey_question:
 - Opening and creating raster and vector files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
 - Reading raster files from disk to _numpy.ndarray_.
   - _Options:_ `sub-rectangle reading`, `rotated and scaled sub-rectangle reading (thanks to on-the-fly remapping with OpenCV)`, `automatic parallelization of read and remapping (soon)`, `async (soon)`, `be the source of an image processing pipeline (soon)`.
@@ -224,8 +158,6 @@ TODO: Links from github to readthedoc
 - Spatial reference [homogenization] between opened files
 
 -->
-
-:grey_question: :grey_question: :grey_question:
 
 ## Dependencies
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
