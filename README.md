@@ -1,103 +1,165 @@
 # `buzzard`
-
-In a nutshell, `buzzard` reads and writes geospatial raster and vector data.
+In a nutshell, the `buzzard` library provides powerful abstractions to manipulate together images and geometries that come from different kind of sources (`GeoTIFF`, `PNG`, `GeoJSON`, `Shapefile`, `numpy array`, `buzzard pipelines`, ...).
 
 <div align="center">
-  <img src="img/buzzard.png"><br><br>
+  <img src="https://github.com/airware/buzzard/raw/master/img/buzzard.png"><br><br>
 </div>
 
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)
-[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)
-[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)
-
-Table of Contents
------------------
-+ [buzzard is](#buzzard-is)
-+ [buzzard contains](#buzzard-contains)
-+ [Simple example](#simple-example)
-+ [Advanced (and fun) examples](#advanced-and-fun--examples)
-+ [Features](#features)
-+ [Future features summary](#future-features-summary)
-+ [Dependencies](#dependencies)
-+ [How to install](#how-to-install)
-  + [Manually](#manually)
-  + [Anaconda](#anaconda)
-+ [Supported Python versions](#supported-python-versions)
-+ [How to test](#how-to-test)
-+ [Contributions and feedback](#contributions-and-feedback)
-+ [License and Notice](#license-and-notice)
-+ [Other pages](#other-pages)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)
 
 ## `buzzard` is
-- a python library
-- a `gdal`/`ogr`/`osr` wrapper
-- designed to hide all cumbersome operations while working with GIS files
-- designed for data science workflows
-- under active development (see [`todo`](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f))
-- tested with `pytest` with python 3.4 and python 3.7
+- A _python_ library.
+- Primarily designed to hide all cumbersome operations when doing data-science with [GIS](https://en.wikipedia.org/wiki/Geographic_information_system) files.
+- Multipurpose: it can be used in all kind of situations where images or geometries are involved.
+- A pythonic wrapper for _osgeo_'s _gdal_/_ogr_/_osr_.
+- A solution to work with arbitrary large images by simplifying and automating the manipulation of image slices.
+- Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
 
 ## `buzzard` contains
-- a class to open/read/write/create GIS files: [`Dataset`](./buzzard/_dataset.py)
-- a toolbox class designed to locate a rectangle in both image space and geometry space: [`Footprint`](./buzzard/_footprint.py)
+- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened raster and vector files in order to share resources.
+- An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
+<!---
+TODO: Links from github to readthedoc
+-->
 
-## Simple example
-This example illustrates visualization of a raster based on polygons.
+## How to open and read files
+This example demonstrates how to visualize a large raster polygon per polygon.
 
 ```py
 import buzzard as buzz
 import numpy as np
 import matplotlib.pyplot as plt
 
-rgb_path = 'path/to/raster.file'
-polygons_path = 'path/to/vector.file'
+# Open the files. Only files' metadata are read so far
+r = buzz.open_raster('path/to/rgba-image.tif')
+v = buzz.open_vector('path/to/polygons.geojson', driver='GeoJSON')
 
-ds = buzz.Dataset()
-ds.open_raster('rgb', rgb_path)
-ds.open_vector('polygons', polygons_path)
+# Load the polygons from disk one by one as shapely objects
+for poly in v.iter_data():
 
-# Iterate over the polygons as shapely objects
-for poly in ds.polygons.iter_data(None):
+    # Compute the Footprint bounding `poly`
+    fp = r.fp.intersection(poly)
+    print(fp)
 
-    # Compute the Footprint bounding poly
-    fp = ds.rgb.fp.intersection(poly)
+    # Load the image from disk at `fp` to a numpy array
+    rgb = r.get_data(fp=fp, channels=(0, 1, 2))
+    alpha = r.get_data(fp=fp, channels=3)
 
-    # Read rgb at `fp` to a numpy array
-    rgb = ds.rgb.get_data(fp=fp, channels=(0, 1, 2)).astype('uint8')
-    alpha = ds.rgb.get_data(fp=fp, channels=3).astype('uint8')
-
-    # Create a boolean mask as a numpy array from a shapely polygon
+    # Create a boolean mask as a numpy array from the shapely polygon
     mask = np.invert(fp.burn_polygons(poly))
 
-    # Darken pixels outside of polygon, set nodata pixels to red
+    # Darken pixels outside of polygon, set transparent pixels to orange
     rgb[mask] = (rgb[mask] * 0.5).astype(np.uint8)
-    rgb[alpha == 0] = [255, 0, 0]
+    rgb[alpha == 0] = [236, 120, 57]
 
+    # Show the result with matplotlib
     plt.imshow(rgb)
     plt.show()
+
+```
+Images from the [ISPRS's Potsdam dataset](http://www2.isprs.org/commissions/comm3/wg4/2d-sem-label-potsdam.html).
+
+`Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
+
+<div align="center">
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex0-img0.jpg" width="80%"><br><br>
+</div>
+
+`Footprint(tl=(3171.600000, -1321.500000), br=(4553.400000, -2400.000000), size=(1381.800000, 1078.500000), rsize=(9212, 7190))`
+
+<div align="center">
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex0-img1.jpg" width="70%"><br><br>
+</div>
+
+## How to create files and manipulate _Footprints_
+```py
+import buzzard as buzz
+import numpy as np
+import matplotlib.pyplot as plt
+import keras
+
+r = buzz.open_raster('path/to/rgba-image.tif')
+km = keras.models.load_model('path/to/deep-learning-model.hdf5')
+
+# Chunk the raster's Footprint to Footprints of size
+# 1920 x 1080 pixel stored in a 2d numpy array
+tiles = r.fp.tile(1920, 1080)
+
+all_roads = []
+
+for i, fp in enumerate(tiles.flat):
+    rgb = r.get_data(fp=fp, channels=(0, 1, 2))
+
+    # Perform pixelwise semantic segmentation with a keras model
+    predictions_heatmap = km.predict(rgb[np.newaxis, ...])[0]
+    predictions_top1 = np.argmax(predictions_heatmap, axis=-1)
+
+    # Save the prediction to a `geotiff`
+    with buzz.create_raster(path='predictions_{}.tif'.format(i), fp=fp,
+                            dtype='uint8', channel_count=1).close as out:
+        out.set_data(predictions_top1)
+
+    # Extract the road polygons by transforming a numpy boolean mask to shapely polygons
+    road_polygons = fp.find_polygons(predictions_top1 == 3)
+    all_roads += road_polygons
+
+    # Show the result with matplotlib for one tile
+    if i == 2:
+        plt.imshow(rgb)
+        plt.imshow(predictions_top1)
+        plt.show()
+
+# Save all roads found to a single `shapefile`
+with buzz.create_vector(path='roads.shp', type='polygon').close as out:
+    for poly in all_roads:
+        out.inser_data(poly)
+
 ```
 
-## Advanced (and fun 😊) examples
-Additional examples can be found here: [basic examples](https://github.com/airware/buzzard/blob/master/doc/examples.ipynb), [async rasters](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
+<div align="center">
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex1-img0.jpg" width="80%"><br><br>
+</div>
 
-## Features
-- Raster and vector files opening
-- Raster and vector files reading to `numpy.ndarray`, `shapely` objects, `geojson` and raw coordinates
-- Raster and vector files writing from `numpy.ndarray`, `shapely` objects, `geojson` and raw coordinates
-- Raster and vector files creation
+<div align="center">
+  <img src="https://github.com/airware/buzzard/raw/master/img/ex1-img1.jpg" width="80%"><br><br>
+</div>
+
+## Advanced examples
+Additional examples can be found here:
+- [Files and _Footprints_ in depth](https://github.com/airware/buzzard/blob/master/doc/examples.ipynb)
+- [_async rasters_ in depth](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
+
+## `buzzard` allows
+- Opening and creating raster and vector files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
+- Reading raster files from disk to _numpy.ndarray_.
+  - _Options:_ `sub-rectangle reading`, `rotated and scaled sub-rectangle reading (thanks to on-the-fly remapping with OpenCV)`, `automatic parallelization of read and remapping (soon)`, `async (soon)`, `be the source of an image processing pipeline (soon)`.
+  - _Properties:_ `thread-safe`
+- Writing raster files to disk from _numpy.ndarray_.
+  - _Options:_ `sub-rectangle writing`, `rotated and scaled sub-rectangle writing (thanks to on-the-fly remapping with OpenCV)`, `masked writing`.
+- Reading vector files from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
+  - _Options:_ `masking`.
+  - _Properties:_ `thread-safe`
+- Writing vector files to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
 - Powerful manipulations of raster windows
-- Spatial reference homogenization between opened files like a `GIS software`
+- Instantiation of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
+  - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
+  - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
+- Spatial reference homogenization between opened files like a GIS software does (beta)
 
-## Future features summary
-- Wheels with `osgeo` binaries included
-- Advanced spatial reference homogenization using `gdal` warping functions
-- More tools, syntaxes and algorithms to work with raster datasets that don't fit in memory
-- Strong support of non north-up / west-left footprints
-- Data visualization tools
-- Strong performance improvements
-- Floating point precision loss handling improvements
+<!---
+TODO: Links from github to readthedoc
+- Opening and creating [raster](the right doc page) and [vector](the right doc page) files. 
+- [Reading](...) raster
+- [Writing](...) raster
+- [Reading](...) vector
+- [Writing](...) vector
+- Powerful manipulations of [raster windows](...)
+- Instiantiation of [image processing pipelines](...)
+- Spatial reference [homogenization] between opened files
+
+-->
 
 ## Dependencies
-
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
 
 | Library          | Version  | Mandatory | License                                                                              | Comment                                                       |
@@ -174,13 +236,12 @@ python -m pip install buzzard
 ## Supported Python versions
 To enjoy the latest buzzard features, update your python!
 
-### Full python support
+#### Full python support
 - Latest supported version: `3.7` (June 2018)
 - Oldest supported version: `3.4` (March 2014)
 
-### Partial python support
+#### Partial python support
 - `2.7`: use buzzard version `0.4.4`
-
 
 ## How to test
 ```sh
@@ -191,9 +252,8 @@ pytest buzzard/buzzard/test
 
 ## Documentation
 Hosted soon, in the meantime
-- look at docstrings in code
-- get familiar with the [public classes](https://github.com/airware/buzzard/wiki/Public-classes)
-- play with the examples in [examples.ipynb](./doc/examples.ipynb)
+- look at the docstrings in code
+- play with the examples above
 
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
@@ -205,9 +265,6 @@ See [AUTHORS](./AUTHORS.md)
 See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 ## Other pages
-- [examples](./doc/examples.ipynb)
-- [classes](https://github.com/airware/buzzard/wiki/Classes)
-- [wiki](https://github.com/airware/buzzard/wiki)
-- [todo](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f)
+- [TODO](https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f) on `notion.so`
 
 ------------------------------------------------------------------------------------------------------------------------
