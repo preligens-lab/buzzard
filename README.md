@@ -212,6 +212,19 @@ Additional examples can be found here:
   - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
 - Spatial reference homogenization between opened files like a GIS software does (beta)
 
+<!---
+TODO: Links from github to readthedoc
+- Opening and creating [raster](the right doc page) and [vector](the right doc page) files. 
+- [Reading](...) raster
+- [Writing](...) raster
+- [Reading](...) vector
+- [Writing](...) vector
+- Powerful manipulations of [raster windows](...)
+- Instiantiation of [image processing pipelines](...)
+- Spatial reference [homogenization] between opened files
+
+-->
+
 :grey_question: :grey_question: :grey_question:
 
 ## Dependencies
