@@ -70,19 +70,27 @@ def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
         return wkt
     sr = osr.SpatialReference(wkt)
 
-    if center:
+    if center is not False:
         if not sr.IsProjected():
             raise ValueError("Can't shift a spatial reference that is not projected")
+        if center is True:
+            center = (0, 0)
+        else:
+            center = np.asarray(center)
+            if center.size == 1:
+                center = (center, center)
+            else:
+                center = center.reshape(2)
         fe, fn = sr.GetProjParm('false_easting', 0.0), sr.GetProjParm('false_northing', 0.0)
-        sr.SetProjParm('false_easting', fe - centroid[0])
-        sr.SetProjParm('false_northing', fn - centroid[1])
+        sr.SetProjParm('false_easting', fe - centroid[0] + center[0])
+        sr.SetProjParm('false_northing', fn - centroid[1] + center[1])
         sr.SetAuthority('PROJCS', '', 0)
 
     if unit is not None:
         src_name = sr.GetLinearUnitsName()
         if src_name is None or src_name == '':
             src_name = implicit_unit
-        src_u = REG.parse_units(src_name.lower()) * 1.0
+        src_u = REG.meter * sr.GetLinearUnits()
         dst_u = REG.parse_units(unit) * 1.0
         if dst_u.dimensionality != {'[length]': 1.0}:
             raise ValueError('todo')

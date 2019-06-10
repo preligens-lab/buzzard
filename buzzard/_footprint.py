@@ -1125,14 +1125,14 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if env.significant <= other._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if (self.rsize != other.rsize).any():
             return False
@@ -1157,14 +1157,14 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if env.significant <= other._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
@@ -1347,7 +1347,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         largest_coord = np.abs(self.coords).max()
         spatial_precision = largest_coord * 10 ** -env.significant
