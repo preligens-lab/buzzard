@@ -60,9 +60,20 @@ def _details_of_file(path):
     raise ValueError('Could not open file')
 
 def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
-    """Retrieve projection of file as wkt.
-    Optionally recenter projection.
-    Optionally change unit of projection.
+    """Retrieve projection of file as wkt, optionally recenter projection, optionally change
+    unit of projection. (Experimental function!)
+
+    Parameters
+    ----------
+    path: str
+    center: bool or nbr or (nbr, nbr)
+    unit: None or str
+    implicit_unit: str
+
+    Returns
+    -------
+    str
+
     """
     wkt, centroid = _details_of_file(path)
 
