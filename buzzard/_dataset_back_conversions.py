@@ -82,7 +82,6 @@ class BackDatasetConversionsMixin(object):
                     s = ('Error while checking if on-the-fly reprojection could be performed '
                          'between between Dataset\'s `sr_work` and vector\'s `sr_virtual`. '
                          'Cause: {} (The reprojection is too lossy).\n'
-                         # 'Cause: The reprojection is too lossy and {}.\n'
                          'Solutions:\n'
                          '- Pass those tests by reducing `buzz.env.significant`.\n'
                          '- Bypass those tests by passing `analyse_transformation=False` to the '
