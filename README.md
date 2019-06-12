@@ -220,7 +220,7 @@ export PATH="/usr/local/opt/gdal2/bin:$PATH"
 python3 -m pip install 'gdal==2.3.3'
 
 # Ubuntu ********************************************************** **
-# https://github.com/airware/buzzard/blob/master/ubuntu_install/Dockerfile
+# https://github.com/airware/buzzard/blob/master/doc/ubuntu_install/Dockerfile
 # Setup python if you don't have it yet
 apt-get update
 apt-get install -y python3 python3-pip python3-dev
