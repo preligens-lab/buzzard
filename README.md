@@ -220,6 +220,7 @@ export PATH="/usr/local/opt/gdal2/bin:$PATH"
 python3 -m pip install 'gdal==2.3.3'
 
 # Ubuntu
+# Run the commands from the following Dockerfile:
 # https://github.com/airware/buzzard/blob/master/doc/ubuntu_install/Dockerfile
 
 # Step 2 - Install buzzard ************************************************** **
