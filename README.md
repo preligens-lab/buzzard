@@ -148,7 +148,7 @@ Additional examples can be found here:
 
 <!---
 TODO: Links from github to readthedoc
-- Opening and creating [raster](the right doc page) and [vector](the right doc page) files. 
+- Opening and creating [raster](the right doc page) and [vector](the right doc page) files.
 - [Reading](...) raster
 - [Writing](...) raster
 - [Reading](...) vector
@@ -205,32 +205,27 @@ pip install buzzard
 
 ### Package manager and pip
 ```sh
-# Step 1 - Install GDAL and rtree
-# Windows:
+# Step 1 - Install GDAL and rtree ******************************************* **
+# Windows
 # https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 # https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree
 
-# MacOS:
+# MacOS
 brew install gdal
 brew tap osgeo/osgeo4mac
 brew tap --repair
 brew install gdal2
 brew install spatialindex
 export PATH="/usr/local/opt/gdal2/bin:$PATH"
-python -m pip install 'gdal==2.3.3'
+python3 -m pip install 'gdal==2.3.3'
 
-# Ubuntu:
-sudo add-apt-repository ppa:ubuntugis/ppa
-sudo apt-get update
-sudo apt-get install gdal-bin
-sudo apt-get install libgdal-dev
-sudo apt-get install python3-rtree
-export CPLUS_INCLUDE_PATH=/usr/include/gdal
-export C_INCLUDE_PATH=/usr/include/gdal
-pip install GDAL
+# Ubuntu
+# Run the commands from the following Dockerfile:
+# https://github.com/airware/buzzard/blob/master/doc/ubuntu_install/Dockerfile
 
-# Step 2 - Install buzzard
-python -m pip install buzzard
+# Step 2 - Install buzzard ************************************************** **
+python3 -m pip install buzzard
+
 ```
 
 ## Supported Python versions
