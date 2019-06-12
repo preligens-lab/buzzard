@@ -206,11 +206,11 @@ pip install buzzard
 ### Package manager and pip
 ```sh
 # Step 1 - Install GDAL and rtree ******************************************* **
-# Windows ********************************************************* **
+# Windows
 # https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal
 # https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree
 
-# MacOS *********************************************************** **
+# MacOS
 brew install gdal
 brew tap osgeo/osgeo4mac
 brew tap --repair
@@ -219,34 +219,8 @@ brew install spatialindex
 export PATH="/usr/local/opt/gdal2/bin:$PATH"
 python3 -m pip install 'gdal==2.3.3'
 
-# Ubuntu ********************************************************** **
+# Ubuntu
 # https://github.com/airware/buzzard/blob/master/doc/ubuntu_install/Dockerfile
-# Setup python if you don't have it yet
-apt-get update
-apt-get install -y python3 python3-pip python3-dev
-which -a python || true ;\
-    which -a python3 || true ;\
-    which -a pip || true ;\
-    which -a pip3 || true
-
-# Install GDAL binaries
-apt-get install -y software-properties-common
-add-apt-repository ppa:ubuntugis/ppa && apt-get update && apt-get update
-apt-get install -y build-essential libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev
-apt-get install -y gdal-bin
-apt-get install -y libgdal-dev
-gdal-config --version
-
-# Install GDAL python
-python3 -m pip install --global-option=build_ext --global-option="-I/usr/include/gdal" GDAL==`gdal-config --version`
-python3 -c 'from osgeo import gdal; print(gdal.__version__)'
-
-# Install Rtree
-apt-get -y install python3-rtree
-python3 -c 'import rtree; print(rtree.__version__)'
-
-# Instrall opencv deps
-apt install -y libsm6 libxext6 libxrender-dev
 
 # Step 2 - Install buzzard ************************************************** **
 python3 -m pip install buzzard
