@@ -14,7 +14,7 @@ class AStoredRaster(AStored, ASourceRaster):
     - Has a `set_data` method that allows to write pixels to storage
     """
 
-    def set_data(self, array, fp=None, channels=-1, interpolation='cv_area', mask=None, **kwargs):
+    def set_data(self, array, fp=None, channels=None, interpolation='cv_area', mask=None, **kwargs):
         """Write a rectangle of data to the destination raster. Each channel in `array` is written to
         one channel in `raster` in the same order as described by the `channels` parameter. An
         optional `mask` may be provided to only write certain pixels of `array`.
@@ -42,7 +42,7 @@ class AStoredRaster(AStored, ASourceRaster):
         fp: Footprint of shape (Y, X) or None
             If None: write the full source raster
             If Footprint: write this window to the raster
-        channels: int or sequence of int (see `Channels Parameter` below)
+        channels: None or int or slice or sequence of int (see `Channels Parameter` below)
             The channels to be written.
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
             OpenCV method used if intepolation is necessary
@@ -51,20 +51,17 @@ class AStoredRaster(AStored, ASourceRaster):
 
         Channels Parameter
         ------------------
-
-        +-----------------+-------------------------------+----------------+
-        | type            | value                         | meaning        |
-        +=================+===============================+================+
-        | int             | -1                            | All channels   |
-        +-----------------+-------------------------------+----------------+
-        | int             | 0, 1, 2, ...                  | Channel `i`    |
-        +-----------------+-------------------------------+----------------+
-        | sequence of int | [-1]                          | All channels   |
-        +-----------------+-------------------------------+----------------+
-        | sequence of int | [0], [1], [2], ...            | Channel `i`    |
-        +-----------------+-------------------------------+----------------+
-        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels |
-        +-----------------+-------------------------------+----------------+
+        +------------+-----------------------------------------------------+----------------+
+        | type       | value                                               | meaning        |
+        +============+=====================================================+================+
+        | NoneType   | None (default)                                      | All channels   |
+        +------------+-----------------------------------------------------+----------------+
+        | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels |
+        +------------+-----------------------------------------------------+----------------+
+        | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  |
+        +------------+-----------------------------------------------------+----------------+
+        | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels |
+        +------------+-----------------------------------------------------+----------------+
 
         Caveat
         ------
@@ -79,15 +76,22 @@ class AStoredRaster(AStored, ASourceRaster):
 
         def _band_to_channels(val):
             val = np.asarray(val)
-            val = np.asarray([
-                val[idx] - 1 if val[idx] >= 1 else val[idx]
-                for idx in np.ndindex(val.shape)
-            ]).reshape(val.shape)
+            if np.array_equal(val, -1):
+                return None
+            if val.ndim == 0:
+                return val - 1
+            if val.ndim != 1:
+                raise ValueError('Error in deprecated `band` parameter')
+            val = [
+                v
+                for v in val
+                for v in (range(len(self)) if v == -1 else [v - 1])
+            ]
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.set_data',
             new_name_value=channels,
-            new_name_is_provided=channels != -1,
+            new_name_is_provided=channels is not None,
             user_kwargs=kwargs,
             transform_old=_band_to_channels,
         )
@@ -105,7 +109,7 @@ class AStoredRaster(AStored, ASourceRaster):
         # Normalize and check channels parameter
         channel_ids, _ = _tools.normalize_channels_parameter(channels, len(self))
         if len(channel_ids) != len(set(channel_ids)): # pragma: no cover
-            raise ValueError("The `channels` parameter should not reference twice the same band")
+            raise ValueError("The `channels` parameter should not reference twice the same channel")
         del channels
 
         # Normalize and check array parameter
@@ -148,7 +152,7 @@ class AStoredRaster(AStored, ASourceRaster):
             mask=mask,
         )
 
-    def fill(self, value, channels=-1, **kwargs):
+    def fill(self, value, channels=None, **kwargs):
         """Fill raster with value.
 
         This method is not thread-safe.
@@ -162,20 +166,17 @@ class AStoredRaster(AStored, ASourceRaster):
 
         Channels Parameter
         ------------------
-
-        +-----------------+-------------------------------+----------------+
-        | type            | value                         | meaning        |
-        +=================+===============================+================+
-        | int             | -1                            | All channels   |
-        +-----------------+-------------------------------+----------------+
-        | int             | 0, 1, 2, ...                  | Channel `i`    |
-        +-----------------+-------------------------------+----------------+
-        | sequence of int | [-1]                          | All channels   |
-        +-----------------+-------------------------------+----------------+
-        | sequence of int | [0], [1], [2], ...            | Channel `i`    |
-        +-----------------+-------------------------------+----------------+
-        | sequence of int | [0, 1, 2], [0, 2, -1, 0], ... | Those channels |
-        +-----------------+-------------------------------+----------------+
+        +------------+-----------------------------------------------------+----------------+
+        | type       | value                                               | meaning        |
+        +============+=====================================================+================+
+        | NoneType   | None (default)                                      | All channels   |
+        +------------+-----------------------------------------------------+----------------+
+        | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels |
+        +------------+-----------------------------------------------------+----------------+
+        | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  |
+        +------------+-----------------------------------------------------+----------------+
+        | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels |
+        +------------+-----------------------------------------------------+----------------+
 
         Caveat
         ------
@@ -189,15 +190,22 @@ class AStoredRaster(AStored, ASourceRaster):
 
         def _band_to_channels(val):
             val = np.asarray(val)
-            val = np.asarray([
-                val[idx] - 1 if val[idx] >= 1 else val[idx]
-                for idx in np.ndindex(val.shape)
-            ]).reshape(val.shape)
+            if np.array_equal(val, -1):
+                return None
+            if val.ndim == 0:
+                return val - 1
+            if val.ndim != 1:
+                raise ValueError('Error in deprecated `band` parameter')
+            val = [
+                v
+                for v in val
+                for v in (range(len(self)) if v == -1 else [v - 1])
+            ]
             return val
         channels, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(
             new_name='channels', old_names={'band': '0.6.0'}, context='ASourceRaster.fill',
             new_name_value=channels,
-            new_name_is_provided=channels != -1,
+            new_name_is_provided=channels is not None,
             user_kwargs=kwargs,
             transform_old=_band_to_channels,
         )

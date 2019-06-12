@@ -305,7 +305,7 @@ def test_file(meta_file, path):
         assert r.driver == meta['driver']
         assert r.open_options == meta['options']
         assert r.path == path
-        assert np.all(r.get_data(channels=[-1]) == arr)
+        assert np.all(r.get_data(channels=slice(None)) == arr)
 
     assert os.path.isfile(path)
     with ds.aopen_raster(path, driver=meta['driver']).close as r:
@@ -326,7 +326,7 @@ def test_file(meta_file, path):
         assert r.mode == 'r'
         assert r.driver == meta['driver']
         assert r.path == path
-        assert np.all(r.get_data(channels=[-1]) == arr)
+        assert np.all(r.get_data(channels=slice(None)) == arr)
 
         with pytest.raises(RuntimeError):
             r.delete()
@@ -395,7 +395,7 @@ def test_mem(meta_mem):
         assert len(r) == meta['channel_count']
         assert r.fp == fp
         assert r.mode == 'w'
-        assert np.all(r.get_data(channels=[-1]) == arr)
+        assert np.all(r.get_data(channels=slice(None)) == arr)
 
 def test_numpy(meta_numpy):
     meta = meta_numpy
@@ -423,7 +423,7 @@ def test_numpy(meta_numpy):
         assert len(r) == meta['array'].shape[-1]
         assert r.fp == fp
         assert r.mode == 'w'
-        assert np.all(r.get_data(channels=[-1]) == arr)
+        assert np.all(r.get_data(channels=slice(None)) == arr)
         r.array
         assert (
             meta_numpy['array'].__array_interface__['data'][0] ==

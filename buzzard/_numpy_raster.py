@@ -73,11 +73,16 @@ class BackNumpyRaster(ABackStoredRaster):
                 dst_nodata,
                 self.dtype
             )
-        key = list(samplefp.slice_in(self.fp)) + [self._best_indexers_of_channel_ids(channel_ids)]
+        chans_indexer = self._best_indexers_of_channel_ids(channel_ids)
+        key = list(samplefp.slice_in(self.fp)) + [chans_indexer]
         key = tuple(key)
         array = self._arr[key]
         if self._should_tranform:
-            array = array * self.channels_schema['scale'] + self.channels_schema['offset']
+            array = (
+                array *
+                np.asarray(self.channels_schema['scale'])[chans_indexer] +
+                np.asarray(self.channels_schema['offset'])[chans_indexer]
+            )
         array = self.remap(
             samplefp,
             fp,

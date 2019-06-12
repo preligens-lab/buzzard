@@ -194,7 +194,7 @@ def _cache_file_write(array,
     assert array.ndim == 3
     with create_raster(src_path, cache_fp, array.dtype, array.shape[-1], channels_schema,
                        sr=sr, options=options).close as r:
-        r.set_data(array, channels=-1)
+        r.set_data(array, channels=None)
 
     # Step 2. checksum hash file
     checksum = _checksum(src_path)

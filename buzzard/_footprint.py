@@ -24,10 +24,11 @@ from buzzard._tools import GDALErrorCatcher as Catch
 from buzzard._env import env
 from buzzard._footprint_tile import TileMixin
 from buzzard._footprint_intersection import IntersectionMixin
+from buzzard._footprint_move import MoveMixin
 
 LOGGER = logging.getLogger('buzzard')
 
-class Footprint(TileMixin, IntersectionMixin):
+class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     """Immutable object representing the location and size of a spatially localized raster. All
     methods are thread-safe.
 
@@ -439,7 +440,7 @@ class Footprint(TileMixin, IntersectionMixin):
             footprints, geoms, resolution, rotation, alignment
         )
 
-    def move(self, tl, tr=None, br=None):
+    def move(self, tl, tr=None, br=None, round_coordinates=False):
         """Create a copy of self moved by an Affine transformation by providing new points.
         `rsize` is always conserved
 
@@ -463,6 +464,19 @@ class Footprint(TileMixin, IntersectionMixin):
             New top right coordinates
         br: (nbr, nbr)
             New bottom right coordinates
+        round_coordinates: bool
+            Round the input coordinates with respect to `buzz.env.significant`, so that the output
+            `Footprint` is as much similar as possible as the input `Footprint` regarding those
+            properties:
+            - angle
+            - pxsize
+            - pxsizex / pxsizey
+
+            This option helps a lot if the input coordinates suffered from floating point
+            precision loss since it will cancel the noise in the resulting transformation matrix.
+
+            .. warning::
+                Only work when `tr` and `br` are both provided
 
         Returns
         -------
@@ -484,6 +498,12 @@ class Footprint(TileMixin, IntersectionMixin):
             if br is not None:
                 raise ValueError('If br present, bl should be present too') # pragma: no cover
 
+        if round_coordinates:
+            if br is None: # pragma: no cover
+                raise ValueError(
+                    'Can only round input coordinates when all parameters are provided'
+                )
+            tl, tr, br = self._snap_target_coordinates_before_move(tl, tr, br)
 
         if tr is None:
             angle = self.angle
@@ -518,10 +538,16 @@ class Footprint(TileMixin, IntersectionMixin):
             affine.Affine.rotation(angle) *
             affine.Affine.scale(*scale)
         )
-        return self.__class__(
-            gt=aff.to_gdal(),
-            rsize=self.rsize,
-        )
+        try:
+            return self.__class__(
+                gt=aff.to_gdal(),
+                rsize=self.rsize,
+            )
+        except ValueError as e:
+            if br is not None and round_coordinates is False and \
+               len(e.args) > 0 and 'north-up' in e.args[0]:
+                raise ValueError('Moving Footprint failed. Try using `round_coordinates=True`.')
+            raise
 
     # Export ************************************************************************************ **
     @property
@@ -1135,14 +1161,14 @@ class Footprint(TileMixin, IntersectionMixin):
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if env.significant <= other._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if (self.rsize != other.rsize).any():
             return False
@@ -1168,14 +1194,14 @@ class Footprint(TileMixin, IntersectionMixin):
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         if env.significant <= other._significant_min:
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         largest_coord = np.abs(np.r_[self.coords, other.coords]).max()
         spatial_precision = largest_coord * 10 ** -env.significant
@@ -1360,7 +1386,7 @@ class Footprint(TileMixin, IntersectionMixin):
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(significant={}) in a `with statement`.'
-            ).format(significant_min, env.significant, env.significant + 1)
+            ).format(self._significant_min, env.significant, env.significant + 1)
             raise RuntimeError(s)
         largest_coord = np.abs(self.coords).max()
         spatial_precision = largest_coord * 10 ** -env.significant
@@ -1588,23 +1614,7 @@ class Footprint(TileMixin, IntersectionMixin):
             if isinstance(mline, shapely.geometry.LineString):
                 mline = sg.MultiLineString([mline])
 
-        # Step 8: Temporary check for badness, until further testing of this method ************* **
-        check = arr.copy()
-        check[:] = 0
-
-        for l in mline:
-            coords = np.asarray(l) - output_offset
-            coords = self.spatial_to_raster(coords)
-            x = coords[:, 0]
-            y = coords[:, 1]
-            check[y, x] = 1
-
-        # Burning size one components since they are not transformed to lines
-        for sly, slx in ndi.find_objects(ndi.label(arr)[0]):
-            if sly.stop - sly.start == 1 and slx.stop - slx.start == 1:
-                check[sly, slx] = 1
-
-        # Step 9: Return ************************************************************************ **
+        # Step 8: Return ************************************************************************ **
         if isinstance(mline, shapely.geometry.LineString):
             return [mline]
         if isinstance(mline, shapely.geometry.MultiLineString):

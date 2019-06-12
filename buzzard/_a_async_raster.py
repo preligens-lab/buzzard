@@ -20,7 +20,7 @@ class AAsyncRaster(ASourceRaster):
     - Has an `iter_data`, a higher level wrapper of `queue_data`.
     """
 
-    def queue_data(self, fps, channels=-1, dst_nodata=None, interpolation='cv_area',
+    def queue_data(self, fps, channels=None, dst_nodata=None, interpolation='cv_area',
                    max_queue_size=5, **kwargs):
         """Read several rectangles of data on several channels from the source raster.
 
@@ -79,7 +79,7 @@ class AAsyncRaster(ASourceRaster):
             )
         )
 
-    def iter_data(self, fps, channels=-1, dst_nodata=None, interpolation='cv_area',
+    def iter_data(self, fps, channels=None, dst_nodata=None, interpolation='cv_area',
                   max_queue_size=5, **kwargs):
         """Read several rectangles of data on several channels from the source raster.
 

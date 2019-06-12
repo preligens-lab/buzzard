@@ -82,7 +82,6 @@ class BackDatasetConversionsMixin(object):
                     s = ('Error while checking if on-the-fly reprojection could be performed '
                          'between between Dataset\'s `sr_work` and vector\'s `sr_virtual`. '
                          'Cause: {} (The reprojection is too lossy).\n'
-                         'Cause: The reprojection is too lossy and {}.\n'
                          'Solutions:\n'
                          '- Pass those tests by reducing `buzz.env.significant`.\n'
                          '- Bypass those tests by passing `analyse_transformation=False` to the '
@@ -136,7 +135,7 @@ class BackDatasetConversionsMixin(object):
         sr = osr.SpatialReference(wkt)
         _, to_virtual = self.get_transforms(sr, fp, 'work')
         if to_virtual:
-            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]))
+            fp = fp.move(*to_virtual([fp.tl, fp.tr, fp.br]), round_coordinates=True)
         return fp
 
     @staticmethod
