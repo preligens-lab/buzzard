@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosectionlabel',
+    'recommonmark',
 ]
 
 # Configure `numpy` style documentation
@@ -67,9 +68,6 @@ for f in glob.glob('../buzzard/**/*.py', recursive=True):
         napoleon_custom_sections.add(name)
 napoleon_custom_sections = list(napoleon_custom_sections)
 # *********************************************************************************************** **
-
-
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

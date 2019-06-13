@@ -17,6 +17,7 @@ Repository is located here: https://github.com/airware/buzzard
    :caption: Contents:
 
    API <api>
+   Caveats, FAQs and design choices <faq_and_caveats>
 
 Indices and tables:
 -------------------
