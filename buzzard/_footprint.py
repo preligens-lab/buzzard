@@ -1091,6 +1091,19 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         b = other.poly
         return not a.disjoint(b) and not a.touches(b)
 
+    def contains(self, other):
+        """Binary predicate: Does self contain other
+
+        Parameters
+        ----------
+        other: Footprint or shapely object
+
+        Returns
+        -------
+        bool
+        """
+        return self.poly.contains(other.poly)
+
     def equals(self, other):
         """Binary predicate: Is other Footprint exactly equal to self
 
