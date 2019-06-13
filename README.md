@@ -17,11 +17,10 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 - Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
 
 ## `buzzard` contains
-- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened raster and vector files in order to share resources.
-- An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
-<!---
-TODO: Links from github to readthedoc
--->
+- A [`Dataset`](https://buzzard.readthedocs.io/en/stable/dataset.html) class that oversees all opened raster and vector files in order to share resources.
+- An immutable toolbox class, the [`Footprint`](https://buzzard.readthedocs.io/en/stable/footprint.html), designed to locate a rectangle in both image space and geometry space.
+
+[Documentation](https://buzzard.readthedocs.io/)
 
 ## How to open and read files
 This example demonstrates how to visualize a large raster polygon per polygon.
@@ -131,34 +130,21 @@ Additional examples can be found here:
 - [_async rasters_ in depth](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
 
 ## `buzzard` allows
-- Opening and creating raster and vector files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
-- Reading raster files from disk to _numpy.ndarray_.
+- Opening and creating [raster](https://buzzard.readthedocs.io/en/stable/dataset_raster.html) and [vector](https://buzzard.readthedocs.io/en/stable/dataset_vector.html) files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
+- [Reading](https://buzzard.readthedocs.io/en/stable/source_gdal_file_raster.html#raster-file-get-data) raster files pixels from disk to _numpy.ndarray_.
   - _Options:_ `sub-rectangle reading`, `rotated and scaled sub-rectangle reading (thanks to on-the-fly remapping with OpenCV)`, `automatic parallelization of read and remapping (soon)`, `async (soon)`, `be the source of an image processing pipeline (soon)`.
   - _Properties:_ `thread-safe`
-- Writing raster files to disk from _numpy.ndarray_.
+- [Writing](https://buzzard.readthedocs.io/en/stable/source_gdal_file_raster.html#raster-file-set-data) raster files pixels to disk from _numpy.ndarray_.
   - _Options:_ `sub-rectangle writing`, `rotated and scaled sub-rectangle writing (thanks to on-the-fly remapping with OpenCV)`, `masked writing`.
-- Reading vector files from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
+- [Reading](https://buzzard.readthedocs.io/en/stable/source_gdal_file_vector.html#vector-file-iter-data) vector files geometries from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
   - _Options:_ `masking`.
   - _Properties:_ `thread-safe`
-- Writing vector files to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
-- Powerful manipulations of raster windows
-- Instantiation of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
+- [Writing](https://buzzard.readthedocs.io/en/stable/source_gdal_file_vector.html#vector-file-insert-data) vector files geometries to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
+- Powerful manipulations of [raster windows](https://buzzard.readthedocs.io/en/stable/footprint.html)
+- [Instantiation](https://buzzard.readthedocs.io/en/stable/dataset_recipe.html#buzzard.Dataset.create_raster_recipe) of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
   - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
   - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
-- Spatial reference homogenization between opened files like a GIS software does (beta)
-
-<!---
-TODO: Links from github to readthedoc
-- Opening and creating [raster](the right doc page) and [vector](the right doc page) files.
-- [Reading](...) raster
-- [Writing](...) raster
-- [Reading](...) vector
-- [Writing](...) vector
-- Powerful manipulations of [raster windows](...)
-- Instiantiation of [image processing pipelines](...)
-- Spatial reference [homogenization] between opened files
-
--->
+- [Spatial reference homogenization](https://buzzard.readthedocs.io/en/stable/dataset.html#on-the-fly-re-projections-in-buzzard) between opened files like a GIS software does (beta)
 
 ## Dependencies
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
@@ -246,14 +232,11 @@ pip install -r buzzard/requirements-dev.txt
 pytest buzzard/buzzard/test
 ```
 
-## Documentation
-Documentation is hosted on https://buzzard.readthedocs.io/
-
-How to compile documentation on your local computer:
+## How to build documentation
 ```sh
-$> cd docs
-$> make html
-$> open _build/html/index.html
+cd docs
+make html
+open _build/html/index.html
 ```
 
 ## Contributions and feedback
