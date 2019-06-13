@@ -139,7 +139,7 @@ class ABackGDALVector(ABackStoredVector):
                 if not self.back_ds.allow_none_geometry and ftr.GetGeometryRef() is None: # pragma: no cover
                     raise ValueError(
                         'Invalid geometry inserted '
-                        '(allow None geometry in Dataset constructor to silence)'
+                        '(Set `allow_none_geometry=True` in Dataset constructor to silence)'
                     )
 
             if index >= 0:
