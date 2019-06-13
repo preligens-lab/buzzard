@@ -50,7 +50,9 @@ class ASourceRaster(ASource):
         return len(self._back)
 
     def get_data(self, fp=None, channels=None, dst_nodata=None, interpolation='cv_area', **kwargs):
-        """Read a rectangle of data on several channels from the source raster.
+        """.. _raster file get_data:
+
+        Read a rectangle of data on several channels from the source raster.
 
         If `fp` is not fully within the source raster, the external pixels are set to nodata. If
         nodata is missing, 0 is used.

@@ -15,7 +15,9 @@ class AStoredVector(AStored, ASourceVector):
     """
 
     def insert_data(self, geom, fields=(), index=-1):
-        """Insert a feature in vector.
+        """.. _vector file insert_data:
+
+        Insert a feature in vector.
 
         This method is not thread-safe.
 

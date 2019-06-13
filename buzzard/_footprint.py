@@ -43,6 +43,9 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     - is independent from projections, units and files,
     - uses :code:`affine` library internally for conversions (https://github.com/sgillies/affine).
 
+    .. warning::
+        This class being complex and full python, the constructor is too slow for certain use cases (~0.5ms).
+
     +-------------------------------------------------+--------------------------------------------------------+
     | Method category                                 | Method names                                           |
     +==============+==================================+========================================================+
@@ -79,7 +82,8 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     | Serialization                                   | __str__, ...                                           |
     +-------------------------------------------------+--------------------------------------------------------+
 
-    Informations on geo transforms (gt) and affine matrices:
+    Informations on geo transforms (gt) and affine matrices
+    -------------------------------------------------------
 
     - http://www.perrygeo.com/python-affine-transforms.html
     - https://pypi.python.org/pypi/affine/1.0
@@ -113,7 +117,16 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     # Footprint construction ******************************************************************** **
     # Footprint construction - from scratch ***************************************************** **
     def __init__(self, **kwargs):
-        """Constructor
+        """There are only two ways to construct a Footprint, but several high level constructors
+        exist, such as `.intersection`.
+
+        Usage 1
+
+        >>> buzz.Footprint(tl=(0, 10), size=(10, 10), rsize=(100, 100))
+
+        Usage 2
+
+        >>> buzz.Footprint(gt=(0, .1, 0, 10, 0, -.1), rsize=(100, 100))
 
         Parameters
         ----------
@@ -126,13 +139,6 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         rsize: (int, int)
             Size of raster in pixel (unsigned integers)
 
-        Usage 1
-        -------
-        >>> buzz.Footprint(tl=(0, 10), size=(10, 10), rsize=(100, 100))
-
-        Usage 2
-        -------
-        >>> buzz.Footprint(gt=(0, .1, 0, 10, 0, -.1), rsize=(100, 100))
         """
         if 'rsize' not in kwargs:
             raise ValueError('Missing `rsize` parameter')
@@ -284,7 +290,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
         Returns
         -------
-        : Footprint
+        fp: Footprint
             The new clipped :code:`Footprint`
         """
         startx, endx, _ = slice(startx, endx).indices(self.rsizex)
@@ -1440,11 +1446,9 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
     # Geometry / Raster conversions ************************************************************* **
     def find_lines(self, arr, output_offset='middle', merge=True):
-        """Create a list of line-strings from a mask. Works with connectivity 4 and 8.
-
-        TODO: Update doc about skimage.thin and 2x2 squares collapsing
-
-        See `shapely.ops.linemerge` for details concerning output connectivity
+        """Create a list of line-strings from a mask. Works with connectivity 4 and 8. The input
+        raster is preprocessed using `skimage.morphology.thin`. The output linestrings are
+        postprocessed using `shapely.ops.linemerge`.
 
         .. warning::
             All standalone pixels contained in arr will be ignored.
@@ -1516,6 +1520,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
          [0 0 0 0 0]
          [0 0 0 0 0]]
         DegreeView({(3.0, 2.0): 1, (1.0, 2.0): 3, (2.0, 4.0): 1, (3.0, 0.0): 1})
+
         """
         # Step 1: Parameter checking ************************************************************ **
         if arr.shape != tuple(self.shape):
@@ -1622,7 +1627,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         assert False # pragma: no cover
 
     def burn_lines(self, obj, all_touched=False, labelize=False):
-        """Creates a 2d image from lines
+        """Creates a 2d image from lines. Uses gdal.Polygonize.
 
         Parameters
         ----------
@@ -1685,19 +1690,28 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         return arr.astype(dtype, copy=False)
 
     def find_polygons(self, mask):
-        """Creates a list of polygons from a mask.
+        """Creates a list of polygons from a mask. Uses gdal.Polygonize.
+
+        .. warning::
+            This method is not equivalent to `cv2.findContours` that considers that pixels are
+            points and therefore returns the indices of the pixels of the contours of the features.
+
+            This method consider that the pixels are areas and therefore returns the coordinates of
+            the points that surrounds the features.
 
         .. warning::
             Some inputs that may produce invalid polygons (see below) are fixed with the \
             `shapely.geometry.Polygon.buffer` method.
 
-            >>> 0 0 0 0 0 0 0
-            ... 0 1 1 1 0 0 0
-            ... 0 1 1 1 1 0 0
-            ... 0 1 1 1 0 1 0  <- Hole near edge, should create a self touching
-            ... 0 1 1 1 1 1 1     polygon without holes. A valid polygon with
-            ... 0 1 1 1 1 1 1     one hole is returned instead.
-            ... 0 0 0 0 0 0 0
+            Shapely will issue several warnings while buzzard fixes the polygons.
+
+            >>> # 0 0 0 0 0 0 0
+            ... # 0 1 1 1 0 0 0
+            ... # 0 1 1 1 1 0 0
+            ... # 0 1 1 1 0 1 0  <- This feature has a hole near an edge. GDAL produces a self
+            ... # 0 1 1 1 1 1 1     touching polygon without holes. A polygon with one hole is
+            ... # 0 1 1 1 1 1 1     returned with this method.
+            ... # 0 0 0 0 0 0 0
 
         Parameters
         ----------
@@ -1751,7 +1765,14 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         return list(_polygon_iterator())
 
     def burn_polygons(self, obj, all_touched=False, labelize=False):
-        """Creates a 2d image from polygons
+        """Creates a 2d image from polygons. Uses gdal.RasterizeLayer.
+
+        .. warning::
+            This method is not equivalent to `cv2.drawContours` that considers that pixels are
+            points and therefore expect as input the indices of the outer pixels of each feature.
+
+            This method consider that the pixels are areas and therefore expect as input the
+            coordinates of the points surrounding the features.
 
         Parameters
         ----------

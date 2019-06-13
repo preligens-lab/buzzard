@@ -15,7 +15,9 @@ class AStoredRaster(AStored, ASourceRaster):
     """
 
     def set_data(self, array, fp=None, channels=None, interpolation='cv_area', mask=None, **kwargs):
-        """Write a rectangle of data to the destination raster. Each channel in `array` is written to
+        """.. _raster file set_data:
+
+        Write a rectangle of data to the destination raster. Each channel in `array` is written to
         one channel in `raster` in the same order as described by the `channels` parameter. An
         optional `mask` may be provided to only write certain pixels of `array`.
 

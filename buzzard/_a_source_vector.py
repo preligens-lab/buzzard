@@ -68,7 +68,9 @@ class ASourceVector(ASource):
 
     def iter_data(self, fields=None, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
-        """Create an iterator over vector's features
+        """.. _vector file iter_data:
+
+        Create an iterator over vector's features
 
         Parameters
         ----------

@@ -20,8 +20,6 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 - A [`Dataset`](https://buzzard.readthedocs.io/en/stable/dataset.html) class that oversees all opened raster and vector files in order to share resources.
 - An immutable toolbox class, the [`Footprint`](https://buzzard.readthedocs.io/en/stable/footprint.html), designed to locate a rectangle in both image space and geometry space.
 
-[Documentation](https://buzzard.readthedocs.io/)
-
 ## How to open and read files
 This example demonstrates how to visualize a large raster polygon per polygon.
 
@@ -145,6 +143,9 @@ Additional examples can be found here:
   - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
   - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
 - [Spatial reference homogenization](https://buzzard.readthedocs.io/en/stable/dataset.html#on-the-fly-re-projections-in-buzzard) between opened files like a GIS software does (beta)
+
+## Documentation
+[Documentation](https://buzzard.readthedocs.io/)
 
 ## Dependencies
 The following table lists dependencies along with the minimum version, their status for the project and the related license.

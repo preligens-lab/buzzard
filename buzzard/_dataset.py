@@ -29,12 +29,17 @@ import buzzard.utils
 
 class Dataset(DatasetRegisterMixin):
     """**Dataset** is a class that stores references to sources. A source is either a raster, or a
-    vector. It allows quick manipulations by assigning a key to each registered source. It also
-    allows inter-sources operations, like:
+    vector. A `Dataset` allows:
 
-    + spatial reference harmonization (see :ref:`On the fly re-projections in buzzard` below)
-    + workload scheduling on pools when using async rasters (see :ref:`Scheduler` below)
-    + other features in the future (like data visualization)
+    + quick manipulations by optionally assigning a key to each registered source, \
+      (see :ref:`Sources Registering` below)
+    + closing all source at once by closing the Dataset object.
+
+    But also inter-sources operations, like:
+
+    + spatial reference harmonization (see :ref:`On the fly re-projections in buzzard` below),
+    + workload scheduling on pools when using async rasters (see :ref:`Scheduler` below),
+    + other features in the future (like data visualization).
 
     For actions specific to opened sources, see those classes:
 
@@ -51,10 +56,19 @@ class Dataset(DatasetRegisterMixin):
     Parameters
     ----------
     sr_work: None or string
+        In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+        <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
+
         (see :ref:`On the fly re-projections in buzzard` below)
     sr_fallback: None or string
+        In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+        <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
+
         (see :ref:`On the fly re-projections in buzzard` below)
     sr_forced: None or string
+        In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+        <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
+
         (see :ref:`On the fly re-projections in buzzard` below)
     analyse_transformation: bool
         Whether or not to perform a basic analysis on two `sr` to check their compatibility.
@@ -126,6 +140,7 @@ class Dataset(DatasetRegisterMixin):
     - Vector sources
         - OGR drivers: https://www.gdal.org/ogr_formats.html (e.g. 'ESRI Shapefile', 'GeoJSON', 'DXF', ...)
 
+    .. _Sources Registering:
     Sources Registering
     -------------------
     There are always two ways to create a source, with a key or anonymously.
@@ -227,8 +242,9 @@ class Dataset(DatasetRegisterMixin):
 
     - On the other hand if you don't have a priori information on files' `sr`, `mode 2` or \
     `mode 3` should be used.
-         Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
-         create a GeoJSON file in `mode 2`.
+         .. warning::
+             Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
+             create a GeoJSON file in `mode 2`.
 
     On the fly re-projections in buzzard - Examples
     -----------------------------------------------
@@ -467,7 +483,11 @@ class Dataset(DatasetRegisterMixin):
 
             To avoid using a `key`, you may use :py:meth:`acreate_raster`
         path: string
-            ..
+            Anything that makes sense to GDAL:
+
+                + A path to a file
+                + An empty string when using `driver=MEM`
+                + A path or an xml string when using `driver=VRT`
         fp: Footprint
             Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
@@ -483,14 +503,12 @@ class Dataset(DatasetRegisterMixin):
             options for gdal
             http://www.gdal.org/frmt_gtiff.html
         sr: string or None
-            Spatial reference of the new file
+            Spatial reference of the new file.
 
-            if None: don't set a spatial reference
+            In order not to set a spatial reference, use `None`.
 
-            if path: Use same projection as file at `path`
-
-            if textual spatial reference:
-                converted to wkt using http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+            In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+            <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
         ow: bool
             Overwrite. Whether or not to erase the existing files.
 
@@ -646,13 +664,10 @@ class Dataset(DatasetRegisterMixin):
         sr: string or None
             Spatial reference of the new file
 
-            if None: don't set a spatial reference
+            In order not to set a spatial reference, use `None`.
 
-            if path: Use same projection as file at `path`
-
-            if textual spatial reference: http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
-        mode: one of {'r', 'w'}
-            ..
+            In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+            <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
 
         Returns
         -------
@@ -1379,7 +1394,10 @@ class Dataset(DatasetRegisterMixin):
 
             To avoid using a `key`, you may use :py:meth:`acreate_vector`
         path: string
-            ..
+            Anything that makes sense to GDAL:
+
+                + A path to a file
+                + An empty string when using `driver=Memory`
         type: string
             name of a wkb geometry type, without the `wkb` prefix.
 
@@ -1397,11 +1415,10 @@ class Dataset(DatasetRegisterMixin):
         sr: string or None
             Spatial reference of the new file
 
-            if None: don't set a spatial reference
+            In order not to set a spatial reference, use `None`.
 
-            if path: Use same projection as file at `path`
-
-            if textual spatial reference: http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+            In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+            <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
         ow: bool
             Overwrite. Whether or not to erase the existing files.
 
