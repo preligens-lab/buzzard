@@ -145,7 +145,7 @@ Additional examples can be found here:
 - [Spatial reference homogenization](https://buzzard.readthedocs.io/en/stable/dataset.html#on-the-fly-re-projections-in-buzzard) between opened files like a GIS software does (beta)
 
 ## Documentation
-[Documentation](https://buzzard.readthedocs.io/)
+https://buzzard.readthedocs.io/
 
 ## Dependencies
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
