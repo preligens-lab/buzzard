@@ -6,6 +6,11 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 </div>
 
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)[![readthedoc](https://readthedocs.org/projects/buzzard/badge/?version=latest&style=flat)](https://buzzard.readthedocs.io/en/latest)
+
+[
+![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=25)
+](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
+
 <!-- [![Requirements Status](https://requires.io/github/airware/buzzard/requirements.svg?branch=master)](https://requires.io/github/airware/buzzard/requirements/?branch=master) -->
 
 ## `buzzard` is
@@ -31,6 +36,7 @@ import matplotlib.pyplot as plt
 # Open the files. Only files' metadata are read so far
 r = buzz.open_raster('path/to/rgba-image.tif')
 v = buzz.open_vector('path/to/polygons.geojson', driver='GeoJSON')
+
 
 # Load the polygons from disk one by one as shapely objects
 for poly in v.iter_data():
@@ -227,6 +233,8 @@ To enjoy the latest buzzard features, update your python!
 - `2.7`: use buzzard version `0.4.4`
 
 ## Slack
+You want some help? You have a question? You want to contribute? Join us on Slack!
+
 [
 ![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=42)
 ](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
