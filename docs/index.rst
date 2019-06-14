@@ -12,12 +12,14 @@ Repository is located here: https://github.com/airware/buzzard
    :alt: buzzard logo
    :align: center
 
-.. autogenerate a title
 .. toctree::
-   :caption: Contents:
-
    API <api>
+
+.. toctree::
+   :maxdepth: 1
+
    Caveats, FAQs and design choices <faq_and_caveats>
+
 
 Indices and tables:
 -------------------

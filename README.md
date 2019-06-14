@@ -226,6 +226,11 @@ To enjoy the latest buzzard features, update your python!
 #### Partial python support
 - `2.7`: use buzzard version `0.4.4`
 
+## Slack
+[
+![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=42)
+](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
+
 ## How to test
 ```sh
 git clone https://github.com/airware/buzzard
