@@ -1,4 +1,4 @@
-# caveats, FAQs and design choices
+# Caveats, FAQs and design choices
 Buzzard has a lot of ambition but is still a young library with several caveats. Are you currently trying to determine if buzzard is the right choice for your project? We will make things easy for you and list here the use-cases that are currently poorly supported. The rest is pure happiness!
 
 
