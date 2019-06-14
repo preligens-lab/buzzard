@@ -5,7 +5,13 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
   <img src="https://github.com/airware/buzzard/raw/master/img/buzzard.png"><br><br>
 </div>
 
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)[![readthedoc](https://readthedocs.org/projects/buzzard/badge/?version=latest&style=flat)](https://buzzard.readthedocs.io/en/latest)
+
+[
+![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=25)
+](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
+
+<!-- [![Requirements Status](https://requires.io/github/airware/buzzard/requirements.svg?branch=master)](https://requires.io/github/airware/buzzard/requirements/?branch=master) -->
 
 ## `buzzard` is
 - A _python_ library.
@@ -16,11 +22,8 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 - Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
 
 ## `buzzard` contains
-- A [`Dataset`](https://github.com/airware/buzzard/blob/master/buzzard/_dataset.py) class that oversees all opened raster and vector files in order to share resources.
-- An immutable toolbox class, the [`Footprint`](https://github.com/airware/buzzard/blob/master/buzzard/_footprint.py), designed to locate a rectangle in both image space and geometry space.
-<!---
-TODO: Links from github to readthedoc
--->
+- A [`Dataset`](https://buzzard.readthedocs.io/en/stable/dataset.html) class that oversees all opened raster and vector files in order to share resources.
+- An immutable toolbox class, the [`Footprint`](https://buzzard.readthedocs.io/en/stable/footprint.html), designed to locate a rectangle in both image space and geometry space.
 
 ## How to open and read files
 This example demonstrates how to visualize a large raster polygon per polygon.
@@ -33,6 +36,7 @@ import matplotlib.pyplot as plt
 # Open the files. Only files' metadata are read so far
 r = buzz.open_raster('path/to/rgba-image.tif')
 v = buzz.open_vector('path/to/polygons.geojson', driver='GeoJSON')
+
 
 # Load the polygons from disk one by one as shapely objects
 for poly in v.iter_data():
@@ -130,34 +134,24 @@ Additional examples can be found here:
 - [_async rasters_ in depth](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
 
 ## `buzzard` allows
-- Opening and creating raster and vector files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
-- Reading raster files from disk to _numpy.ndarray_.
+- Opening and creating [raster](https://buzzard.readthedocs.io/en/stable/dataset_raster.html) and [vector](https://buzzard.readthedocs.io/en/stable/dataset_vector.html) files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
+- [Reading](https://buzzard.readthedocs.io/en/stable/source_gdal_file_raster.html#raster-file-get-data) raster files pixels from disk to _numpy.ndarray_.
   - _Options:_ `sub-rectangle reading`, `rotated and scaled sub-rectangle reading (thanks to on-the-fly remapping with OpenCV)`, `automatic parallelization of read and remapping (soon)`, `async (soon)`, `be the source of an image processing pipeline (soon)`.
   - _Properties:_ `thread-safe`
-- Writing raster files to disk from _numpy.ndarray_.
+- [Writing](https://buzzard.readthedocs.io/en/stable/source_gdal_file_raster.html#raster-file-set-data) raster files pixels to disk from _numpy.ndarray_.
   - _Options:_ `sub-rectangle writing`, `rotated and scaled sub-rectangle writing (thanks to on-the-fly remapping with OpenCV)`, `masked writing`.
-- Reading vector files from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
+- [Reading](https://buzzard.readthedocs.io/en/stable/source_gdal_file_vector.html#vector-file-iter-data) vector files geometries from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
   - _Options:_ `masking`.
   - _Properties:_ `thread-safe`
-- Writing vector files to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
-- Powerful manipulations of raster windows
-- Instantiation of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
+- [Writing](https://buzzard.readthedocs.io/en/stable/source_gdal_file_vector.html#vector-file-insert-data) vector files geometries to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
+- Powerful manipulations of [raster windows](https://buzzard.readthedocs.io/en/stable/footprint.html)
+- [Instantiation](https://buzzard.readthedocs.io/en/stable/dataset_recipe.html#buzzard.Dataset.create_raster_recipe) of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
   - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
   - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
-- Spatial reference homogenization between opened files like a GIS software does (beta)
+- [Spatial reference homogenization](https://buzzard.readthedocs.io/en/stable/dataset.html#on-the-fly-re-projections-in-buzzard) between opened files like a GIS software does (beta)
 
-<!---
-TODO: Links from github to readthedoc
-- Opening and creating [raster](the right doc page) and [vector](the right doc page) files.
-- [Reading](...) raster
-- [Writing](...) raster
-- [Reading](...) vector
-- [Writing](...) vector
-- Powerful manipulations of [raster windows](...)
-- Instiantiation of [image processing pipelines](...)
-- Spatial reference [homogenization] between opened files
-
--->
+## Documentation
+https://buzzard.readthedocs.io/
 
 ## Dependencies
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
@@ -238,6 +232,13 @@ To enjoy the latest buzzard features, update your python!
 #### Partial python support
 - `2.7`: use buzzard version `0.4.4`
 
+## Slack
+You want some help? You have a question? You want to contribute? Join us on Slack!
+
+[
+![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=42)
+](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
+
 ## How to test
 ```sh
 git clone https://github.com/airware/buzzard
@@ -245,10 +246,12 @@ pip install -r buzzard/requirements-dev.txt
 pytest buzzard/buzzard/test
 ```
 
-## Documentation
-Hosted soon, in the meantime
-- look at the docstrings in code
-- play with the examples above
+## How to build documentation
+```sh
+cd docs
+make html
+open _build/html/index.html
+```
 
 ## Contributions and feedback
 Welcome to the `buzzard` project! We appreciate any contribution and feedback, your proposals and pull requests will be considered and responded to. For more information, see the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.

@@ -50,7 +50,9 @@ class ASourceRaster(ASource):
         return len(self._back)
 
     def get_data(self, fp=None, channels=None, dst_nodata=None, interpolation='cv_area', **kwargs):
-        """Read a rectangle of data on several channels from the source raster.
+        """.. _raster file get_data:
+
+        Read a rectangle of data on several channels from the source raster.
 
         If `fp` is not fully within the source raster, the external pixels are set to nodata. If
         nodata is missing, 0 is used.
@@ -61,17 +63,21 @@ class ASourceRaster(ASource):
 
         If `dst_nodata` is provided, nodata pixels are set to `dst_nodata`.
 
-        The alpha channels are currently resampled like any other channels, this behavior may
-        change in the future. To normalize an `rgba` array after a resampling operation, use this
-        piece of code:
-        >>> arr = np.where(arr[..., -1] == 255, arr, 0)
+        .. warning::
+            The alpha channels are currently resampled like any other channels, this behavior may
+            change in the future. To normalize an `rgba` array after a resampling operation, use this
+            piece of code:
 
-        /!\ Bands in GDAL are indexed from 1. Channels in buzzard are indexed from 0.
+            >>> arr = np.where(arr[..., -1] == 255, arr, 0)
+
+        .. warning::
+            Bands in GDAL are indexed from 1. Channels in buzzard are indexed from 0.
 
         Parameters
         ----------
         fp: Footprint of shape (Y, X) or None
             If None: return the full source raster
+
             If Footprint: return this window from the raster
         channels: None or int or slice or sequence of int (see `Channels Parameter` below)
             The channels to be read
@@ -85,21 +91,29 @@ class ASourceRaster(ASource):
         Returns
         -------
         array: numpy.ndarray of shape (Y, X) or (Y, X, C)
-            If the `channels` parameter is `None`, the returned array is of shape (Y, X) when `C=1`,
+            - If the `channels` parameter is `-1`, the returned array is of shape (Y, X) when `C=1`, \
                (Y, X, C) otherwise.
-            If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
-            If the `channels` parameter is a sequence or a slice, the returned array is always of
+            - If the `channels` parameter is an integer `>=0`, the returned array is of shape (Y, X).
+            - If the `channels` parameter is a sequence or a slice, the returned array is always of\
                shape (Y, X, C), no matter the size of `C`.
-            (see `Channels Parameter` below)
 
+            (see :ref:`Channels Parameter` below)
+
+        .. _Channels Parameter:
         Channels Parameter
         ------------------
+
+        +------------+-----------------------------------------------------+----------------+---------------------+
         | type       | value                                               | meaning        | output shape        |
-        |------------|-----------------------------------------------------|----------------|---------------------|
+        +============+=====================================================+================+=====================+
         | NoneType   | None (default)                                      | All channels   | (Y, X) or (Y, X, C) |
+        +------------+-----------------------------------------------------+----------------+---------------------+
         | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels | (Y, X, C)           |
+        +------------+-----------------------------------------------------+----------------+---------------------+
         | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  | (Y, X)              |
+        +------------+-----------------------------------------------------+----------------+---------------------+
         | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels | (Y, X, C)           |
+        +------------+-----------------------------------------------------+----------------+---------------------+
 
         """
         dst_nodata, kwargs = _tools.deprecation_pool.handle_param_renaming_with_kwargs(

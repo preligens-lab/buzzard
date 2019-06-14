@@ -1,6 +1,5 @@
-"""Welcome to buzzard, https://github.com/airware/buzzard
-
-buzzard should always be imported the first time from the main thread
+"""
+IMPORTANT: When you import :code:`buzzard` for the first time, you should always do it from the main thread.
 """
 
 __version__ = "0.6.2"

@@ -9,7 +9,7 @@ class APooledEmissary(AEmissary):
 
     Features Defined
     ----------------
-    - An `activate` method to manually open the driver (Mostly useless feature since opening
+    - An `activate` method to manually open the driver (Mostly useless feature since opening \
         is automatic if necessary)
     - A `deactivate` method to close the driver (Useful to flush data to disk)
     - An `active_count` property

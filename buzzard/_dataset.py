@@ -28,34 +28,57 @@ from buzzard._a_pooled_emissary import APooledEmissary
 import buzzard.utils
 
 class Dataset(DatasetRegisterMixin):
-    """Dataset is a class that stores references to sources. A source is either a raster, or a
-    vector. It allows quick manipulations by assigning a key to each registered source. It also
-    allows inter-sources operations, like:
-    - spatial reference harmonization (see `On the fly re-projections in buzzard` below)
-    - workload scheduling on pools when using async rasters (see `Scheduler` below)
-    - other features in the future (like data visualization)
+    """**Dataset** is a class that stores references to sources. A source is either a raster, or a
+    vector. A `Dataset` allows:
+
+    + quick manipulations by optionally assigning a key to each registered source, \
+      (see :ref:`Sources Registering` below)
+    + closing all source at once by closing the Dataset object.
+
+    But also inter-sources operations, like:
+
+    + spatial reference harmonization (see :ref:`On the fly re-projections in buzzard` below),
+    + workload scheduling on pools when using async rasters (see :ref:`Scheduler` below),
+    + other features in the future (like data visualization).
 
     For actions specific to opened sources, see those classes:
-    - GDALFileRaster
-    - GDALMemRaster
-    - NumpyRaster
-    - CachedRasterRecipe
-    - GDALFileVector
-    - GDALMemoryVector
 
-    /!\ This class is not equivalent to the `gdal.Dataset` class.
+    - :doc:`source_gdal_file_raster`
+    - :doc:`source_gdal_mem_raster`
+    - :doc:`source_numpy_raster`
+    - :doc:`source_cached_raster_recipe`
+    - :doc:`source_gdal_file_vector`
+    - :doc:`source_gdal_memory_vector`
+
+    .. warning::
+        This class is not equivalent to the `gdal.Dataset` class.
 
     Parameters
     ----------
-    sr_work: None or string (see `On the fly re-projections in buzzard` below)
-    sr_fallback: None or string (see `On the fly re-projections in buzzard` below)
-    sr_forced: None or string (see `On the fly re-projections in buzzard` below)
+    sr_work: None or string
+        In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+        <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
+
+        (see :ref:`On the fly re-projections in buzzard` below)
+    sr_fallback: None or string
+        In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+        <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
+
+        (see :ref:`On the fly re-projections in buzzard` below)
+    sr_forced: None or string
+        In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+        <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
+
+        (see :ref:`On the fly re-projections in buzzard` below)
     analyse_transformation: bool
         Whether or not to perform a basic analysis on two `sr` to check their compatibility.
+
         if True: Read the `buzz.env.significant` variable and raise an exception if a spatial
-            reference conversions is too lossy in precision.
+        reference conversions is too lossy in precision.
+
         if False: Skip all checks.
-        (see `On the fly re-projections in buzzard` below)
+
+        (see :ref:`On the fly re-projections in buzzard` below)
     allow_none_geometry: bool
         Whether or not a vector geometry should raise an exception when encountering a None geometry
     allow_interpolation: bool
@@ -63,29 +86,34 @@ class Dataset(DatasetRegisterMixin):
         is necessary.
     max_active: nbr >= 1
         Maximum number of pooled sources active at the same time.
-        (see `Sources activation / deactivation` below)
+        (see :ref:`Sources activation / deactivation` below)
     debug_observers: sequence of object
         Entry points to observe what is happening in the Dataset's sheduler.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import buzzard as buzz
 
-    Creating a Dataset
+    Creating a Dataset.
+
     >>> ds = buzz.Dataset()
 
-    Opening a file and registering it under the 'roofs' key
+    Opening a file and registering it under the 'roofs' key. There are four ways to the access an
+    opened source.
+
     >>> r = ds.open_vector('roofs', 'path/to/roofs.shp')
     ... feature_count = len(ds.roofs)
     ... feature_count = len(ds['roofs'])
     ... feature_count = len(ds.get('roofs'))
     ... feature_count = len(r)
 
-    Opening a file anonymously
+    Opening a file anonymously. There is only one way to access the source.
+
     >>> r = ds.aopen_raster('path/to/dem.tif')
     ... data_type = r.dtype
 
-    Opening, reading and closing two raster files with context management
+    Opening, reading and closing two raster files with context management.
+
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
     ...     data_type = ds.rgb.fp
     ...     arr = ds.rgb.get_data()
@@ -95,6 +123,7 @@ class Dataset(DatasetRegisterMixin):
     ...     arr = rgb.get_data()
 
     Creating two files
+
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
     ... geometry_type = ds.targets.type
 
@@ -102,45 +131,51 @@ class Dataset(DatasetRegisterMixin):
     ...     file_footprint = cache.fp
     ...     cache.set_data(dem.get_data())
 
-    Sources type
-    ------------
-    Raster sources:
-    - numpy.ndarray
-    - GDAL drivers http://www.gdal.org/formats_list.html
-        (e.g. 'GTIff', 'JPEG', 'PNG', ...)
-    Vector sources:
-    - OGR drivers: https://www.gdal.org/ogr_formats.html
-        (e.g. 'ESRI Shapefile', 'GeoJSON', 'DXF', ...)
+    Sources Types
+    -------------
+    - Raster sources
+        - GDAL drivers http://www.gdal.org/formats_list.html (e.g. 'GTIff', 'JPEG', 'PNG', ...)
+        - numpy.ndarray
+        - recipes
+    - Vector sources
+        - OGR drivers: https://www.gdal.org/ogr_formats.html (e.g. 'ESRI Shapefile', 'GeoJSON', 'DXF', ...)
 
-    Sources registering
+    .. _Sources Registering:
+    Sources Registering
     -------------------
-    There are always two ways to create source, with a key or anonymously.
+    There are always two ways to create a source, with a key or anonymously.
 
     When creating a source using a key, said key (e.g. the string "my_source_name") must be provided
     by user. Each key identify one source and should thus be unique. There are then three ways to
     access that source:
+
     - from the object returned by the method that created the source,
     - from the Dataset with the attribute syntax: `ds.my_source_name`,
     - from the Dataset with the item syntax: ds["my_source_name"].
+
     All keys should be unique.
 
     When creating a source anonymously you don't have to provide a key, but the only way to access
     this source is to use the object returned by the method that created the source.
 
+    .. _Sources activation / deactivation:
     Sources activation / deactivation
     ---------------------------------
+
     The sources that inherit from `APooledEmissary` (like `GDALFileVector` and `GDALFileRaster`) are
     flexible about their underlying driver object. Those sources may be temporary deactivated
     (useful to limit the number of file descriptors active), or activated multiple time at the
     same time (useful to perfom concurrent reads).
 
     Those sources are automatically activated and deactivated given the current needs and
-    constraints. Setting a `max_activated` lower than `np.inf` in the Dataset constructor, will
-    ensure that no more than `max_activated` driver objects are active at the same time, by
+    constraints. Setting a `max_active` lower than `np.inf` in the Dataset constructor, will
+    ensure that no more than `max_active` driver objects are active at the same time, by
     deactivating the LRU ones.
 
+    .. _On the fly re-projections in buzzard:
     On the fly re-projections in buzzard
     ------------------------------------
+
     A Dataset may perform spatial reference conversions on the fly, like a GIS does. Several
     modes are available, a set of rules define how each mode work. Those conversions concern both
     read operations and write operations, all are performed by the OSR library.
@@ -159,60 +194,85 @@ class Dataset(DatasetRegisterMixin):
     can create unpredictable behaviors at the pixel level deep in your code. Those bugs can be
     witnessed when zooming to infinity with tools like `qgis` or `matplotlib`.
 
-    ### Terminology
-    `sr`: Spatial reference
-    `sr_work`: The sr of all interactions with a Dataset (i.e. Footprints, extents, Polygons...),
-        may be None.
-    `sr_stored`: The sr that can be found in the metadata of a raster/vector storage, may be None.
-    `sr_virtual`: The sr considered to be written in the metadata of a raster/vector storage, it is
-        often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
-        `sr_virtual` to `sr_work`. When writing vector data, a conversion is performed from
-        `sr_work` to `sr_virtual`.
-    `sr_forced`: A `sr_virtual` provided by user to ignore all `sr_stored`. This is for example
-        useful when the `sr` stored in the input files are corrupted.
-    `sr_fallback`: A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
-        for example useful when an input file can't store a `sr` (e.g. DFX).
+    On the fly re-projections in buzzard - Terminology
+    --------------------------------------------------
+    `sr`
+      Spatial reference
+    `sr_work`
+      The sr of all interactions with a Dataset (i.e. Footprints, extents, Polygons...),
+      may be None.
+    `sr_stored`
+      The sr that can be found in the metadata of a raster/vector storage, may be None.
+    `sr_virtual`
+      The sr considered to be written in the metadata of a raster/vector storage, it is
+      often the same as `sr_stored`. When a raster/vector is read, a conversion is performed from
+      `sr_virtual` to `sr_work`. When writing vector data, a conversion is performed from
+      `sr_work` to `sr_virtual`.
+    `sr_forced`
+      A `sr_virtual` provided by user to ignore all `sr_stored`. This is for example
+      useful when the `sr` stored in the input files are corrupted.
+    `sr_fallback`
+      A `sr_virtual` provided by user to be used when `sr_stored` is missing. This is
+      for example useful when an input file can't store a `sr` (e.g. DFX).
 
-    ### Dataset parameters and modes
-    | mode | sr_work | sr_fallback | sr_forced | How is the `sr_virtual` of a source determined                                  |
-    |------|---------|-------------|-----------|---------------------------------------------------------------------------------|
-    | 1    | None    | None        | None      | Use `sr_stored`, no conversion is performed for the lifetime of this Dataset |
-    | 2    | string  | None        | None      | Use `sr_stored`, if None raises an exception                                    |
-    | 3    | string  | string      | None      | Use `sr_stored`, if None it is considered to be `sr_fallback`                   |
-    | 4    | string  | None        | string    | Use `sr_forced`                                                                 |
+    On the fly re-projections in buzzard -  Dataset parameters and modes
+    --------------------------------------------------------------------
 
-    ### Use cases
-    - If all opened files are known to be written in a same sr in advance, use `mode 1`. No
-        conversions will be performed, this is the safest way to work.
-    - If all opened files are known to be written in the same sr but you wish to work in a different
-        sr, use `mode 4`. The huge benefit of this mode is that the `driver` specific behaviors
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | mode | sr_work  | sr_fallback  | sr_forced  | How is the `sr_virtual` of a source determined                                |
+    +======+==========+==============+============+===============================================================================+
+    | 1    | None     | None         | None       | Use `sr_stored`, no conversion is performed for the lifetime of this Dataset  |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | 2    | string   | None         | None       | Use `sr_stored`, if None raises an exception                                  |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | 3    | string   | string       | None       | Use `sr_stored`, if None it is considered to be `sr_fallback`                 |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+    | 4    | string   | None         | string     | Use `sr_forced`                                                               |
+    +------+----------+--------------+------------+-------------------------------------------------------------------------------+
+
+    On the fly re-projections in buzzard - Use cases
+    ------------------------------------------------
+    - If all opened files are known to be written in a same sr in advance, use `mode 1`.
+        No conversions will be performed, this is the safest way to work.
+
+    - If all opened files are known to be written in the same sr but you wish to work in a \
+    different sr, use `mode 4`.
+        The huge benefit of this mode is that the `driver` specific behaviors
         concerning spatial references have no impacts on the data you manipulate.
-    - And the other hand if you don't have a priori information on files' `sr`, `mode 2` or
-       `mode 3` should be used.
-       Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
-           create a GeoJSON file in `mode 2`.
 
-    ### Examples
+    - On the other hand if you don't have a priori information on files' `sr`, `mode 2` or \
+    `mode 3` should be used.
+         .. warning::
+             Side note: Since the GeoJSON driver cannot store a `sr`, it is impossible to open or
+             create a GeoJSON file in `mode 2`.
+
+    On the fly re-projections in buzzard - Examples
+    -----------------------------------------------
     mode 1 - No conversions at all
+
     >>> ds = buzz.Dataset()
 
     mode 2 - Working with WGS84 coordinates
+
     >>> ds = buzz.Dataset(
-            sr_work='WGS84',
-        )
+    ...     sr_work='WGS84',
+    ... )
 
     mode 3 - Working in UTM with DXF files in WGS84 coordinates
+
     >>> ds = buzz.Dataset(
-            sr_work='EPSG:32632',
-            sr_fallback='WGS84',
-        )
+    ...     sr_work='EPSG:32632',
+    ...     sr_fallback='WGS84',
+    ... )
 
     mode 4 - Working in UTM with unreliable LCC input files
-    >>> ds = buzz.Dataset(
-            sr_work='EPSG:32632',
-            sr_forced='EPSG:27561',
-        )
 
+    >>> ds = buzz.Dataset(
+    ...     sr_work='EPSG:32632',
+    ...     sr_forced='EPSG:27561',
+    ..  )
+
+    .. _Scheduler:
     Scheduler
     ---------
     To handle *async rasters* living in a Dataset, a thread is to manage requests made to those
@@ -224,10 +284,11 @@ class Dataset(DatasetRegisterMixin):
     Thread-safety
     -------------
     Thread safety is one of the main concern of buzzard. Everything is thread-safe except:
+
     - The raster write methods
     - The vector write methods
-    - The raster read methods when using the GDAL::MEM driver
-    - The vector read methods when using the GDAL::Memory driver
+    - The raster read methods when using the `GDAL::MEM` driver
+    - The vector read methods when using the `GDAL::Memory` driver
 
     """
 
@@ -324,7 +385,7 @@ class Dataset(DatasetRegisterMixin):
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file in this Dataset under `key`. Only metadata are kept in memory.
+        """Open a raster file within this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileRaster)
 
@@ -332,17 +393,22 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`aopen_raster`
         path: string
+            ..
         driver: string
             gdal driver to use when opening the file
             http://www.gdal.org/formats_list.html
         options: sequence of str
             options for gdal
         mode: one of {'r', 'w'}
+            ..
 
         Returns
         -------
-        GDALFileRaster
+        source: GDALFileRaster
+            ..
 
         Example
         -------
@@ -351,6 +417,11 @@ class Dataset(DatasetRegisterMixin):
 
         >>> ds.open_raster('dem', '/path/to/dem.tif', mode='w')
         >>> nodata_value = ds.dem.nodata
+
+        See Also
+        --------
+        - :py:meth:`Dataset.aopen_raster`: To skip the `key` assigment
+        - :py:func:`buzzard.open_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         # Parameter checking ***************************************************
@@ -378,21 +449,26 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def aopen_raster(self, path, driver='GTiff', options=(), mode='r'):
-        """Open a raster file anonymously in this Dataset. Only metadata are kept in memory.
+        """Open a raster file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.open_raster
+        See :py:meth:`~Dataset.open_raster`
 
         Example
         ------
         >>> ortho = ds.aopen_raster('/path/to/ortho.tif')
         >>> file_wkt = ortho.wkt_stored
 
+        See Also
+        --------
+        - :py:meth:`Dataset.open_raster`: To assign a `key` to this source within the `Dataset`
+        - :py:func:`buzzard.open_raster`: To skip the explicit `Dataset` instanciation
+
         """
         return self.open_raster(_AnonymousSentry(), path, driver, options, mode)
 
     def create_raster(self, key, path, fp, dtype, channel_count, channels_schema=None,
                       driver='GTiff', options=(), sr=None, ow=False, **kwargs):
-        """Create a raster file and register it under `key` in this Dataset. Only metadata are
+        """Create a raster file and register it under `key` within this Dataset. Only metadata are
         kept in memory.
 
         The raster's values are initialized with `channels_schema['nodata']` or `0`.
@@ -404,10 +480,18 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`acreate_raster`
         path: string
+            Anything that makes sense to GDAL:
+
+                + A path to a file
+                + An empty string when using `driver=MEM`
+                + A path or an xml string when using `driver=VRT`
         fp: Footprint
             Description of the location and size of the raster to create.
         dtype: numpy type (or any alias)
+            ..
         channel_count: integer
             number of channels
         channels_schema: dict or None
@@ -419,26 +503,25 @@ class Dataset(DatasetRegisterMixin):
             options for gdal
             http://www.gdal.org/frmt_gtiff.html
         sr: string or None
-            Spatial reference of the new file
+            Spatial reference of the new file.
 
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+            In order not to set a spatial reference, use `None`.
+
+            In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+            <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
         ow: bool
             Overwrite. Whether or not to erase the existing files.
+
+        Returns
+        -------
+        source: GDALFileRaster or GDALMemRaster
+            The type depends on the `driver` parameter
 
         Example
         -------
         >>> ds.create_raster('dem_copy', 'dem_copy.tif', ds.dem.fp, ds.dsm.dtype, len(ds.dem))
         >>> array = ds.dem.get_data()
         >>> ds.dem_copy.set_data(array)
-
-        Returns
-        -------
-        one of {GDALFileRaster, GDALMemRaster}
-            depending on the `driver` parameter
 
         Channel schema fields
         ---------------------
@@ -454,14 +537,22 @@ class Dataset(DatasetRegisterMixin):
         Mask values:
             all_valid, per_dataset, alpha, nodata
 
-        A field missing or None is kept to default value.
-        A field can be passed as:
-            a value: All bands are set to this value
-            a sequence of length `channel_count` of value: All bands will be set to respective state
+        Additionally:
+
+        - A field missing or None is kept to default value.
+        - A field can be passed as
+
+            - a value: All bands are set to this value
+            - a sequence of values of length `channel_count`: All bands will be set to their respective state
 
         Caveat
         ------
         When using the GTiff driver, specifying a `mask` or `interpretation` field may lead to unexpected results.
+
+        See Also
+        --------
+        - :py:meth:`Dataset.acreate_raster`: To skip the `key` assigment
+        - :py:func:`buzzard.create_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
 
@@ -528,9 +619,9 @@ class Dataset(DatasetRegisterMixin):
 
     def acreate_raster(self, path, fp, dtype, channel_count, channels_schema=None,
                        driver='GTiff', options=(), sr=None, ow=False, **kwargs):
-        """Create a raster file anonymously in this Dataset. Only metadata are kept in memory.
+        """Create a raster file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.create_raster
+        See :py:meth:`~Dataset.create_raster`
 
         Example
         -------
@@ -544,12 +635,17 @@ class Dataset(DatasetRegisterMixin):
         >>> out = ds.acreate_raster('output.tif', ds.dem.fp, 'float32', 2, channels_schema)
         >>> band_interpretation = out.channels_schema['interpretation']
 
+        See Also
+        --------
+        - :py:meth:`Dataset.create_raster`: To assign a `key` to this source within the `Dataset`
+        - :py:func:`buzzard.create_raster`: To skip the explicit `Dataset` instanciation
+
         """
         return self.create_raster(_AnonymousSentry(), path, fp, dtype, channel_count, channels_schema,
                                   driver, options, sr, ow, **kwargs)
 
     def wrap_numpy_raster(self, key, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
-        """Register a numpy array as a raster under `key` in this Dataset.
+        """Register a numpy array as a raster under `key` within this Dataset.
 
         >>> help(NumpyRaster)
 
@@ -557,24 +653,26 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`awrap_numpy_raster`
         fp: Footprint of shape (Y, X)
             Description of the location and size of the raster to create.
         array: ndarray of shape (Y, X) or (Y, X, C)
+            ..
         channels_schema: dict or None
             Channel(s) metadata. (see `Channels schema fields` below)
         sr: string or None
             Spatial reference of the new file
 
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
-        mode: one of {'r', 'w'}
+            In order not to set a spatial reference, use `None`.
+
+            In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+            <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
 
         Returns
         -------
-        NumpyRaster
+        source: NumpyRaster
+            ..
 
         Channel schema fields
         ---------------------
@@ -590,10 +688,18 @@ class Dataset(DatasetRegisterMixin):
         Mask values:
             all_valid, per_dataset, alpha, nodata
 
-        A field missing or None is kept to default value.
-        A field can be passed as:
-            a value: All bands are set to this value
-            a sequence of length `channel_count` of value: All bands will be set to respective state
+        Additionally:
+
+        - A field missing or None is kept to default value.
+        - A field can be passed as
+
+            - a value: All bands are set to this value
+            - a sequence of values of length `channel_count`: All bands will be set to their respective state
+
+        See Also
+        --------
+        - :py:meth:`Dataset.awrap_numpy_raster`: To skip the `key` assigment
+        - :py:meth:`buzzard.wrap_numpy_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
 
@@ -646,9 +752,13 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def awrap_numpy_raster(self, fp, array, channels_schema=None, sr=None, mode='w', **kwargs):
-        """Register a numpy array as a raster anonymously in this Dataset.
+        """Register a numpy array as a raster anonymously within this Dataset.
 
-        See Dataset.wrap_numpy_raster
+        See Also
+        --------
+        - :py:meth:`Dataset.wrap_numpy_raster`: To assign a `key` to this source within the `Dataset`
+        - :py:meth:`buzzard.wrap_numpy_raster`: To skip the `key` assigment and the explicit `Dataset` instanciation
+
         """
         return self.wrap_numpy_raster(
             _AnonymousSentry(), fp, array, channels_schema, sr, mode, **kwargs
@@ -674,15 +784,25 @@ class Dataset(DatasetRegisterMixin):
             max_resampling_size=None, automatic_remapping=True,
             debug_observers=(),
     ):
-        """/!\ This method is not yet implemented. It is here for documentation purposes.
+        """
 
-        Create a *raster recipe* and register it under `key` in this Dataset.
+        .. warning::
+            This method is not yet implemented. It exists for documentation purposes.
+
+        Create a *raster recipe* and register it under `key` within this Dataset.
 
         A *raster recipe* implements the same interfaces as all other rasters, but internally it
         computes data on the fly by calling a callback. The main goal of the *raster recipes* is to
-        provide a boilerplate-free interface that automatize those cumbersome tasks: tiling,
-        parallelism, caching, file reads, resampling, lazy evaluation, backpressure prevention and
-        optimised task scheduling.
+        provide a boilerplate-free interface that automatize those cumbersome tasks:
+
+        - tiling,
+        - parallelism
+        - caching
+        - file reads
+        - resampling
+        - lazy evaluation
+        - backpressure prevention and
+        - optimised task scheduling.
 
         If you are familiar with `create_cached_raster_recipe` two parameters are new here:
         `automatic_remapping` and `max_computation_size`.
@@ -690,47 +810,49 @@ class Dataset(DatasetRegisterMixin):
         Parameters
         ----------
         key:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         fp:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         dtype:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         channel_count:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         channels_schema:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         sr:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster`
         compute_array: callable
-            see `Computation Function` below
+            see :ref:`Computation Function` below
         merge_arrays: callable
-            see `Merge Function` below
+            see :ref:`Merge Function` below
         queue_data_per_primitive: dict of hashable (like a string) to a `queue_data` method pointer
-            see `Primitives` below
+            see :ref:`Primitives` below
         convert_footprint_per_primitive: None or dict of hashable (like a string) to a callable
-            see `Primitives` below
+            see :ref:`Primitives` below
         computation_pool:
-            see `Pools` below
+            see :ref:`Pools` below
         merge_pool:
-            see `Pools` below
+            see :ref:`Pools` below
         resample_pool:
-            see `Pools` below
+            see :ref:`Pools` below
         computation_tiles: None or (int, int) or numpy.ndarray of Footprint
-            see `Computation Tiling` below
+            see :ref:`Computation Tiling` below
         max_computation_size:  None or int or (int, int)
-            see `Computation Tiling` below
+            see :ref:`Computation Tiling` below
         max_resampling_size: None or int or (int, int)
             Optionally define a maximum resampling size. If a larger resampling has to be performed,
             it will be performed tile by tile in parallel.
         automatic_remapping: bool
-            see `Automatic Remapping` below
+            see :ref:`Automatic Remapping` below
         debug_observers: sequence of object
             Entry points that observe what is happening with this raster in the Dataset's scheduler.
 
         Returns
         -------
-        NocacheRasterRecipe
+        source: NocacheRasterRecipe
+            ..
 
+        .. _Computation Function:
         Computation Function
         --------------------
         The function that will map a Footprint to a numpy.ndarray. If `queue_data_per_primitive`
@@ -740,6 +862,7 @@ class Dataset(DatasetRegisterMixin):
         construction.
 
         The function will be called with the following positional parameters:
+
         - fp: Footprint of shape (Y, X)
             The location at which the pixels should be computed
         - primitive_fps: dict of hashable to Footprint
@@ -752,16 +875,21 @@ class Dataset(DatasetRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
+
         - a single ndarray of shape (Y, X) if only one channel was computed
+            ..
         - a single ndarray of shape (Y, X, C) if one or more channels were computed
+            ..
 
         If `computation_pool` points to a process pool, the `compute_array` function must be
         picklable and the `raster` parameter will be None.
 
+        .. _Computation Tiling:
         Computation Tiling
         ------------------
         You may sometimes want to have control on the Footprints that are requested to the
-        `compute_array` function, for exemple:
+        `compute_array` function, for example:
+
         - If pixels computed by `compute_array` are long to compute, you want to tile to increase
           parallelism.
         - If the `compute_array` function scales badly in term of memory or time, you want to tile
@@ -781,6 +909,7 @@ class Dataset(DatasetRegisterMixin):
         If `computation_tiles` is (int, int), a tiling will be constructed using Footprint.tile
         using those two ints.
 
+        .. _Merge Function:
         Merge Function
         --------------
         The function that will map several pairs of Footprint/numpy.ndarray to a single
@@ -790,6 +919,7 @@ class Dataset(DatasetRegisterMixin):
         construction.
 
         The function will be called with the following positional parameters:
+
         - fp: Footprint of shape (Y, X)
             The location at which the pixels should be computed.
         - array_per_fp: dict of Footprint to numpy.ndarray
@@ -799,28 +929,34 @@ class Dataset(DatasetRegisterMixin):
             The Raster object of the ongoing computation.
 
         It should return either:
+
         - a single ndarray of shape (Y, X) if only one channel was computed
+            ..
         - a single ndarray of shape (Y, X, C) if one or more channels were computed
+            ..
 
         If `merge_pool` points to a process pool, the `merge_array` function must be picklable and
         the `raster` parameter will be None.
 
+        .. _Automatic Remapping:
         Automatic Remapping
         -------------------
-        When creating a recipe you give a _Footprint_ through the `fp` parameter. When calling your
+        When creating a recipe you give a *Footprint* through the `fp` parameter. When calling your
         `compute_array` function the scheduler will only ask for slices of `fp`. This means that the
         scheduler takes care of those boilerplate steps:
+
         - If you request a *Footprint* on a different grid in a `get_data()` call, the scheduler
-          __takes care of resampling__ the outputs of your `compute_array` function.
+          **takes care of resampling** the outputs of your `compute*array` function.
         - If you request a *Footprint* partially or fully outside of the raster's extent, the
           scheduler will call your `compute_array` function to get the interior pixels and then
-          __pad the output with nodata__.
+          **pad the output with nodata**.
 
         This system is flexible and can be deactivated by passing `automatic_remapping=False` to
-        the constructor of a _NocacheRasterRecipe_, in this case the scheduler will call your
-        `compute_array` function for any kind of _Footprint_; thus your function must be able to
+        the constructor of a *NocacheRasterRecipe*, in this case the scheduler will call your
+        `compute_array` function for any kind of *Footprint*; thus your function must be able to
         comply with any request.
 
+        .. _Primitives:
         Primitives
         ----------
         The `queue_data_per_primitive` and `convert_footprint_per_primitive` parameters can be used
@@ -841,25 +977,35 @@ class Dataset(DatasetRegisterMixin):
 
         e.g. If the primitive raster is an `rgb` image, and the derived raster only needs the green
         channel but with a context of 10 additional pixels on all 4 sides:
+
         >>> derived = ds.create_raster_recipe(
         ...     # <other parameters>
         ...     queue_data_per_primitive={'green': functools.partial(primitive.queue_data, channels=1)},
         ...     convert_footprint_per_primitive={'green': lambda fp: fp.dilate(10)},
         ... )
 
+        .. _Pools:
         Pools
         -----
         The `*_pool` parameters can be used to select where certain computations occur. Those
         parameters can be of the following types:
-        - A _multiprocessing.pool.ThreadPool_, should be the default choice.
-        - A _multiprocessing.pool.Pool_, a process pool. Useful for computations that requires the
+
+        - A *multiprocessing.pool.ThreadPool*, should be the default choice.
+        - A *multiprocessing.pool.Pool*, a process pool. Useful for computations that requires the
           GIL or that leaks memory.
         - `None`, to request the scheduler thread to perform the tasks itself. Should be used when
           the computation is very light.
-        - A _hashable_ (like a _string_), that will map to a pool registered in the _Dataset_. If
-          that key is missing from the _Dataset_, a _ThreadPool_ with
+        - A *hashable* (like a *string*), that will map to a pool registered in the *Dataset*. If
+          that key is missing from the *Dataset*, a *ThreadPool* with
           `multiprocessing.cpu_count()` workers will be automatically instanciated. When the
           Dataset is closed, the pools instanciated that way will be joined.
+
+        See Also
+        --------
+        - :py:meth:`Dataset.acreate_raster_recipe`: To skip the `key` assigment
+        - :py:meth:`Dataset.create_raster_recipe`: For results `caching`
+        - :py:meth:`Dataset.acreate_cached_raster_recipe`: To skip the `key` assigment
+
         """
         raise NotImplementedError()
 
@@ -885,7 +1031,7 @@ class Dataset(DatasetRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a *cached raster recipe* and register it under `key` in this Dataset.
+        """Create a *cached raster recipe* and register it under `key` within this Dataset.
 
         Compared to a `NocacheRasterRecipe`, in a `CachedRasterRecipe` the pixels are never computed
         twice. Cache files are used to store and reuse pixels from computations. The cache can even
@@ -894,46 +1040,51 @@ class Dataset(DatasetRegisterMixin):
         If you are familiar with `create_raster_recipe` four parameters are new here: `io_pool`,
         `cache_tiles`, `cache_dir` and `ow`. They are all related to file system operations.
 
-        see `create_raster_recipe` method, since it shares most of the features.
+        See `create_raster_recipe` method, since it shares most of the features:
 
         >>> help(CachedRasterRecipe)
 
         Parameters
         ----------
         key:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         fp:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         dtype:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         channel_count:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         channels_schema:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         sr:
-            see `create_raster` method
+            see :py:meth:`Dataset.create_raster` method
         compute_array:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         merge_arrays:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         cache_dir: str or pathlib.Path
             Path to the directory that holds the cache files associated with this raster. If cache
             files are present, they will be reused (or erased if corrupted). If a cache file is
             needed and missing, it will be computed.
         ow: bool
-            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`. Warning: not only the tiles needed (hence computed) but all cached files in `cache_dir` will be deleted.
+            Overwrite. Whether or not to erase the old cache files contained in `cache_dir`.
+
+            .. warning::
+                not only the tiles needed (hence computed) but all buzzard cache files in
+                `cache_dir` will be deleted.
+
         queue_data_per_primitive:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         convert_footprint_per_primitive:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         computation_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         merge_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         io_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         resample_pool:
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         cache_tiles: (int, int) or numpy.ndarray of Footprint
             A tiling of the `fp` parameter. Each tile will correspond to one cache file.
             if (int, int): Construct the tiling by calling Footprint.tile with this parameter
@@ -941,13 +1092,19 @@ class Dataset(DatasetRegisterMixin):
             if None: Use the same tiling as `cache_tiles`
             else: see `create_raster_recipe` method
         max_resampling_size: None or int or (int, int)
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
         debug_observers: sequence of object
-            see `create_raster_recipe` method
+            see :py:meth:`Dataset.create_raster_recipe` method
 
         Returns
         -------
-        CachedRasterRecipe
+        source: CachedRasterRecipe
+            ..
+
+        See Also
+        --------
+        - :py:meth:`Dataset.create_raster_recipe`: To skip the `caching`
+        - :py:meth:`Dataset.acreate_cached_raster_recipe`: To skip the `key` assigment
 
         """
         # Parameter checking ***************************************************
@@ -1110,9 +1267,15 @@ class Dataset(DatasetRegisterMixin):
             cache_tiles=(512, 512), computation_tiles=None, max_resampling_size=None,
             debug_observers=()
     ):
-        """Create a cached raster reciped anonymously in this Dataset.
+        """Create a cached raster reciped anonymously within this Dataset.
 
         See Dataset.create_cached_raster_recipe
+
+        See Also
+        --------
+        - :py:meth:`Dataset.create_raster_recipe`: To skip the `caching`
+        - :py:meth:`Dataset.create_cached_raster_recipe`: To assign a `key` to this source within the `Dataset`
+
         """
         return self.create_cached_raster_recipe(
             _AnonymousSentry(),
@@ -1127,7 +1290,7 @@ class Dataset(DatasetRegisterMixin):
 
     # Vector entry points *********************************************************************** **
     def open_vector(self, key, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file in this Dataset under `key`. Only metadata are kept in memory.
+        """Open a vector file within this Dataset under `key`. Only metadata are kept in memory.
 
         >>> help(GDALFileVector)
 
@@ -1135,18 +1298,24 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`aopen_vector`
         path: string
+            ..
         layer: None or int or string
+            ..
         driver: string
             ogr driver to use when opening the file
             http://www.gdal.org/ogr_formats.html
         options: sequence of str
             options for ogr
         mode: one of {'r', 'w'}
+            ..
 
         Returns
         -------
-        GDALFileVector
+        source: GDALFileVector
+            ..
 
         Example
         -------
@@ -1155,6 +1324,11 @@ class Dataset(DatasetRegisterMixin):
 
         >>> ds.open_vector('roofs', '/path/to.json', driver='GeoJSON', mode='w')
         >>> fields_list = ds.roofs.fields
+
+        See Also
+        --------
+        - :py:meth:`Dataset.aopen_vector`: To skip the `key` assigment
+        - :py:func:`buzzard.open_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         # Parameter checking ***************************************************
@@ -1188,21 +1362,26 @@ class Dataset(DatasetRegisterMixin):
         return prox
 
     def aopen_vector(self, path, layer=None, driver='ESRI Shapefile', options=(), mode='r'):
-        """Open a vector file anonymously in this Dataset. Only metadata are kept in memory.
+        """Open a vector file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.open_vector
+        See :py:meth:`~Dataset.open_vector`
 
         Example
         -------
         >>> trees = ds.aopen_vector('/path/to.shp')
         >>> features_bounds = trees.bounds
 
+        See Also
+        --------
+        - :py:meth:`Dataset.open_vector`: To assign a `key` to this source within the `Dataset`
+        - :py:func:`buzzard.open_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
+
         """
         return self.open_vector(_AnonymousSentry(), path, layer, driver, options, mode)
 
     def create_vector(self, key, path, type, fields=(), layer=None,
                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
-        """Create an empty vector file and register it under `key` in this Dataset. Only metadata
+        """Create an empty vector file and register it under `key` within this Dataset. Only metadata
         are kept in memory.
 
         >>> help(GDALFileVector)
@@ -1212,14 +1391,22 @@ class Dataset(DatasetRegisterMixin):
         ----------
         key: hashable (like a string)
             File identifier within Dataset
+
+            To avoid using a `key`, you may use :py:meth:`acreate_vector`
         path: string
+            Anything that makes sense to GDAL:
+
+                + A path to a file
+                + An empty string when using `driver=Memory`
         type: string
-            name of a wkb geometry type
-            http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
-            (see example below)
+            name of a wkb geometry type, without the `wkb` prefix.
+
+            list: http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
+
         fields: sequence of dict
-            Attributes of fields, one dict per field. (see `Field attributes` below)
+            Attributes of fields, one dict per field. (see :ref:`Field Attributes` below)
         layer: None or string
+            ..
         driver: string
             ogr driver to use when opening the file
             http://www.gdal.org/ogr_formats.html
@@ -1228,17 +1415,17 @@ class Dataset(DatasetRegisterMixin):
         sr: string or None
             Spatial reference of the new file
 
-            if None: don't set a spatial reference
-            if string:
-                if path: Use same projection as file at `path`
-                if textual spatial reference:
-                    http://gdal.org/java/org/gdal/osr/SpatialReference.html#SetFromUserInput-java.lang.String-
+            In order not to set a spatial reference, use `None`.
+
+            In order to set a spatial reference, use a string that can be `converted to WKT by GDAL
+            <https://gdal.org/doxygen/classOGRSpatialReference.html#aec3c6a49533fe457ddc763d699ff8796>`_.
         ow: bool
             Overwrite. Whether or not to erase the existing files.
 
         Returns
         -------
-        one of {GDALFileVector, GDALMemoryVector} depending on the `driver` parameter
+        source: GDALFileVector or GDALMemoryVector
+            The type depends on the `driver` parameter
 
         Example
         -------
@@ -1256,33 +1443,53 @@ class Dataset(DatasetRegisterMixin):
         >>> field0_type = ds.zones.fields[0]['type']
         >>> ds.zones.insert_data(shapely.geometry.box(10, 10, 15, 15))
 
-        Field attributes
+        .. _Field Attributes:
+        Field Attributes
         ----------------
         Attributes:
-            'name': string
-            'type': string (see `Field type` below)
-            'precision': int
-            'width': int
-            'nullable': bool
-            'default': same as `type`
+
+        - "name": string
+        - "type": string (see :ref:`Field Types` below)
+        - "precision": int
+        - "width": int
+        - "nullable": bool
+        - "default": same as `type`
+
         An attribute missing or None is kept to default value.
 
-        Field types
+        .. _Field Types:
+        Field Types
         -----------
-        Binary        key: 'binary', bytes, np.bytes_, aliases of np.bytes_
-        Date          key: 'date'
-        DateTime      key: 'datetime', datetime.datetime, np.datetime64, aliases of np.datetime64
-        Time          key: 'time'
+        +---------------+------------------------------------------------------------------------+
+        | Type          | Type names                                                             |
+        +===============+========================================================================+
+        | Binary        | "binary", bytes, np.bytes\_, aliases of np.bytes\_                     |
+        +---------------+------------------------------------------------------------------------+
+        | Date          | "date"                                                                 |
+        +---------------+------------------------------------------------------------------------+
+        | DateTime      | "datetime", datetime.datetime, np.datetime64, aliases of np.datetime64 |
+        +---------------+------------------------------------------------------------------------+
+        | Time          | "time"                                                                 |
+        +---------------+------------------------------------------------------------------------+
+        | Integer       | "integer" np.int32, aliases of np.int32                                |
+        +---------------+------------------------------------------------------------------------+
+        | Integer64     | "integer64", int, np.int64, aliases of np.int64                        |
+        +---------------+------------------------------------------------------------------------+
+        | Real          | "real", float, np.float64, aliases of np.float64                       |
+        +---------------+------------------------------------------------------------------------+
+        | String        | "string", str, np.str\_, aliases of np.str\_                           |
+        +---------------+------------------------------------------------------------------------+
+        | Integer64List | "integer64list", "int list"                                            |
+        +---------------+------------------------------------------------------------------------+
+        | IntegerList   | "integerlist"                                                          |
+        +---------------+------------------------------------------------------------------------+
+        | RealList      | "reallist", "float list"                                               |
+        +---------------+------------------------------------------------------------------------+
 
-        Integer       key: 'integer' np.int32, aliases of np.int32
-        Integer64     key: 'integer64', int, np.int64, aliases of np.int64
-        Real          key: 'real', float, np.float64, aliases of np.float64
-        String        key: 'string', str, np.str_, aliases of np.str_
-
-        Integer64List key: 'integer64list', 'int list'
-        IntegerList   key: 'integerlist'
-        RealList      key: 'reallist', 'float list'
-        StringList    key: 'stringlist', 'str list'
+        See Also
+        --------
+        - :py:meth:`Dataset.acreate_vector`: To skip the `key` assigment
+        - :py:func:`buzzard.create_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
 
         """
         type_ = type
@@ -1332,59 +1539,23 @@ class Dataset(DatasetRegisterMixin):
 
     def acreate_vector(self, path, type, fields=(), layer=None,
                        driver='ESRI Shapefile', options=(), sr=None, ow=False):
-        """Create a vector file anonymously in this Dataset. Only metadata are kept in memory.
+        """Create a vector file anonymously within this Dataset. Only metadata are kept in memory.
 
-        See Dataset.create_vector
+        See :py:meth:`~Dataset.create_vector`
 
         Example
         -------
         >>> lines = ds.acreate_vector('/path/to.shp', 'linestring')
         >>> file_proj4 = lines.proj4_stored
 
+        See Also
+        --------
+        - :py:meth:`Dataset.create_vector`: To assign a `key` to this source within the `Dataset`
+        - :py:func:`buzzard.create_vector`: To skip the `key` assigment and the explicit `Dataset` instanciation
+
         """
         return self.create_vector(_AnonymousSentry(), path, type, fields, layer,
                                   driver, options, sr, ow)
-
-    # Source infos ******************************************************************************* **
-    def __getitem__(self, key):
-        """Retrieve a source from its key"""
-        return self._source_of_key[key]
-
-    def __contains__(self, item):
-        """Is key or source registered in Dataset"""
-        if isinstance(item, ASource):
-            return item in self._keys_of_source
-        return item in self._source_of_key
-
-    def items(self):
-        """Generate the pair of (keys_of_source, source) for all proxies"""
-        for source, keys in self._keys_of_source.items():
-            yield list(keys), source
-
-    def keys(self):
-        """Generate all source keys"""
-        for source, keys in self._keys_of_source.items():
-            for key in keys:
-                yield key
-
-    def values(self):
-        """Generate all proxies"""
-        for source, _ in self._keys_of_source.items():
-            yield source
-
-    def __len__(self):
-        """Retrieve source count registered in this Dataset"""
-        return len(self._keys_of_source)
-
-    # Pools infos ******************************************************************************* **
-    @property
-    def pools(self):
-        """Get the Pool Container.
-
-        >>> help(PoolsContainer)
-
-        """
-        return self._back.pools_container
 
     # Cleanup *********************************************************************************** **
     def __del__(self):
@@ -1397,10 +1568,13 @@ class Dataset(DatasetRegisterMixin):
         The `close` attribute returns an object that can be both called and used in a with statement
 
         The Dataset can be closed manually or automatically when garbage collected, it is safer
-        to do it manually. The steps are:
+        to do it manually.
+
+        The internal steps are:
+
         - Stopping the scheduler
         - Joining the mp.Pool that have been automatically allocated
-        - Close all sources
+        - Closing all sources
 
         Examples
         --------
@@ -1415,6 +1589,7 @@ class Dataset(DatasetRegisterMixin):
         ------
         When using a scheduler, some memory leaks may still occur after closing a Dataset.
         Possible origins:
+
         - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
         - Gdal cache not flushed (not a leak)
         - The gdal version
@@ -1446,6 +1621,37 @@ class Dataset(DatasetRegisterMixin):
                 source.close()
 
         return _CloseRoutine(self, _close)
+
+    # Source infos ******************************************************************************* **
+    def __getitem__(self, key):
+        """Retrieve a source from its key"""
+        return self._source_of_key[key]
+
+    def __contains__(self, item):
+        """Is key or source registered in Dataset"""
+        if isinstance(item, ASource):
+            return item in self._keys_of_source
+        return item in self._source_of_key
+
+    def items(self):
+        """Generate the pair of (keys_of_source, source) for all proxies"""
+        for source, keys in self._keys_of_source.items():
+            yield list(keys), source
+
+    def keys(self):
+        """Generate all source keys"""
+        for source, keys in self._keys_of_source.items():
+            for key in keys:
+                yield key
+
+    def values(self):
+        """Generate all proxies"""
+        for source, _ in self._keys_of_source.items():
+            yield source
+
+    def __len__(self):
+        """Retrieve source count registered within this Dataset"""
+        return len(self._keys_of_source)
 
     # Spatial reference getters ***************************************************************** **
     @property
@@ -1504,6 +1710,16 @@ class Dataset(DatasetRegisterMixin):
             if prox.active:
                 prox.deactivate()
 
+    # Pools infos ******************************************************************************* **
+    @property
+    def pools(self):
+        """Get the Pool Container.
+
+        >>> help(PoolsContainer)
+
+        """
+        return self._back.pools_container
+
     # Deprecation ******************************************************************************* **
     open_araster = deprecation_pool.wrap_method(
         aopen_raster,
@@ -1535,27 +1751,51 @@ def open_raster(*args, **kwargs):
     """Shortcut for `Dataset().aopen_raster`
 
     >>> help(Dataset.open_raster)
+
+    See Also
+    --------
+    - :py:func:`Dataset.open_raster`
+    - :py:meth:`Dataset.aopen_raster`
+
     """
     return Dataset().aopen_raster(*args, **kwargs)
-
-def open_vector(*args, **kwargs):
-    """Shortcut for `Dataset().aopen_vector`
-
-    >>> help(Dataset.open_vector)
-    """
-    return Dataset().aopen_vector(*args, **kwargs)
 
 def create_raster(*args, **kwargs):
     """Shortcut for `Dataset().acreate_raster`
 
     >>> help(Dataset.create_raster)
+
+    See Also
+    --------
+    - :py:func:`Dataset.create_raster`
+    - :py:meth:`Dataset.acreate_raster`
+
     """
     return Dataset().acreate_raster(*args, **kwargs)
+
+def open_vector(*args, **kwargs):
+    """Shortcut for `Dataset().aopen_vector`
+
+    >>> help(Dataset.open_vector)
+
+    See Also
+    --------
+    - :py:func:`Dataset.open_vector`
+    - :py:meth:`Dataset.aopen_vector`
+
+    """
+    return Dataset().aopen_vector(*args, **kwargs)
 
 def create_vector(*args, **kwargs):
     """Shortcut for `Dataset().acreate_vector`
 
     >>> help(Dataset.create_vector)
+
+    See Also
+    --------
+    - :py:func:`Dataset.create_vector`
+    - :py:meth:`Dataset.acreate_vector`
+
     """
     return Dataset().acreate_vector(*args, **kwargs)
 
@@ -1563,6 +1803,12 @@ def wrap_numpy_raster(*args, **kwargs):
     """Shortcut for `Dataset().awrap_numpy_raster`
 
     >>> help(Dataset.wrap_numpy_raster)
+
+    See Also
+    --------
+    - :py:func:`Dataset.wrap_numpy_raster`
+    - :py:meth:`Dataset.awrap_numpy_raster`
+
     """
     return Dataset().awrap_numpy_raster(*args, **kwargs)
 

@@ -25,19 +25,24 @@ def _calcdzdy(dsm, reso, dtype):
 
 def create_slopes(dsm, reso, dtype=np.float32, crop=False):
     '''
-    Compute the slopes from dsm
-    - dsm: (M, N) numpy array
-    - reso: float or (float, float)
-      - (resox, resoy) = reso: Spanning of a pixel in space
-      - Should be in the same unit as dsm's values
-      - If a single float is given, it is interpreted as (reso, -reso)
-    - dtype: numpy dtype
-      - Output dtype
-    - crop: bool
-      - Cropping of output array
-    - return value: numpy array
-      - If crop: (M - 1, N - 1)
-      - Else: (M, N)
+    Compute the slopes from dsm:
+
+    Args:
+        dsm: (M, N) numpy array
+        reso: float or (float, float)
+
+            * (resox, resoy) = reso: Spanning of a pixel in space
+            * Should be in the same unit as dsm's values
+            * If a single float is given, it is interpreted as (reso, -reso)
+        dtype: numpy dtype
+
+            * Output dtype
+        crop: bool
+
+            * Cropping of output array
+
+    Returns:
+        numpy.array: If crop: (M - 1, N - 1) Else: (M, N)
     '''
     try:
         reso = tuple(reso)

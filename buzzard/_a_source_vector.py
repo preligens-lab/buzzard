@@ -18,7 +18,7 @@ class ASourceVector(ASource):
     - Has `fields` that define the type of informations that is paired with each geometries
     - Has a `stored` extent that allows to retrieve the current extent of all the geometries
     - Has a length that indicates how many geometries this source contains.
-    - Has several read functions (like `iter_data`) to retrieve geometries in their current state to
+    - Has several read functions (like `iter_data`) to retrieve geometries in their current state to \
         shapely objects
     """
 
@@ -68,30 +68,35 @@ class ASourceVector(ASource):
 
     def iter_data(self, fields=None, geom_type='shapely',
                   mask=None, clip=False, slicing=slice(0, None, 1)):
-        """Create an iterator over vector's features
+        """.. _vector file iter_data:
+
+        Create an iterator over vector's features
 
         Parameters
         ----------
         fields: None or string or -1 or sequence of string/int
             Which fields to include in iteration
 
-            if None, empty sequence or empty string: No fields included
-            if -1: All fields included
-            if string: Name of fields to include (separated by comma or space)
-            if sequence: List of indices / names to include
+            - if None, empty sequence or empty string: No fields included
+            - if -1: All fields included
+            - if string: Name of fields to include (separated by comma or space)
+            - if sequence: List of indices / names to include
+
         geom_type: {'shapely', 'coordinates'}
             Returned geometry type
         mask: None or Footprint or shapely geometry or (nbr, nbr, nbr, nbr)
-            Add a spatial filter to iteration, only geometries not disjoint with mask will be
+            Add a spatial filter to iteration, only geometries not disjoint with mask will be \
             included.
 
-            if None: No spatial filter
-            if Footprint or shapely polygon: Polygon
-            if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
+            - if None: No spatial filter
+            - if Footprint or shapely polygon: Polygon
+            - if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
+
         clip: bool
             Returns intersection of geometries and mask.
             Caveat: A clipped geometry might not be of the same type as the original geometry.
             e.g: polygon might be clipped to might be converted to one of those:
+
             - polygon
             - line
             - point
@@ -99,18 +104,18 @@ class ASourceVector(ASource):
             - multiline
             - multipoint
             - geometrycollection
+
         slicing: slice
             Slice of the iteration to return. It is applied after spatial filtering
 
         Yields
         ------
         feature: geometry or (geometry,) or (geometry, *fields)
-            If `geom_type` is 'shapely', geometry is a `shapely geometry`.
-            If `geom_type` is `coordinates`, geometry is a `nested lists of numpy arrays`.
-
-            If `fields` is not a sequence, `feature` is `geometry` or `(geometry, *fields)`,
+            - If `geom_type` is 'shapely': geometry is a `shapely geometry`.
+            - If `geom_type` is `coordinates`: geometry is a `nested lists of numpy arrays`.
+            - If `fields` is not a sequence: `feature` is `geometry` or `(geometry, *fields)`, \
                  depending on the number of fields to yield.
-            If `fields` is a sequence or a string, `feature` is `(geometry,)` or
+            - If `fields` is a sequence or a string: `feature` is `(geometry,)` or \
                 `(geometry, *fields)`. Use `fields=[-1]` to get a monad containing all fields.
 
         Examples
@@ -176,13 +181,15 @@ class ASourceVector(ASource):
             Add a spatial filter to iteration, only geometries not disjoint with mask will be
             included.
 
-            if None: No spatial filter
-            if Footprint or shapely polygon: Polygon
-            if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
+            - if None: No spatial filter
+            - if Footprint or shapely polygon: Polygon
+            - if (nbr, nbr, nbr, nbr): Extent (minx, maxx, miny, maxy)
+
         clip: bool
             Returns intersection of geometries and mask.
             Caveat: A clipped geometry might not be of the same type as the original geometry.
             e.g: polygon might be clipped to might be converted to one of those:
+
             - polygon
             - line
             - point
@@ -190,6 +197,7 @@ class ASourceVector(ASource):
             - multiline
             - multipoint
             - geometrycollection
+
         slicing: slice
             Slice of the iteration to return. It is applied after spatial filtering
 

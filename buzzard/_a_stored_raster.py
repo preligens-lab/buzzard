@@ -15,7 +15,9 @@ class AStoredRaster(AStored, ASourceRaster):
     """
 
     def set_data(self, array, fp=None, channels=None, interpolation='cv_area', mask=None, **kwargs):
-        """Write a rectangle of data to the destination raster. Each channel in `array` is written to
+        """.. _raster file set_data:
+
+        Write a rectangle of data to the destination raster. Each channel in `array` is written to
         one channel in `raster` in the same order as described by the `channels` parameter. An
         optional `mask` may be provided to only write certain pixels of `array`.
 
@@ -24,6 +26,7 @@ class AStoredRaster(AStored, ASourceRaster):
         If `fp` is not on the same grid as the destination raster, remapping is automatically
         performed using the `interpolation` algorithm. (It fails if the `allow_interpolation`
         parameter is set to `False` in `Dataset` (default)). When interpolating:
+
         - The nodata values are not interpolated, they are correctly spread to the output.
         - At most one pixel may be lost at edges due to interpolation. Provide more context in
           `array` to compensate this loss.
@@ -46,15 +49,21 @@ class AStoredRaster(AStored, ASourceRaster):
         interpolation: one of {'cv_area', 'cv_nearest', 'cv_linear', 'cv_cubic', 'cv_lanczos4'} or None
             OpenCV method used if intepolation is necessary
         mask: numpy array of shape (Y, X) and dtype `bool` OR inputs accepted by `Footprint.burn_polygons`
+            ..
 
         Channels Parameter
         ------------------
+        +------------+-----------------------------------------------------+----------------+
         | type       | value                                               | meaning        |
-        |------------|-----------------------------------------------------|----------------|
+        +============+=====================================================+================+
         | NoneType   | None (default)                                      | All channels   |
+        +------------+-----------------------------------------------------+----------------+
         | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels |
+        +------------+-----------------------------------------------------+----------------+
         | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  |
+        +------------+-----------------------------------------------------+----------------+
         | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels |
+        +------------+-----------------------------------------------------+----------------+
 
         Caveat
         ------
@@ -153,17 +162,23 @@ class AStoredRaster(AStored, ASourceRaster):
         Parameters
         ----------
         value: nbr
+            ..
         channels: int or sequence of int (see `Channels Parameter` below)
             The channels to be written
 
         Channels Parameter
         ------------------
+        +------------+-----------------------------------------------------+----------------+
         | type       | value                                               | meaning        |
-        |------------|-----------------------------------------------------|----------------|
+        +============+=====================================================+================+
         | NoneType   | None (default)                                      | All channels   |
+        +------------+-----------------------------------------------------+----------------+
         | slice      | slice(None), slice(1), slice(0, 2), slice(2, 0, -1) | Those channels |
+        +------------+-----------------------------------------------------+----------------+
         | int        | 0, 1, 2, -1, -2, -3                                 | Channel `idx`  |
+        +------------+-----------------------------------------------------+----------------+
         | (int, ...) | [0], [1], [2], [-1], [-2], [-3], [0, 1], [-1, 2, 1] | Those channels |
+        +------------+-----------------------------------------------------+----------------+
 
         Caveat
         ------

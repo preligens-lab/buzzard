@@ -15,22 +15,26 @@ class AStoredVector(AStored, ASourceVector):
     """
 
     def insert_data(self, geom, fields=(), index=-1):
-        """Insert a feature in vector.
+        """.. _vector file insert_data:
+
+        Insert a feature in vector.
 
         This method is not thread-safe.
 
         Parameters
         ----------
         geom: shapely.base.BaseGeometry or nested sequence of coordinates
+            ..
         fields: sequence or dict
             Feature's fields, missing or None fields are defaulted.
 
-            if empty sequence: Keep all fields defaulted
-            if sequence of length len(self.fields): Fields to be set, same order as self.fields
-            if dict: Mapping of fields to be set
+            - if empty sequence: Keep all fields defaulted
+            - if sequence of length len(self.fields): Fields to be set, same order as self.fields
+            - if dict: Mapping of fields to be set
+
         index: int
-            if -1: append feature
-            else: insert feature at index (if applicable)
+            - if -1: append feature
+            - else: insert feature at index (if applicable)
 
         Example
         -------

@@ -26,7 +26,7 @@ class AAsyncRaster(ASourceRaster):
 
         Using `queue_data` instead of multiple calls to `get_data` allows more parallelism.
         The `fps` parameter should contain a sequence of `Footprint` that will be mapped to
-        `numpy.ndarray`. The first one will be computed with a higher priority than the later one.
+        `numpy.ndarray`. The first ones will be computed with a higher priority than the later ones.
 
         Calling this method sends an asynchronous message to the Dataset's scheduler with the
         input parameters and a queue. On the input side of the queue, the scheduler will call the
@@ -44,7 +44,7 @@ class AAsyncRaster(ASourceRaster):
         safer to use. However you will need to pass the `queue_data` method of a raster, to create
         another raster (a recipe) that depends on the first raster.
 
-        see rasters' `get_data` documentation, it shares most of the concepts
+        see  rasters' `get_data` documentation, it shares most of the concepts
 
         Parameters
         ----------
@@ -61,8 +61,8 @@ class AAsyncRaster(ASourceRaster):
 
         Returns
         -------
-        queue.Queue of ndarray
-        The arrays are put into the queue in the same order as in the `fps` parameter.
+        queue: queue.Queue of ndarray
+            The arrays are put into the queue in the same order as in the `fps` parameter.
 
         """
         for fp in fps:
@@ -108,8 +108,8 @@ class AAsyncRaster(ASourceRaster):
 
         Returns
         -------
-        generator of ndarray
-        The arrays are yielded into the generator in the same order as in the `fps` parameter.
+        iterable: iterable of ndarray
+            The arrays are yielded into the generator in the same order as in the `fps` parameter.
 
         """
         for fp in fps:
