@@ -63,3 +63,14 @@ class ABackPooledEmissary(ABackEmissary):
         """
         self.back_ds.deactivate(self.uid)
         super(ABackPooledEmissary, self).close()
+
+    def delete(self):
+        """Virtual method:
+        - May be overriden
+        - Should always be called
+
+        Quick hotfix to allow `.delete` to work on Windows in tempdir.
+        Ideally a `close` should be performed before a delete.
+        """
+        self.back_ds.deactivate(self.uid)
+        super(ABackPooledEmissary, self).delete()

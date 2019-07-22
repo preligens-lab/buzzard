@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath('../'))
 project = 'buzzard'
 copyright = u'%s, Delair' % datetime.now().year
 author = 'Delair'
-release = '0.6.2'
+release = '0.6.3'
 
 # -- General configuration ---------------------------------------------------
 
