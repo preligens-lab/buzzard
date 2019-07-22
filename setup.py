@@ -39,7 +39,6 @@ classifiers = [
     'Intended Audience :: Developers',
     'Intended Audience :: Information Technology',
     'Intended Audience :: Science/Research',
-    'Intended Audience :: GIS Engineers',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: OS Independent',
     'Programming Language :: Python :: 3',
