@@ -144,7 +144,7 @@ def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
                     tail = chunk[-tailsize:] + b'\0' * (dtypesize - tailsize)
                     tail = np.frombuffer(tail, dtype)
                     acc += tail
-        return '{:016x}'.format(np.asscalar(acc))
+        return '{:016x}'.format(acc.item())
 
 def _cache_file_write(array,
                       dir_path, filename_prefix, filename_suffix,
