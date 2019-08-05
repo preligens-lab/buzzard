@@ -1716,7 +1716,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
         Parameters
         ----------
-        arr: np.ndarray of bool of shape (self.shape)
+        mask: np.ndarray of bool of shape (self.shape)
 
         Returns
         -------
