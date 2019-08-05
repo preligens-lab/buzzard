@@ -35,6 +35,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     The :code:`Footprint` class:
 
     - is a toolbox class designed to position a rectangle in both image space and geometry space,
+    - can be seen as a `shapely.geometry.Polygon` rectangle that also defines a grid of pixels,
     - its main purpose is to simplify the manipulation of windows in rasters,
     - has many accessors,
     - has many algorithms,
@@ -59,7 +60,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     |              +----------------------------------+--------------------------------------------------------+
     |              | Spatial - Coordinates            | tl, bl, br, tr, ...                                    |
     |              +----------------------------------+--------------------------------------------------------+
-    |              | Spatial - Misc                   | area, length, semiminoraxis, ...x                      |
+    |              | Spatial - Misc                   | area, length, semiminoraxis, ...                       |
     |              +----------------------------------+--------------------------------------------------------+
     |              | Raster - Size                    | rsize, rwidth, rheight, ...                            |
     |              +----------------------------------+--------------------------------------------------------+
