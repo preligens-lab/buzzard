@@ -158,7 +158,7 @@ def sanitize_channels_schema(channels_schema, channel_count):
             'nodata',
             channels_schema['nodata'],
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
-            lambda x: float(np.asscalar(np.asarray(x))),
+            lambda x: float(np.asarray(x).item()),
             None,
         ))
 
@@ -176,7 +176,7 @@ def sanitize_channels_schema(channels_schema, channel_count):
             'offset',
             channels_schema['offset'],
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
-            lambda x: float(np.asscalar(np.asarray(x))),
+            lambda x: float(np.asarray(x).item()),
             0.,
         ))
 
@@ -185,7 +185,7 @@ def sanitize_channels_schema(channels_schema, channel_count):
             'scale',
             channels_schema['scale'],
             lambda x: np.all(np.isreal(x)) and np.shape(x) == (),
-            lambda x: float(np.asscalar(np.asarray(x))),
+            lambda x: float(np.asarray(x).item()),
             1.,
         ))
 
