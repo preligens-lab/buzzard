@@ -4,6 +4,7 @@
 
 import threading
 from collections import namedtuple
+import functools
 
 import cv2
 from osgeo import gdal, ogr, osr
@@ -78,7 +79,7 @@ _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
 class Env(object):
-    """Context manager to update buzzard's states
+    """Context manager to update buzzard's states. Can also be used as a decorator.
 
     Parameters
     ----------
@@ -94,15 +95,19 @@ class Env(object):
         Whether to allow non north-up / west-left Footprints
         Initialized to `False`
 
-    Example
-    -------
+    Examples
+    --------
     >>> import buzzard as buzz
     >>> with buzz.Env(default_index_dtype='uint64'):
-            ds = buzz.Dataset()
-            dsm = ds.aopen_raster('dsm', 'path/to/dsm.tif')
-            x, y = dsm.meshgrid_raster
-            print(x.dtype)
+    ...     ds = buzz.Dataset()
+    ...     dsm = ds.aopen_raster('dsm', 'path/to/dsm.tif')
+    ...     x, y = dsm.meshgrid_raster
+    ...     print(x.dtype)
     numpy.uint64
+
+    >>> @buzz.Env(allow_complex_footprint=True)
+    ... def main():
+    ...     fp = buzz.Footprint(rsize=(10, 10), gt=(100, 1, 0, 100, 0, 1))
 
     """
 
@@ -130,6 +135,15 @@ class Env(object):
             if _OPTIONS[k].set_up is not None:
                 newv = _LOCAL._mapstack[k]
                 _OPTIONS[k].set_up(newv, oldv)
+
+    def __call__(self, fn):
+        if not callable(fn):
+            raise ValueError("Env can only be called to decorate a function.")
+        @functools.wraps(fn)
+        def f(*args, **kwargs):
+            with self:
+                return fn(*args, **kwargs)
+        return f
 
 # Value retrieval ******************************************************************************* **
 class _ThreadMapStackGetter(object):
