@@ -137,7 +137,7 @@ class Env(object):
                 _OPTIONS[k].set_up(newv, oldv)
 
     def __call__(self, fn):
-        if not callable(fn):
+        if not callable(fn): # pragma: no cover
             raise ValueError("Env can only be called to decorate a function.")
         @functools.wraps(fn)
         def f(*args, **kwargs):
