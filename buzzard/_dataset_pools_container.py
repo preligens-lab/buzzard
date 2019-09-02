@@ -71,10 +71,15 @@ class PoolsContainer(object):
 
     # Private interface with Dataset ********************************************************* **
     def _close(self):
+        things_to_join = []
         for pool in self._managed_pools:
-            pool.terminate()
-        for pool in self._managed_pools:
-            pool.join()
+            if isinstance(pool, mp.pool.ThreadPool):
+                pool.terminate()
+                things_to_join.append(pool)
+            else:
+                things_to_join.append(_create_process_pool_killer(pool))
+        for joinable in things_to_join:
+            joinable.join()
         self._aliases.clear()
         self._aliases_per_pool.clear()
         self._managed_pools.clear()
@@ -100,3 +105,15 @@ class PoolsContainer(object):
                 self._aliases_per_pool[p] = [pool_param]
                 self._managed_pools.add(p)
         return self._aliases[pool_param]
+
+def _create_process_pool_killer(pp):
+    """
+    https://stackoverflow.com/questions/42782953/python-concurrent-futures-how-to-make-it-cancelable/45515052#45515052
+    """
+    def kill_process_pool_from_thread():
+        pp.close()
+        pp.terminate()
+        pp.join()
+    t = threading.Thread(target=kill_process_pool_from_thread)
+    t.start()
+    return t
