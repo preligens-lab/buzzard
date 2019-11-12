@@ -98,6 +98,8 @@ def normalize_channels_parameter(channels, channel_count):
             return [0], True
         else:
             return list(range(channel_count)), False
+    elif not isinstance(channels, slice):
+        channels = list(channels)
 
     indices = np.arange(channel_count)
     indices = indices[channels]
