@@ -2,10 +2,10 @@
 In a nutshell, the `buzzard` library provides powerful abstractions to manipulate together images and geometries that come from different kind of sources (`GeoTIFF`, `PNG`, `GeoJSON`, `Shapefile`, `numpy array`, `buzzard pipelines`, ...).
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/master/img/buzzard.png"><br><br>
+  <img src="https://github.com/earthcube-lab/buzzard/raw/master/img/buzzard.png"><br><br>
 </div>
 
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/airware/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)[![readthedoc](https://readthedocs.org/projects/buzzard/badge/?version=latest&style=flat)](https://buzzard.readthedocs.io/en/latest)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/earthcube-lab/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)[![readthedoc](https://readthedocs.org/projects/buzzard/badge/?version=latest&style=flat)](https://buzzard.readthedocs.io/en/latest)
 
 [
 ![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=25)
@@ -19,7 +19,6 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 - A Multipurpose computer vision library, it can be used in all kind of situations where images or geometries are involved.
 - A pythonic wrapper for _osgeo_'s _gdal_/_ogr_/_osr_.
 - A solution to work with arbitrary large images by simplifying and automating the manipulation of image slices.
-- Developed at [Delair](https://delair.aero) where it is used in several deep learning and algorithmic projects.
 
 ## `buzzard` contains
 - A [`Dataset`](https://buzzard.readthedocs.io/en/latest/dataset.html) class that oversees all opened raster and vector files in order to share resources.
@@ -66,13 +65,13 @@ Images from the [ISPRS's Potsdam dataset](http://www2.isprs.org/commissions/comm
 `Footprint(tl=(3183.600000, -914.550000), br=(3689.700000, -1170.450000), size=(506.100000, 255.900000), rsize=(3374, 1706))`
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/master/img/ex0-img0.jpg" width="80%"><br><br>
+  <img src="https://github.com/earthcube-lab/buzzard/raw/master/img/ex0-img0.jpg" width="80%"><br><br>
 </div>
 
 `Footprint(tl=(3171.600000, -1321.500000), br=(4553.400000, -2400.000000), size=(1381.800000, 1078.500000), rsize=(9212, 7190))`
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/master/img/ex0-img1.jpg" width="70%"><br><br>
+  <img src="https://github.com/earthcube-lab/buzzard/raw/master/img/ex0-img1.jpg" width="70%"><br><br>
 </div>
 
 ## How to create files and manipulate _Footprints_
@@ -121,17 +120,17 @@ with buzz.create_vector(path='roads.shp', type='polygon').close as out:
 ```
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/master/img/ex1-img0.jpg" width="80%"><br><br>
+  <img src="https://github.com/earthcube-lab/buzzard/raw/master/img/ex1-img0.jpg" width="80%"><br><br>
 </div>
 
 <div align="center">
-  <img src="https://github.com/airware/buzzard/raw/master/img/ex1-img1.jpg" width="80%"><br><br>
+  <img src="https://github.com/earthcube-lab/buzzard/raw/master/img/ex1-img1.jpg" width="80%"><br><br>
 </div>
 
 ## Advanced examples
 Additional examples can be found here:
-- [Files and _Footprints_ in depth](https://github.com/airware/buzzard/blob/master/doc/examples.ipynb)
-- [_async rasters_ in depth](https://github.com/airware/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
+- [Files and _Footprints_ in depth](https://github.com/earthcube-lab/buzzard/blob/master/doc/examples.ipynb)
+- [_async rasters_ in depth](https://github.com/earthcube-lab/buzzard/blob/master/doc/notebook2/async_rasters.ipynb)
 
 ## `buzzard` allows
 - Opening and creating [raster](https://buzzard.readthedocs.io/en/latest/dataset_raster.html) and [vector](https://buzzard.readthedocs.io/en/latest/dataset_vector.html) files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
@@ -191,7 +190,7 @@ pip install buzzard
 
 ### Docker
 ```sh
-docker build -t buzz --build-arg PYTHON_VERSION=3.7 https://raw.githubusercontent.com/airware/buzzard/master/.circleci/images/base-python/Dockerfile
+docker build -t buzz --build-arg PYTHON_VERSION=3.7 https://raw.githubusercontent.com/earthcube-lab/buzzard/master/.circleci/images/base-python/Dockerfile
 docker run -it --rm buzz bash
 pip install buzzard
 
@@ -215,7 +214,7 @@ python3 -m pip install 'gdal==2.3.3'
 
 # Ubuntu
 # Run the commands from the following Dockerfile:
-# https://github.com/airware/buzzard/blob/master/doc/ubuntu_install/Dockerfile
+# https://github.com/earthcube-lab/buzzard/blob/master/doc/ubuntu_install/Dockerfile
 
 # Step 2 - Install buzzard ************************************************** **
 python3 -m pip install buzzard
@@ -241,7 +240,7 @@ You want some help? You have a question? You want to contribute? Join us on Slac
 
 ## How to test
 ```sh
-git clone https://github.com/airware/buzzard
+git clone https://github.com/earthcube-lab/buzzard
 pip install -r buzzard/requirements-dev.txt
 pytest buzzard/buzzard/test
 ```

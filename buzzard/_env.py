@@ -85,8 +85,8 @@ class Env(object):
     significant: int
         Number of significant digits for floating point comparisons
         Initialized to `9.0`
-        see: https://github.com/airware/buzzard/wiki/Precision-system
-        see: https://github.com/airware/buzzard/wiki/Floating-Point-Considerations
+        see: https://github.com/earthcube-lab/buzzard/wiki/Precision-system
+        see: https://github.com/earthcube-lab/buzzard/wiki/Floating-Point-Considerations
     default_index_dtype: convertible to np.dtype
         Default numpy return dtype for array indices.
         Initialized to `np.int32` (signed to allow negative indices by default)

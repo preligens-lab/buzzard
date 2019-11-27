@@ -113,7 +113,7 @@ class Work(PoolJobWorking):
         super().__init__(actor.address, func)
 
 def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
-    # https://github.com/airware/buzzard/pull/39/#discussion_r239071556
+    # https://github.com/earthcube-lab/buzzard/pull/39/#discussion_r239071556
     dtype = np.dtype(dtype)
     dtypesize = dtype.itemsize
     assert buffer_size % dtypesize == 0

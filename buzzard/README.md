@@ -10,7 +10,7 @@ Symbols export
 #### `_a_*.py`
 Almost all files follow this semantic: a `facade` class that starts with `A` and directly or indirectly inherits from `ASource`, and a `back` class that starts with `ABack` and directly or indirectly inherits from `ABackSource`.
 
-> Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fairware%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-classes-doc.xml
+> Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fearthcube-lab%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-classes-doc.xml
 
 #### `_dataset*.py`
 Contains the definition of the `Dataset` and `BackDataset` classes, as well as their mixins.
@@ -54,7 +54,7 @@ To get a quick taste of how it works you should look at those lines of code:
 - The `buzzard/_actors/message.py` file
 - At least one actor, for example the `buzzard/_actors/cached/writer.py` that is pretty straightforward and well documented.
 
-> Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fairware%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-cache-actors.xml
+> Diagram: https://www.draw.io/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fearthcube-lab%2Fbuzzard%2Fmaster%2Fdoc%2Fuml%2Fdraw-io-cache-actors.xml
 
 #### `_actors/*.py`
 Contains:

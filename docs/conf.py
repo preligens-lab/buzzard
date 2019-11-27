@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # Gather version
 project = 'buzzard'
-copyright = u'%s, Delair' % datetime.now().year
-author = 'Delair'
+copyright = u'%s, ngoguey' % datetime.now().year
+author = 'ngoguey'
 release = '0.6.4'
 
 # -- General configuration ---------------------------------------------------

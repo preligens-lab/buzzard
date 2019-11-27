@@ -32,7 +32,7 @@ ARG LIBSPATIALINDEX_VERSION=1.8.5
 #                                      #
 ########################################
 
-LABEL maintainer="Delair <nicolas.goguey@delair.aero>"
+LABEL maintainer="ngoguey <ngoguey@student.42.fr>"
 
 ##############################################
 #                                            #

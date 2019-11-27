@@ -1601,7 +1601,7 @@ class Dataset(DatasetRegisterMixin):
         You can use a `debug_observer` with an `on_object_allocated` method to track large objects
         allocated in the scheduler. It will likely not be the source of the problem. If you
         even find a source of leaks please contact the buzzard team.
-        https://github.com/airware/buzzard/issues
+        https://github.com/earthcube-lab/buzzard/issues
 
         """
         if self._ds_closed:
