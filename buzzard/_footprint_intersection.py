@@ -18,19 +18,19 @@ class IntersectionMixin(object):
     _INTERSECTION_ROTATIONS = {'auto', 'fit'}
     _INTERSECTION_ALIGNMENTS = {'auto', 'tl'}
 
-    def _intersection_expand_parameters(self, footprints, resolution, rotation, alignment):
-        if isinstance(resolution, np.ndarray):
+    def _intersection_expand_parameters(self, footprints, scale, rotation, alignment):
+        if isinstance(scale, np.ndarray):
             resofp = None
-            resolution = resolution
-        elif resolution == 'self':
+            scale = scale
+        elif scale == 'self':
             resofp = self
-            resolution = resofp.scale
-        elif resolution == 'highest':
+            scale = resofp.scale
+        elif scale == 'highest':
             resofp = max(footprints, key=lambda fp: np.product(fp.pxsize))
-            resolution = resofp.scale
-        elif resolution == 'lowest':
+            scale = resofp.scale
+        elif scale == 'lowest':
             resofp = min(footprints, key=lambda fp: np.product(fp.pxsize))
-            resolution = resofp.scale
+            scale = resofp.scale
         else:
             assert False # pragma: no cover
 
@@ -68,9 +68,9 @@ class IntersectionMixin(object):
         else:
             assert False # pragma: no cover
 
-        return resolution, rotation, fitrot, alignment, fitalign
+        return scale, rotation, fitrot, alignment, fitalign
 
-    def _intersection_unsafe(self, footprints, geoms, resolution, rotation, alignment):
+    def _intersection_unsafe(self, footprints, geoms, scale, rotation, alignment):
         geoms = [fp.poly for fp in footprints] + geoms
         for g1, g2 in itertools.combinations(geoms, 2):
             if g1.disjoint(g2):
@@ -81,33 +81,48 @@ class IntersectionMixin(object):
         del geoms
         assert geom.is_valid
         assert not geom.is_empty
-        resolution, rotation, fitrot, alignment, fitalign = self._intersection_expand_parameters(
-            footprints, resolution, rotation, alignment
+        scale, rotation, fitrot, alignment, fitalign = self._intersection_expand_parameters(
+            footprints, scale, rotation, alignment
         )
         del footprints
 
         if fitrot:
             # TODO: Make this block work with non-polygon geom
             rect = geom.minimum_rotated_rectangle
-            abovex, _, _, abovey = rect.bounds
+            minx, miny, maxx, maxy = rect.bounds
+            if scale[0] > 0:
+                abovex = minx
+            else:
+                abovex = maxx
+            if scale[1] > 0:
+                abovey = miny
+            else:
+                abovey = maxy
+
             assert rect.exterior.is_ccw
             points = np.c_[rect.exterior.xy][0:4]
 
-            # Get index of the point closest to (abovex, abovey) and  it as top left
+            # Look for the point closes to top-left
             def _quadrance_to_above(pt):
                 return (abovex - pt[0]) ** 2. + (abovey - pt[1]) ** 2.
 
             tli = np.array([_quadrance_to_above(pt) for pt in points]).argmin()
-            rect = _tools.Rect(
-                points[tli], points[(tli + 1) % 4],
-                points[(tli + 2) % 4], points[(tli + 3) % 4],
-            )
+            if (scale[0] > 0) != (scale[1] > 0):
+                rect = _tools.Rect(
+                    points[tli], points[(tli + 1) % 4],
+                    points[(tli + 2) % 4], points[(tli + 3) % 4],
+                )
+            else:
+                rect = _tools.Rect(
+                    points[tli], points[(tli - 1) % 4],
+                    points[(tli - 2) % 4], points[(tli - 3) % 4],
+                )
             rotation = rect.angle
         else:
             tmp_to_spatial = (
                 Affine.translation(*geom.centroid.coords[0]) *
                 Affine.rotation(rotation) *
-                Affine.scale(*resolution)
+                Affine.scale(*scale)
             )
             spatial_to_tmp = ~tmp_to_spatial
             points = np.concatenate(list(_exterior_coords_iterator(geom)), axis=0)
@@ -121,12 +136,12 @@ class IntersectionMixin(object):
                 tr=tmp_to_spatial * [points[:, 0].max(), points[:, 1].min()],
             )
 
-        if env.significant <= rect.significant_min(np.abs(resolution).min()):
+        if env.significant <= rect.significant_min(np.abs(scale).min()):
             s = ('This Footprint have large coordinates and small pixels, at least {:.2} '
                 'significant digits are necessary to perform this operation, but '
                  '`buzz.env.significant` is set to {}. Increase this value by using '
                  'buzz.Env(allow_complex_footprint=True) in a `with statement`.'
-            ).format(rect.significant_min(np.abs(resolution).min()), env.significant)
+            ).format(rect.significant_min(np.abs(scale).min()), env.significant)
             raise RuntimeError(s)
 
         if fitalign:
@@ -135,18 +150,17 @@ class IntersectionMixin(object):
         tmp_to_spatial = (
             Affine.translation(*alignment) *
             Affine.rotation(rotation) *
-            Affine.scale(*resolution)
+            Affine.scale(*scale)
         )
         spatial_to_tmp = ~tmp_to_spatial
-        abstract_grid_density = rect.abstract_grid_density(np.abs(resolution).min())
+        abstract_grid_density = rect.abstract_grid_density(np.abs(scale).min())
 
 
         tmptl = np.asarray(spatial_to_tmp * rect.tl)
         tmptl = np.around(tmptl * abstract_grid_density, 0) / abstract_grid_density
         tmptl = np.floor(tmptl)
         tl = tmp_to_spatial * tmptl
-        aff = Affine.translation(*tl) * Affine.rotation(rotation) * Affine.scale(*resolution)
-
+        aff = Affine.translation(*tl) * Affine.rotation(rotation) * Affine.scale(*scale)
         to_pixel = ~aff
 
         rsize = np.asarray(to_pixel * rect.br)
