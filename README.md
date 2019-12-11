@@ -9,7 +9,7 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 
 [
 ![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=25)
-](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
+](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTJhNTZhNjAwOGIyM2RkOTdkZGE5MGUwZGEzZGQwODkyMzY2N2YwMTg5ZmI1NDc2MjY2MGM2ZTdhNDc3M2E1YTI)
 
 <!-- [![Requirements Status](https://requires.io/github/airware/buzzard/requirements.svg?branch=master)](https://requires.io/github/airware/buzzard/requirements/?branch=master) -->
 
@@ -236,7 +236,7 @@ You want some help? You have a question? You want to contribute? Join us on Slac
 
 [
 ![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=42)
-](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTk4N2U4NGZjZmZiYWRhODAwY2U1MjU3ZGM4YTI3YjMwYmU4YjE2Y2E3ODdjZTUyYTFmZDY1YzEzNDUxN2YwMWI)
+](https://join.slack.com/t/buzzard-python/shared_invite/enQtNjY0NDQ2MzU3MzgzLTJhNTZhNjAwOGIyM2RkOTdkZGE5MGUwZGEzZGQwODkyMzY2N2YwMTg5ZmI1NDc2MjY2MGM2ZTdhNDc3M2E1YTI)
 
 ## How to test
 ```sh
