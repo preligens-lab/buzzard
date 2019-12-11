@@ -40,14 +40,15 @@ The following list contains the FAQs or features that are often mistaken as bugs
 
 → Why buzzard instead of fiona or rasterio that are much more mature and straightforward libraries?
 
-The answer is simple: when working with large images and geometries altogether you can benefit from the higher level abstractions that buzzard provides.
+The answer is simple: as soon as you are working with large images, or with geometries alongside images, you can benefit from the higher level abstractions that buzzard provides.
 
 → Why can't I simply reproject shapely geometries using buzzard?
-Because buzzard does not aim to replace pyproj. When using the classic stack, each of osgeo's lib has its own wrapper.
-GEOS -> shapely
-OGR -> fiona
-GDAL -> rio
-OSR -> pyproj
+
+Because buzzard does not aim to replace pyproj. When using the classic stack, each of osgeo's lib has its own wrapper:
+- GEOS -> shapely
+- OGR -> fiona
+- GDAL -> rio
+- OSR -> pyproj
 
 Buzzard is transversal, it wraps enough OGR, GDAL and OSR so that you don't have import those most of the time. Some known exceptions are:
 - Raster reprojection that does not preserve angles
@@ -56,7 +57,7 @@ Buzzard is transversal, it wraps enough OGR, GDAL and OSR so that you don't have
 
 It might be the case that someday buzzard provides a transversal feature that replaces pyproj but nothing is planned.
 
-→ In buzzard all sources (such as raster and vector files) are tied to a Dataset object. This is design choice has several advantages now and even more advantages in the long term.
+→ In buzzard, all sources (such as raster and vector files) are tied to a Dataset object. This is design choice has several advantages now and even more advantages in the long term. See the Dataset's docstring.
 
 → buzzard is a binding for GDAL, but all the features that allows editing the attributes of an opened file are not exposed in buzzard. The wish here is to make buzzard as [functional](https://en.wikipedia.org/wiki/Functional_programming) as possible.
 
