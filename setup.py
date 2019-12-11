@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 reqs = [
     'opencv-python>=3.1.0',
     'gdal>=2.3.3',
-    'shapely>= 1.5.16',
+    'shapely>=1.5.16',
     'affine>=2.0.0',
     'scipy>=0.19.1',
     'pint>=0.8.1',
