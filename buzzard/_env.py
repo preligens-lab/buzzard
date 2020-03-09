@@ -4,6 +4,7 @@
 
 import threading
 from collections import namedtuple
+import functools
 
 import cv2
 from osgeo import gdal, ogr, osr
@@ -39,25 +40,30 @@ _OPTIONS = {
 }
 
 # Storage *************************************************************************************** **
-class _GlobalMapStack(Singleton):
+class _GlobalMapStack:
     """ChainMap updated to behave like a singleton stack"""
 
     _main_storage = None
 
     def __init__(self, bottom=None):
         if bottom is not None:
+            # Create bottom
             self._mapping = ChainMap(bottom)
+            assert self.__class__._main_storage is None
             self.__class__._main_storage = self
         else:
-            # Copying _mapping to be immune from updates on the main side while thread is running,
-            # is it really possible?
-            self._mapping = self._main_storage._mapping.copy()
+            # Retrieve bottom from main thread and perform a deep copy
+            assert self.__class__._main_storage is not None
+            self._mapping = ChainMap(*[
+                dict(mapping)
+                for mapping in self._main_storage._mapping.maps
+            ])
 
     def push(self, mapping):
         self._mapping = self._mapping.new_child(mapping)
 
     def remove_top(self):
-        assert len(self._mapping.parents) > 1
+        assert len(self._mapping.parents.maps) > 0
         self._mapping = self._mapping.parents
 
     def __getitem__(self, k):
@@ -68,7 +74,8 @@ class _Storage(threading.local):
     def __init__(self):
         if threading.current_thread().__class__.__name__ == '_MainThread':
             self._mapstack = _GlobalMapStack({
-                k: v.sanitize(v.bottom_value) for (k, v) in _OPTIONS.items()
+                k: v.sanitize(v.bottom_value)
+                for k, v in _OPTIONS.items()
             })
         else:
             self._mapstack = _GlobalMapStack()
@@ -78,7 +85,7 @@ _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
 class Env(object):
-    """Context manager to update buzzard's states
+    """Context manager to update buzzard's states. Can also be used as a decorator.
 
     Parameters
     ----------
@@ -94,15 +101,19 @@ class Env(object):
         Whether to allow non north-up / west-left Footprints
         Initialized to `False`
 
-    Example
-    -------
+    Examples
+    --------
     >>> import buzzard as buzz
     >>> with buzz.Env(default_index_dtype='uint64'):
-            ds = buzz.Dataset()
-            dsm = ds.aopen_raster('dsm', 'path/to/dsm.tif')
-            x, y = dsm.meshgrid_raster
-            print(x.dtype)
+    ...     ds = buzz.Dataset()
+    ...     dsm = ds.aopen_raster('dsm', 'path/to/dsm.tif')
+    ...     x, y = dsm.meshgrid_raster
+    ...     print(x.dtype)
     numpy.uint64
+
+    >>> @buzz.Env(allow_complex_footprint=True)
+    ... def main():
+    ...     fp = buzz.Footprint(rsize=(10, 10), gt=(100, 1, 0, 100, 0, 1))
 
     """
 
@@ -130,6 +141,15 @@ class Env(object):
             if _OPTIONS[k].set_up is not None:
                 newv = _LOCAL._mapstack[k]
                 _OPTIONS[k].set_up(newv, oldv)
+
+    def __call__(self, fn):
+        if not callable(fn): # pragma: no cover
+            raise ValueError("An Env instance can only be called to decorate a function.")
+        @functools.wraps(fn)
+        def f(*args, **kwargs):
+            with self:
+                return fn(*args, **kwargs)
+        return f
 
 # Value retrieval ******************************************************************************* **
 class _ThreadMapStackGetter(object):
