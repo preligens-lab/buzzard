@@ -1,0 +1,19 @@
+List of external services used in the buzzard project
+- Github
+  - Admins: bound to the repo url
+- circle-ci
+  - Admins: bound to the repo url
+- codecov
+  - Admins: bound to the repo url
+- readthedoc
+  - Project: https://readthedocs.org/projects/buzzard
+  - Project admins: ngoguey42, evenfire
+- slack
+  - Workspace: https://buzzard-python.slack.com
+  - Workspace admins: ngoguey42, evenfire
+- notion
+  - Workspace: https://www.notion.so/buzzard/2c94ef6ee8da4d6280834129cc00f4d2?v=334ead18796342feb32ba85ccdfcf69f
+  - Workspace admins: ngoguey42, evenfire
+- pypi
+  - Package: https://pypi.org/project/buzzard
+  - Package admins: ngoguey42, evenfire
