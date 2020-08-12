@@ -2,7 +2,7 @@
 IMPORTANT: When you import :code:`buzzard` for the first time, you should always do it from the main thread.
 """
 
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 
 # Import osgeo before cv2
 import osgeo as _

@@ -2,6 +2,7 @@ List of external services used in the buzzard project
 - Github
   - Admins: bound to the repo url
 - circle-ci
+  - https://app.circleci.com/pipelines/github/earthcube-lab/buzzard
   - Admins: bound to the repo url
 - codecov
   - Admins: bound to the repo url
@@ -17,3 +18,6 @@ List of external services used in the buzzard project
 - pypi
   - Package: https://pypi.org/project/buzzard
   - Package admins: ngoguey42, evenfire
+- docker hub
+  - Organization: https://hub.docker.com/orgs/buzzardpython
+  - Organization admins: ngoguey42, evenfire (max 3 admins)

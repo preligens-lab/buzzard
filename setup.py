@@ -51,7 +51,7 @@ classifiers = [
 
 setup(
     name='buzzard',
-    version='0.6.4',
+    version='0.6.5',
     author='ngoguey',
     author_email='ngoguey@student.42.fr',
     license='Apache License 2.0',
@@ -62,7 +62,7 @@ setup(
     long_description_content_type='text/markdown',
     classifiers=classifiers,
     url='https://github.com/earthcube-lab/buzzard',
-    download_url='https://github.com/earthcube-lab/buzzard/archive/0.6.4.tar.gz',
+    download_url='https://github.com/earthcube-lab/buzzard/archive/0.6.5.tar.gz',
     keywords=['gdal gis raster shp dxf tif vector'],
     packages=find_packages(),
     install_requires=reqs,

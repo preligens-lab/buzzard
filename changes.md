@@ -17,6 +17,7 @@
 ## Private changes
 - Remove version constraint of pytest
 - Update CI
+- Now using dockerhub instead of aws
 
 ---
 

@@ -72,12 +72,13 @@ def _gen_tests():
 
     m = None
     for l in res.split('\n'):
-        if l.startswith("<Module '"):
-            m = l.replace("<Module '", '')[:-2]
-        elif l.startswith("  <Function '"):
+        l = l.strip()
+        if l.startswith("<Module "):
+            m = l.replace("<Module ", '')[:-1]
+        elif l.startswith("<Function "):
             assert m is not None, l
-            f = l.replace("  <Function '", '')[:-2]
-            d[m].append(f)
+            f = l.replace("<Function ", '')[:-1]
+            d[os.path.join("buzzard", "test", m)].append(f)
         else:
             pass
 
