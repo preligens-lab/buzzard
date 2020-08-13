@@ -2301,8 +2301,8 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
     def forward_conv2d(self, kernel_size, stride=1, padding=0, dilation=1):
         """Shift, scale and dilate the Footprint as if it went throught a 2d convolution kernel.
 
-        The arithmetic followed is the one from `pytorch`, but the arithmetics in other
-        deep-learning libraries are mostly the same.
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
 
         This function is a `many to one` mapping, two footprints with different `rsizes` can produce
         the same Footprint when `stride > 1`.
@@ -2341,16 +2341,16 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         # *********************************************************************** **
         # rf_rad: Receptive field radius (2,)
         # pxlrvec: Pixel Left-Right Vector (2,)
-        # pxtbvev: Pixel Top-Bottprint Vector (2,)
+        # pxtbvev: Pixel Top-Bottom Vector (2,)
         rf_rad = (kernel_size - 1) / 2
         tl1 = (
             fp0.tl
 
-            # A padding shift toward top-left
+            # Padding shifts toward top-left
             - fp0.pxlrvec * padding[0]
             - fp0.pxtbvec * padding[1]
 
-            # A convolution kernel shift toward bottom-left
+            # Kernel shifts toward bottom-right
             + fp0.pxlrvec * rf_rad[0]
             + fp0.pxtbvec * rf_rad[1]
         )
@@ -2389,8 +2389,8 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         """Shift, scale and dilate the Footprint as if it went backward throught a 2d convolution
         kernel.
 
-        The arithmetic followed is the one from `pytorch`, but the arithmetics in other
-        deep-learning libraries are mostly the same.
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
 
         This function is a `one to one` mapping, two different input footprints will produce two
         different output Footprints. It means that the `backward_conv2d` of a `forward_conv2d` may
@@ -2433,10 +2433,8 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         rf_rad = (kernel_size - 1) / 2
         tl0 = (
             fp1.tl
-
             + fp1.pxlrvec / stride[0] * padding[0]
             + fp1.pxtbvec / stride[1] * padding[1]
-
             - fp1.pxlrvec / stride[0] * rf_rad[0]
             - fp1.pxtbvec / stride[1] * rf_rad[1]
         )
@@ -2463,13 +2461,13 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         """Shift, scale and dilate the Footprint as if it went throught a 2d transposed convolution
         kernel.
 
-        The arithmetic followed is the one from `pytorch`, but the arithmetics in other
-        deep-learning libraries are mostly the same.
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
 
         A 2d transposed convolution has 4 internal steps:
-        1. Apply stride (interleave the input pixels with zeroes)
+        1. Apply stride (i.e. interleave the input pixels with zeroes)
         2. Add padding
-        3. Apply a 2d convolution stride:1, pad:0
+        3. Apply a 2d convolution with stride=1 and pad=0
         4. Add output-padding
 
         This function is a `one to one` mapping, two different input footprints will produce two
@@ -2557,8 +2555,8 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         """Shift, scale and dilate the Footprint as if it went backward throught a 2d transposed
         convolution kernel.
 
-        The arithmetic followed is the one from `pytorch`, but the arithmetics in other
-        deep-learning libraries are mostly the same.
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
 
         A 2d transposed convolution has 4 internal steps:
         1. Apply stride (interleave the input pixels with zeroes)
