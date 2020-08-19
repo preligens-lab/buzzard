@@ -12,7 +12,7 @@
 - Process pools managed by a `Dataset` are now joined without dead-lock (No UT yet for Pool management)
 - Fix `Env` to work with python threads (New UT)
 - Fix `fp.intersection(rotation='fit')` when `fp` has a non-north-up scale (No UT for non-north-up Footprints)
-- Fix bug when using and integer to select a raster band
+- Fix bug when using an integer to select a raster band
 
 ## Private changes
 - Remove version constraint of pytest
@@ -27,7 +27,7 @@ Small bug fix when using numpy scalars
 ---
 
 # 0.6.3
-Buzzard now have a documentation
+Buzzard now has a documentation
 
 ---
 
@@ -42,7 +42,7 @@ Buzzard now have a documentation
 # 0.6.1
 ## Public changes
 ### Footprint coordinates rounding after reprojection
-Thanks to the new parameter of the `Footprint.move` method, opening a raster when using an `sr_work` in the `Dataset` constructor work much better than before.
+Thanks to the new parameter of the `Footprint.move` method, opening a raster when using an `sr_work` in the `Dataset` constructor works much better than before.
 
 ### Parameters update
 - Add `Footprint.move@round_coordinates`

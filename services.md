@@ -6,7 +6,7 @@ List of external services used in the buzzard project
   - Admins: bound to the repo url
 - codecov
   - Admins: bound to the repo url
-- readthedoc
+- readthedocs
   - Project: https://readthedocs.org/projects/buzzard
   - Project admins: ngoguey42, evenfire
 - slack
