@@ -5,7 +5,7 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
   <img src="https://github.com/earthcube-lab/buzzard/raw/master/img/buzzard.png"><br><br>
 </div>
 
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/earthcube-lab/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/airware/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/airware/buzzard/tree/master)[![codecov](https://codecov.io/gh/airware/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/airware/buzzard)[![readthedoc](https://readthedocs.org/projects/buzzard/badge/?version=latest&style=flat)](https://buzzard.readthedocs.io/en/latest)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/earthcube-lab/buzzard/blob/master/LICENSE)[![CircleCI](https://circleci.com/gh/earthcube-lab/buzzard/tree/master.svg?style=shield&circle-token=9d41310f0eb3f8ff120a7103ba2d7ee5d5d628b7)](https://circleci.com/gh/earthcube-lab/buzzard/tree/master)[![codecov](https://codecov.io/gh/earthcube-lab/buzzard/branch/master/graph/badge.svg?token=FbWmLGplCq)](https://codecov.io/gh/earthcube-lab/buzzard)[![readthedoc](https://readthedocs.org/projects/buzzard/badge/?version=latest&style=flat)](https://buzzard.readthedocs.io/en/latest)
 
 [
 ![Join us on Slack!](https://cdn.brandfolder.io/5H442O3W/as/pl54cs-bd9mhs-3jsgg0/btn-add-to-slack_1x.png?height=25)
@@ -225,11 +225,14 @@ python3 -m pip install buzzard
 To enjoy the latest buzzard features, update your python!
 
 #### Full python support
-- Latest supported version: `3.7` (June 2018)
-- Oldest supported version: `3.4` (March 2014)
+- Latest supported version: `3.8` (June 2018)
+- Oldest supported version: `3.6` (Sept 2015)
 
 #### Partial python support
 - `2.7`: use buzzard version `0.4.4`
+- `3.4`: use buzzard version `0.6.3`
+- `3.5`: use buzzard version `0.6.4`
+- `3.6`: use buzzard version `0.6.4`
 
 ## Slack
 You want some help? You have a question? You want to contribute? Join us on Slack!

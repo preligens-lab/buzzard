@@ -6,7 +6,7 @@
 version: 2
 
 variables:
-  base_docker_image: &base_docker_image circleci/python:3.7
+  base_docker_image: &base_docker_image circleci/python:3.8
   working_directory: &working_directory /tmp/circleci/buzzard
   workspace_directory: &workspace_directory /tmp/circleci/
 
@@ -16,38 +16,20 @@ references:
     docker:
       - image: *base_docker_image
 
-  py27_container_config: &py27_container_config
-    working_directory: *working_directory
-    docker:
-      - image: $AWS_ECR_IMAGE_TAG_27
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
-
-  py34_container_config: &py34_container_config
-    working_directory: *working_directory
-    docker:
-      - image: $AWS_ECR_IMAGE_TAG_34
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
-
   py36_container_config: &py36_container_config
     working_directory: *working_directory
     docker:
-      - image: $AWS_ECR_IMAGE_TAG_36
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+      - image: buzzardpython/ci:py36@sha256:830824745288acec08dfc31116ab847f9e95d6567bbda3f52baa03a757886c2a
 
   py37_container_config: &py37_container_config
     working_directory: *working_directory
     docker:
-      - image: $AWS_ECR_IMAGE_TAG_37
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+      - image: buzzardpython/ci:py37@sha256:6a5dd3373f0a88a3200e7b0859ebda33357739dc6cadc97ab2a314595c2587c5
 
+  py38_container_config: &py38_container_config
+    working_directory: *working_directory
+    docker:
+      - image: buzzardpython/ci:py38@sha256:2a55d84c17296550d6602af255c7fdd4fdf9ee2b2cc09bf60763337c166be931
 
   repo_cache_key: &repo_cache_key
     repo-v2-{{ .Branch }}-{{ .Revision }}
@@ -59,36 +41,10 @@ references:
         - repo-v2-{{ .Branch }}
         - repo-v2-
 
-  py27_requirements_cache_key: &py27_requirements_cache_key
-    py27-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
-
-  py27_requirements_backup_cache_key: &py27_requirements_backup_cache_key
-    py27-dependencies-v7-
-
-  py27_restore_dependencies: &py27_restore_dependencies
-    restore_cache:
-      keys:
-        - *py27_requirements_cache_key
-        - *py27_requirements_backup_cache_key
-
-  py34_requirements_cache_key: &py34_requirements_cache_key
-    py34-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
-
-  py34_requirements_backup_cache_key: &py34_requirements_backup_cache_key
-    py34-dependencies-v7-
-
-  py34_restore_dependencies: &py34_restore_dependencies
-    restore_cache:
-      keys:
-        - *py34_requirements_cache_key
-        - *py34_requirements_backup_cache_key
-
   py36_requirements_cache_key: &py36_requirements_cache_key
     py36-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
-
   py36_requirements_backup_cache_key: &py36_requirements_backup_cache_key
     py36-dependencies-v7-
-
   py36_restore_dependencies: &py36_restore_dependencies
     restore_cache:
       keys:
@@ -97,15 +53,23 @@ references:
 
   py37_requirements_cache_key: &py37_requirements_cache_key
     py37-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
-
   py37_requirements_backup_cache_key: &py37_requirements_backup_cache_key
     py37-dependencies-v7-
-
   py37_restore_dependencies: &py37_restore_dependencies
     restore_cache:
       keys:
         - *py37_requirements_cache_key
         - *py37_requirements_backup_cache_key
+
+  py38_requirements_cache_key: &py38_requirements_cache_key
+    py38-dependencies-v7-{{ checksum "requirements-ci.txt" }}-{{ checksum "setup.py" }}
+  py38_requirements_backup_cache_key: &py38_requirements_backup_cache_key
+    py38-dependencies-v7-
+  py38_restore_dependencies: &py38_restore_dependencies
+    restore_cache:
+      keys:
+        - *py38_requirements_cache_key
+        - *py38_requirements_backup_cache_key
 
 jobs:
   init:
@@ -140,68 +104,6 @@ jobs:
           path: test-reports
           destination: test-reports
 
-  py27_test:
-    <<: *py27_container_config
-    parallelism: 4
-    steps:
-      - *restore_repo
-      - *py27_restore_dependencies
-      - run:
-          name: install python27 dependencies
-          # cp -s is a temporary bug fix for virtualenv not able to copy _gdal_array.so
-          command: |
-            mkdir -p venvs/27
-            virtualenv venvs/27
-            . venvs/27/bin/activate
-            pip install -r requirements-ci.txt
-            if [ ! -f venvs/27/lib/python2.7/site-packages/osgeo/_gdal_array.so ]; then cp /usr/local/gdal/lib/python2.7/site-packages/osgeo/_gdal_array.so venvs/27/lib/python2.7/site-packages/osgeo; fi
-      # run tests!
-      - run:
-          name: run tests
-          # -x option of pytest will stop tests after the first error
-          # no coveralls for py27
-          command: |
-            . venvs/27/bin/activate
-            circleci tests glob **/test/*.py | circleci tests split --split-by=timings --timings-type=filename | xargs python -m pytest -x --junitxml=test-reports/pytest-report.xml
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
-      - store_test_results:
-          path: test-reports
-      - save_cache:
-          key: *py27_requirements_cache_key
-          paths:
-            - ./venvs/27
-
-  py34_test:
-    <<: *py34_container_config
-    parallelism: 1
-    steps:
-      - *restore_repo
-      - *py34_restore_dependencies
-      - run:
-          name: install python34 dependencies
-          command: |
-            mkdir -p venvs/34
-            python -m venv ./venvs/34
-            . venvs/34/bin/activate
-            pip install -r requirements-ci.txt
-      # run tests!
-      - run:
-          name: run tests
-          command: |
-            . venvs/34/bin/activate
-            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
-      - store_test_results:
-          path: test-reports
-      - save_cache:
-          key: *py34_requirements_cache_key
-          paths:
-            - ./venvs/34
-
   py36_test:
     <<: *py36_container_config
     parallelism: 1
@@ -215,7 +117,8 @@ jobs:
             python -m venv ./venvs/36
             . venvs/36/bin/activate
             pip install -r requirements-ci.txt
-      # run tests!
+            pip uninstall -y gdal
+            pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
       - run:
           name: run tests
           command: |
@@ -248,7 +151,8 @@ jobs:
             pip install numpy>=1.13
 
             pip install -r requirements-ci.txt
-      # run tests!
+            pip uninstall -y gdal
+            pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
       - run:
           name: run tests
           command: |
@@ -281,6 +185,36 @@ jobs:
           command: |
             echo "Workflow finished"
 
+  py38_test:
+    <<: *py38_container_config
+    parallelism: 1
+    steps:
+      - *restore_repo
+      - *py38_restore_dependencies
+      - run:
+          name: install python38 dependencies
+          command: |
+            mkdir -p venvs/38
+            python -m venv ./venvs/38
+            . venvs/38/bin/activate
+            pip install -r requirements-ci.txt
+            pip uninstall -y gdal
+            pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
+      - run:
+          name: run tests
+          command: |
+            . venvs/38/bin/activate
+            python scripts/pytest_parallel.py -x --junitxml=test-reports/pytest-report.xml
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+      - store_test_results:
+          path: test-reports
+      - save_cache:
+          key: *py38_requirements_cache_key
+          paths:
+            - ./venvs/38
+
 workflows:
   version: 2
   buzzard:
@@ -289,23 +223,18 @@ workflows:
       - lint:
           requires:
             - init
-      - py27_test:
-          requires:
-            - init
-          filters:
-            branches:
-              only: /^v0\.4\..*/
-      - py34_test:
-          requires:
-            - init
       - py36_test:
           requires:
             - init
       - py37_test:
           requires:
             - init
+      - py38_test:
+          requires:
+            - init
       - end:
           requires:
             - lint
-            - py34_test
+            - py36_test
             - py37_test
+            - py38_test

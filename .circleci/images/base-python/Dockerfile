@@ -5,9 +5,9 @@
 #                                            #
 ##############################################
 
-ARG PYTHON_VERSION=3.7.0
+ARG PYTHON_VERSION
 
-FROM circleci/python:$PYTHON_VERSION-stretch
+FROM circleci/python:$PYTHON_VERSION-buster
 
 
 ##############################################
