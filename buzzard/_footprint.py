@@ -310,24 +310,114 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             rsize=rsize,
         )
 
-    def _morpho(self, scount):
-        aff = self._aff * affine.Affine.translation(-scount, -scount)
+    def _morpho(self, left, right, top, bottom):
+        if left == right == top == bottom == 0:
+            return self
+        aff = self._aff * affine.Affine.translation(-left, -top)
         return Footprint(
             gt=aff.to_gdal(),
-            rsize=(self.rsize + 2 * scount),
+            rsize=(self.rsize + [left + right, top + bottom]),
         )
 
-    def erode(self, count):
-        """Construct a new Footprint from self, eroding all edges by :code:`count` pixels"""
-        assert count >= 0
-        assert count == int(count)
-        return self._morpho(-count)
+    def erode(self, *args):
+        """erode(self, inward_count, /)
+        erode(self, inward_count_x, inward_count_y, /)
+        erode(self, inward_count_left, inward_count_right, inward_count_top, inward_count_bottom, /)
 
-    def dilate(self, count):
-        """Construct a new Footprint from self, dilating all edges by :code:`count` pixels"""
-        assert count >= 0
-        assert count == int(count)
-        return self._morpho(count)
+        Erode self's edges by the given pixel count to construct a new Footprint.
+
+        A negative erosion is a dilation.
+
+        Parameters
+        ----------
+        *args: int or (int, int) or (int, int, int, int)
+            When `int`, erode all 4 directions by that much pixels
+            When `(int, int)`, erode x and y by a different number of pixel
+            When `(int, int, int, int)`, erode all 4 directions with a different number of pixel
+
+        Returns
+        -------
+        Footprint
+
+        """
+        if len(args) == 1:
+            left = right = top = bottom = args[0]
+        elif len(args) == 2:
+            left, top = right, bottom = args
+        elif len(args) == 4:
+            left, right, top, bottom = args
+        else: # pragma: no cover
+            raise ValueError('Expecting one, two or four positional parameters')
+
+        v = int(left)
+        if v != left: # pragma: no cover
+            raise ValueError('left should be an integer')
+        left = v
+        v = int(right)
+        if v != right: # pragma: no cover
+            raise ValueError('right should be an integer')
+        right = v
+        v = int(top)
+        if v != top: # pragma: no cover
+            raise ValueError('top should be an integer')
+        top = v
+        v = int(bottom)
+        if v != bottom: # pragma: no cover
+            raise ValueError('bottom should be an integer')
+        bottom = v
+
+        left, right, top, bottom = map(lambda x: -int(x), [left, right, top, bottom])
+        return self._morpho(left, right, top, bottom)
+
+    def dilate(self, *args):
+        """dilate(self, outward_count, /)
+        dilate(self, outward_count_x, outward_count_y, /)
+        dilate(self, outward_count_left, outward_count_right, outward_count_top, outward_count_bottom, /)
+
+        Dilate self's edges by the given pixel count to construct a new Footprint.
+
+        A negative dilation is an erosion.
+
+        Parameters
+        ----------
+        *args: int or (int, int) or (int, int, int, int)
+            When `int`, dilate all 4 directions by that much pixels
+            When `(int, int)`, dilate x and y by a different number of pixel
+            When `(int, int, int, int)`, dilate all 4 directions with a different number of pixel
+
+        Returns
+        -------
+        Footprint
+
+        """
+        if len(args) == 1:
+            left = right = top = bottom = args[0]
+        elif len(args) == 2:
+            left, top = right, bottom = args
+        elif len(args) == 4:
+            left, right, top, bottom = args
+        else: # pragma: no cover
+            raise ValueError('Expecting one, two or four positional parameters')
+
+        v = int(left)
+        if v != left: # pragma: no cover
+            raise ValueError('left should be an integer')
+        left = v
+        v = int(right)
+        if v != right: # pragma: no cover
+            raise ValueError('right should be an integer')
+        right = v
+        v = int(top)
+        if v != top: # pragma: no cover
+            raise ValueError('top should be an integer')
+        top = v
+        v = int(bottom)
+        if v != bottom: # pragma: no cover
+            raise ValueError('bottom should be an integer')
+        bottom = v
+
+        left, right, top, bottom = map(lambda x: int(x), [left, right, top, bottom])
+        return self._morpho(left, right, top, bottom)
 
     def intersection(self, *objects, **kwargs):
         """intersection(self, *objects, scale='self', rotation='auto', alignment='auto', \
@@ -2207,6 +2297,340 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             tuple(self._rsize.tolist()),
         ))
 
+    # Convolutions ****************************************************************************** **
+    def forward_conv2d(self, kernel_size, stride=1, padding=0, dilation=1):
+        """Shift, scale and dilate the Footprint as if it went throught a 2d convolution kernel.
+
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
+
+        This function is a `many to one` mapping, two footprints with different `rsizes` can produce
+        the same Footprint when `stride > 1`.
+
+        Parameters
+        ----------
+        kernel_size: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+        stride: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+        padding: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+        dilation: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+
+        Returns
+        -------
+        Footprint
+
+        Example
+        -------
+        >>> fp0 = buzz.Footprint(tl=(0, 0), size=(1024, 1024), rsize=(1024, 1024))
+        ... fp1 = fp0.forward_conv2d(kernel_size=2, stride=2)
+        ... print(fp1)
+        Footprint(tl=(0.5, -0.5), size=(1024, 1024), rsize=(512, 512))
+
+        """
+
+        # *********************************************************************** **
+        fp0 = self
+        kernel_size, stride, padding, dilation = _parse_conv2d_params(
+            kernel_size, stride, padding, dilation
+        )
+        kernel_size = 1 + (kernel_size - 1) * dilation
+
+        # *********************************************************************** **
+        # rf_rad: Receptive field radius (2,)
+        # pxlrvec: Pixel Left-Right Vector (2,)
+        # pxtbvev: Pixel Top-Bottom Vector (2,)
+        rf_rad = (kernel_size - 1) / 2
+        tl1 = (
+            fp0.tl
+
+            # Padding shifts toward top-left
+            - fp0.pxlrvec * padding[0]
+            - fp0.pxtbvec * padding[1]
+
+            # Kernel shifts toward bottom-right
+            + fp0.pxlrvec * rf_rad[0]
+            + fp0.pxtbvec * rf_rad[1]
+        )
+
+        # *********************************************************************** **
+        rsize0_padded = fp0.rsize + padding * 2
+        if np.any(rsize0_padded < kernel_size): # pragma: no cover
+            fmt = ("Can't conv2d with kernel:{:.0f}x{:.0f} dil:{:.0f}x{:.0f} pad:{:.0f}x{:.0f} on "
+                   "input-shape:{:.0f}x{:.0f} because on at least one dimension: "
+                   "padded-input-shape:{:.0f}x{:.0f} < kernel-span:{:.0f}x{:.0f}."
+            )
+            raise ValueError(fmt.format(
+                *np.flipud((kernel_size - 1) / dilation + 1),
+                *np.flipud(dilation),
+                *np.flipud(padding),
+                *fp0.shape,
+                *np.flipud(rsize0_padded),
+                *np.flipud(kernel_size),
+            ))
+        rsize1 = 1 + np.floor((rsize0_padded - (kernel_size - 1) - 1) / stride)
+
+        # *********************************************************************** **
+        aff = fp0._aff
+        aff = aff * affine.Affine.scale(*stride)
+        _, dx, rx, _, ry, dy = aff.to_gdal()
+        if np.all(stride == 1):
+            assert np.all(aff.to_gdal() == fp0.gt), (aff.to_gdal(), fp0.gt)
+
+        # *********************************************************************** **
+        return Footprint(
+            gt=(tl1[0], dx, rx, tl1[1], ry, dy),
+            rsize=rsize1,
+        )
+
+    def backward_conv2d(self, kernel_size, stride=1, padding=0, dilation=1):
+        """Shift, scale and dilate the Footprint as if it went backward throught a 2d convolution
+        kernel.
+
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
+
+        This function is a `one to one` mapping, two different input footprints will produce two
+        different output Footprints. It means that the `backward_conv2d` of a `forward_conv2d` may
+        not reproduce the initial Footprint, some pixels on the bottom and right edges may be
+        missing.
+
+        Parameters
+        ----------
+        kernel_size: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+        stride: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+        padding: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+        dilation: int or (int, int)
+            See `torch.nn.Conv2d` documentation.
+
+        Returns
+        -------
+        Footprint
+
+        Example
+        -------
+        >>> fp1 = buzz.Footprint(tl=(0.5, -0.5), size=(1024, 1024), rsize=(512, 512))
+        ... fp0 = fp1.backward_conv2d(kernel_size=2, stride=2)
+        ... print(fp0)
+        Footprint(tl=(0, 0), size=(1024, 1024), rsize=(1024, 1024))
+
+        """
+
+        # *********************************************************************** **
+        fp1 = self
+        kernel_size, stride, padding, dilation = _parse_conv2d_params(
+            kernel_size, stride, padding, dilation
+        )
+        kernel_size = 1 + (kernel_size - 1) * dilation
+
+        # *********************************************************************** **
+        # Inverse of the operation of `forward_conv2d`
+        rf_rad = (kernel_size - 1) / 2
+        tl0 = (
+            fp1.tl
+            + fp1.pxlrvec / stride[0] * padding[0]
+            + fp1.pxtbvec / stride[1] * padding[1]
+            - fp1.pxlrvec / stride[0] * rf_rad[0]
+            - fp1.pxtbvec / stride[1] * rf_rad[1]
+        )
+
+        # *********************************************************************** **
+        # Inverse of the operation of `forward_conv2d`
+        rsize0 = (fp1.rsize - 1) * stride - (padding * 2 - (kernel_size - 1) - 1)
+
+        # *********************************************************************** **
+        aff = fp1._aff
+        aff = aff * affine.Affine.scale(*(1 / stride))
+        _, dx, rx, _, ry, dy = aff.to_gdal()
+        if np.all(stride == 1):
+            assert np.all(aff.to_gdal() == fp1.gt), (aff.to_gdal(), fp1.gt)
+
+        # *********************************************************************** **
+        return Footprint(
+            gt=(tl0[0], dx, rx, tl0[1], ry, dy),
+            rsize=rsize0,
+        )
+
+    def forward_convtranspose2d(self, kernel_size, stride=1, padding=0, dilation=1,
+                                output_padding=0):
+        """Shift, scale and dilate the Footprint as if it went throught a 2d transposed convolution
+        kernel.
+
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
+
+        A 2d transposed convolution has 4 internal steps:
+        1. Apply stride (i.e. interleave the input pixels with zeroes)
+        2. Add padding
+        3. Apply a 2d convolution with stride=1 and pad=0
+        4. Add output-padding
+
+        This function is a `one to one` mapping, two different input footprints will produce two
+        different output Footprints.
+
+        Parameters
+        ----------
+        kernel_size: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        stride: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        padding: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        dilation: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        output_padding: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+
+        Returns
+        -------
+        Footprint
+
+        Example
+        -------
+        >>> fp0 = buzz.Footprint(tl=(0, 0), size=(1024, 1024), rsize=(512, 512))
+        ... fp1 = fp0.forward_convtranspose2d(kernel_size=3, stride=2, padding=1)
+        ... print(fp1)
+        Footprint(tl=(0, 0), size=(1023, 1023), rsize=(1023, 1023))
+
+        """
+
+        # *********************************************************************** **
+        fp0 = self
+        kernel_size, stride, padding, dilation, output_padding = _parse_conv2d_params(
+            kernel_size, stride, padding, dilation, output_padding,
+            allow_neg_padding=False,
+        )
+        padding_input = dilation * (kernel_size - 1) - padding
+        kernel_size = 1 + (kernel_size - 1) * dilation
+
+        # *********************************************************************** **
+        # See `forward_conv2d` for details
+        rf_rad = (kernel_size - 1) / 2
+        tl1 = (
+            fp0.tl
+            - fp0.pxlrvec / stride[0] * padding_input[0]
+            - fp0.pxtbvec / stride[1] * padding_input[1]
+            + fp0.pxlrvec / stride[0] * rf_rad[0]
+            + fp0.pxtbvec / stride[1] * rf_rad[1]
+        )
+
+        # *********************************************************************** **
+        rsize_inner = fp0.rsize + (fp0.rsize - 1) * (stride - 1) + padding_input * 2
+        if np.any(rsize_inner < kernel_size): # pragma: no cover
+            fmt = ("Can't convtranspose2d with "
+                   "kernel:{:.0f}x{:.0f} dil:{:.0f}x{:.0f} pad:{:.0f}x{:.0f} on "
+                   "input-shape:{:.0f}x{:.0f} because on at least one dimension: "
+                   "inner-shape:{:.0f}x{:.0f} < kernel-span:{:.0f}x{:.0f}."
+            )
+            raise ValueError(fmt.format(
+                *np.flipud((kernel_size - 1) / dilation + 1),
+                *np.flipud(dilation),
+                *np.flipud(padding),
+                *fp0.shape,
+                *np.flipud(rsize_inner),
+                *np.flipud(kernel_size),
+            ))
+        rsize1 = 1 + np.floor((rsize_inner - (kernel_size - 1) - 1)) + output_padding
+
+        # *********************************************************************** **
+        aff = fp0._aff
+        aff = aff * affine.Affine.scale(*(1 / stride))
+        _, dx, rx, _, ry, dy = aff.to_gdal()
+        if np.all(stride == 1):
+            assert np.all(aff.to_gdal() == fp0.gt), (aff.to_gdal(), fp0.gt)
+
+        # *********************************************************************** **
+        return Footprint(
+            gt=(tl1[0], dx, rx, tl1[1], ry, dy),
+            rsize=rsize1,
+        )
+
+    def backward_convtranspose2d(self, kernel_size, stride=1, padding=0, dilation=1,
+                                 output_padding=0):
+        """Shift, scale and dilate the Footprint as if it went backward throught a 2d transposed
+        convolution kernel.
+
+        The arithmetic followed is the one from `pytorch`, but other deep-learning libraries mostly
+        follow the same arithmetic.
+
+        A 2d transposed convolution has 4 internal steps:
+        1. Apply stride (interleave the input pixels with zeroes)
+        2. Add padding
+        3. Apply a 2d convolution stride:1, pad:0
+        4. Add output-padding
+
+        This function is a `one to one` mapping, two different input Footprints will produce two
+        different output Footprints.
+
+        Parameters
+        ----------
+        kernel_size: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        stride: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        padding: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        dilation: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+        output_padding: int or (int, int)
+            See `torch.nn.ConvTranspose2d` documentation.
+
+        Returns
+        -------
+        Footprint
+
+        Example
+        -------
+        >>> fp0 = buzz.Footprint(tl=(0, 0), size=(1023, 1023), rsize=(1023, 1023))
+        ... fp1 = fp0.backward_convtranspose2d(kernel_size=3, stride=2, padding=1)
+        ... print(fp1)
+        Footprint(tl=(0, 0), size=(1024, 1024), rsize=(512, 512))
+
+        """
+
+        # *********************************************************************** **
+        fp1 = self
+        kernel_size, stride, padding, dilation, output_padding = _parse_conv2d_params(
+            kernel_size, stride, padding, dilation, output_padding,
+            allow_neg_padding=False,
+        )
+        padding_input = dilation * (kernel_size - 1) - padding
+        kernel_size = 1 + (kernel_size - 1) * dilation
+
+        # *********************************************************************** **
+        # Inverse of the operation of `forward_convtranspose2d`
+        rf_rad = (kernel_size - 1) / 2
+        tl0 = (
+            fp1.tl
+            + fp1.pxlrvec * padding_input[0]
+            + fp1.pxtbvec * padding_input[1]
+            - fp1.pxlrvec * rf_rad[0]
+            - fp1.pxtbvec * rf_rad[1]
+        )
+
+        # *********************************************************************** **
+        # Inverse of the operation of `forward_convtranspose2d`
+        rsize_inner = fp1.rsize + (kernel_size - 1) - output_padding
+        rsize0 = (rsize_inner - padding_input * 2 + (stride - 1)) / stride
+
+        # *********************************************************************** **
+        aff = fp1._aff
+        aff = aff * affine.Affine.scale(*stride)
+        _, dx, rx, _, ry, dy = aff.to_gdal()
+        if np.all(stride == 1):
+            assert np.all(aff.to_gdal() == fp1.gt), (aff.to_gdal(), fp1.gt)
+
+        # *********************************************************************** **
+        return Footprint(
+            gt=(tl0[0], dx, rx, tl0[1], ry, dy),
+            rsize=rsize0,
+        )
+
     # The end *********************************************************************************** **
     # ******************************************************************************************* **
 
@@ -2259,3 +2683,24 @@ def _angle_between(a, b, c):
         (a - b) / np.linalg.norm(a - b),
         (c - b) / np.linalg.norm(c - b),
     )) / np.pi * 180.
+
+def _parse_conv2d_params(*args, allow_neg_padding=True):
+    for k, v in zip(['kernel_size', 'stride', 'padding', 'dilation', 'output_padding'], args):
+        v = np.asarray(v).flatten()
+        if v.size == 1:
+            v = np.asarray((v[0], v[0]))
+        if v.size != 2: # pragma: no cover
+            raise ValueError('{} should have size 1 or 2'.format(k))
+        w = v.astype(int, copy=False)
+        if np.any(v != w): # pragma: no cover
+            raise ValueError('{} should be of type int'.format(k))
+        if 'padding' not in k: # pragma: no cover
+            if np.any(v < 1):
+                raise ValueError('{} should be greater or equal to 1'.format(k))
+        if 'padding' in k and not allow_neg_padding: # pragma: no cover
+            if np.any(v < 0):
+                raise ValueError('{} should be greater or equal to 0'.format(k))
+
+        # Flip all params to work with `xy` and `rsize` (instead of `yx` and `shape`)
+        v = np.flipud(v)
+        yield v
