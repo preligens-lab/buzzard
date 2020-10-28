@@ -1399,9 +1399,9 @@ class Dataset(DatasetRegisterMixin):
                 + A path to a file
                 + An empty string when using `driver=Memory`
         type: string
-            name of a wkb geometry type, without the `wkb` prefix.
+            name of a wkb geometry type, without the `wkb` prefix. For example: "Point", "Polygon", "LineString".
 
-            list: http://www.gdal.org/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
+            full list: https://gdal.org/doxygen/ogr__core_8h.html#a800236a0d460ef66e687b7b65610f12a
 
         fields: sequence of dict
             Attributes of fields, one dict per field. (see :ref:`Field Attributes` below)
