@@ -31,12 +31,13 @@ class Dataset(DatasetRegisterMixin):
     """**Dataset** is a class that stores references to sources. A source is either a raster, or a
     vector. A `Dataset` allows:
 
-    + quick manipulations by optionally assigning a key to each registered source, \
-      (see :ref:`Sources Registering` below)
+    + quick manipulations by optionally assigning a key to each registered source \
+      (see :ref:`Sources Registering` below),
     + closing all source at once by closing the Dataset object.
 
     But also inter-sources operations, like:
 
+    + limiting maximum number of file descriptors,
     + spatial reference harmonization (see :ref:`On the fly re-projections in buzzard` below),
     + workload scheduling on pools when using async rasters (see :ref:`Scheduler` below),
     + other features in the future (like data visualization).
@@ -98,8 +99,8 @@ class Dataset(DatasetRegisterMixin):
 
     >>> ds = buzz.Dataset()
 
-    Opening a file and registering it under the 'roofs' key. There are four ways to the access an
-    opened source.
+    Opening a file and registering it under the 'roofs' key. There are four ways to the access this
+    source.
 
     >>> r = ds.open_vector('roofs', 'path/to/roofs.shp')
     ... feature_count = len(ds.roofs)
@@ -107,12 +108,12 @@ class Dataset(DatasetRegisterMixin):
     ... feature_count = len(ds.get('roofs'))
     ... feature_count = len(r)
 
-    Opening a file anonymously. There is only one way to access the source.
+    Opening a file anonymously. There is only one way to access that source.
 
     >>> r = ds.aopen_raster('path/to/dem.tif')
     ... data_type = r.dtype
 
-    Opening, reading and closing two raster files with context management.
+    Opening, reading and closing raster files with context management.
 
     >>> with ds.open_raster('rgb', 'path/to/rgb.tif').close:
     ...     data_type = ds.rgb.fp
@@ -122,7 +123,7 @@ class Dataset(DatasetRegisterMixin):
     ...     data_type = rgb.dtype
     ...     arr = rgb.get_data()
 
-    Creating two files
+    Creating files
 
     >>> ds.create_vector('targets', 'path/to/targets.geojson', 'point', driver='GeoJSON')
     ... geometry_type = ds.targets.type
@@ -146,12 +147,13 @@ class Dataset(DatasetRegisterMixin):
     There are always two ways to create a source, with a key or anonymously.
 
     When creating a source using a key, said key (e.g. the string "my_source_name") must be provided
-    by user. Each key identify one source and should thus be unique. There are then three ways to
+    by user. Each key identify one source and should thus be unique. There are then four ways to
     access that source:
 
-    - from the object returned by the method that created the source,
-    - from the Dataset with the attribute syntax: `ds.my_source_name`,
-    - from the Dataset with the item syntax: ds["my_source_name"].
+    - using object returned by the method that created the source,
+    - from the Dataset using the attribute syntax: `ds.my_source_name`,
+    - from the Dataset using the item syntax: ds["my_source_name"],
+    - from the Dataset using the get method: ds.get("my_source_name").
 
     All keys should be unique.
 
@@ -168,7 +170,7 @@ class Dataset(DatasetRegisterMixin):
     same time (useful to perfom concurrent reads).
 
     Those sources are automatically activated and deactivated given the current needs and
-    constraints. Setting a `max_active` lower than `np.inf` in the Dataset constructor, will
+    constraints. Setting a `max_active` lower than `np.inf` in the Dataset constructor will
     ensure that no more than `max_active` driver objects are active at the same time, by
     deactivating the LRU ones.
 
@@ -275,9 +277,9 @@ class Dataset(DatasetRegisterMixin):
     .. _Scheduler:
     Scheduler
     ---------
-    To handle *async rasters* living in a Dataset, a thread is to manage requests made to those
+    To handle *async rasters* living in a Dataset, a thread is spawned to manage requests made to those
     rasters. It will start as soon as you create an *async raster* and stop when the Dataset is
-    closed or collected. If one of your callbacks to be called by the scheduler raises an exception,
+    closed or collected. If one of your callback to be called by the scheduler raises an exception,
     the scheduler will stop and the exception will be propagated to the main thread as soon as
     possible.
 
@@ -289,6 +291,8 @@ class Dataset(DatasetRegisterMixin):
     - The vector write methods
     - The raster read methods when using the `GDAL::MEM` driver
     - The vector read methods when using the `GDAL::Memory` driver
+
+    Parallel reads of rasters and vectors are natively supported in buzzard.
 
     """
 
@@ -1590,7 +1594,7 @@ class Dataset(DatasetRegisterMixin):
         When using a scheduler, some memory leaks may still occur after closing a Dataset.
         Possible origins:
 
-        - https://bugs.python.org/issue34172 (update your python to >=3.6.7)
+        - https://bugs.python.org/issue34172
         - Gdal cache not flushed (not a leak)
         - The gdal version
         - https://stackoverflow.com/a/1316799 (not a leak)
