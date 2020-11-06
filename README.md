@@ -85,8 +85,8 @@ r = buzz.open_raster('path/to/rgba-image.tif')
 km = keras.models.load_model('path/to/deep-learning-model.hdf5')
 
 # Chunk the raster's Footprint to Footprints of size
-# 1920 x 1080 pixel stored in a 2d numpy array
-tiles = r.fp.tile(1920, 1080)
+# 1920 x 1080 pixels stored in a 2d numpy array
+tiles = r.fp.tile((1920, 1080))
 
 all_roads = []
 
@@ -115,7 +115,7 @@ for i, fp in enumerate(tiles.flat):
 # Save all roads found to a single `shapefile`
 with buzz.create_vector(path='roads.shp', type='polygon').close as out:
     for poly in all_roads:
-        out.inser_data(poly)
+        out.insert_data(poly)
 
 ```
 
@@ -157,11 +157,11 @@ The following table lists dependencies along with the minimum version, their sta
 
 | Library          | Version  | Mandatory | License                                                                              | Comment                                                       |
 |------------------|----------|-----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| gdal             | >=2.3.3  | Yes       | [MIT/X](https://github.com/OSGeo/gdal/blob/trunk/gdal/LICENSE.TXT)                   | Hard to install. Will be included in `buzzard` wheels         |
+| gdal             | >=2.3.3  | Yes       | [MIT/X](https://gdal.org/license.html)                   | Hard to install. Will be included in `buzzard` wheels         |
 | opencv-python    | >=3.1.0  | Yes       | [3-clause BSD](http://opencv.org/license.html)                                       | Easy to install with `opencv-python` wheels. Will be optional |
 | shapely          | >=1.6.1  | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)         |                                                               |
 | affine           | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
-| numpy            | >=1.15.0 | Yes       | [numpy](https://docs.scipy.org/doc/numpy-1.10.0/license.html)                        |                                                               |
+| numpy            | >=1.15.0 | Yes       | [numpy](https://numpy.org/doc/stable/license.html)                        |                                                               |
 | scipy            | >=0.19.1 | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                                 |                                                               |
 | pint             | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               |
 | six              | >=1.11.0 | Yes       | [MIT](https://github.com/benjaminp/six/blob/master/LICENSE)                          |                                                               |
