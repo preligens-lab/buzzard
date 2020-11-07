@@ -16,13 +16,13 @@ In a nutshell, the `buzzard` library provides powerful abstractions to manipulat
 ## `buzzard` is
 - A _python_ library.
 - Primarily designed to hide all cumbersome operations when doing data-science with [GIS](https://en.wikipedia.org/wiki/Geographic_information_system) files.
-- A Multipurpose computer vision library, it can be used in all kind of situations where images or geometries are involved.
+- A multipurpose computer vision library, it can be used in all kind of situations where images or geometries are involved.
 - A pythonic wrapper for _osgeo_'s _gdal_/_ogr_/_osr_.
 - A solution to work with arbitrary large images by simplifying and automating the manipulation of image slices.
 
 ## `buzzard` contains
-- A [`Dataset`](https://buzzard.readthedocs.io/en/latest/dataset.html) class that oversees all opened raster and vector files in order to share resources.
-- An immutable toolbox class, the [`Footprint`](https://buzzard.readthedocs.io/en/latest/footprint.html), designed to locate a rectangle in both image space and geometry space.
+- A [`Dataset`](https://buzzard.readthedocs.io/en/latest/dataset.html) class that oversees a set of opened raster and vector files.
+- An immutable toolbox class, the [`Footprint`](https://buzzard.readthedocs.io/en/latest/footprint.html), designed to locate a rectangle in both an image space and a geometry space.
 
 ## How to open and read files
 This example demonstrates how to visualize a large raster polygon per polygon.
@@ -32,7 +32,7 @@ import buzzard as buzz
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Open the files. Only files' metadata are read so far
+# Open the files. Only metadata are kept in memory
 r = buzz.open_raster('path/to/rgba-image.tif')
 v = buzz.open_vector('path/to/polygons.geojson', driver='GeoJSON')
 
@@ -51,7 +51,7 @@ for poly in v.iter_data():
     # Create a boolean mask as a numpy array from the shapely polygon
     mask = np.invert(fp.burn_polygons(poly))
 
-    # Darken pixels outside of polygon, set transparent pixels to orange
+    # Darken pixels outside of polygon and set transparent pixels to orange
     rgb[mask] = (rgb[mask] * 0.5).astype(np.uint8)
     rgb[alpha == 0] = [236, 120, 57]
 
@@ -90,6 +90,7 @@ tiles = r.fp.tile((1920, 1080))
 
 all_roads = []
 
+# Perform an inference for each tile
 for i, fp in enumerate(tiles.flat):
     rgb = r.get_data(fp=fp, channels=(0, 1, 2))
 
@@ -98,8 +99,8 @@ for i, fp in enumerate(tiles.flat):
     predictions_top1 = np.argmax(predictions_heatmap, axis=-1)
 
     # Save the prediction to a `geotiff`
-    with buzz.create_raster(path='predictions_{}.tif'.format(i), fp=fp,
-                            dtype='uint8', channel_count=1).close as out:
+    path = f'predictions_{i}.tif'
+    with buzz.create_raster(path=path, fp=fp, dtype='uint8', channel_count=1).close as out:
         out.set_data(predictions_top1)
 
     # Extract the road polygons by transforming a numpy boolean mask to shapely polygons
@@ -136,15 +137,15 @@ Additional examples can be found here:
 - Opening and creating [raster](https://buzzard.readthedocs.io/en/latest/dataset_raster.html) and [vector](https://buzzard.readthedocs.io/en/latest/dataset_vector.html) files. Supports all [GDAL drivers (GTiff, PNG, ...)](https://www.gdal.org/formats_list.html) and all [OGR drivers (GeoJSON, DXF, Shapefile, ...)](https://www.gdal.org/ogr_formats.html).
 - [Reading](https://buzzard.readthedocs.io/en/latest/source_gdal_file_raster.html#raster-file-get-data) raster files pixels from disk to _numpy.ndarray_.
   - _Options:_ `sub-rectangle reading`, `rotated and scaled sub-rectangle reading (thanks to on-the-fly remapping with OpenCV)`, `automatic parallelization of read and remapping (soon)`, `async (soon)`, `be the source of an image processing pipeline (soon)`.
-  - _Properties:_ `thread-safe`
+  - _Properties:_ `thread-safe parallel reads`.
 - [Writing](https://buzzard.readthedocs.io/en/latest/source_gdal_file_raster.html#raster-file-set-data) raster files pixels to disk from _numpy.ndarray_.
-  - _Options:_ `sub-rectangle writing`, `rotated and scaled sub-rectangle writing (thanks to on-the-fly remapping with OpenCV)`, `masked writing`.
+  - _Options:_ `sub-rectangle writing`, `rotated and scaled sub-rectangle writing (thanks to on-the-fly remapping with OpenCV)`, `masked writing (slow)`.
 - [Reading](https://buzzard.readthedocs.io/en/latest/source_gdal_file_vector.html#vector-file-iter-data) vector files geometries from disk to _shapely objects_, _geojson dict_ and _raw coordinates_.
   - _Options:_ `masking`.
-  - _Properties:_ `thread-safe`
+  - _Properties:_ `thread-safe parallel reads`.
 - [Writing](https://buzzard.readthedocs.io/en/latest/source_gdal_file_vector.html#vector-file-insert-data) vector files geometries to disk from _shapely objects_, _geojson dict_ and _raw coordinates_.
 - Powerful manipulations of [raster windows](https://buzzard.readthedocs.io/en/latest/footprint.html)
-- [Instantiation](https://buzzard.readthedocs.io/en/latest/dataset_recipe.html#buzzard.Dataset.create_raster_recipe) of image processing pipelines where each node is a raster, and each edge is a user defined python function working on _numpy.ndarray_ (beta, partially implemented).
+- [Instantiation](https://buzzard.readthedocs.io/en/latest/dataset_recipe.html#buzzard.Dataset.create_raster_recipe) of image processing pipelines where each node is a raster, and each edge is a user defined python function transforming _numpy.ndarray_ objects (beta, partially implemented).
   - _Options:_ `automatic parallelization using user defined thread or process pools`, `disk caching`.
   - _Properties:_ `lazy evaluation`, `deterministic`, `automatic tasks chunking into tiles`, `fine grain task prioritization`, `backpressure prevention`.
 - [Spatial reference homogenization](https://buzzard.readthedocs.io/en/latest/dataset.html#on-the-fly-re-projections-in-buzzard) between opened files like a GIS software does (beta)
@@ -229,10 +230,9 @@ To enjoy the latest buzzard features, update your python!
 - Oldest supported version: `3.6` (Sept 2015)
 
 #### Partial python support
-- `2.7`: use buzzard version `0.4.4`
-- `3.4`: use buzzard version `0.6.3`
-- `3.5`: use buzzard version `0.6.4`
-- `3.6`: use buzzard version `0.6.4`
+- For python `2.7`: use buzzard version `0.4.4`
+- For python `3.4`: use buzzard version `0.6.3`
+- For python `3.5`: use buzzard version `0.6.4`
 
 ## Slack
 You want some help? You have a question? You want to contribute? Join us on Slack!
