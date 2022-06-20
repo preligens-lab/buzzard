@@ -1,5 +1,6 @@
 import collections
 import sys
+from collections.abc import Container
 
 import shapely.geometry as sg
 import numpy as np
@@ -261,7 +262,7 @@ class ASourceVector(ASource):
             return mask, None
         elif isinstance(mask, Footprint):
             return mask.poly, None
-        elif isinstance(mask, collections.Container):
+        elif isinstance(mask, Container):
             mask = [float(v) for v in mask]
             minx, maxx, miny, maxy = mask
             mask = minx, miny, maxx, maxy
