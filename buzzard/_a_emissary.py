@@ -62,7 +62,7 @@ class ABackEmissary(ABackStored):
         self.driver = driver
         self.open_options = open_options
         self.path = path
-        super(ABackEmissary, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
     def delete(self):

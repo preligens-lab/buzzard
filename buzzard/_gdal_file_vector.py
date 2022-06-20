@@ -23,7 +23,7 @@ class GDALFileVector(APooledEmissaryVector):
         back = BackGDALFileVector(
             ds._back, allocator, open_options, mode,
         )
-        super(GDALFileVector, self).__init__(ds=ds, back=back)
+        super().__init__(ds=ds, back=back)
 
 class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
     """Implementation of GDALFileVector"""
@@ -46,7 +46,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             type = conv.str_of_wkbgeom(lyr.GetGeomType())
             layer = lyr.GetName()
 
-        super(BackGDALFileVector, self).__init__(
+        super().__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             mode=mode,
@@ -113,7 +113,7 @@ class BackGDALFileVector(ABackPooledEmissaryVector, ABackGDALVector):
             yield gdal_objs
 
     def delete(self):
-        super(BackGDALFileVector, self).delete()
+        super().delete()
 
         success, payload = GDALErrorCatcher(gdal.GetDriverByName, none_is_error=True)(self.driver)
         if not success: # pragma: no cover

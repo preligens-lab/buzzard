@@ -40,7 +40,7 @@ class ABackPooledEmissary(ABackEmissary):
 
     def __init__(self, uid, **kwargs):
         self.uid = uid
-        super(ABackPooledEmissary, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def activate(self):
         self.back_ds.activate(self.uid, self.allocator)
@@ -62,7 +62,7 @@ class ABackPooledEmissary(ABackEmissary):
         - Should always be called
         """
         self.back_ds.deactivate(self.uid)
-        super(ABackPooledEmissary, self).close()
+        super().close()
 
     def delete(self):
         """Virtual method:
@@ -73,4 +73,4 @@ class ABackPooledEmissary(ABackEmissary):
         Ideally a `close` should be performed before a delete.
         """
         self.back_ds.deactivate(self.uid)
-        super(ABackPooledEmissary, self).delete()
+        super().delete()

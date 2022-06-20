@@ -23,7 +23,7 @@ class GDALFileRaster(APooledEmissaryRaster):
         back = BackGDALFileRaster(
             ds._back, allocator, open_options, mode,
         )
-        super(GDALFileRaster, self).__init__(ds=ds, back=back)
+        super().__init__(ds=ds, back=back)
 
 class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
     """Implementation of GDALFileRaster"""
@@ -46,7 +46,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             else:
                 wkt_stored = sr
 
-        super(BackGDALFileRaster, self).__init__(
+        super().__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             channels_schema=channels_schema,
@@ -68,7 +68,7 @@ class BackGDALFileRaster(ABackPooledEmissaryRaster, ABackGDALRaster):
             yield gdal_ds
 
     def delete(self):
-        super(BackGDALFileRaster, self).delete()
+        super().delete()
 
         success, payload = GDALErrorCatcher(gdal.GetDriverByName, none_is_error=True)(self.driver)
         if not success: # pragma: no cover

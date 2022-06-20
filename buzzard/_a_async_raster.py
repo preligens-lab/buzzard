@@ -67,7 +67,7 @@ class AAsyncRaster(ASourceRaster):
         """
         for fp in fps:
             if not isinstance(fp, Footprint):
-                msg = 'element of `fps` parameter should be a Footprint (not {})'.format(fp) # pragma: no cover
+                msg = f'element of `fps` parameter should be a Footprint (not {fp})' # pragma: no cover
                 raise ValueError(msg)
 
         return self._back.queue_data(
@@ -145,7 +145,7 @@ class ABackAsyncRaster(ABackSourceRaster):
                    parent_uid, key_in_parent):
         q = queue.Queue(max_queue_size)
         self.back_ds.put_message(Msg(
-            '/Raster{}/QueriesHandler'.format(self.uid),
+            f'/Raster{self.uid}/QueriesHandler',
             'new_query',
             weakref.ref(q),
             max_queue_size,

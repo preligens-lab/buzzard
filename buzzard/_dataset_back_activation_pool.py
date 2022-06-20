@@ -7,7 +7,7 @@ from buzzard._tools import MultiOrderedDict
 _ERR_FMT = 'Dataset is configured for a maximum of {} simultaneous active driver objects \
 but there are already {} idle objects and {} used objects'
 
-class BackDatasetActivationPoolMixin(object):
+class BackDatasetActivationPoolMixin:
     """Private mixin for the Dataset class containing subroutines for proxies' driver
     objects pooling"""
 
@@ -16,7 +16,7 @@ class BackDatasetActivationPoolMixin(object):
         self._ap_lock = threading.Lock()
         self._ap_idle = MultiOrderedDict()
         self._ap_used = collections.Counter()
-        super(BackDatasetActivationPoolMixin, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def activate(self, uid, allocator):
         """Make sure at least one driver object is idle or used for uid"""

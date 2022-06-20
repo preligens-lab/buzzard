@@ -170,7 +170,7 @@ class ASourceVector(ASource):
         for val in self.iter_data(fields, geom_type, mask, clip, slice(index, index + 1, 1)):
             return val
         else: # pragma: no cover
-            raise IndexError('Feature `{}` not found'.format(index))
+            raise IndexError(f'Feature `{index}` not found')
 
     def iter_geojson(self, mask=None, clip=False, slicing=slice(0, None, 1)):
         """Create an iterator over vector's features
@@ -253,7 +253,7 @@ class ASourceVector(ASource):
         for val in self.iter_geojson(mask, clip, slice(index, index + 1, 1)):
             return val
         else: # pragma: no cover
-            raise IndexError('Feature `{}` not found'.format(index))
+            raise IndexError(f'Feature `{index}` not found')
 
     @staticmethod
     def _normalize_mask_parameter(mask):
@@ -281,7 +281,7 @@ class ABackSourceVector(ABackSource):
     """Implementation of ASourceVector's specifications"""
 
     def __init__(self, type, fields, **kwargs):
-        super(ABackSourceVector, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.type = type
         self.fields = fields
         self.index_of_field_name = {
