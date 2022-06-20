@@ -6,7 +6,7 @@ All types are not available on all platforms, hence the `_eval_filter_dict_key({
 from osgeo import gdal
 import numpy as np
 
-DTYPE_OF_NAME = {np.dtype(v).name: np.dtype(v) for v in np.typeDict.values()}
+DTYPE_OF_NAME = {np.dtype(v).name: np.dtype(v) for v in np.sctypeDict.values()}
 
 def _eval_filter_dict_key(d):
     return {

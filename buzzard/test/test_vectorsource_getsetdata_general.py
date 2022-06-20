@@ -1,8 +1,8 @@
 # pylint: disable=redefined-outer-name
 
 from __future__ import division, print_function
+from collections.abc import Container
 import logging
-import collections
 import itertools
 import tempfile
 import os
@@ -347,7 +347,7 @@ def _any_geom_to_shapely(geom):
         return geom
     if isinstance(geom, dict):
         return sg.shape(geom['geometry'])
-    if isinstance(geom, collections.Container):
+    if isinstance(geom, Container):
         geom = np.asarray(geom)
         if geom.ndim == 1:
             return sg.Point(geom.tolist())
