@@ -261,6 +261,6 @@ def skip(app, what, name, obj, skip, options):
     return skip
 
 def setup(app):
-    app.add_stylesheet('theme_overrides.css')
+    app.add_css_file('theme_overrides.css')
     app.connect('autodoc-process-signature', process)
     app.connect('autodoc-skip-member', skip)
