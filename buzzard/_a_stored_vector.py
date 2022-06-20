@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Iterable, Mapping
 
 import shapely.geometry as sg
 
@@ -57,7 +57,7 @@ class AStoredVector(AStored, ASourceVector):
                 )
         elif isinstance(geom, sg.base.BaseGeometry):
             geom_type = 'shapely'
-        elif isinstance(geom, collections.Iterable):
+        elif isinstance(geom, Iterable):
             geom_type = 'coordinates'
         else:
             raise TypeError('input `geom` should be a shapely geometry or nest coordinates')
@@ -66,7 +66,7 @@ class AStoredVector(AStored, ASourceVector):
 
     def _normalize_field_values(self, fields):
         """Used on feature insertion"""
-        if isinstance(fields, collections.Mapping):
+        if isinstance(fields, Mapping):
             lst = [None] * len(self._back.fields)
             for k, v in fields.items():
                 if v is None:
@@ -78,7 +78,7 @@ class AStoredVector(AStored, ASourceVector):
                 if val is None and defn['nullable'] is False: # pragma: no cover
                     raise ValueError(f'{defn} not nullable')
             return lst
-        elif isinstance(fields, collections.Iterable):
+        elif isinstance(fields, Iterable):
             if len(fields) == 0 and self._back.all_nullable:
                 return [None] * len(self._back.fields)
             elif len(fields) != len(self._back.fields): # pragma: no cover

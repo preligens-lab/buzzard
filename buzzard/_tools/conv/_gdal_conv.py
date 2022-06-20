@@ -6,7 +6,7 @@ http://www.gdal.org/ogr__core_8h.html
 
 import datetime
 import json
-import collections
+from collections.abc import Iterable
 
 import shapely.wkt as sw
 from osgeo import ogr, gdal
@@ -46,7 +46,7 @@ def ogr_of_coordinates(geom, type_):
     def _to_list(obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, collections.Iterable):
+        elif isinstance(obj, Iterable):
             return [_to_list(elt) for elt in obj]
         else:
             return obj

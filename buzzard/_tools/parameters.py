@@ -1,9 +1,8 @@
 """Private tools to normalize functions parameters"""
 
-import collections
+from collections.abc import Iterable
 import logging
 import functools
-import numbers
 
 import six
 import numpy as np
@@ -37,7 +36,7 @@ def _coro_parameter_0or1dim(val, clean_fn, name):
         yield True
         yield attempt
         return
-    if isinstance(val, str) or not isinstance(val, collections.Iterable): # pragma: no cover
+    if isinstance(val, str) or not isinstance(val, Iterable): # pragma: no cover
         raise TypeError(
             'Expecting a `{}` or an `sequence of `{}`, found a `{}`'.format(name, name, type(val))
         )
@@ -363,7 +362,7 @@ deprecation_pool = _DeprecationPool()
 
 def normalize_fields_defn(fields):
     """Used on file creation"""
-    if not isinstance(fields, collections.Iterable): # pragma: no cover
+    if not isinstance(fields, Iterable): # pragma: no cover
         raise TypeError('Bad fields definition type')
 
     def _sanitize_dict(dic):
