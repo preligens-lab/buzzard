@@ -1,4 +1,3 @@
-
 from buzzard._dataset_back_conversions import BackDatasetConversionsMixin
 from buzzard._dataset_back_activation_pool import BackDatasetActivationPoolMixin
 from buzzard._dataset_back_scheduler import BackDatasetSchedulerMixin
@@ -14,4 +13,4 @@ class BackDataset(BackDatasetConversionsMixin,
         self.allow_interpolation = allow_interpolation
         self.allow_none_geometry = allow_none_geometry
         self.pools_container = PoolsContainer()
-        super(BackDataset, self).__init__(**kwargs)
+        super().__init__(**kwargs)

@@ -111,14 +111,14 @@ class ABackGDALVector(ABackStoredVector):
                 for i in indices:
                     ftr = lyr.GetNextFeature()
                     if ftr is None: # pragma: no cover
-                        raise IndexError('Feature #{} not found'.format(i))
+                        raise IndexError(f'Feature #{i} not found')
                     yield ftr
             else:
                 for i in indices:
                     lyr.SetNextByIndex(i)
                     ftr = lyr.GetNextFeature()
                     if ftr is None: # pragma: no cover
-                        raise IndexError('Feature #{} not found'.format(i))
+                        raise IndexError(f'Feature #{i} not found')
                     yield ftr
 
         # Necessary to prevent the old swig bug

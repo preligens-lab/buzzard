@@ -4,7 +4,7 @@ from osgeo import osr
 from buzzard import srs
 from buzzard._footprint import Footprint
 
-class BackDatasetConversionsMixin(object):
+class BackDatasetConversionsMixin:
     """Private mixin for the Dataset class containing the spatial coordinates
     conversion subroutines"""
 
@@ -30,7 +30,7 @@ class BackDatasetConversionsMixin(object):
         self.sr_fallback = sr_fallback
         self.sr_forced = sr_forced
         self.analyse_transformations = analyse_transformation
-        super(BackDatasetConversionsMixin, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def get_transforms(self, sr_virtual, rect, rect_from='virtual'):
         """Retrieve the `to_work` and `to_virtual` conversion functions.

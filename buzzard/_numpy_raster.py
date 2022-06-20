@@ -18,7 +18,7 @@ class NumpyRaster(AStoredRaster):
         back = BackNumpyRaster(
             ds._back, fp, array, channels_schema, wkt, mode
         )
-        super(NumpyRaster, self).__init__(ds=ds, back=back)
+        super().__init__(ds=ds, back=back)
 
     @property
     def array(self):
@@ -51,7 +51,7 @@ class BackNumpyRaster(ABackStoredRaster):
         if 'mask' not in channels_schema:
             channels_schema['mask'] = ['all_valid']
 
-        super(BackNumpyRaster, self).__init__(
+        super().__init__(
             back_ds=back_ds,
             wkt_stored=wkt,
             channels_schema=channels_schema,
@@ -137,7 +137,7 @@ class BackNumpyRaster(ABackStoredRaster):
             self._arr[..., i] = value
 
     def close(self):
-        super(BackNumpyRaster, self).close()
+        super().close()
         del self._arr
 
     @staticmethod

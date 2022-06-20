@@ -4,7 +4,7 @@ from osgeo import osr
 
 from buzzard import _tools
 
-class ASource(object):
+class ASource:
     """Base abstract class defining the common behavior of all sources opened in the Dataset.
 
     Features Defined
@@ -93,7 +93,7 @@ class ASource(object):
         '0.4.4'
     )
 
-class ABackSource(object):
+class ABackSource:
     """Implementation of ASource's specifications"""
 
     def __init__(self, back_ds, wkt_stored, rect, **kwargs):

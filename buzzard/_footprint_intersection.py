@@ -1,6 +1,5 @@
 """>>> help(IntersectionMixin)"""
 
-from __future__ import division, print_function
 import functools
 import itertools
 
@@ -11,7 +10,7 @@ import shapely.geometry as sg
 from buzzard import _tools
 from buzzard._env import env
 
-class IntersectionMixin(object):
+class IntersectionMixin:
     """Private mixin for the Footprint class containing the `intersection` subroutines"""
 
     _INTERSECTION_RESOLUTIONS = {'self', 'highest', 'lowest'}
@@ -187,7 +186,6 @@ def _exterior_coords_iterator(geom):
         yield np.asarray(geom)
     elif isinstance(geom, sg.base.BaseMultipartGeometry):
         for part in geom:
-            for coords in _exterior_coords_iterator(part):
-                yield coords
+            yield from _exterior_coords_iterator(part)
     else:
         assert False

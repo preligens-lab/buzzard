@@ -153,7 +153,7 @@ class ASourceRaster(ASource):
         if fp is None:
             fp = self.fp
         elif not isinstance(fp, Footprint): # pragma: no cover
-            raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp))
+            raise ValueError(f'`fp` parameter should be a Footprint (not {fp})')
 
         # Normalize and check channels parameter
         channel_ids, is_flat = _tools.normalize_channels_parameter(
@@ -202,7 +202,7 @@ class ABackSourceRaster(ABackSource, ABackSourceRasterRemapMixin):
     """Implementation of ASourceRaster's specifications"""
 
     def __init__(self, channels_schema, dtype, fp_stored, **kwargs):
-        super(ABackSourceRaster, self).__init__(rect=fp_stored, **kwargs)
+        super().__init__(rect=fp_stored, **kwargs)
 
         if self.to_work is not None:
             fp = fp_stored.move(*self.to_work([

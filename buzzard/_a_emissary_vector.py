@@ -17,5 +17,5 @@ class ABackEmissaryVector(ABackEmissary, ABackStoredVector):
     """Implementation of AEmissaryVector's specifications"""
 
     def __init__(self, layer, **kwargs):
-        super(ABackEmissaryVector, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.layer = layer

@@ -106,7 +106,7 @@ class AStoredRaster(AStored, ASourceRaster):
         if fp is None:
             fp = self.fp
         elif not isinstance(fp, Footprint):
-            raise ValueError('`fp` parameter should be a Footprint (not {})'.format(fp)) # pragma: no cover
+            raise ValueError(f'`fp` parameter should be a Footprint (not {fp})') # pragma: no cover
 
         # Normalize and check channels parameter
         channel_ids, _ = _tools.normalize_channels_parameter(channels, len(self))
@@ -117,7 +117,7 @@ class AStoredRaster(AStored, ASourceRaster):
         # Normalize and check array parameter
         array = np.atleast_3d(array)
         if array.ndim != 3: # pragma: no cover
-            raise ValueError('Input array should have 2 or 3 dimensions, not {}'.format(array.ndim))
+            raise ValueError(f'Input array should have 2 or 3 dimensions, not {array.ndim}')
         if array.shape[:2] != tuple(fp.shape): # pragma: no cover
             msg = 'Incompatible shape between input `array` ({}) and `fp` ({})'.format(
                 array.shape[:2], tuple(fp.shape)

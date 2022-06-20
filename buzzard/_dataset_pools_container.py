@@ -3,7 +3,7 @@ import collections
 import multiprocessing as mp
 import multiprocessing.pool
 
-class PoolsContainer(object):
+class PoolsContainer:
     """Manages thread/process pools and aliases for a Dataset"""
 
     def __init__(self):

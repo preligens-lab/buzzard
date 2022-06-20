@@ -20,7 +20,7 @@ _EXN_FORMAT2 = """The `interpolation` parameter is None. It means that either
 2. or that you want to perform a resampling operation and that you need `interpolation` to be a string.
 """
 
-class ABackSourceRasterRemapMixin(object):
+class ABackSourceRasterRemapMixin:
     """Raster Mixin containing remap subroutine"""
 
     _REMAP_MASK_MODES = frozenset(['dilate', 'erode', ])
@@ -188,7 +188,7 @@ class ABackSourceRasterRemapMixin(object):
                            mask_mode, interpolation):
         if array is not None and array.dtype in [np.dtype('float64'), np.dtype('bool')]:
             raise ValueError(
-                'dtype {!r} not handled by cv2.remap'.format(array.dtype)
+                f'dtype {array.dtype!r} not handled by cv2.remap'
             ) # pragma: no cover
 
         mapx, mapy = dst_fp.meshgrid_raster_in(src_fp, dtype='float32')
