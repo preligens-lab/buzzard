@@ -18,7 +18,7 @@ class GDALMemoryVector(AEmissaryVector):
         back = BackGDALMemoryVector(
             ds._back, allocator, open_options,
         )
-        super(GDALMemoryVector, self).__init__(ds=ds, back=back)
+        super().__init__(ds=ds, back=back)
 
 class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
     """Implementation of GDALMemoryVector"""
@@ -45,7 +45,7 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
         type = conv.str_of_wkbgeom(lyr.GetGeomType())
         layer = lyr.GetName()
 
-        super(BackGDALMemoryVector, self).__init__(
+        super().__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             mode='w',
@@ -71,6 +71,6 @@ class BackGDALMemoryVector(ABackEmissaryVector, ABackGDALVector):
         raise NotImplementedError('GDAL Memory driver does no allow deletion, use `close`')
 
     def close(self):
-        super(BackGDALMemoryVector, self).close()
+        super().close()
         del self._lyr
         del self._gdal_ds

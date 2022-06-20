@@ -76,7 +76,7 @@ class AStoredVector(AStored, ASourceVector):
                     lst[i] = self._back.type_of_field_index[i](v)
             for defn, val in zip(self._back.fields, lst):
                 if val is None and defn['nullable'] is False: # pragma: no cover
-                    raise ValueError('{} not nullable'.format(defn))
+                    raise ValueError(f'{defn} not nullable')
             return lst
         elif isinstance(fields, collections.Iterable):
             if len(fields) == 0 and self._back.all_nullable:
@@ -97,7 +97,7 @@ class ABackStoredVector(ABackStored, ABackSourceVector):
     """Implementation of AStoredRaster's specifications"""
 
     def __init__(self, **kwargs):
-        super(ABackStoredVector, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def insert_data(self, geom, geom_type, fields, index): # pragma: no cover
         raise NotImplementedError('ABackStoredVector.insert_data is virtual pure')

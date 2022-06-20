@@ -2,12 +2,12 @@
 
 import numpy as np
 
-class TileMixin(object):
+class TileMixin:
     """Private mixin for the Footprint class containing tiling subroutines"""
 
-    _TILE_BOUNDARY_EFFECTS = set(['extend', 'exclude', 'overlap', 'shrink', 'exception'])
-    _TILE_OCCURRENCE_BOUNDARY_EFFECTS = set(['extend', 'exception'])
-    _TILE_BOUNDARY_EFFECT_LOCI = set(['br', 'tr', 'tl', 'bl'])
+    _TILE_BOUNDARY_EFFECTS = {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
+    _TILE_OCCURRENCE_BOUNDARY_EFFECTS = {'extend', 'exception'}
+    _TILE_BOUNDARY_EFFECT_LOCI = {'br', 'tr', 'tl', 'bl'}
 
     @staticmethod
     def _details_of_tiling_direction(tile_size, overlap_size, raster_size):
@@ -60,7 +60,7 @@ class TileMixin(object):
         gap, gen = self._details_of_tiling_direction(sizex, overlapx, self.rsizex)
         if gap < 0:
             raise ValueError(
-                'Cannot apply boundary_effect=overlap with a tile(%s) bigger than source(%s)' % (
+                'Cannot apply boundary_effect=overlap with a tile({}) bigger than source({})'.format(
                     sizex, self.rsizex
                 ))
         else:
@@ -73,7 +73,7 @@ class TileMixin(object):
         gap, gen = self._details_of_tiling_direction(sizey, overlapy, self.rsizey)
         if gap < 0:
             raise ValueError(
-                'Cannot apply boundary_effect=overlap with a tile(%s) bigger than source(%s)' % (
+                'Cannot apply boundary_effect=overlap with a tile({}) bigger than source({})'.format(
                     sizey, self.rsizey
                 ))
         else:

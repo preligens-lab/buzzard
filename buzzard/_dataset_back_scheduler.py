@@ -9,7 +9,7 @@ from buzzard._debug_observers_manager import DebugObserversManager
 
 VERBOSE = 0
 
-class BackDatasetSchedulerMixin(object):
+class BackDatasetSchedulerMixin:
     """TODO: docstring"""
 
     def __init__(self, ds_id, debug_observers, **kwargs):
@@ -26,7 +26,7 @@ class BackDatasetSchedulerMixin(object):
         if self._thread is None:
             self._thread = threading.Thread(
                 target=self._exception_catcher,
-                name='Dataset{:#x}Scheduler'.format(self._ds_id),
+                name=f'Dataset{self._ds_id:#x}Scheduler',
                 daemon=True,
             )
             self._thread.start()
@@ -155,7 +155,7 @@ class BackDatasetSchedulerMixin(object):
                     for dst_actor in _find_actors(msg.address, src_actor):
                         if dst_actor is None:
                             # This message may be discadted if DroppableMsg
-                            assert isinstance(msg, DroppableMsg), '\ndst_actor: {}\n      msg: {}\n'.format(dst_actor, msg)
+                            assert isinstance(msg, DroppableMsg), f'\ndst_actor: {dst_actor}\n      msg: {msg}\n'
                         else:
                             a = datetime.datetime.now()
                             met = getattr(dst_actor, title_prefix + msg.title)

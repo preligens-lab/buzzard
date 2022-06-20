@@ -2,7 +2,6 @@
 
 # pylint: disable=too-many-lines
 
-from __future__ import division, print_function
 import logging
 import itertools
 
@@ -175,7 +174,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         else:
             raise ValueError('Provide `size & gt` or `rsize & size & tl`')
         if kwargs:
-            raise ValueError('Unknown parameters [{}]'.format(kwargs.keys()))
+            raise ValueError(f'Unknown parameters [{kwargs.keys()}]')
 
         if a * e - d * b == 0:
             raise ValueError('Determinent should not be 0: {}'.format(
@@ -233,9 +232,9 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         # Check extent parameter
         extent = np.asarray(extent, dtype='float64')
         if extent.shape != (4,):
-            raise ValueError('Invalid extent shape `{}`'.format(extent.shape))
+            raise ValueError(f'Invalid extent shape `{extent.shape}`')
         if not np.isfinite(extent).all():
-            raise ValueError('Invalid extent value `{}`'.format(extent))
+            raise ValueError(f'Invalid extent value `{extent}`')
         if extent[0] == extent[1] or extent[2] == extent[3]:
             raise ValueError('Empty extent')
 
@@ -246,7 +245,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         elif scale.shape == (1,):
             scale = np.asarray([scale[0], -scale[0]], dtype='float64')
         elif scale.shape != (2,):
-            raise ValueError('scale has shape {} instead of (2,)'.format(scale.shape))
+            raise ValueError(f'scale has shape {scale.shape} instead of (2,)')
         if (scale == 0).any():
             raise ValueError('scale should be greater than 0')
 
@@ -500,7 +499,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             elif resolution.shape == (1,):
                 resolution = np.asarray([resolution[0], -resolution[0]], dtype='float64')
             elif resolution.shape != (2,):
-                raise ValueError('resolution has shape {}'.format(resolution.shape))
+                raise ValueError(f'resolution has shape {resolution.shape}')
             if (resolution == 0).any():
                 raise ValueError('resolution should be different than zero')
 
@@ -520,7 +519,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         else:
             alignment = np.asarray(alignment, dtype='float64')
             if alignment.shape != (2,):
-                raise ValueError('alignment has shape {}'.format(alignment.shape))
+                raise ValueError(f'alignment has shape {alignment.shape}')
 
         # Retrieve homogeneous
         homogeneous = bool(kwargs.pop('homogeneous', False))
@@ -528,7 +527,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             for fp in footprints:
                 if not self.same_grid(fp):
                     raise ValueError(
-                        '{} does not lie on the same grid as self: {}'.format(fp, self)
+                        f'{fp} does not lie on the same grid as self: {self}'
                     )
 
         if kwargs:
@@ -1615,7 +1614,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         """
         # Step 1: Parameter checking ************************************************************ **
         if arr.shape != tuple(self.shape):
-            raise ValueError('Incompatible shape between array:%s and self:%s' % (
+            raise ValueError('Incompatible shape between array:{} and self:{}'.format(
                 arr.shape, self.shape
             )) # pragma: no cover
 
@@ -1776,7 +1775,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             target_ds, [1], rast_mem_lyr, options=options
         )
         if not success:
-            raise ValueError('Could not rasterize (gdal error: `{}`)'.format(payload[1]))
+            raise ValueError(f'Could not rasterize (gdal error: `{payload[1]}`)')
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype, copy=False)
 
@@ -1814,7 +1813,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
         """
         if mask.shape != tuple(self.shape):
-            raise ValueError('Mask shape%s incompatible with self shape%s' % (
+            raise ValueError('Mask shape{} incompatible with self shape{}'.format(
                 mask.shape, tuple(self.shape)
             )) # pragma: no cover
         mask = mask.astype('uint8', copy=False).clip(0, 1)
@@ -1840,7 +1839,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             iPixValField=0,
         )
         if not success:
-            raise ValueError('Could not polygonize (gdal error: `{}`)'.format(payload[1]))
+            raise ValueError(f'Could not polygonize (gdal error: `{payload[1]}`)')
         del source_ds
 
         def _polygon_iterator():
@@ -1929,7 +1928,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             target_ds, [1], rast_mem_lyr, options=options
         )
         if not success:
-            raise ValueError('Could not rasterize (gdal error: `{}`)'.format(payload[1]))
+            raise ValueError(f'Could not rasterize (gdal error: `{payload[1]}`)')
         arr = target_ds.GetRasterBand(1).ReadAsArray()
         return arr.astype(dtype, copy=False)
 
@@ -2014,11 +2013,11 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
                 overlapy, size[1]
             ))
         if boundary_effect not in self._TILE_BOUNDARY_EFFECTS:
-            raise ValueError('boundary_effect(%s) should be one of %s' % (
+            raise ValueError('boundary_effect({}) should be one of {}'.format(
                 boundary_effect, self._TILE_BOUNDARY_EFFECTS
             ))
         if boundary_effect_locus not in self._TILE_BOUNDARY_EFFECT_LOCI:
-            raise ValueError('boundary_effect_locus(%s) should be one of %s' % (
+            raise ValueError('boundary_effect_locus({}) should be one of {}'.format(
                 boundary_effect_locus, self._TILE_BOUNDARY_EFFECT_LOCI
             ))
         return self._tile_unsafe(size, overlapx, overlapy, boundary_effect, boundary_effect_locus)
@@ -2090,11 +2089,11 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         if overlapy < 0:
             raise ValueError('overlapy(%s) should satisfy overlapy >= 0' % overlapy)
         if boundary_effect not in self._TILE_BOUNDARY_EFFECTS:
-            raise ValueError('boundary_effect(%s) should be one of %s' % (
+            raise ValueError('boundary_effect({}) should be one of {}'.format(
                 boundary_effect, self._TILE_BOUNDARY_EFFECTS
             ))
         if boundary_effect_locus not in self._TILE_BOUNDARY_EFFECT_LOCI:
-            raise ValueError('boundary_effect_locus(%s) should be one of %s' % (
+            raise ValueError('boundary_effect_locus({}) should be one of {}'.format(
                 boundary_effect_locus, self._TILE_BOUNDARY_EFFECT_LOCI
             ))
 
@@ -2251,11 +2250,11 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             )
 
         if boundary_effect not in self._TILE_OCCURRENCE_BOUNDARY_EFFECTS:
-            raise ValueError('boundary_effect(%s) should be one of %s' % (
+            raise ValueError('boundary_effect({}) should be one of {}'.format(
                 boundary_effect, self._TILE_OCCURRENCE_BOUNDARY_EFFECTS
             ))
         if boundary_effect_locus not in self._TILE_BOUNDARY_EFFECT_LOCI:
-            raise ValueError('boundary_effect_locus(%s) should be one of %s' % (
+            raise ValueError('boundary_effect_locus({}) should be one of {}'.format(
                 boundary_effect_locus, self._TILE_BOUNDARY_EFFECT_LOCI
             ))
 
@@ -2535,7 +2534,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
                 *np.flipud(rsize_inner),
                 *np.flipud(kernel_size),
             ))
-        rsize1 = 1 + np.floor((rsize_inner - (kernel_size - 1) - 1)) + output_padding
+        rsize1 = 1 + np.floor(rsize_inner - (kernel_size - 1) - 1) + output_padding
 
         # *********************************************************************** **
         aff = fp0._aff
@@ -2656,8 +2655,7 @@ def _line_iterator(obj):
             raise TypeError('Could not use type %s' % type(obj))
         else:
             for obj2 in tup:
-                for line in _line_iterator(obj2):
-                    yield line
+                yield from _line_iterator(obj2)
 
 def _poly_iterator(obj):
     if isinstance(obj, (sg.Polygon)):
@@ -2672,8 +2670,7 @@ def _poly_iterator(obj):
             raise TypeError('Could not use type %s' % type(obj))
         else:
             for obj2 in tup:
-                for poly in _poly_iterator(obj2):
-                    yield poly
+                yield from _poly_iterator(obj2)
 
 def _restore(gt, rsize):
     return Footprint(gt=gt, rsize=rsize)
@@ -2690,16 +2687,16 @@ def _parse_conv2d_params(*args, allow_neg_padding=True):
         if v.size == 1:
             v = np.asarray((v[0], v[0]))
         if v.size != 2: # pragma: no cover
-            raise ValueError('{} should have size 1 or 2'.format(k))
+            raise ValueError(f'{k} should have size 1 or 2')
         w = v.astype(int, copy=False)
         if np.any(v != w): # pragma: no cover
-            raise ValueError('{} should be of type int'.format(k))
+            raise ValueError(f'{k} should be of type int')
         if 'padding' not in k: # pragma: no cover
             if np.any(v < 1):
-                raise ValueError('{} should be greater or equal to 1'.format(k))
+                raise ValueError(f'{k} should be greater or equal to 1')
         if 'padding' in k and not allow_neg_padding: # pragma: no cover
             if np.any(v < 0):
-                raise ValueError('{} should be greater or equal to 0'.format(k))
+                raise ValueError(f'{k} should be greater or equal to 0')
 
         # Flip all params to work with `xy` and `rsize` (instead of `yx` and `shape`)
         v = np.flipud(v)

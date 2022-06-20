@@ -1,6 +1,6 @@
 import collections
 
-class DebugObserversManager(object):
+class DebugObserversManager:
     """Delivers the callbacks to the observers provided by user in the `debug_observers` parameters.
     """
     def __init__(self, debug_observers):
@@ -16,7 +16,7 @@ class _ToCallPerEventName(dict):
         self._obs = debug_observers
 
     def __missing__(self, ename):
-        method_name = 'on_{}'.format(ename)
+        method_name = f'on_{ename}'
         return [
             getattr(o, method_name)
             for o in self._obs

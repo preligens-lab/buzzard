@@ -3,7 +3,7 @@
 import numpy as np
 from buzzard._env import env
 
-class MoveMixin(object):
+class MoveMixin:
     """Private mixin for the Footprint class containing move subroutines"""
 
     def _snap_target_coordinates_before_move(self, tl1, tr1, br1):

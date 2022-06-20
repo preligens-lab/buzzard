@@ -385,7 +385,7 @@ class Dataset(DatasetRegisterMixin):
             ds_id=id(self),
             debug_observers=debug_observers,
         )
-        super(Dataset, self).__init__()
+        super().__init__()
 
     # Raster entry points *********************************************************************** **
     def open_raster(self, key, path, driver='GTiff', options=(), mode='r'):
@@ -1385,7 +1385,7 @@ class Dataset(DatasetRegisterMixin):
 
     def create_vector(self, key, path, type, fields=(), layer=None,
                       driver='ESRI Shapefile', options=(), sr=None, ow=False):
-        """Create an empty vector file and register it under `key` within this Dataset. Only metadata
+        r"""Create an empty vector file and register it under `key` within this Dataset. Only metadata
         are kept in memory.
 
         >>> help(GDALFileVector)
@@ -1645,8 +1645,7 @@ class Dataset(DatasetRegisterMixin):
     def keys(self):
         """Generate all source keys"""
         for source, keys in self._keys_of_source.items():
-            for key in keys:
-                yield key
+            yield from keys
 
     def values(self):
         """Generate all proxies"""
@@ -1823,5 +1822,5 @@ _CloseRoutine = type('_CloseRoutine', (_tools.CallOrContext,), {
 
 DataSource = deprecation_pool.wrap_class(Dataset, 'DataSource', '0.6.0')
 
-class _AnonymousSentry(object):
+class _AnonymousSentry:
     """Sentry object used to instanciate anonymous proxies"""

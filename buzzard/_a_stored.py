@@ -19,4 +19,4 @@ class ABackStored(ABackSource):
 
     def __init__(self, mode, **kwargs):
         self.mode = mode
-        super(ABackStored, self).__init__(**kwargs)
+        super().__init__(**kwargs)

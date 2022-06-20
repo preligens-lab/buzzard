@@ -19,7 +19,7 @@ class GDALMemRaster(AEmissaryRaster):
         back = BackGDALMemRaster(
             ds._back, fp, dtype, channel_count, channels_schema, open_options, sr,
         )
-        super(GDALMemRaster, self).__init__(ds=ds, back=back)
+        super().__init__(ds=ds, back=back)
 
 class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
     """Implementation of GDALMemRaster"""
@@ -45,7 +45,7 @@ class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
         else:
             wkt_stored = sr
 
-        super(BackGDALMemRaster, self).__init__(
+        super().__init__(
             back_ds=back_ds,
             wkt_stored=wkt_stored,
             channels_schema=channels_schema,
@@ -65,5 +65,5 @@ class BackGDALMemRaster(ABackEmissaryRaster, ABackGDALRaster):
         raise NotImplementedError('GDAL MEM driver does no allow deletion, use `close`')
 
     def close(self):
-        super(BackGDALMemRaster, self).close()
+        super().close()
         del self._gdal_ds

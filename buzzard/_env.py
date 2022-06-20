@@ -84,7 +84,7 @@ class _Storage(threading.local):
 _LOCAL = _Storage()
 
 # Env update ************************************************************************************ **
-class Env(object):
+class Env:
     """Context manager to update buzzard's states. Can also be used as a decorator.
 
     Parameters
@@ -152,7 +152,7 @@ class Env(object):
         return f
 
 # Value retrieval ******************************************************************************* **
-class _ThreadMapStackGetter(object):
+class _ThreadMapStackGetter:
     """Getter for env attribute"""
     def __init__(self, key):
         self.key = key
