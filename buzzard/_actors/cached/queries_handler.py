@@ -5,7 +5,7 @@ from buzzard._actors.cached.query_infos import CachedQueryInfos
 
 LOGGER = logging.getLogger(__name__)
 
-class ActorQueriesHandler(object):
+class ActorQueriesHandler:
     """Actor that takes care of a raster's queries lifetime"""
 
     def __init__(self, raster):
@@ -17,7 +17,7 @@ class ActorQueriesHandler(object):
         self._raster = raster
         self._queries = {}
         self._alive = True
-        self.address = '/Raster{}/QueriesHandler'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/QueriesHandler'
 
     @property
     def alive(self):
@@ -170,7 +170,7 @@ class ActorQueriesHandler(object):
                     # Notify the parent raster that a new array was put in the queue
                     # If the parent raster was collected this message is discarded
                     msgs += [DroppableMsg(
-                        '/Raster{}/ComputationGate2'.format(qi.parent_uid),
+                        f'/Raster{qi.parent_uid}/ComputationGate2',
                         'input_queue_update',
                         qi.key_in_parent,
                     )]
@@ -219,7 +219,7 @@ class ActorQueriesHandler(object):
 
     # ******************************************************************************************* **
 
-class _Query(object):
+class _Query:
     def __init__(self, queue_wref):
         self.queue_wref = queue_wref
         self.produce_arrays_dict = {}

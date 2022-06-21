@@ -17,7 +17,7 @@ from buzzard._actors.cached.query_infos import CachedQueryInfos
 LOGGER = logging.getLogger(__name__)
 OVERLOAD = 2
 
-class ActorPoolWaitingRoom(object):
+class ActorPoolWaitingRoom:
     """Actor that takes care of prioritizing jobs waiting for spots in a thread/process pool.
 
     It gives out tokens to allow jobs to enter the `ActorPoolWorkingRoom`. There are as many tokens
@@ -90,7 +90,7 @@ class ActorPoolWaitingRoom(object):
             self._prod_jobs_of_query,
             self._cache_jobs_of_cache_fp,
         ]
-        self.address = '/Pool{}/WaitingRoom'.format(self._pool_id)
+        self.address = f'/Pool{self._pool_id}/WaitingRoom'
 
     @property
     def alive(self):

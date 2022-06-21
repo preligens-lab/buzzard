@@ -29,7 +29,7 @@ class CacheJobWaiting(PoolJobWaiting):
         self.action_priority = action_priority
 
 # Working *************************************************************************************** **
-class PoolJobWorking(object):
+class PoolJobWorking:
     """Base class of all working jobs.
 
     A working job paired with a token from a PoolWaitingRoom can be fed to a PoolWorkingRoom to

@@ -6,7 +6,6 @@ TODO: Unit test `remap` mixin on one side and `getsetdata_remap` elsewhere
 
 # pylint: disable=redefined-outer-name
 
-from __future__ import division, print_function
 import itertools
 import os
 import uuid
@@ -119,7 +118,7 @@ def rast(request, ds):
         for band_id in range(1, len(rast) + 1):
             rast.set_data(TIF_VALUES, band=band_id)
     else:
-        path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+        path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.tif'
         rast = ds.acreate_raster(
             path, fp, dtype, channel_count, channels_schema=dict(nodata=nodata), driver=driver
         )

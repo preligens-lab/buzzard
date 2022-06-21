@@ -1,6 +1,5 @@
 # pylint: disable=redefined-outer-name, unused-argument
 
-from __future__ import division, print_function
 
 import uuid
 import os
@@ -23,7 +22,7 @@ def test_vector():
     )
 
     def statuses(*args):
-        l = tuple([
+        l = tuple(
             (
                 ds._back.idle_count(prox._back.uid),
                 ds._back.used_count(prox._back.uid),
@@ -31,7 +30,7 @@ def test_vector():
                 prox.active
             )
             for prox in args
-        ])
+        )
         return l
 
     assert (ds._back.idle_count(), ds._back.used_count(), ds.active_count) == (0, 0, 0)
@@ -151,7 +150,7 @@ def test_raster():
     )
 
     def statuses(*args):
-        l = tuple([
+        l = tuple(
             (
                 ds._back.idle_count(prox._back.uid),
                 ds._back.used_count(prox._back.uid),
@@ -159,7 +158,7 @@ def test_raster():
                 prox.active
             )
             for prox in args
-        ])
+        )
         return l
 
     assert (ds._back.idle_count(), ds._back.used_count(), ds.active_count) == (0, 0, 0)

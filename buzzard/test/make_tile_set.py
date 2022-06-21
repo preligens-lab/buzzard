@@ -1,6 +1,5 @@
 """Tile set creation for Footprint tests"""
 
-from __future__ import division, print_function
 import itertools
 
 import numpy as np

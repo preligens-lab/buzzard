@@ -84,7 +84,7 @@ def main():
 
 def mandelbrot_of_footprint(fp, *_):
     """A function to be fed to `compute_array` when constructing a recipe"""
-    maxit = int(np.ceil((4 / fp.pxsizex)))
+    maxit = int(np.ceil(4 / fp.pxsizex))
     array = np.empty(fp.shape, 'uint32')
     mandelbrot_jit(array, fp.tl, fp.scale, maxit)
     array = array.astype('float32') / maxit

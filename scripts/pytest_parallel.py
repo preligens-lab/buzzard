@@ -35,7 +35,7 @@ def group(n, iterable):
         yield l
 
 def _print_cmd(s):
-    print('\033[33m$ {}\033[0m'.format(s))
+    print(f'\033[33m$ {s}\033[0m')
 
 def _gen_tests():
     path = os.path.join(tempfile.gettempdir(), 'pytest-collection-tmp')
@@ -45,9 +45,9 @@ def _gen_tests():
         if 'junitxml' not in s and
         'cov' not in s
     ]
-    cmd = ['pytest', '--collect-only'] + args_phase0 + ['&>{}'.format(path)]
+    cmd = ['pytest', '--collect-only'] + args_phase0 + [f'&>{path}']
     cmd = ' '.join(cmd)
-    cmd = 'bash -c "{}"'.format(cmd)
+    cmd = f'bash -c "{cmd}"'
 
     try:
         _print_cmd(cmd)
@@ -61,7 +61,7 @@ def _gen_tests():
                 res = stream.read()
             os.remove(path)
     dt = (b - a).total_seconds()
-    print(' ', cmd, '(took {:.1f}sec)'.format(dt))
+    print(' ', cmd, f'(took {dt:.1f}sec)')
     if code != 0:
         raise Exception(
             '{} failed with code {}\n============= output:\n{}\n=============\n'.format(
@@ -91,11 +91,11 @@ def _gen_tests():
                 n in m
                 for n in TOCHUNK
         ):
-            print('  {} -> ({} calls of 1 test)'.format(m, len(fs)))
+            print(f'  {m} -> ({len(fs)} calls of 1 test)')
             for f in fs:
-                yield '{}::{}'.format(m, f)
+                yield f'{m}::{f}'
         else:
-            print('  {} -> (1 call of {} tests)'.format(m, len(fs)))
+            print(f'  {m} -> (1 call of {len(fs)} tests)')
             yield m
 
 def _run_test(batch):
@@ -103,9 +103,9 @@ def _run_test(batch):
     path = os.path.join(tempfile.gettempdir(), uid)
     args_phase1 = [
         s.replace(
-            'pytest-report.xml', 'pytest-report-{}.xml'.format(uid)
+            'pytest-report.xml', f'pytest-report-{uid}.xml'
         ).replace(
-            'coverage.xml', 'coverage-{}.xml'.format(uid)
+            'coverage.xml', f'coverage-{uid}.xml'
         )
         for s in sys.argv[1:]
         if s[0] == '-'
@@ -114,12 +114,12 @@ def _run_test(batch):
     cmd = ' '.join(
         ['pytest'] +
         args_phase1 +
-        ["'{}'".format(s)
+        [f"'{s}'"
           for s in batch
         ] +
-        ['&>{}'.format(path)]
+        [f'&>{path}']
     )
-    cmd = 'COVERAGE_FILE=.coverage.{} bash -c "{}"'.format(uid, cmd)
+    cmd = f'COVERAGE_FILE=.coverage.{uid} bash -c "{cmd}"'
     try:
         _print_cmd(cmd)
         a = datetime.datetime.now()
@@ -132,7 +132,7 @@ def _run_test(batch):
                 res = stream.read()
             os.remove(path)
     dt = (b - a).total_seconds()
-    print(' ', cmd, '(took {:.1f}sec)'.format(dt))
+    print(' ', cmd, f'(took {dt:.1f}sec)')
     if code != 0:
         raise Exception(
             '{} failed with code {}\n============= output:\n{}\n=============\n'.format(

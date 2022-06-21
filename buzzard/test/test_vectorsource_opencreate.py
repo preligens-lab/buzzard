@@ -7,7 +7,6 @@
 
 # pylint: disable=redefined-outer-name
 
-from __future__ import division, print_function
 import itertools
 import os
 import uuid
@@ -326,7 +325,7 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture
 def path(driver_file):
     ext = EXTENSION_OF_DRIVER[driver_file]
-    path = '{}/{}{}'.format(tempfile.gettempdir(), uuid.uuid4(), ext)
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}{ext}'
     yield path
     if os.path.isfile(path):
         try:

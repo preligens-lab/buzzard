@@ -39,7 +39,7 @@ class Timer():
         return dt
 
     def __str__(self):
-        return '\033[33m{:.4f} sec\033[0m'.format(float(self))
+        return f'\033[33m{float(self):.4f} sec\033[0m'
 
 def list_cache_files_path_in_dir(cache_dir):
     s = os.path.join(cache_dir, '*_[0123456789abcdef]*.tif')
@@ -225,4 +225,4 @@ def get_url(url):
         except:
             time.sleep(timer)
             timer *= 2
-    raise IOError("Unable to download `%s`."%url)
+    raise OSError("Unable to download `%s`."%url)

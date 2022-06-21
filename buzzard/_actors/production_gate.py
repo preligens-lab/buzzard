@@ -1,13 +1,13 @@
 from buzzard._actors.message import Msg
 
-class ActorProductionGate(object):
+class ActorProductionGate:
     """Actor that takes care of delaying the production of arrays until needed"""
 
     def __init__(self, raster):
         self._raster = raster
         self._queries = {}
         self._alive = True
-        self.address = '/Raster{}/ProductionGate'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/ProductionGate'
 
     @property
     def alive(self):
@@ -95,7 +95,7 @@ class ActorProductionGate(object):
 
     # ******************************************************************************************* **
 
-class _Query(object):
+class _Query:
 
     def __init__(self):
         self.allowed_count = 0

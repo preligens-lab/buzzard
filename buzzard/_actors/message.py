@@ -3,7 +3,7 @@ import uuid
 
 import numpy as np
 
-class Msg(object):
+class Msg:
     """Message exchanged:
     - between two actors (receiver method prefixed by `receive_`)
     - from scheduler to actor (receiver method prefixed by `ext_receive_`)
@@ -40,17 +40,17 @@ class Msg(object):
             if isinstance(a, (int, uuid.UUID)):
                 return str(a)
             elif isinstance(a, (np.ndarray)):
-                return '{}{}'.format(a.dtype, a.shape)
+                return f'{a.dtype}{a.shape}'
             elif isinstance(a, (tuple, list)):
-                types = list(set(type(b).__name__ for b in a))
+                types = list({type(b).__name__ for b in a})
                 types = '|'.join(types)
-                s = '[{}]*{}'.format(types, len(a))
+                s = f'[{types}]*{len(a)}'
                 t = '[{}]'.format(', '.join(map(_dump_param, a)))
                 return min([t, s], key=len)
             elif type(a).__name__ == 'CachedQueryInfos':
-                return 'qi:{:#x}'.format(id(a))
+                return f'qi:{id(a):#x}'
             elif type(a).__name__ == 'Footprint':
-                return 'Footprint{:#18x}'.format(hash(a) % ((sys.maxsize + 1) * 2))
+                return f'Footprint{hash(a) % ((sys.maxsize + 1) * 2):#18x}'
             else:
                 s = type(a).__name__
                 t = str(a)
@@ -60,7 +60,7 @@ class Msg(object):
             self.address,
             self.title,
             ', '.join(_dump_param(a) for a in self.args),
-            letter=u"\u2709",
+            letter="\u2709",
             u='\033[4m',
             b=b,
             z='\033[0m'

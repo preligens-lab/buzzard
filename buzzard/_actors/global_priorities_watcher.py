@@ -10,7 +10,7 @@ from buzzard._footprint import Footprint # For mypy
 from buzzard._actors.priorities import Priorities
 from buzzard._actors.message import Msg
 
-class ActorGlobalPrioritiesWatcher(object):
+class ActorGlobalPrioritiesWatcher:
     """Actor that takes care of memorizing priority information between all sub-tasks in all
     ongoing queries. Everytime a priority changes all `ActorPoolWaitingRoom` are notified.
 

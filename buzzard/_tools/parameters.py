@@ -38,7 +38,7 @@ def _coro_parameter_0or1dim(val, clean_fn, name):
         return
     if isinstance(val, str) or not isinstance(val, Iterable): # pragma: no cover
         raise TypeError(
-            'Expecting a `{}` or an `sequence of `{}`, found a `{}`'.format(name, name, type(val))
+            f'Expecting a `{name}` or an `sequence of `{name}`, found a `{type(val)}`'
         )
     yield False
     for elt in val:
@@ -55,7 +55,7 @@ def normalize_fields_parameter(fields, index_of_field_name):
         if np.all(np.isreal(val)) and np.shape(val) == ():
             val = int(val)
             if not (val == -1 or 0 <= val < count): # pragma: no cover
-                raise ValueError('field index should be -1 or between 0 and {}'.format(count - 1))
+                raise ValueError(f'field index should be -1 or between 0 and {count - 1}')
             return val
         elif isinstance(val, str): # pragma: no cover
             if val not in index_of_field_name:
@@ -69,8 +69,7 @@ def normalize_fields_parameter(fields, index_of_field_name):
                 yield index_of_field_name[index]
             elif isinstance(index, int):
                 if index == -1:
-                    for i in range(len(index_of_field_name)):
-                        yield i
+                    yield from range(len(index_of_field_name))
                 else:
                     yield index
             else: # pragma: no cover
@@ -152,7 +151,7 @@ def sanitize_channels_schema(channels_schema, channel_count):
                 elif is_type(elt):
                     yield cleaner(elt)
                 else: # pragma: no cover
-                    raise ValueError('`{}` cannot use value `{}`'.format(name, elt))
+                    raise ValueError(f'`{name}` cannot use value `{elt}`')
 
     if 'nodata' in channels_schema:
         ret['nodata'] = list(_normalize_multi_layer(
@@ -217,7 +216,7 @@ class _DeprecationPool(Singleton):
     def __init__(self):
         self._seen = set()
 
-    class _MethodWrapper(object):
+    class _MethodWrapper:
         """Descriptor object to manage deprecation"""
         def __init__(self, method, deprecation_version, seen):
             self._method = method
@@ -239,7 +238,7 @@ class _DeprecationPool(Singleton):
             self._old_name = name
             self._key = (self._method, name)
 
-    class _PropertyWrapper(object):
+    class _PropertyWrapper:
         """Descriptor object to manage deprecation"""
         def __init__(self, new_property_name, deprecation_version, seen):
             self._new_property_name = new_property_name
@@ -323,7 +322,7 @@ class _DeprecationPool(Singleton):
         NameError: Using both `newname` and `oldname`, `oldname` is deprecated
 
         """
-        deprecated_names_used = six.viewkeys(old_names) & six.viewkeys(user_kwargs)
+        deprecated_names_used = old_names.keys() & user_kwargs.keys()
         if len(deprecated_names_used) == 0:
             return new_name_value, user_kwargs
         n = deprecated_names_used.pop()
@@ -345,7 +344,7 @@ class _DeprecationPool(Singleton):
         return v, user_kwargs
 
     def handle_param_removal_with_kwargs(self, old_names, context, user_kwargs):
-        deprecated_names_used = six.viewkeys(old_names) & six.viewkeys(user_kwargs)
+        deprecated_names_used = old_names.keys() & user_kwargs.keys()
         if len(deprecated_names_used) == 0:
             return user_kwargs
         n = deprecated_names_used.pop()
@@ -377,7 +376,7 @@ def normalize_fields_defn(fields):
         if default is not None:
             default = str(conv.type_of_oftstr(conv.str_of_oft(oft))(default))
         if len(dic) != 0: # pragma: no cover
-            raise ValueError('unexpected keys in {} dict: {}'.format(name, dic))
+            raise ValueError(f'unexpected keys in {name} dict: {dic}')
         return dict(
             name=name,
             type=oft,
@@ -410,7 +409,7 @@ def parse_queue_data_parameters(context, raster, channels=None, dst_nodata=None,
         ]
         return val
     channels, kwargs = deprecation_pool.handle_param_renaming_with_kwargs(
-        new_name='channels', old_names={'band': '0.6.0'}, context='Raster.{}'.format(context),
+        new_name='channels', old_names={'band': '0.6.0'}, context=f'Raster.{context}',
         new_name_value=channels,
         new_name_is_provided=channels is not None,
         user_kwargs=kwargs,

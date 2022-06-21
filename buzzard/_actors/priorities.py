@@ -1,5 +1,4 @@
-
-class Priorities(object):
+class Priorities:
     """Small class that represents a single version of the priorities among tasks. A new one is
     instantiated and broadcasted as soon as the priorities change.
 

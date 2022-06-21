@@ -6,7 +6,7 @@ from buzzard._actors.message import Msg
 from buzzard._footprint import Footprint
 from buzzard._actors.cached.query_infos import CachedQueryInfos
 
-class ActorCacheExtractor(object):
+class ActorCacheExtractor:
     """Actor that takes care of delaying reading operations according to cache state"""
 
     def __init__(self, raster):
@@ -17,7 +17,7 @@ class ActorCacheExtractor(object):
         self._reads_waiting_for_cache_fp = (
             collections.defaultdict(lambda: collections.defaultdict(set))
         ) # type: Mapping[Footprint, Mapping[CachedQueryInfos, Set[int]]]
-        self.address = '/Raster{}/CacheExtractor'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/CacheExtractor'
 
     @property
     def alive(self):

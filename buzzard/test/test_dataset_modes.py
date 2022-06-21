@@ -4,7 +4,6 @@ TODO: Test insert_data under several modes
 
 # pylint: disable=redefined-outer-name, unused-argument
 
-from __future__ import division, print_function
 import os
 import tempfile
 import uuid
@@ -41,7 +40,7 @@ def env():
 @pytest.fixture(scope='module')
 def shp1_path(fps):
     """Create a shapefile in SR1 containing all single letter polygons from `fps` fixture"""
-    path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.shp'
 
     ds = buzz.Dataset()
     ds.create_vector('poly', path, 'polygon', sr=SR1['wkt'])
@@ -55,7 +54,7 @@ def shp1_path(fps):
 @pytest.fixture(scope='module')
 def tif1_path(fps):
     """Create a tif in SR1 with all single letter footprints from `fps` fixture burnt in it"""
-    path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.tif'
 
     ds = buzz.Dataset()
     ds.create_raster('rast', path, fps.AI, 'int32', 1, sr=SR1['wkt'])
@@ -71,7 +70,7 @@ def tif1_path(fps):
 @pytest.fixture(scope='module')
 def shp2_path(fps):
     """Create a shapefile in SR2 containing all single letter polygons from `fps` fixture"""
-    path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.shp'
 
     ds = buzz.Dataset()
     ds.create_vector('poly', path, 'polygon', sr=SR2['wkt'])
@@ -85,7 +84,7 @@ def shp2_path(fps):
 @pytest.fixture(scope='module')
 def tif2_path(fps):
     """Create a tif in SR2 with all single letter footprints from `fps` fixture burnt in it"""
-    path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.tif'
 
     ds = buzz.Dataset()
     with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=SR2['wkt']).close as r:
@@ -100,7 +99,7 @@ def tif2_path(fps):
 @pytest.fixture(scope='module')
 def shp3_path(fps):
     """Create a shapefile without SR containing all single letter polygons from `fps` fixture"""
-    path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.shp'
 
     ds = buzz.Dataset()
     ds.create_vector('poly', path, 'polygon', sr=None)
@@ -114,7 +113,7 @@ def shp3_path(fps):
 @pytest.fixture(scope='module')
 def tif3_path(fps):
     """Create a tif witwhout SR with all single letter footprints from `fps` fixture burnt in it"""
-    path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.tif'
 
     ds = buzz.Dataset()
     with ds.acreate_raster(path, fps.AI, 'int32', 1, sr=None).close as r:
@@ -128,7 +127,7 @@ def tif3_path(fps):
 @pytest.fixture()
 def random_path_shp():
     """Create a temporary path, and take care of cleanup afterward"""
-    path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.shp'
     yield path
     if os.path.isfile(path):
         try:
@@ -139,7 +138,7 @@ def random_path_shp():
 @pytest.fixture()
 def random_path_tif():
     """Create a temporary path, and take care of cleanup afterward"""
-    path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.tif'
     yield path
     if os.path.isfile(path):
         try:

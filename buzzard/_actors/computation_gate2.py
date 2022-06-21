@@ -2,14 +2,14 @@ import numpy as np
 
 from buzzard._actors.message import Msg
 
-class ActorComputationGate2(object):
+class ActorComputationGate2:
     """Actor that takes care of delaying the computation of a cache file until inputs are ready."""
 
     def __init__(self, raster):
         self._raster = raster
         self._queries = {}
         self._alive = True
-        self.address = '/Raster{}/ComputationGate2'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/ComputationGate2'
 
     @property
     def alive(self):
@@ -104,7 +104,7 @@ class ActorComputationGate2(object):
 
     # ******************************************************************************************* **
 
-class _Query(object):
+class _Query:
     def __init__(self):
         self.allowed_up_count = 0 # How many compute allowed by `ComputationGate1`
         self.allowed_down_count = 0 # How many allowed to `Computer`
