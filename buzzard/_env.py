@@ -11,11 +11,7 @@ from osgeo import gdal, ogr, osr
 
 from buzzard._tools import conv, Singleton, deprecation_pool
 
-try:
-    from collections import ChainMap
-except:
-    # https://pypi.python.org/pypi/chainmap
-    from chainmap import ChainMap
+from collections import ChainMap
 
 # Sanitization ********************************************************************************** **
 _INDEX_DTYPES = list(conv.DTYPE_OF_NAME.keys())

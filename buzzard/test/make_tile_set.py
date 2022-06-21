@@ -2,7 +2,6 @@
 
 from __future__ import division, print_function
 import itertools
-import attrdict
 
 import numpy as np
 
@@ -10,6 +9,10 @@ from buzzard import Footprint
 
 ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvw"
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
 
 def make_tile_set(width, reso, tilevec=(1, -10)):
     """
@@ -124,5 +127,5 @@ def make_tile_set(width, reso, tilevec=(1, -10)):
             tl=tl, size=np.abs(diagvec), rsize=(diagvec / reso)
         )
         return fp
-    fps = attrdict.AttrDict({combo: _footprint_of_letters(combo) for combo in combos})
+    fps = AttrDict({combo: _footprint_of_letters(combo) for combo in combos})
     return fps
