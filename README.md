@@ -169,7 +169,6 @@ The following table lists dependencies along with the minimum version, their sta
 | sortedcontainers | >=1.5.9  | Yes       | [apache](https://github.com/grantjenks/python-sortedcontainers/blob/master/LICENSE)  |                                                               |
 | Rtree            | >=0.8.3  | Yes       | [MIT](https://github.com/Toblerity/rtree/blob/master/LICENSE.txt)                    |                                                               |
 | scikit-image     | >=0.14.0 | Yes       | [scikit-image](https://github.com/scikit-image/scikit-image/blob/master/LICENSE.txt) |                                                               |
-| chainmap         | >=1.0.2  | Yes       | [Python 2.7 license](https://bitbucket.org/jeunice/chainmap)                         | Only for python <3.2                                          |
 | pytest           | >=3.2.2  | No        | [MIT](https://docs.pytest.org/en/latest/license.html)                                | Only for tests                                                |
 
 ## How to install from terminal

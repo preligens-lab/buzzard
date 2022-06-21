@@ -23,9 +23,6 @@ if (3, 4) <= sys.version_info < (3, 5):
 else:
     reqs += ['scikit-image>=0.14.0', 'numpy>=1.15']
 
-if sys.version_info < (3, 2):
-    reqs += ['chainmap>=1.0.2']
-
 readme_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     'README.md'
