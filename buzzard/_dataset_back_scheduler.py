@@ -35,7 +35,7 @@ class BackDatasetSchedulerMixin:
             self.ensure_scheduler_still_alive()
 
     def ensure_scheduler_still_alive(self):
-        if not self._thread.isAlive():
+        if not self._thread.is_alive():
             if isinstance(self._thread_exn, Exception):
                 raise self._thread_exn
             else:
