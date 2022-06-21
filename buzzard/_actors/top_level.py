@@ -5,7 +5,7 @@ from buzzard._actors.pool_waiting_room import ActorPoolWaitingRoom
 from buzzard._actors.pool_working_room import ActorPoolWorkingRoom
 from buzzard._actors.global_priorities_watcher import ActorGlobalPrioritiesWatcher
 
-class ActorTopLevel(object):
+class ActorTopLevel:
     """Actor that takes care of the lifetime of all other actors.
 
     This is the only actor that is instantiated by the scheduler. All other actors are

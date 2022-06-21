@@ -1,7 +1,5 @@
-
 # pylint: disable=redefined-outer-name
 
-from __future__ import division, print_function
 import itertools
 
 import numpy as np

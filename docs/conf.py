@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
 #
@@ -21,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # Gather version
 project = 'buzzard'
-copyright = u'%s, ngoguey' % datetime.now().year
+copyright = '%s, ngoguey' % datetime.now().year
 author = 'ngoguey'
 release = '0.6.5'
 

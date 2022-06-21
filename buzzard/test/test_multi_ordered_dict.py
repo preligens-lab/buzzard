@@ -14,7 +14,7 @@ import numpy as np
 
 from buzzard._tools import MultiOrderedDict
 
-class _MultiOrderedDict_NSquared(object):
+class _MultiOrderedDict_NSquared:
     """Class with the same specifications as MultiOrderedDict but with a simpler and less effective
     implementation. It exsits for unit testing purposes"""
 
@@ -50,7 +50,7 @@ class _MultiOrderedDict_NSquared(object):
             if k == key:
                 break
         else:
-            raise KeyError('{} not in MultiOrderedDict'.format(key))
+            raise KeyError(f'{key} not in MultiOrderedDict')
         self._l.pop(i)
         return v
 
@@ -59,7 +59,7 @@ class _MultiOrderedDict_NSquared(object):
             if k == key:
                 break
         else:
-            raise KeyError('{} not in MultiOrderedDict'.format(key))
+            raise KeyError(f'{key} not in MultiOrderedDict')
         self._l.pop(i)
         return v
 

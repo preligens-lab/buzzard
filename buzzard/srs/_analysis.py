@@ -5,7 +5,7 @@ import numpy as np
 from buzzard import Footprint
 from buzzard import _tools
 
-class Analysis(object):
+class Analysis:
     """Private class used to assess the quality of a coordinate transformation"""
 
     def __init__(self, transformation, inverse, rect=None):

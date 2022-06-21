@@ -47,12 +47,12 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
     # Download ********************************************************************************** **
     def _download(srcpath, dstpath):
         srcpath_txt = os.path.join('s3://', BUCKET_NAME, srcpath)
-        print("Downloading: {}".format(srcpath_txt), flush=True)
+        print(f"Downloading: {srcpath_txt}", flush=True)
         if os.path.isfile(dstpath):
-            print("  {} already exits".format(dstpath), flush=True)
+            print(f"  {dstpath} already exits", flush=True)
             return
         bucket.download_file(srcpath, dstpath, {'RequestPayer':'requester'})
-        print("Downloaded: {}\n  to: {}".format(srcpath_txt, dstpath), flush=True)
+        print(f"Downloaded: {srcpath_txt}\n  to: {dstpath}", flush=True)
 
     _download(ROOFS_ALL_PATH_S3, roofs_all_wgs84_path)
     # _download(MULTISPECTRAL_PATH_S3, multispectral_wgs84_path)
@@ -60,9 +60,9 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
 
     # Reproj rasters **************************************************************************** **
     def _reproj_raster(srcpath, dstpath):
-        print("Transforming: {}".format(srcpath), flush=True)
+        print(f"Transforming: {srcpath}", flush=True)
         if os.path.isfile(dstpath):
-            print("  {} already exits".format(dstpath), flush=True)
+            print(f"  {dstpath} already exits", flush=True)
             return
         gds_src = gdal.OpenEx(srcpath)
         opt = gdal.WarpOptions(
@@ -73,16 +73,16 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
         )
         gds = gdal.Warp(dstpath, gds_src, options=opt)
         del gds, gds_src
-        print("Transformed: {}\n  to: {}".format(srcpath, dstpath), flush=True)
+        print(f"Transformed: {srcpath}\n  to: {dstpath}", flush=True)
 
     # _reproj_raster(multispectral_wgs84_path, multispectral_epsg29100_path)
     _reproj_raster(rgb_wgs84_path, rgb_epsg29100_path)
 
     # Reproj vectors **************************************************************************** **
     def _reproj_and_clip_vector(srcpath, dstpath):
-        print("Transforming: {}".format(srcpath), flush=True)
+        print(f"Transforming: {srcpath}", flush=True)
         if os.path.isfile(dstpath):
-            print("  {} already exits".format(dstpath), flush=True)
+            print(f"  {dstpath} already exits", flush=True)
             return
         with buzz.Env(significant=10, allow_complex_footprint=True):
             ds = buzz.Dataset(sr_work='WGS84', analyse_transformation=False)
@@ -101,7 +101,7 @@ def prepare(directory, aws_access_key_id, aws_secret_access_key):
                 elif isinstance(geom, shapely.geometry.MultiPolygon):
                     for poly in geom.geoms:
                         ds.dst.insert_data(poly)
-        print("Transformed: {}\n  to: {}".format(srcpath, dstpath), flush=True)
+        print(f"Transformed: {srcpath}\n  to: {dstpath}", flush=True)
 
     _reproj_and_clip_vector(roofs_all_wgs84_path, roofs_epsg29100_path)
 

@@ -50,13 +50,13 @@ _GDT_OF_DTYPE_DOWNCAST = _eval_filter_dict_key({
     'int64': gdal.GDT_CFloat64, # 64 to 53 bits
 })
 
-_GDT_OF_DTYPE_NOEQUIV = set([
+_GDT_OF_DTYPE_NOEQUIV = {
     np.dtype(np.datetime64),
     np.dtype(np.object_),
     np.dtype(np.str_),
     np.dtype(np.timedelta64),
     np.dtype(np.void),
-])
+}
 
 # GDT -> DTYPE CONVERSIONS ********** **
 _DTYPE_OF_GDT_EQUIV = _eval_filter_dict_value({

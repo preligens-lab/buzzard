@@ -61,7 +61,7 @@ class CacheProduceInfos(NamedTuple(
 )):
     """Object that stores many informations about an array to produce"""
 
-class CachedQueryInfos(object):
+class CachedQueryInfos:
     """Object that stores many informations about a query. Most attributes are immutable.
     An instance of this class identifies a query among the actors, hence the
     `__hash__` implementation.
@@ -215,10 +215,10 @@ class CachedQueryInfos(object):
                 list_of_prod_resample_cache_deps_fps.append(resample_cache_deps_fps)
                 list_of_prod_resample_sample_dep_fp.append(MappingProxyType(sample_dep_fp))
 
-        self.prod = tuple([
+        self.prod = tuple(
             CacheProduceInfos(*args)
             for args in zip(*to_zip)
-        ]) # type: Tuple[CacheProduceInfos, ...]
+        ) # type: Tuple[CacheProduceInfos, ...]
 
         # Misc *****************************************************************
         # The list of all cache Footprints needed, ordered by priority
@@ -256,7 +256,7 @@ class CachedQueryInfos(object):
     def __eq__(self, other):
         return self is other
 
-class CacheComputationInfos(object):
+class CacheComputationInfos:
     """Object that store informations about a computation phase of a query.
     Instanciating this object also starts the primitives collection from the list of the cache
     footprints missing. Primitive collection consists of creating new raster queries to
@@ -305,7 +305,7 @@ class CacheComputationInfos(object):
 
         # Step 2 - List primtive Footprints
         self.primitive_fps_per_primitive = {
-            name: tuple([func(fp) for fp in self.list_of_compute_fp])
+            name: tuple(func(fp) for fp in self.list_of_compute_fp)
             for name, func in raster.convert_footprint_per_primitive.items()
         }
 

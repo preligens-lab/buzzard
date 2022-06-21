@@ -11,7 +11,7 @@ from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 from buzzard import _tools
 from buzzard._gdal_file_raster import BackGDALFileRaster
 
-class ActorReader(object):
+class ActorReader:
     """Actor that takes care of reading cache tiles"""
 
     def __init__(self, raster):
@@ -20,8 +20,8 @@ class ActorReader(object):
         self._alive = True
         io_pool = raster.io_pool
         if io_pool is not None:
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
+            self._waiting_room_address = f'/Pool{id(io_pool)}/WaitingRoom'
+            self._working_room_address = f'/Pool{id(io_pool)}/WorkingRoom'
             if isinstance(io_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
             elif isinstance(io_pool, mp.pool.Pool):
@@ -37,7 +37,7 @@ class ActorReader(object):
         self._missing_cache_fps_per_prod_tile = (
             collections.defaultdict(dict)
         ) # type: Mapping[CachedQueryInfos, Mapping[int, Set[Footprint]]]
-        self.address = '/Raster{}/Reader'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/Reader'
 
     @property
     def alive(self):
@@ -264,7 +264,7 @@ def _cache_file_read(path, cache_fp, dtype, channel_ids, sample_fp, dst_opt, bac
             )
             del b
             if a is None: # pragma: no cover
-                raise RuntimeError('Could not read channel_id {}'.format(ci))
+                raise RuntimeError(f'Could not read channel_id {ci}')
     del gdal_ds
 
     # Return

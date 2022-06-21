@@ -1,6 +1,5 @@
 # pylint: disable=redefined-outer-name, unused-argument
 
-from __future__ import division, print_function
 import os
 import tempfile
 import uuid
@@ -34,7 +33,7 @@ def fps():
 @pytest.fixture()
 def random_path_tif():
     """Create a temporary path, and take care of cleanup afterward"""
-    path = '{}/{}.tif'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.tif'
     yield path
     if os.path.isfile(path):
         try:
@@ -45,7 +44,7 @@ def random_path_tif():
 @pytest.fixture()
 def random_path_shp():
     """Create a temporary path, and take care of cleanup afterward"""
-    path = '{}/{}.shp'.format(tempfile.gettempdir(), uuid.uuid4())
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}.shp'
     yield path
     if os.path.isfile(path):
         try:

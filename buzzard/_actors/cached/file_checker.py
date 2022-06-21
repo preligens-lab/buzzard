@@ -15,7 +15,7 @@ from buzzard._footprint import Footprint
 
 LOGGER = logging.getLogger(__name__)
 
-class ActorFileChecker(object):
+class ActorFileChecker:
     """Actor that takes care of performing various checks on a cache file from a pool"""
 
     def __init__(self, raster):
@@ -30,11 +30,11 @@ class ActorFileChecker(object):
                 self._same_address_space = False
             else: # pragma: no cover
                 assert False, 'Type should be checked in facade'
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
+            self._waiting_room_address = f'/Pool{id(io_pool)}/WaitingRoom'
+            self._working_room_address = f'/Pool{id(io_pool)}/WorkingRoom'
         self._waiting_jobs = set()
         self._working_jobs = set()
-        self.address = '/Raster{}/FileChecker'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/FileChecker'
 
     @property
     def alive(self):
@@ -135,7 +135,7 @@ def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
                     tail = chunk[-tailsize:] + b'\0' * (dtypesize - tailsize)
                     tail = np.frombuffer(tail, dtype)
                     acc += tail
-        return '{:016x}'.format(acc.item())
+        return f'{acc.item():016x}'
 
 def _cache_file_check(cache_fp, path, channel_count, dtype, back_ds_opt):
     checksum = path

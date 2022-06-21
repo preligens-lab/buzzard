@@ -1,6 +1,5 @@
 # pylint: disable=redefined-outer-name
 
-from __future__ import division, print_function
 import itertools
 
 import numpy as np
@@ -217,7 +216,7 @@ def test_lines(fps1px):
     )
 
 
-class _FtPoly(object):
+class _FtPoly:
 
     def __init__(self, data):
         self.__geo_interface__ = data

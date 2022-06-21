@@ -1,6 +1,5 @@
 # pylint: disable=redefined-outer-name
 
-from __future__ import division, print_function
 from collections.abc import Container
 import logging
 import itertools
@@ -57,7 +56,7 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture()
 def path(suffix, driver):
     """Create a temporary path, and take care of cleanup afterward"""
-    path = '{}/{}{}'.format(tempfile.gettempdir(), uuid.uuid4(), suffix)
+    path = f'{tempfile.gettempdir()}/{uuid.uuid4()}{suffix}'
     yield path
     if os.path.isfile(path):
         try:

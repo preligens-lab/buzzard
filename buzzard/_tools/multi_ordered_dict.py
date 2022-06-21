@@ -1,7 +1,7 @@
 import collections
 import itertools
 
-class MultiOrderedDict(object):
+class MultiOrderedDict:
     """Data structure derived from collections.OrderedDict that accept several keys"""
 
     def __init__(self):
@@ -58,7 +58,7 @@ class MultiOrderedDict(object):
 
     def pop_first_occurrence(self, key):
         if key not in self: # pragma: no cover
-            raise KeyError('{} not in MultiOrderedDict'.format(key))
+            raise KeyError(f'{key} not in MultiOrderedDict')
 
         ukey_list = self._ukeys_of_key[key]
         assert len(ukey_list) > 0
@@ -75,7 +75,7 @@ class MultiOrderedDict(object):
 
     def pop_last_occurrence(self, key):
         if key not in self: # pragma: no cover
-            raise KeyError('{} not in MultiOrderedDict'.format(key))
+            raise KeyError(f'{key} not in MultiOrderedDict')
 
         ukey_list = self._ukeys_of_key[key]
         assert len(ukey_list) > 0

@@ -184,12 +184,12 @@ def create_bilinear_kernel(stride, dtype=None):
     if v.size == 1:
         v = np.asarray((v, v))
     if v.size != 2:
-        raise ValueError('{} should have size 1 or 2'.format(k))
+        raise ValueError(f'{k} should have size 1 or 2')
     w = v.astype(int, copy=False)
     if np.any(v != w):
-        raise ValueError('{} should be of type int'.format(k))
+        raise ValueError(f'{k} should be of type int')
     if np.any(v < 1):
-        raise ValueError('{} should be greater or equal to 1'.format(k))
+        raise ValueError(f'{k} should be greater or equal to 1')
     stride = v
 
     # Build kernel ********************************************************** **

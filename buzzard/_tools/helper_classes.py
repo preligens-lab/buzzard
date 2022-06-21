@@ -84,7 +84,7 @@ class GDALErrorCatcher:
             return False, (res, conv.str_of_cple(res))
         return True, res
 
-class CallOrContext(object):
+class CallOrContext:
     """Private helper class to provide a common behaviour both on call and on exit"""
     def __init__(self, obj, routine):
         self._obj = obj
@@ -107,13 +107,13 @@ class _Singleton(type):
     _instances = {}
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
 
 class Singleton(_Singleton('SingletonMeta', (object,), {})):
     pass
 
-class _Any(object):
+class _Any:
     """Helper for pattern matching"""
     def __eq__(self, _):
         return True

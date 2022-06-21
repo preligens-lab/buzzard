@@ -4,7 +4,7 @@ from buzzard._actors.message import Msg
 
 LOGGER = logging.getLogger(__name__)
 
-class ActorPoolWorkingRoom(object):
+class ActorPoolWorkingRoom:
     """Actor that takes care of starting/collecting jobs on/off a thread/process pool"""
 
     def __init__(self, pool):
@@ -16,7 +16,7 @@ class ActorPoolWorkingRoom(object):
         self._pool = pool
         self._jobs = {}
         self._alive = True
-        self.address = '/Pool{}/WorkingRoom'.format(id(self._pool))
+        self.address = f'/Pool{id(self._pool)}/WorkingRoom'
 
     @property
     def alive(self):

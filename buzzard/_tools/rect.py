@@ -4,7 +4,7 @@ from buzzard._env import env
 import numpy as np
 import affine
 
-class Rect(object):
+class Rect:
     """Private tool class used to assess the attributes of an imperfect rectangle"""
 
     def __init__(self, tl, bl, br, tr):

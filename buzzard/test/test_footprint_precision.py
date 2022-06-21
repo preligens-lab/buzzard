@@ -1,7 +1,5 @@
-
 # pylint: disable=redefined-outer-name
 
-from __future__ import division, print_function
 import itertools
 
 import shapely.geometry as sg
@@ -25,7 +23,7 @@ def pytest_generate_tests(metafunc):
             argnames='fp',
             argvalues=[
                 FP1,
-                FP1.move((-FP1.diagvec / 2)),
+                FP1.move(-FP1.diagvec / 2),
                 FP1.move((1e8, 1e8)),
                 FP1.move((1e8, 1e8), (1e8 + 1, 1e8), (1e8 + 1, 1e8 - 1)),
             ],

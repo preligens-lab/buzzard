@@ -9,7 +9,7 @@ from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 from buzzard._a_source_raster_remap import ABackSourceRasterRemapMixin
 
-class ActorResampler(object):
+class ActorResampler:
     """Actor that takes care of resampling sample tiles, and wait for all
     resamplings to be performed for a production array.
     """
@@ -19,8 +19,8 @@ class ActorResampler(object):
         self._alive = True
         resample_pool = raster.resample_pool
         if resample_pool is not None:
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(resample_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(resample_pool))
+            self._waiting_room_address = f'/Pool{id(resample_pool)}/WaitingRoom'
+            self._working_room_address = f'/Pool{id(resample_pool)}/WorkingRoom'
             if isinstance(resample_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
             elif isinstance(resample_pool, mp.pool.Pool):
@@ -34,7 +34,7 @@ class ActorResampler(object):
             collections.defaultdict(dict)
         ) # type: Mapping[CachedQueryInfos, Mapping[int, _ProdArray]]
 
-        self.address = '/Raster{}/Resampler'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/Resampler'
 
     @property
     def alive(self):
@@ -260,7 +260,7 @@ class ActorResampler(object):
 
     # ******************************************************************************************* **
 
-class _ProdArray(object):
+class _ProdArray:
     def __init__(self, pi):
         self.arr = None
         self.is_post_processed = False

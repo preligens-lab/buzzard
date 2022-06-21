@@ -8,7 +8,7 @@ import numpy as np
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 
-class ActorMerger(object):
+class ActorMerger:
     """Actor that takes care of merging several arrays into one fp"""
 
     def __init__(self, raster):
@@ -16,8 +16,8 @@ class ActorMerger(object):
         self._alive = True
         merge_pool = raster.merge_pool
         if merge_pool is not None:
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(merge_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(merge_pool))
+            self._waiting_room_address = f'/Pool{id(merge_pool)}/WaitingRoom'
+            self._working_room_address = f'/Pool{id(merge_pool)}/WorkingRoom'
             if isinstance(merge_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
             elif isinstance(merge_pool, mp.pool.Pool):
@@ -28,7 +28,7 @@ class ActorMerger(object):
         self._working_jobs = set()
 
         self.dst_array = None
-        self.address = '/Raster{}/Merger'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/Merger'
 
     @property
     def alive(self):

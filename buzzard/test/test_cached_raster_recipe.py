@@ -367,7 +367,7 @@ def test_(pools, test_prefix, cache_tiles, test_prefix2):
             r.get_data()
 
 # Tools ***************************************************************************************** **
-class _AreaCounter(object):
+class _AreaCounter:
     def __init__(self, fp):
         self._lock = threading.Lock()
         self._fp = fp

@@ -2,7 +2,7 @@ from buzzard._actors.message import Msg
 
 import collections
 
-class ActorProducer(object):
+class ActorProducer:
     """Actor that takes care of waiting for cache tiles reads and launching resamplings"""
 
     def __init__(self, raster):
@@ -10,7 +10,7 @@ class ActorProducer(object):
         self._alive = True
 
         self._produce_per_query = collections.defaultdict(dict) # type: Mapping[CachedQueryInfos, Mapping[int, _ProdArray]]
-        self.address = '/Raster{}/Producer'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/Producer'
 
     @property
     def alive(self):
@@ -124,7 +124,7 @@ class ActorProducer(object):
 
     # ******************************************************************************************* **
 
-class _ProdArray(object):
+class _ProdArray:
     def __init__(self, pi):
         self.resample_needs = {
             resample_fp: set(cache_fps)

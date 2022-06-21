@@ -82,7 +82,7 @@ def test_move(transfo_name, src_fp, trg_fp, scalex, scaley, rot, noise_factor):
         print('// trg_properties:', strigify(trg_fp))
         assert np.all(src_fp.rsize == trg_fp.rsize)
 
-        print('->{} noise at {:.1e}'.format(transfo_name, noise_factor))
+        print(f'->{transfo_name} noise at {noise_factor:.1e}')
         tl, tr, br = trg_fp.tl, trg_fp.tr, trg_fp.br
         tl, tr, br = np.asarray([tl, tr, br]) + np.random.rand(3, 2) * noise_factor
 

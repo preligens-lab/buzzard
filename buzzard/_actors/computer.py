@@ -8,7 +8,7 @@ import numpy as np
 from buzzard._actors.message import Msg
 from buzzard._actors.pool_job import ProductionJobWaiting, PoolJobWorking
 
-class ActorComputer(object):
+class ActorComputer:
     """Actor that takes care of sheduling computations by using user's `compute_array` function"""
 
     def __init__(self, raster):
@@ -16,8 +16,8 @@ class ActorComputer(object):
         self._alive = True
         computation_pool = raster.computation_pool
         if computation_pool is not None:
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(computation_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(computation_pool))
+            self._waiting_room_address = f'/Pool{id(computation_pool)}/WaitingRoom'
+            self._working_room_address = f'/Pool{id(computation_pool)}/WorkingRoom'
             if isinstance(computation_pool, mp.pool.ThreadPool):
                 self._same_address_space = True
             elif isinstance(computation_pool, mp.pool.Pool):
@@ -28,7 +28,7 @@ class ActorComputer(object):
         self._working_jobs = set()
 
         self._performed_computations = set() # type: Set[Footprint]
-        self.address = '/Raster{}/Computer'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/Computer'
 
     @property
     def alive(self):

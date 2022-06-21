@@ -9,7 +9,7 @@ from buzzard._actors.cached.query_infos import CacheComputationInfos
 
 LOGGER = logging.getLogger(__name__)
 
-class ActorCacheSupervisor(object):
+class ActorCacheSupervisor:
     """Actor that takes care of tracking, checking and scheduling computation of cache files"""
 
     def __init__(self, raster):
@@ -25,7 +25,7 @@ class ActorCacheSupervisor(object):
         }
         self._queries = {}
         self._alive = True
-        self.address = '/Raster{}/CacheSupervisor'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/CacheSupervisor'
         self._directory_primed = False
 
         # Should contain the path to all files that will be opened using the Dataset's activation
@@ -93,7 +93,7 @@ class ActorCacheSupervisor(object):
                     self._raster.debug_mngr.event('cache_file_update', self._raster.facade_proxy, cache_fp, 'absent')
                     for path in path_candidates: # pragma: no cover
                         LOGGER.warning(
-                            'Removing {} because {} tiles with the same prefix'.format(path, len(path_candidates))
+                            f'Removing {path} because {len(path_candidates)} tiles with the same prefix'
                         )
                         os.remove(path)
                     query.cache_fps_to_compute.add(cache_fp)
@@ -242,7 +242,7 @@ class _CacheTileStatus(enum.Enum):
     absent = 2
     ready = 3
 
-class _Query(object):
+class _Query:
     def __init__(self):
         self.cache_fps_checking = set()
         self.cache_fps_ensured = set()

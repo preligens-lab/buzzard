@@ -1,6 +1,6 @@
 from buzzard._actors.message import Msg
 
-class ActorComputationAccumulator(object):
+class ActorComputationAccumulator:
     """Actor that takes care of accumulating computed slices needed
     to write 1 cache tile
 
@@ -18,7 +18,7 @@ class ActorComputationAccumulator(object):
         self._raster = raster
         self._alive = True
         self._cache_tiles_accumulations = {}
-        self.address = '/Raster{}/ComputationAccumulator'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/ComputationAccumulator'
 
     @property
     def alive(self):

@@ -9,7 +9,7 @@ from buzzard._actors.pool_job import CacheJobWaiting, PoolJobWorking
 
 create_raster = None # lazy import
 
-class ActorWriter(object):
+class ActorWriter:
     """Actor that takes care of writing to disk a cache tile that has been computed and merged."""
 
     def __init__(self, raster):
@@ -17,11 +17,11 @@ class ActorWriter(object):
         self._alive = True
         io_pool = raster.io_pool
         if io_pool is not None:
-            self._waiting_room_address = '/Pool{}/WaitingRoom'.format(id(io_pool))
-            self._working_room_address = '/Pool{}/WorkingRoom'.format(id(io_pool))
+            self._waiting_room_address = f'/Pool{id(io_pool)}/WaitingRoom'
+            self._working_room_address = f'/Pool{id(io_pool)}/WorkingRoom'
         self._waiting_jobs = set()
         self._working_jobs = set()
-        self.address = '/Raster{}/Writer'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/Writer'
 
     @property
     def alive(self):
@@ -144,7 +144,7 @@ def _checksum(fname, buffer_size=512 * 1024, dtype='uint64'):
                     tail = chunk[-tailsize:] + b'\0' * (dtypesize - tailsize)
                     tail = np.frombuffer(tail, dtype)
                     acc += tail
-        return '{:016x}'.format(acc.item())
+        return f'{acc.item():016x}'
 
 def _cache_file_write(array,
                       dir_path, filename_prefix, filename_suffix,

@@ -1,6 +1,6 @@
 from buzzard._actors.message import Msg
 
-class ActorComputationGate1(object):
+class ActorComputationGate1:
     """Actor that takes care of delaying the computation of a cache file until needed soon by
     the query. It receives resquests to compute `cache footprints`, it outputs requests to compute
     `compute footprints`.
@@ -10,7 +10,7 @@ class ActorComputationGate1(object):
         self._raster = raster
         self._queries = {}
         self._alive = True
-        self.address = '/Raster{}/ComputationGate1'.format(self._raster.uid)
+        self.address = f'/Raster{self._raster.uid}/ComputationGate1'
 
     @property
     def alive(self):
@@ -57,12 +57,12 @@ class ActorComputationGate1(object):
 
         if qi in self._queries:
             assert pulled_count >= self._queries[qi].pulled_count, (
-                'new pulled_count:{} '.format(pulled_count) +
-                'previous pulled_count:{}'.format(self._queries[qi].pulled_count)
+                f'new pulled_count:{pulled_count} ' +
+                f'previous pulled_count:{self._queries[qi].pulled_count}'
             )
             assert produced_count >= self._queries[qi].produced_count, (
-                'new produced_count:{} '.format(produced_count) +
-                'previous produced_count:{}'.format(self._queries[qi].produced_count)
+                f'new produced_count:{produced_count} ' +
+                f'previous produced_count:{self._queries[qi].produced_count}'
             )
 
         if produced_count == qi.produce_count:
@@ -132,7 +132,7 @@ class ActorComputationGate1(object):
 
     # ******************************************************************************************* **
 
-class _Query(object):
+class _Query:
     def __init__(self):
         self.pulled_count = 0
         self.allowed_count = 0
