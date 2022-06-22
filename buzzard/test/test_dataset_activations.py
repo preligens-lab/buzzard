@@ -1,18 +1,13 @@
 # pylint: disable=redefined-outer-name, unused-argument
 
 
-import uuid
-import os
-import sys
 import multiprocessing as mp
 import multiprocessing.pool
 
-import numpy as np
 import pytest
 import shapely.geometry as sg
 
 import buzzard as buzz
-from buzzard.test.tools import fpeq
 
 
 def test_vector():

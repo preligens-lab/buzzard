@@ -1,5 +1,5 @@
 from typing import (
-    Set, Dict, List, Sequence, Union, cast, NamedTuple, FrozenSet, Tuple, Mapping, AbstractSet
+    List, Sequence, Union, cast, NamedTuple, FrozenSet, Tuple, Mapping, AbstractSet
 )
 import collections
 import queue # Should be imported for `mypy`

@@ -1,6 +1,4 @@
 import enum
-import collections
-import itertools
 import logging
 import os
 

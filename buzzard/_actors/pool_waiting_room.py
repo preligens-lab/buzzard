@@ -6,7 +6,6 @@ import logging
 import uuid # For mypy
 
 import sortedcontainers
-import numpy as np
 
 from buzzard._footprint import Footprint # For mypy
 from buzzard._actors.message import Msg

@@ -12,15 +12,13 @@ import os
 import uuid
 import tempfile
 import operator
-from pprint import pprint
 
-import numpy as np
 import pytest
 from osgeo import gdal
 import shapely.geometry as sg
 
-from .tools import get_srs_by_name, eq
-from buzzard import Footprint, Dataset, srs
+from .tools import eq
+from buzzard import Dataset, srs
 
 # SR1 = get_srs_by_name('EPSG:2154')
 SR1 = dict(wkt="""GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]""")

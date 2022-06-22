@@ -3,17 +3,14 @@
 import os
 import tempfile
 import uuid
-import string
 import weakref
 import gc
 
 import numpy as np
 from osgeo import gdal
 import pytest
-import shapely.ops
 
 import buzzard as buzz
-from buzzard.test.tools import fpeq, sreq, eq
 from buzzard.test import make_tile_set
 from .tools import  get_srs_by_name
 

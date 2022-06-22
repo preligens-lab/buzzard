@@ -8,8 +8,6 @@ class AEmissaryRaster(AEmissary, AStoredRaster):
     ----------------
     None
     """
-    pass
 
 class ABackEmissaryRaster(ABackEmissary, ABackStoredRaster):
     """Implementation of AEmissaryRaster's specifications"""
-    pass

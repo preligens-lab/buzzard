@@ -9,7 +9,6 @@ import shapely.geometry as sg
 
 from buzzard._a_stored_vector import ABackStoredVector
 from buzzard._tools import conv, GDALErrorCatcher
-from buzzard._env import Env
 
 class ABackGDALVector(ABackStoredVector):
     """Abstract class defining the common implementation of all vector formats in OGR"""

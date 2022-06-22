@@ -6,7 +6,6 @@ import boto3
 import buzzard as buzz
 from osgeo import gdal
 import shapely
-import scipy.ndimage
 import numpy as np
 import cv2
 

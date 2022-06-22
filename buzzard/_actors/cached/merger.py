@@ -1,5 +1,4 @@
 import functools
-import collections
 import multiprocessing as mp
 import multiprocessing.pool
 

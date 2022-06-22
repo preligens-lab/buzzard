@@ -9,8 +9,6 @@ class APooledEmissaryRaster(APooledEmissary, AEmissaryRaster):
     ----------------
     None
     """
-    pass
 
 class ABackPooledEmissaryRaster(ABackPooledEmissary, ABackEmissaryRaster):
     """Implementation of APooledEmissaryRaster's specifications"""
-    pass

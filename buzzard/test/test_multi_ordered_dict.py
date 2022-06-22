@@ -7,9 +7,7 @@ import weakref
 import gc
 import collections
 import uuid
-import itertools
 
-import pytest
 import numpy as np
 
 from buzzard._tools import MultiOrderedDict

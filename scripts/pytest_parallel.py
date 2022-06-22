@@ -9,7 +9,6 @@ $ python buzzard/test/pytest_parallel.py -x .
 """
 
 import sys
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing as mp
 import uuid

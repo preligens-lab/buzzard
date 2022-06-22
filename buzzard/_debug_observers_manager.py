@@ -1,5 +1,3 @@
-import collections
-
 class DebugObserversManager:
     """Delivers the callbacks to the observers provided by user in the `debug_observers` parameters.
     """
