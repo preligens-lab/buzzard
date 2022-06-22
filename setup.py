@@ -12,7 +12,6 @@ reqs = [
     'affine>=2.0.0',
     'scipy>=0.19.1',
     'pint>=0.8.1',
-    'six>=1.11.0',
     'Rtree>=0.8.3',
     'sortedcontainers>=1.5.9',
 ]
