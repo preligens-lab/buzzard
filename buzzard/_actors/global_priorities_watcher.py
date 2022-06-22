@@ -3,7 +3,6 @@ from typing import (
 )
 import uuid # For mypy
 
-import numpy as np
 import sortedcontainers
 
 from buzzard._footprint import Footprint # For mypy

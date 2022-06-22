@@ -4,7 +4,6 @@ from collections.abc import Iterable
 import logging
 import functools
 
-import six
 import numpy as np
 
 from .helper_classes import Singleton

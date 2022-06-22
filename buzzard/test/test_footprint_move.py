@@ -1,6 +1,5 @@
 # pylint: disable=redefined-outer-name
 import numpy as np
-import pytest
 import buzzard as buzz
 
 S = 2 ** 14

@@ -9,8 +9,6 @@ class APooledEmissaryVector(APooledEmissary, AEmissaryVector):
     ----------------
     None
     """
-    pass
 
 class ABackPooledEmissaryVector(ABackPooledEmissary, ABackEmissaryVector):
     """Implementation of APooledEmissaryVector's specifications"""
-    pass

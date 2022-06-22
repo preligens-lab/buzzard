@@ -6,8 +6,6 @@ import threading
 from collections import namedtuple
 import functools
 
-import cv2
-from osgeo import gdal, ogr, osr
 
 from buzzard._tools import conv, Singleton, deprecation_pool
 
@@ -165,7 +163,6 @@ class _CurrentEnv(Singleton):
     8.0
 
     """
-    pass
 
 for k in _OPTIONS.keys():
     setattr(_CurrentEnv, k, property(_ThreadMapStackGetter(k)))

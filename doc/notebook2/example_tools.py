@@ -1,6 +1,5 @@
 import datetime
 import glob
-from pprint import pprint
 import time
 import urllib
 import urllib.parse
@@ -8,7 +7,6 @@ import urllib.request
 from concurrent.futures import ProcessPoolExecutor
 import http.client
 import os
-import uuid
 import gc
 
 import matplotlib.pyplot as plt
@@ -17,10 +15,7 @@ import xmltodict
 import buzzard as buzz
 import numpy as np
 from tqdm import tqdm
-import scipy.ndimage as ndi
-import skimage.morphology as skm
 
-from dsm_generation import generate_dsm as create_random_elevation_gtiff
 
 
 class Timer():
@@ -31,7 +26,6 @@ class Timer():
 
     def __exit__(self, *_):
         self._stop = datetime.datetime.now()
-        pass
 
     def __float__(self):
         dt = self._stop - self._start

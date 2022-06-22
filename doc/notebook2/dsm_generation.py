@@ -1,6 +1,5 @@
 #inspired by github.com/buckinha/DiamondSquare
 
-import sys
 import uuid
 import random
 import itertools

@@ -3,7 +3,6 @@
 # pylint: disable=redefined-outer-name
 
 import itertools
-import os
 import uuid
 import tempfile
 

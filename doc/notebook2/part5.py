@@ -1,10 +1,8 @@
 import functools
-import os
 import multiprocessing as mp
 import multiprocessing.pool
 
 import buzzard as buzz
-import numpy as np
 import skimage.io
 
 import example_tools

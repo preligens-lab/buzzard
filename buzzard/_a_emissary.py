@@ -70,7 +70,6 @@ class ABackEmissary(ABackStored):
         - May be overriden
         - Should always be called
         """
-        pass
 
 _DeleteRoutine = type('_DeleteRoutine', (_tools.CallOrContext,), {
     '__doc__': AEmissary.delete.__doc__,

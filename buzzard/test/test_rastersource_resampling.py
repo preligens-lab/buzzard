@@ -7,7 +7,6 @@ TODO: Unit test `remap` mixin on one side and `getsetdata_remap` elsewhere
 # pylint: disable=redefined-outer-name
 
 import itertools
-import os
 import uuid
 import tempfile
 
