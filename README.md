@@ -164,8 +164,7 @@ The following table lists dependencies along with the minimum version, their sta
 | affine           | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
 | numpy            | >=1.15.0 | Yes       | [numpy](https://numpy.org/doc/stable/license.html)                        |                                                               |
 | scipy            | >=0.19.1 | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                                 |                                                               |
-| pint             | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               |
-| six              | >=1.11.0 | Yes       | [MIT](https://github.com/benjaminp/six/blob/master/LICENSE)                          |                                                               |
+| pint             | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               ||                                                               |
 | sortedcontainers | >=1.5.9  | Yes       | [apache](https://github.com/grantjenks/python-sortedcontainers/blob/master/LICENSE)  |                                                               |
 | Rtree            | >=0.8.3  | Yes       | [MIT](https://github.com/Toblerity/rtree/blob/master/LICENSE.txt)                    |                                                               |
 | scikit-image     | >=0.14.0 | Yes       | [scikit-image](https://github.com/scikit-image/scikit-image/blob/master/LICENSE.txt) |                                                               |

@@ -13,7 +13,7 @@ import scipy
 from osgeo import gdal
 from osgeo import ogr
 from osgeo import osr
-from six.moves import filterfalse
+from itertools import filterfalse
 import scipy.ndimage as ndi
 import skimage.morphology as skm
 
