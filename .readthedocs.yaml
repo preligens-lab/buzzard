@@ -1,0 +1,13 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+# Configuration for Conda support
+conda:
+    environment: .rtd-environment.yml
+
+# Configuration for Sphinx documentation
+sphinx:
+   configuration: docs/conf.py
+   fail_on_warning: true
