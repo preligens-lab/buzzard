@@ -11,3 +11,4 @@ dependencies:
     - Rtree>=0.8.3
     - pip:
       - opencv-python>=3.1.0
+      - pint>=0.8.1
