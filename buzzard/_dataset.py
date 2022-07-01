@@ -1006,7 +1006,6 @@ class Dataset(DatasetRegisterMixin):
 
         See Also
         --------
-        - :py:meth:`Dataset.acreate_raster_recipe`: To skip the `key` assigment
         - :py:meth:`Dataset.create_raster_recipe`: For results `caching`
         - :py:meth:`Dataset.acreate_cached_raster_recipe`: To skip the `key` assigment
 
