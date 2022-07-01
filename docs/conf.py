@@ -41,6 +41,10 @@ extensions = [
     'recommonmark',
 ]
 
+suppress_warnings = [
+    "autosectionlabel.*",
+]
+
 # Configure `numpy` style documentation
 # More on http://www.sphinx-doc.org/en/stable/ext/napoleon.html#configuration
 # and https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
@@ -82,7 +86,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

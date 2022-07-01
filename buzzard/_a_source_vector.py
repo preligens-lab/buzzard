@@ -111,13 +111,13 @@ class ASourceVector(ASource):
 
         Yields
         ------
-        feature: geometry or (geometry,) or (geometry, *fields)
+        feature: geometry or (geometry,) or (geometry, fields)
             - If `geom_type` is 'shapely': geometry is a `shapely geometry`.
             - If `geom_type` is `coordinates`: geometry is a `nested lists of numpy arrays`.
-            - If `fields` is not a sequence: `feature` is `geometry` or `(geometry, *fields)`, \
+            - If `fields` is not a sequence: `feature` is `geometry` or `(geometry, fields)`, \
                  depending on the number of fields to yield.
             - If `fields` is a sequence or a string: `feature` is `(geometry,)` or \
-                `(geometry, *fields)`. Use `fields=[-1]` to get a monad containing all fields.
+                `(geometry, fields)`. Use `fields=[-1]` to get a monad containing all fields.
 
         Examples
         --------
