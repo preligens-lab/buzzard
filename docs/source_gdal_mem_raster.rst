@@ -9,13 +9,13 @@ GDALMemRaster
     :special-members:
     :exclude-members: __init__
 
-.. autoclass:: buzzard.ASourceRaster
-    :noindex:
-    :members:
-    :undoc-members:
-    :no-show-inheritance:
-    :special-members:
-    :exclude-members: __init__
+.. .. autoclass:: buzzard.ASourceRaster
+..     :noindex:
+..     :members:
+..     :undoc-members:
+..     :no-show-inheritance:
+..     :special-members:
+..     :exclude-members: __init__
 
 .. autoclass:: buzzard.AStored
     :noindex:

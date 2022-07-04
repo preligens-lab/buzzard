@@ -329,7 +329,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
         Parameters
         ----------
-        *args: int or (int, int) or (int, int, int, int)
+        args: int or (int, int) or (int, int, int, int)
             When `int`, erode all 4 directions by that much pixels
             When `(int, int)`, erode x and y by a different number of pixel
             When `(int, int, int, int)`, erode all 4 directions with a different number of pixel
@@ -379,7 +379,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
         Parameters
         ----------
-        *args: int or (int, int) or (int, int, int, int)
+        args: int or (int, int) or (int, int, int, int)
             When `int`, dilate all 4 directions by that much pixels
             When `(int, int)`, dilate x and y by a different number of pixel
             When `(int, int, int, int)`, dilate all 4 directions with a different number of pixel
@@ -427,7 +427,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
 
         Parameters
         ----------
-        *objects: *object
+        objects: object
             Any object with a __geo_interface__ attribute defining a geometry, like a Footprint
             or a shapely object.
         scale: one of {'self', 'highest', 'lowest'} or (nbr, nbr) or nbr
@@ -446,10 +446,10 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
                 Angle in degree
 
         alignment: {'auto', 'tl', (nbr, nbr)}
-            'auto'
-                If `scale` and `rotation` designate the same Footprint object, its alignment
+            'auto':
+                - If `scale` and `rotation` designate the same Footprint object, its alignment
                     is chosen
-                Else, 'tl' alignment is chosen
+                - Else, 'tl' alignment is chosen
             'tl': Ouput Footprint's alignement is the top left most point of the bounding rectangle
                 of the intersection
             (nbr, nbr): Coordinate of a point that lie on the grid.
@@ -2171,7 +2171,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         pixel_occurrencey: int
             Number of occurence of each pixel in a column of tile
         boundary_effect: {'extend', 'exclude', 'overlap', 'shrink', 'exception'}
-            Behevior at boundary effect locus
+            Behavior at boundary effect locus
 
             - 'extend'
                 - Preserve tile size
@@ -2216,8 +2216,7 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         Returns
         -------
         np.ndarray
-            - of dtype=object (Footpr
-            int)
+            - of dtype=object (Footprint)
             - of shape (M, N)
                 - with M the line count
                 - with N the column count
