@@ -58,7 +58,7 @@ def _details_of_file(path):
         minx, maxx, miny, maxy = extent
         cx, cy = (maxx + minx) / 2, (maxy + miny) / 2
         return lyr.GetSpatialRef().ExportToWkt(), (cx, cy)
-    raise ValueError('Could not open file')
+    raise ValueError(f'Could not open file {path}')
 
 def wkt_of_file(path, center=False, unit=None, implicit_unit='m'):
     """Retrieve projection of file as wkt, optionally recenter projection, optionally change
