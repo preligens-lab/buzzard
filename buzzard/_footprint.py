@@ -1929,9 +1929,10 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
         )
         if not success:
             raise ValueError(f'Could not rasterize (gdal error: `{payload[1]}`)')
-        arr = target_ds.GetRasterBand(1).ReadAsArray()
-        return arr.astype(dtype, copy=False)
-
+        arr = target_ds.GetRasterBand(1).ReadAsArray().astype(dtype, copy=False)
+        del target_ds
+        del rast_ogr_ds
+        return arr
     # Tiling ************************************************************************************ **
     def tile(self, size, overlapx=0, overlapy=0,
              boundary_effect='extend', boundary_effect_locus='br'):
