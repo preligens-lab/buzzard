@@ -1901,34 +1901,38 @@ class Footprint(TileMixin, IntersectionMixin, MoveMixin):
             dtype = conv.dtype_of_any_downcast('bool')
         gdt = conv.gdt_of_any_equiv(dtype) # Set to downcast
 
-        with (
-            gdal.GetDriverByName('MEM').Create('', int(self.rsizex), int(self.rsizey), 1, gdt) as target_ds,
-            ogr.GetDriverByName('Memory').CreateDataSource('wrk') as rast_ogr_ds,
-        ):
-            target_ds.SetGeoTransform(self.gt)
-            target_ds.SetProjection(sr_wkt)
+        target_ds = gdal.GetDriverByName('MEM').Create(
+            '', int(self.rsizex), int(self.rsizey), 1, gdt
+        )
+        target_ds.SetGeoTransform(self.gt)
+        target_ds.SetProjection(sr_wkt)
 
-            rast_mem_lyr = rast_ogr_ds.CreateLayer('polygon', srs=sr)
-            val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
-            rast_mem_lyr.CreateField(val_field)
+        rast_ogr_ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
+        rast_mem_lyr = rast_ogr_ds.CreateLayer('polygon', srs=sr)
+        val_field = ogr.FieldDefn('val', ogr.OFTInteger64)
+        rast_mem_lyr.CreateField(val_field)
 
-            for i, poly in enumerate(polys, 1):
-                feat = ogr.Feature(rast_mem_lyr.GetLayerDefn())
-                wkt_geom = poly.wkt
-                feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
-                feat.SetFieldInteger64(0, i)
-                rast_mem_lyr.CreateFeature(feat)
-            if all_touched:
-                options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
-            else:
-                options = ["ATTRIBUTE=val"]
+        for i, poly in enumerate(polys, 1):
+            feat = ogr.Feature(rast_mem_lyr.GetLayerDefn())
+            wkt_geom = poly.wkt
+            feat.SetGeometryDirectly(ogr.Geometry(wkt=wkt_geom))
+            feat.SetFieldInteger64(0, i)
+            rast_mem_lyr.CreateFeature(feat)
 
-            success, payload = Catch(gdal.RasterizeLayer, nonzero_int_is_error=True)(
-                target_ds, [1], rast_mem_lyr, options=options
-            )
-            if not success:
-                raise ValueError(f'Could not rasterize (gdal error: `{payload[1]}`)')
-            return target_ds.GetRasterBand(1).ReadAsArray().astype(dtype, copy=False)
+        if all_touched:
+            options = ["ALL_TOUCHED=TRUE, ATTRIBUTE=val"]
+        else:
+            options = ["ATTRIBUTE=val"]
+
+        success, payload = Catch(gdal.RasterizeLayer, nonzero_int_is_error=True)(
+            target_ds, [1], rast_mem_lyr, options=options
+        )
+        if not success:
+            raise ValueError(f'Could not rasterize (gdal error: `{payload[1]}`)')
+        arr = target_ds.GetRasterBand(1).ReadAsArray().astype(dtype, copy=False)
+        del target_ds
+        del rast_ogr_ds
+        return arr
 
     # Tiling ************************************************************************************ **
     def tile(self, size, overlapx=0, overlapy=0,
