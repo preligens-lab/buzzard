@@ -11,6 +11,6 @@ dependencies:
     - Rtree>=0.8.3
     - pip
     - pip:
-      - opencv-python>=3.1.0
+      - opencv-python-headless>=3.1.0
       - pint>=0.8.1
       - sortedcontainers>=1.5.9

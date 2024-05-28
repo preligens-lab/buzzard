@@ -156,19 +156,19 @@ https://buzzard.readthedocs.io/
 ## Dependencies
 The following table lists dependencies along with the minimum version, their status for the project and the related license.
 
-| Library          | Version  | Mandatory | License                                                                              | Comment                                                       |
-|------------------|----------|-----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| gdal             | >=2.3.3  | Yes       | [MIT/X](https://gdal.org/license.html)                   | Hard to install. Will be included in `buzzard` wheels         |
-| opencv-python    | >=3.1.0  | Yes       | [3-clause BSD](http://opencv.org/license.html)                                       | Easy to install with `opencv-python` wheels. Will be optional |
-| shapely          | >=1.6.1  | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)         |                                                               |
-| affine           | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
-| numpy            | >=1.15.0 | Yes       | [numpy](https://numpy.org/doc/stable/license.html)                        |                                                               |
-| scipy            | >=0.19.1 | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                                 |                                                               |
-| pint             | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               ||                                                               |
-| sortedcontainers | >=1.5.9  | Yes       | [apache](https://github.com/grantjenks/python-sortedcontainers/blob/master/LICENSE)  |                                                               |
-| Rtree            | >=0.8.3  | Yes       | [MIT](https://github.com/Toblerity/rtree/blob/master/LICENSE.txt)                    |                                                               |
-| scikit-image     | >=0.14.0 | Yes       | [scikit-image](https://github.com/scikit-image/scikit-image/blob/master/LICENSE.txt) |                                                               |
-| pytest           | >=3.2.2  | No        | [MIT](https://docs.pytest.org/en/latest/license.html)                                | Only for tests                                                |
+| Library                | Version  | Mandatory | License                                                                              | Comment                                                       |
+|------------------------|----------|-----------|--------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| gdal                   | >=2.3.3  | Yes       | [MIT/X](https://gdal.org/license.html)                                               | Hard to install. Will be included in `buzzard` wheels         |
+| opencv-python-headless | >=3.1.0  | Yes       | [3-clause BSD](http://opencv.org/license.html)                                       | Easy to install with `opencv-python-headless` wheels.         |
+| shapely                | >=1.6.1  | Yes       | [3-clause BSD](https://github.com/Toblerity/Shapely/blob/master/LICENSE.txt)         |                                                               |
+| affine                 | >=2.0.0  | Yes       | [3-clause BSD](https://github.com/sgillies/affine/blob/master/LICENSE.txt)           |                                                               |
+| numpy                  | >=1.15.0 | Yes       | [numpy](https://numpy.org/doc/stable/license.html)                                   |                                                               |
+| scipy                  | >=0.19.1 | Yes       | [scipy](https://www.scipy.org/scipylib/license.html)                                 |                                                               |
+| pint                   | >=0.8.1  | Yes       | [3-clause BSD](https://github.com/hgrecco/pint/blob/master/LICENSE)                  |                                                               |
+| sortedcontainers       | >=1.5.9  | Yes       | [apache](https://github.com/grantjenks/python-sortedcontainers/blob/master/LICENSE)  |                                                               |
+| Rtree                  | >=0.8.3  | Yes       | [MIT](https://github.com/Toblerity/rtree/blob/master/LICENSE.txt)                    |                                                               |
+| scikit-image           | >=0.14.0 | Yes       | [scikit-image](https://github.com/scikit-image/scikit-image/blob/master/LICENSE.txt) |                                                               |
+| pytest                 | >=3.2.2  | No        | [MIT](https://docs.pytest.org/en/latest/license.html)                                | Only for tests                                                |
 
 ## How to install from terminal
 ### Anaconda and pip
