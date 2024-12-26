@@ -179,11 +179,11 @@ class IntersectionMixin:
 
 def _exterior_coords_iterator(geom):
     if isinstance(geom, sg.Point):
-        yield np.asarray(geom)[None, ...]
+        yield np.asarray(geom.coords)[None, ...]
     elif isinstance(geom, sg.Polygon):
-        yield np.asarray(geom.exterior)
+        yield np.asarray(geom.exterior.coords)
     elif isinstance(geom, sg.LineString):
-        yield np.asarray(geom)
+        yield np.asarray(geom.coords)
     elif isinstance(geom, sg.base.BaseMultipartGeometry):
         for part in geom:
             yield from _exterior_coords_iterator(part)
