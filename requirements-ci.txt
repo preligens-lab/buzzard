@@ -1,5 +1,5 @@
 .
-gdal==2.4.0
+gdal==3.13.0
 
 coverage>=4.4.1
 codecov>=2.0.15
